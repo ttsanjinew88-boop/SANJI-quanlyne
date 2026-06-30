@@ -198,6 +198,18 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .add-score-btn{background:rgba(16,185,129,.15);color:var(--gr);border:1px solid rgba(16,185,129,.3);border-radius:6px;padding:3px 9px;font-size:.62rem;font-weight:700;cursor:pointer;transition:all .2s}
 .add-score-btn:hover{background:rgba(16,185,129,.25)}
 .anomaly-score{font-size:1.1rem;font-weight:900}
+.cell-edit{cursor:text}
+.cell-edit:hover{background:rgba(124,58,237,.14)!important}
+.cell-edit:focus{outline:2px solid var(--pu2);outline-offset:-2px;background:rgba(124,58,237,.2)!important}
+.bar-cell{position:relative!important;text-align:left!important;padding-left:10px!important;min-width:160px}
+.bar-fill{position:absolute;top:3px;bottom:3px;left:0;border-radius:4px;opacity:.32;z-index:0;transition:width .3s}
+.bar-text{position:relative;z-index:1;font-weight:800;font-size:.66rem}
+.ko-ov-tbl th{font-size:.55rem}
+.ko-ov-tbl td{font-size:.64rem}
+.ko-ov-foot{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px}
+.ko-ov-foot .ofc{background:linear-gradient(135deg,#1a1040,#0f1229);border:1px solid var(--border2);border-radius:8px;padding:9px 10px;text-align:center}
+.ko-ov-foot .ofc .ofl{font-size:.54rem;color:var(--mu2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.ko-ov-foot .ofc .ofv{font-size:1.05rem;font-weight:800;color:var(--go)}
 
 /* HOUR TABLE */
 .htbl{border-collapse:collapse;font-size:.68rem;width:100%}
@@ -257,8 +269,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 <div class="tabs-wrap">
   <div class="tab active" onclick="sw('day',this)">📈 Ngày</div>
   <div class="tab" onclick="sw('month',this)">📅 Tháng</div>
-  <div class="tab" onclick="sw('perf',this)">🏅 Hiệu Suất Duyệt Đơn</div>
-  <div class="tab" onclick="sw('anomaly',this)">⚠️ Xử Lý Bất Thường</div>
+  <div class="tab" onclick="sw('ko',this)">🎯 Hiệu Suất KO</div>
   <div class="tab" onclick="sw('shift',this)">⏱️ Phân Ca</div>
   <div class="tab" onclick="sw('rank',this)">🏆 Xếp Hạng</div>
   <div class="tab" onclick="sw('hour',this)">🕐 Theo Giờ</div>
@@ -297,53 +308,62 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
   <div class="sec-hdr pu">Tổng quan hiệu suất — xem chi tiết tại tab Hiệu Suất Duyệt Đơn</div>
 </div>
 
-<!-- ============ TAB: HIỆU SUẤT DUYỆT ĐƠN ============ -->
-<div class="pg" id="pg-perf">
-  <div class="view-toggle">
-    <div class="vt-btn active" onclick="smv('diem',this)">Điểm</div>
-    <div class="vt-btn" onclick="smv('don',this)">Số đơn</div>
+<!-- ============ TAB: HIỆU SUẤT KO (gộp Duyệt Đơn + Bất Thường) ============ -->
+<div class="pg" id="pg-ko">
+  <div class="view-toggle" id="koViewToggle">
+    <div class="vt-btn active" onclick="skv('overview',this)">📋 Tổng Quan</div>
+    <div class="vt-btn" onclick="skv('daily',this)">📅 Duyệt Đơn Theo Ngày</div>
+    <div class="vt-btn" onclick="skv('anomaly',this)">⚠️ Bất Thường Theo Ngày</div>
   </div>
 
-  <div class="sec-hdr" style="color:var(--vip-c)">🏆 FKVIP <span class="cnt-badge" id="vipCount">0 người</span></div>
-  <div class="fk-grid" id="perfVipGrid"></div>
-  <div class="chart-card" style="margin-bottom:10px"><div class="chart-title">So sánh FKVIP theo ngày</div><div style="height:180px"><canvas id="perfVipChart"></canvas></div></div>
-  <div class="mtbl-wrap" id="perfVipTable" style="margin-bottom:24px"></div>
+  <!-- VIEW: TỔNG QUAN -->
+  <div class="ko-view" id="ko-overview">
+    <div style="font-size:.6rem;color:var(--mu);margin-bottom:12px">💡 Cột Cộng / Trừ / Khác / Ghi chú có thể click để sửa trực tiếp — tự lưu vào trình duyệt</div>
+    <div class="sec-hdr" style="color:var(--vip-c)">🏆 FK ONLINE VIP <span class="cnt-badge" id="ovVipCount">0 người</span></div>
+    <div class="mtbl-wrap" style="margin-bottom:8px"><table class="mtbl ko-ov-tbl" id="ovVipTbl"></table></div>
+    <div class="ko-ov-foot" id="ovVipFoot"></div>
 
-  <div class="sec-hdr" style="color:var(--onl-c)">🎯 FKONL <span class="cnt-badge" id="onlCount">0 người</span></div>
-  <div class="fk-grid" id="perfOnlGrid"></div>
-  <div class="chart-card" style="margin-bottom:10px"><div class="chart-title">So sánh FKONL theo ngày</div><div style="height:180px"><canvas id="perfOnlChart"></canvas></div></div>
-  <div class="mtbl-wrap" id="perfOnlTable"></div>
-</div>
-
-<!-- ============ TAB: XỬ LÝ BẤT THƯỜNG ============ -->
-<div class="pg" id="pg-anomaly">
-  <div class="stats-row">
-    <div class="stat-card pu"><div class="stat-lbl">Tổng điểm bất thường tháng</div><div class="stat-val pu" id="an_total">0</div><div class="stat-sub">VIP + ONL</div></div>
-    <div class="stat-card go"><div class="stat-lbl">Tổng số lần ghi nhận</div><div class="stat-val go" id="an_count">0</div><div class="stat-sub">lượt xử lý</div></div>
-    <div class="stat-card gr"><div class="stat-lbl">FKVIP dẫn đầu BT</div><div class="stat-val gr" id="an_topvip">-</div><div class="stat-sub" id="an_topvips">-</div></div>
-    <div class="stat-card pk"><div class="stat-lbl">FKONL dẫn đầu BT</div><div class="stat-val pk" id="an_toponl">-</div><div class="stat-sub" id="an_toponls">-</div></div>
+    <div class="sec-hdr" style="color:var(--onl-c);margin-top:22px">🎯 FK ONLINE <span class="cnt-badge" id="ovOnlCount">0 người</span></div>
+    <div class="mtbl-wrap" style="margin-bottom:8px"><table class="mtbl ko-ov-tbl" id="ovOnlTbl"></table></div>
+    <div class="ko-ov-foot" id="ovOnlFoot"></div>
   </div>
 
-  <div class="anomaly-wrap">
-    <div class="anomaly-hdr">
-      <div class="anomaly-hdr-title" style="color:var(--vip-c)">🏆 FKVIP — Hiệu suất xử lý bất thường</div>
-      <button class="add-score-btn" onclick="openAddAnomaly('vip')">➕ Thêm điểm thủ công</button>
+  <!-- VIEW: DUYỆT ĐƠN THEO NGÀY -->
+  <div class="ko-view" id="ko-daily" style="display:none">
+    <div class="view-toggle">
+      <div class="vt-btn active" onclick="smv('diem',this)">Điểm</div>
+      <div class="vt-btn" onclick="smv('don',this)">Số đơn</div>
     </div>
-    <table class="anomaly-tbl">
-      <thead><tr><th>#</th><th>Tên</th><th>Điểm BT tháng</th><th>Số lần</th><th>Lần gần nhất</th><th>Chi tiết</th></tr></thead>
-      <tbody id="anomalyVipBody"></tbody>
-    </table>
+    <div class="sec-hdr" style="color:var(--vip-c)">🏆 FKVIP <span class="cnt-badge" id="vipCount">0 người</span></div>
+    <div class="fk-grid" id="perfVipGrid"></div>
+    <div class="chart-card" style="margin-bottom:10px"><div class="chart-title">So sánh FKVIP theo ngày</div><div style="height:180px"><canvas id="perfVipChart"></canvas></div></div>
+    <div class="mtbl-wrap" id="perfVipTable" style="margin-bottom:24px"></div>
+
+    <div class="sec-hdr" style="color:var(--onl-c)">🎯 FKONL <span class="cnt-badge" id="onlCount">0 người</span></div>
+    <div class="fk-grid" id="perfOnlGrid"></div>
+    <div class="chart-card" style="margin-bottom:10px"><div class="chart-title">So sánh FKONL theo ngày</div><div style="height:180px"><canvas id="perfOnlChart"></canvas></div></div>
+    <div class="mtbl-wrap" id="perfOnlTable"></div>
   </div>
 
-  <div class="anomaly-wrap">
-    <div class="anomaly-hdr">
-      <div class="anomaly-hdr-title" style="color:var(--onl-c)">🎯 FKONL — Hiệu suất xử lý bất thường</div>
-      <button class="add-score-btn" onclick="openAddAnomaly('onl')">➕ Thêm điểm thủ công</button>
+  <!-- VIEW: BẤT THƯỜNG THEO NGÀY -->
+  <div class="ko-view" id="ko-anomaly" style="display:none">
+    <div class="stats-row">
+      <div class="stat-card pu"><div class="stat-lbl">Tổng lượt bất thường tháng</div><div class="stat-val pu" id="an_total">0</div><div class="stat-sub" id="an_cat_lbl">Cược bất thường — Lạm dụng</div></div>
+      <div class="stat-card go"><div class="stat-lbl">FK ghi nhận nhiều nhất</div><div class="stat-val go" id="an_topall">-</div><div class="stat-sub" id="an_topalls">-</div></div>
+      <div class="stat-card gr"><div class="stat-lbl">FKVIP dẫn đầu BT</div><div class="stat-val gr" id="an_topvip">-</div><div class="stat-sub" id="an_topvips">-</div></div>
+      <div class="stat-card pk"><div class="stat-lbl">FKONL dẫn đầu BT</div><div class="stat-val pk" id="an_toponl">-</div><div class="stat-sub" id="an_toponls">-</div></div>
     </div>
-    <table class="anomaly-tbl">
-      <thead><tr><th>#</th><th>Tên</th><th>Điểm BT tháng</th><th>Số lần</th><th>Lần gần nhất</th><th>Chi tiết</th></tr></thead>
-      <tbody id="anomalyOnlBody"></tbody>
-    </table>
+    <div class="view-toggle" style="margin-bottom:14px">
+      <div class="vt-btn active" onclick="sac('abuse',this)">🎰 Cược bất thường — Lạm dụng</div>
+      <div class="vt-btn" onclick="sac('mkt',this)">🏪 Đại lý ngoài — MKT bất thường</div>
+    </div>
+    <div style="font-size:.6rem;color:var(--mu);margin-bottom:10px">💡 Click vào ô số theo ngày để sửa trực tiếp — tự lưu &amp; tính lại tổng/xếp hạng ngay (giống thao tác trên bảng tính)</div>
+
+    <div class="sec-hdr" style="color:var(--vip-c)">🏆 FKVIP <span class="cnt-badge" id="anVipCount">0 người</span></div>
+    <div class="mtbl-wrap" id="anVipTable" style="margin-bottom:24px"></div>
+
+    <div class="sec-hdr" style="color:var(--onl-c)">🎯 FKONL <span class="cnt-badge" id="anOnlCount">0 người</span></div>
+    <div class="mtbl-wrap" id="anOnlTable"></div>
   </div>
 </div>
 
@@ -398,25 +418,6 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
   <div class="chart-card"><div class="chart-title">Điểm theo giờ (GMT+7) — từng FK</div><div style="height:240px"><canvas id="h_stk"></canvas></div></div>
 </div>
 
-<!-- ============ MODAL: ADD ANOMALY SCORE ============ -->
-<div class="modal-overlay" id="anomalyModal">
-  <div class="modal">
-    <div class="modal-title">➕ Thêm điểm xử lý bất thường</div>
-    <label>Nhân viên</label>
-    <select id="am_fk"></select>
-    <label>Ngày</label>
-    <input type="date" id="am_date">
-    <label>Điểm cộng</label>
-    <input type="number" id="am_points" value="3" min="1" max="50">
-    <label>Ghi chú (tuỳ chọn)</label>
-    <input type="text" id="am_note" placeholder="VD: Phát hiện đại lý bất thường...">
-    <div class="modal-footer">
-      <button class="modal-btn cancel" onclick="closeAddAnomaly()">Huỷ</button>
-      <button class="modal-btn primary" onclick="submitAddAnomaly()">Lưu điểm</button>
-    </div>
-  </div>
-</div>
-
 <script>
 // ===== EMBEDDED DATA (replace via Upload Excel) =====
 const MD = {"month":"6/2026","days":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31],"days_in_month":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23],"hour_labels_gmt7":["00H","01H","02H","03H","04H","05H","06H","07H","08H","09H","10H","11H","12H","13H","14H","15H","16H","17H","18H","19H","20H","21H","22H","23H"],"hour_labels_gmt4":["00H","01H","02H","03H","04H","05H","06H","07H","08H","09H","10H","11H","12H","13H","14H","15H","16H","17H","18H","19H","20H","21H","22H","23H"],"day_scores":[13900,14983,15116,14952,14730,12691,11526,12119,13479,15055,15512,14959,13851,13493,16080,15936,15636,16881,16065,14964,14876,15396,15187,0,0,0,0,0,0,0,0],"day_counts":[7708,8227,8211,7947,8027,6983,6274,6633,7207,8275,8418,8470,7710,7577,8871,8828,8726,9184,8729,8235,8308,8421,8224,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[12680,9913,7184,4962,219,0,0,0,10207,15554,20239,21552,20908,22661,24141,23677,23407,20928,17936,16166,15895,16664,16986,15510],"hour_counts_gmt7":[7081,5676,4324,3054,165,0,0,0,6916,8678,10956,11608,11292,12262,12792,12339,12212,11070,9694,9026,8941,9137,9406,8564],"hour_scores_gmt4":[21552,20908,22661,24141,23677,23407,20928,17936,16166,15895,16664,16986,15510,12680,9913,7184,4962,219,0,0,0,10207,15554,20239],"hour_counts_gmt4":[11608,11292,12262,12792,12339,12212,11070,9694,9026,8941,9137,9406,8564,7081,5676,4324,3054,165,0,0,0,6916,8678,10956],"fk_data":{"fkjade":{"name":"JADE","group":"vip","total_score":31094,"total_count":17173,"day_scores":[2196,2568,1781,495,2182,1867,871,358,1327,493,1761,560,1529,501,2028,750,2712,2624,1963,575,1245,0,708,0,0,0,0,0,0,0,0],"day_counts":[1209,1401,935,284,1182,1007,453,212,713,293,960,346,877,309,1141,463,1545,1405,1024,330,664,0,420,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[0,0,0,0,0,0,0,0,1755,2246,3049,3189,3406,2720,3668,3909,3890,3251,7,0,0,0,0,0],"hour_counts_gmt7":[0,0,0,0,0,0,0,0,1227,1277,1674,1773,1886,1480,1966,2067,2071,1747,5,0,0,0,0,0]},"fkcarbon":{"name":"CARBON","group":"vip","total_score":19050,"total_count":10402,"day_scores":[1031,0,653,966,680,406,375,833,1056,0,696,639,947,369,1718,1000,1115,0,849,1661,1327,1083,1646,0,0,0,0,0,0,0,0],"day_counts":[601,0,370,499,361,211,183,499,549,0,350,354,545,215,949,538,607,0,469,908,740,579,875,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[1736,1632,853,351,10,0,0,0,0,0,0,0,0,0,0,0,0,270,2768,2372,1982,2383,2719,1971],"hour_counts_gmt7":[941,941,499,208,9,0,0,0,0,0,0,0,0,0,0,0,0,136,1470,1307,1070,1273,1487,1061]},"fkmember":{"name":"MEMBER","group":"vip","total_score":33448,"total_count":18515,"day_scores":[2212,2419,1068,2260,1810,1,312,1597,1750,2354,786,1868,1741,1691,298,549,2054,2340,611,1903,2098,1726,0,0,0,0,0,0,0,0,0],"day_counts":[1218,1285,588,1224,959,1,177,879,978,1261,454,1106,986,926,151,352,1203,1237,383,1046,1166,935,0,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[0,0,0,0,0,0,0,0,1504,1985,3156,3687,3529,3742,3490,3655,4202,4489,5,0,0,0,0,0],"hour_counts_gmt7":[0,0,0,0,0,0,0,0,1100,1148,1762,2059,1941,2106,1877,1943,2190,2384,5,0,0,0,0,0]},"fkangel":{"name":"ANGEL","group":"vip","total_score":33632,"total_count":17996,"day_scores":[1879,97,528,2123,111,842,1780,1630,1351,833,2541,2104,120,454,3194,2719,2262,803,2172,687,1981,549,2872,0,0,0,0,0,0,0,0],"day_counts":[1033,52,296,1112,62,465,913,853,685,433,1343,1123,76,281,1750,1478,1191,447,1100,380,1081,314,1528,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[0,0,0,0,0,0,0,0,1712,2733,3215,3847,4080,4453,4546,4425,3080,1536,2,0,0,0,0,0],"hour_counts_gmt7":[0,0,0,0,0,0,0,0,1125,1516,1692,1971,2202,2383,2386,2311,1608,800,2,0,0,0,0,0]},"fkgeon":{"name":"GEON","group":"vip","total_score":22130,"total_count":13100,"day_scores":[0,1284,1684,1619,820,1240,689,0,686,1316,1032,405,1366,1422,1148,0,1828,174,844,563,1496,1521,993,0,0,0,0,0,0,0,0],"day_counts":[0,776,1008,909,478,726,398,0,403,821,609,239,869,849,683,0,1062,106,517,333,899,858,557,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[2529,2497,1092,781,59,0,0,0,0,0,0,0,0,0,0,0,0,188,2169,1919,2563,2629,3038,2663],"hour_counts_gmt7":[1484,1478,698,520,44,0,0,0,0,0,0,0,0,0,0,0,0,104,1221,1125,1523,1542,1791,1570]},"fkdante":{"name":"DANTE","group":"vip","total_score":21516,"total_count":12520,"day_scores":[1009,1183,0,920,957,755,1066,582,1568,909,960,1307,372,0,1772,1649,0,1760,0,1507,0,1695,1545,0,0,0,0,0,0,0,0],"day_counts":[618,716,0,496,561,463,616,370,833,510,551,794,220,0,1042,941,0,1018,0,912,0,980,879,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[1955,1447,1269,873,40,0,0,0,0,0,0,0,0,0,0,0,0,183,3121,2597,2248,2571,2628,2583],"hour_counts_gmt7":[1105,819,797,565,35,0,0,0,0,0,0,0,0,0,0,0,0,93,1751,1539,1319,1477,1527,1493]},"fkpiu":{"name":"PIU","group":"vip","total_score":36591,"total_count":20218,"day_scores":[362,647,2637,1700,1418,1905,1690,1306,492,2782,1024,1872,1071,1693,727,2167,758,2765,2396,2302,760,2307,1810,0,0,0,0,0,0,0,0],"day_counts":[207,374,1468,886,775,1023,908,700,290,1503,564,975,650,934,435,1181,445,1493,1289,1259,491,1338,1030,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[0,0,0,0,0,0,0,0,1863,2495,3065,3654,2895,4386,4944,4381,4471,4326,106,0,0,0,0,0],"hour_counts_gmt7":[0,0,0,0,0,0,0,0,1323,1442,1699,1992,1618,2422,2636,2302,2377,2348,59,0,0,0,0,0]},"fkchamy":{"name":"CHAMY","group":"onl","total_score":15407,"total_count":7839,"day_scores":[102,549,947,777,1102,223,428,1099,626,213,344,612,1233,475,1279,79,214,470,1086,383,1134,761,1271,0,0,0,0,0,0,0,0],"day_counts":[53,269,497,390,554,107,216,535,301,111,171,318,622,245,656,38,107,244,532,211,595,409,658,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[0,0,0,0,0,0,0,0,962,1907,2103,1358,1798,1347,1516,1470,1872,1069,5,0,0,0,0,0],"hour_counts_gmt7":[0,0,0,0,0,0,0,0,541,991,1073,681,903,673,753,735,928,558,3,0,0,0,0,0]},"fkluby":{"name":"LUBY","group":"onl","total_score":24595,"total_count":13558,"day_scores":[594,782,1436,963,1729,687,1112,185,1528,475,2019,1663,872,1797,675,1958,250,253,676,1651,919,1894,477,0,0,0,0,0,0,0,0],"day_counts":[330,429,767,515,909,389,612,123,840,283,1095,903,515,986,394,1067,142,157,380,907,557,1003,255,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[0,0,0,0,0,0,0,0,1230,1758,2480,2850,2333,2721,2916,2715,2883,2650,59,0,0,0,0,0],"hour_counts_gmt7":[0,0,0,0,0,0,0,0,875,1003,1408,1564,1254,1499,1596,1404,1517,1407,31,0,0,0,0,0]},"fkaimee":{"name":"AIMEE","group":"onl","total_score":19698,"total_count":11145,"day_scores":[1427,1335,0,1358,1611,0,0,0,691,1157,1698,1487,0,1250,0,1573,1390,1183,1511,0,0,1211,816,0,0,0,0,0,0,0,0],"day_counts":[802,746,0,704,887,0,0,0,379,667,979,913,0,769,0,891,774,673,861,0,0,645,455,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[1532,1176,1250,1024,46,0,0,0,0,0,0,0,0,0,0,0,0,23,2789,2543,2488,2492,2210,2125],"hour_counts_gmt7":[864,677,759,652,36,0,0,0,0,0,0,0,0,0,0,0,0,12,1506,1431,1431,1373,1217,1187]},"fkantony":{"name":"ANTONY","group":"onl","total_score":10903,"total_count":4974,"day_scores":[579,650,977,0,0,0,4,809,0,962,835,0,1236,604,266,0,0,754,592,863,0,725,1047,0,0,0,0,0,0,0,0],"day_counts":[252,295,447,0,0,0,2,351,0,409,355,0,549,268,125,0,0,363,284,421,0,343,510,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[1003,604,602,573,9,0,0,0,0,0,0,0,0,0,0,0,0,40,1421,1550,1317,1313,1190,1281],"hour_counts_gmt7":[477,276,285,259,5,0,0,0,0,0,0,0,0,0,0,0,0,18,635,697,599,593,541,589]},"fktrucia":{"name":"TRUCIA","group":"onl","total_score":21353,"total_count":12361,"day_scores":[21,1394,1539,0,1574,1854,2043,1881,59,2376,0,1660,29,1446,0,225,24,1861,1534,0,1819,0,14,0,0,0,0,0,0,0,0],"day_counts":[10,840,863,0,910,1093,1177,1100,30,1382,0,977,16,879,0,129,13,1034,899,0,1001,0,8,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[2243,1313,1108,840,42,0,0,0,0,0,0,0,0,0,0,0,0,76,2624,2452,2722,2657,2636,2640],"hour_counts_gmt7":[1302,795,727,539,27,0,0,0,0,0,0,0,0,0,0,0,0,36,1493,1439,1591,1471,1479,1462]},"fkminty":{"name":"MINTY","group":"onl","total_score":12238,"total_count":6281,"day_scores":[205,933,314,662,269,917,47,295,326,925,187,56,583,1085,278,1153,375,1134,540,1182,35,308,429,0,0,0,0,0,0,0,0],"day_counts":[109,462,149,340,141,432,21,132,173,470,99,31,312,544,149,609,206,603,281,601,18,158,241,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[0,0,0,0,0,0,0,0,311,1002,1488,1160,1319,1512,1359,1563,1315,1190,19,0,0,0,0,0],"hour_counts_gmt7":[0,0,0,0,0,0,0,0,189,521,756,609,680,781,704,770,663,598,10,0,0,0,0,0]},"fkbrenna":{"name":"BRENNA","group":"onl","total_score":15643,"total_count":8224,"day_scores":[1246,1143,34,26,469,1143,147,221,448,262,135,729,1297,708,1505,533,1241,42,114,394,639,1607,1560,0,0,0,0,0,0,0,0],"day_counts":[686,582,16,16,248,592,79,109,225,132,81,391,680,372,773,307,660,22,56,198,337,854,808,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[0,0,0,0,0,0,0,0,870,1428,1684,1808,1549,1781,1702,1559,1695,1560,7,0,0,0,0,0],"hour_counts_gmt7":[0,0,0,0,0,0,0,0,536,780,892,959,808,918,874,807,858,787,5,0,0,0,0,0]},"fkseren":{"name":"SEREN","group":"onl","total_score":20126,"total_count":10887,"day_scores":[1038,0,1519,1085,0,852,963,1325,1572,0,1497,0,1457,0,1194,1583,1415,720,1178,1293,1425,10,0,0,0,0,0,0,0,0,0],"day_counts":[580,0,807,572,0,474,519,770,808,0,807,0,793,0,623,834,771,382,654,729,759,5,0,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[1683,1244,1010,520,13,0,0,0,0,0,0,0,0,0,0,0,0,78,2835,2734,2576,2620,2565,2248],"hour_counts_gmt7":[908,690,559,311,9,0,0,0,0,0,0,0,0,0,0,0,0,42,1498,1488,1408,1408,1364,1202]}},"fkvip":["fkjade","fkcarbon","fkmember","fkangel","fkgeon","fkdante","fkpiu"],"fkonl":["fkchamy","fkluby","fkaimee","fkantony","fktrucia","fkminty","fkbrenna","fkseren"]};
@@ -436,31 +437,38 @@ function co(s){return{responsive:true,maintainAspectRatio:false,scales:{x:{stack
 function coL(s){const o=co(s);o.plugins.legend={display:true,labels:{color:"#94a3b8",font:{size:9},boxWidth:9}};return o;}
 
 let D=MD,CH={},dCh=null,selDay=null,rkGrp="vip",mView="diem",selFK=null;
+let koView="overview",anCat="abuse";
 let shAssign={};
 FK_KEYS.forEach(fk=>shAssign[fk]=null);
 ["fkangel","fkpiu","fkcarbon","fkdante","fkgeon"].forEach(fk=>shAssign[fk]="sang");
 ["fkjade","fkmember"].forEach(fk=>shAssign[fk]="trung");
 
-// ===== ANOMALY SCORE STORE (localStorage) =====
-const ANOMALY_KEY = "fk_anomaly_scores_v1";
-function loadAnomaly(){
-  try{return JSON.parse(localStorage.getItem(ANOMALY_KEY))||{};}catch(e){return {};}
-}
-function saveAnomaly(data){localStorage.setItem(ANOMALY_KEY,JSON.stringify(data));}
-let ANOMALY = loadAnomaly();
+// ===== KO: BẢNG TỔNG QUAN (Cộng/Trừ/Khác/Ghi chú) — localStorage =====
+const KO_OV_KEY="fk_ko_overview_v1";
+function loadKoOv(){try{return JSON.parse(localStorage.getItem(KO_OV_KEY))||{};}catch(e){return {};}}
+function saveKoOv(){localStorage.setItem(KO_OV_KEY,JSON.stringify(KO_OV));}
+let KO_OV=loadKoOv();
+function ovGet(fk){return KO_OV[fk]||{cong:0,tru:0,khac:"",note:""};}
+function ovSet(fk,field,val){if(!KO_OV[fk])KO_OV[fk]={cong:0,tru:0,khac:"",note:""};KO_OV[fk][field]=val;saveKoOv();}
 
-function addAnomalyScore(fkKey,dateStr,points,note){
-  if(!ANOMALY[fkKey])ANOMALY[fkKey]=[];
-  ANOMALY[fkKey].push({date:dateStr,points:Number(points),note:note||""});
-  saveAnomaly(ANOMALY);
-}
+// ===== KO: BẢNG BẤT THƯỜNG THEO NGÀY (2 danh mục) — localStorage =====
+const KO_AN_KEY="fk_ko_anomaly_grid_v1";
+const AN_CATS={abuse:"Cược bất thường — Lạm dụng",mkt:"Đại lý ngoài — MKT bất thường"};
+function loadKoAn(){try{const d=JSON.parse(localStorage.getItem(KO_AN_KEY));return d&&d.abuse?d:{abuse:{},mkt:{}};}catch(e){return {abuse:{},mkt:{}};}}
+function saveKoAn(){localStorage.setItem(KO_AN_KEY,JSON.stringify(KO_AN));}
+let KO_AN=loadKoAn();
+function anGet(cat,fk,day){return (KO_AN[cat]&&KO_AN[cat][fk]&&KO_AN[cat][fk][day])||0;}
+function anSet(cat,fk,day,val){if(!KO_AN[cat])KO_AN[cat]={};if(!KO_AN[cat][fk])KO_AN[cat][fk]={};KO_AN[cat][fk][day]=Math.max(0,Number(val)||0);saveKoAn();}
+function anTotal(cat,fk){const m=(KO_AN[cat]&&KO_AN[cat][fk])||{};return Object.values(m).reduce((s,v)=>s+(Number(v)||0),0);}
+function anAdd(cat,fk,day,delta){anSet(cat,fk,day,anGet(cat,fk,day)+delta);}
 
-// Auto-confirm via URL params (Telegram bot deep-link): ?confirm_anomaly=fkjade&date=2026-06-15&points=3
+// Auto-confirm via URL params (Telegram bot deep-link): ?confirm_anomaly=fkjade&date=2026-06-15&cat=abuse&count=1
 (function handleUrlConfirm(){
   const p=new URLSearchParams(location.search);
-  const fk=p.get("confirm_anomaly"),date=p.get("date"),pts=p.get("points")||3,note=p.get("note")||"Xác nhận qua Telegram";
+  const fk=p.get("confirm_anomaly"),date=p.get("date"),cat=p.get("cat")==="mkt"?"mkt":"abuse",cnt=Number(p.get("count")||1);
   if(fk&&FK_KEYS.includes(fk)&&date){
-    addAnomalyScore(fk,date,pts,note);
+    const day=Number(date.slice(-2));
+    anAdd(cat,fk,day,cnt);
     history.replaceState(null,"",location.pathname);
   }
 })();
@@ -642,15 +650,16 @@ function finalizeResult(nd){
 
 // ===== NAVIGATION =====
 function sw(pg,el){document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));document.querySelectorAll(".pg").forEach(p=>p.classList.remove("active"));el.classList.add("active");document.getElementById("pg-"+pg).classList.add("active");rAll();}
-function smv(v,el){mView=v;document.querySelectorAll(".vt-btn").forEach(t=>{if(t.id!=="rkVipBtn"&&t.id!=="rkOnlBtn")t.classList.remove("active");});el.classList.add("active");rPerf();}
+function smv(v,el){mView=v;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");rKoDaily();}
 function srk(g,el){rkGrp=g;selFK=null;document.getElementById("dp").classList.remove("show");document.getElementById("rkVipBtn").classList.remove("active");document.getElementById("rkOnlBtn").classList.remove("active");el.classList.add("active");rRank();}
+function skv(v,el){koView=v;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");document.querySelectorAll(".ko-view").forEach(p=>p.style.display="none");document.getElementById("ko-"+v).style.display="block";rKO();}
+function sac(c,el){anCat=c;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");rKoAnomaly();}
 function rAll(){
   const act=document.querySelector(".pg.active")?.id;
   bldDayBtns();
   if(act==="pg-day"){if(!selDay&&D.days_in_month?.length)selDay=D.days_in_month[0];rDay();}
   if(act==="pg-month")rMonth();
-  if(act==="pg-perf")rPerf();
-  if(act==="pg-anomaly")rAnomaly();
+  if(act==="pg-ko")rKO();
   if(act==="pg-shift")rShiftPanel();
   if(act==="pg-rank")rRank();
   if(act==="pg-hour")rHour();
@@ -736,7 +745,7 @@ function buildPerfTable(fkList,isS){
   h+="</tr></tbody></table>";
   return h;
 }
-function rPerf(){
+function rKoDaily(){
   const isS=mView==="diem";
   document.getElementById("vipCount").textContent=D.fkvip.length+" người";
   document.getElementById("onlCount").textContent=D.fkonl.length+" người";
@@ -751,73 +760,131 @@ function rPerf(){
   dch("perfOnlChart");CH.perfOnlChart=new Chart(document.getElementById("perfOnlChart"),{type:"line",data:{labels:actD.map(d=>""+d),datasets:D.fkonl.filter(fk=>D.fk_data[fk].total_score>0).map(fk=>({label:D.fk_data[fk].name,data:actD.map(d=>isS?D.fk_data[fk].day_scores[d-1]:D.fk_data[fk].day_counts[d-1]),borderColor:FK_COL[fk],backgroundColor:ha(FK_COL[fk],.08),tension:.3,pointRadius:1.5,borderWidth:1.8}))},options:coL(false)});
 }
 
-// ===== TAB: XỬ LÝ BẤT THƯỜNG (FKVIP / FKONL) =====
-function anomalySummary(fk){
-  const entries=ANOMALY[fk]||[];
-  const total=entries.reduce((s,e)=>s+Number(e.points||0),0);
-  const count=entries.length;
-  const last=entries.length?entries.reduce((a,b)=>a.date>b.date?a:b):null;
-  return {total,count,last,entries};
-}
-function anomalyRowHtml(fk,rank){
+// ===== TAB: TỔNG QUAN (Cộng/Trừ/Khác/KPI — giống bảng cũ, click để sửa) =====
+function ovWorkDays(fk){
   const fd=D.fk_data[fk];
-  const s=anomalySummary(fk);
-  const detailId="an_detail_"+fk;
-  return `<tr>
-    <td>${rank}</td>
-    <td><b>${fd?fd.name:FK_NAMES[fk]}</b></td>
-    <td><span class="anomaly-score" style="color:${s.total>0?'#10b981':'#475569'}">${s.total>0?'+'+nn(s.total):'0'}</span></td>
-    <td>${s.count}</td>
-    <td>${s.last?s.last.date:'-'}</td>
-    <td><button class="add-score-btn" onclick="toggleAnomalyDetail('${fk}')" style="background:rgba(124,58,237,.15);color:#9f67ff;border-color:rgba(124,58,237,.3)">👁 Xem (${s.count})</button></td>
-  </tr>
-  <tr id="${detailId}" style="display:none"><td colspan="6" style="background:#0a0d20;padding:0">
-    ${s.entries.length?'<div style="padding:10px 16px;font-size:.65rem;color:#94a3b8">'+s.entries.slice().reverse().map(e=>`<div style="padding:5px 0;border-bottom:1px solid #1e2545;display:flex;justify-content:space-between"><span>${e.date} ${e.note?'— '+e.note:''}</span><b style="color:#10b981">+${nn(e.points)}</b></div>`).join('')+'</div>':'<div style="padding:10px 16px;font-size:.65rem;color:#475569">Chưa có ghi nhận nào</div>'}
-  </td></tr>`;
+  return (D.days_in_month||[]).filter(d=>(fd.day_scores[d-1]||0)>0).length;
 }
-function toggleAnomalyDetail(fk){
-  const el=document.getElementById("an_detail_"+fk);
-  if(el)el.style.display=el.style.display==="none"?"table-row":"none";
+function buildOvTable(fkList){
+  const ranked=[...fkList].sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score);
+  const rm={};ranked.forEach((fk,i)=>{rm[fk]=i+1;});
+  const grpTotal=fkList.reduce((s,fk)=>s+D.fk_data[fk].total_score,0)||1;
+  const maxTotal=Math.max(...fkList.map(fk=>D.fk_data[fk].total_score),1);
+  let h="<thead><tr><th style='text-align:left'>Tên nhân viên</th><th>BXH</th><th style='text-align:left'>Tổng (duyệt đơn)</th><th>Ngày làm việc</th><th>TB ngày duyệt</th><th>Tỷ trọng</th><th>Cộng</th><th>Trừ</th><th>Khác</th><th>Tổng KPI</th><th style='text-align:left'>Ghi chú</th></tr></thead><tbody>";
+  fkList.forEach(fk=>{
+    const fd=D.fk_data[fk],tot=fd.total_score,wd=ovWorkDays(fk),avg=wd?Math.round(tot/wd):0,pct=Math.round(tot/grpTotal*1000)/10;
+    const ov=ovGet(fk);
+    const kpi=tot+Number(ov.cong||0)-Number(ov.tru||0);
+    const barPct=Math.round(tot/maxTotal*100);
+    const col=FK_COL[fk]||"#7c3aed";
+    const rnk=rm[fk],bc=rnk===1?"cell-1":rnk===2?"cell-2":rnk===3?"cell-3":"";
+    h+=`<tr>
+      <td class="sticky-col"><b>${fd.name}</b></td>
+      <td class="${bc}">${rnk}</td>
+      <td class="bar-cell"><div class="bar-fill" style="width:${barPct}%;background:${col}"></div><span class="bar-text">${nn(tot)}</span></td>
+      <td>${wd}</td>
+      <td>${nn(avg)}</td>
+      <td>${pct}%</td>
+      <td class="cell-edit" contenteditable="true" data-fk="${fk}" data-f="cong" onblur="onOvBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" style="color:#10b981;font-weight:700">${ov.cong||0}</td>
+      <td class="cell-edit" contenteditable="true" data-fk="${fk}" data-f="tru" onblur="onOvBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" style="color:#ef4444;font-weight:700">${ov.tru||0}</td>
+      <td class="cell-edit" contenteditable="true" data-fk="${fk}" data-f="khac" onblur="onOvBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${ov.khac||""}</td>
+      <td style="font-weight:800;color:var(--go)">${nn(kpi)}</td>
+      <td class="cell-edit" contenteditable="true" data-fk="${fk}" data-f="note" onblur="onOvBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" style="text-align:left">${ov.note||""}</td>
+    </tr>`;
+  });
+  h+="</tbody>";
+  return h;
 }
-function rAnomaly(){
-  const vRanked=[...D.fkvip].sort((a,b)=>anomalySummary(b).total-anomalySummary(a).total);
-  const oRanked=[...D.fkonl].sort((a,b)=>anomalySummary(b).total-anomalySummary(a).total);
-  document.getElementById("anomalyVipBody").innerHTML=vRanked.map((fk,i)=>anomalyRowHtml(fk,i+1)).join("");
-  document.getElementById("anomalyOnlBody").innerHTML=oRanked.map((fk,i)=>anomalyRowHtml(fk,i+1)).join("");
+function ovFootHtml(fkList){
+  const n=fkList.length||1;
+  const sumScore=fkList.reduce((s,fk)=>s+D.fk_data[fk].total_score,0);
+  const sumCount=fkList.reduce((s,fk)=>s+D.fk_data[fk].total_count,0);
+  const avgScore=Math.round(sumScore/n*10)/10;
+  const avgCount=Math.round(sumCount/n);
+  const avgPct=Math.round((100/n)*10)/10;
+  return `<div class="ofc"><div class="ofl">Điểm TB / người</div><div class="ofv">${nn(avgScore)}</div><div style="font-size:.6rem;color:var(--mu2)">${nn(avgCount)} đơn TB</div></div>
+  <div class="ofc"><div class="ofl">${fkList.length} FK chính thức</div><div class="ofv">${nn(sumScore)}</div></div>
+  <div class="ofc"><div class="ofl">Hiệu suất TB (tỷ trọng đều)</div><div class="ofv">${avgPct}%</div></div>`;
+}
+function onOvBlur(el){
+  const fk=el.dataset.fk,f=el.dataset.f;
+  let val=el.textContent.trim();
+  if(f==="cong"||f==="tru"){val=val.replace(/[^\d.-]/g,"");}
+  ovSet(fk,f,(f==="cong"||f==="tru")?Number(val||0):val);
+  rKoOverview();
+}
+function rKoOverview(){
+  document.getElementById("ovVipCount").textContent=D.fkvip.length+" người";
+  document.getElementById("ovOnlCount").textContent=D.fkonl.length+" người";
+  document.getElementById("ovVipTbl").innerHTML=buildOvTable(D.fkvip);
+  document.getElementById("ovOnlTbl").innerHTML=buildOvTable(D.fkonl);
+  document.getElementById("ovVipFoot").innerHTML=ovFootHtml(D.fkvip);
+  document.getElementById("ovOnlFoot").innerHTML=ovFootHtml(D.fkonl);
+}
 
-  let totalAll=0,countAll=0;
-  FK_KEYS.forEach(fk=>{const s=anomalySummary(fk);totalAll+=s.total;countAll+=s.count;});
+// ===== TAB: BẤT THƯỜNG THEO NGÀY (lưới đếm theo ngày, click sửa — giống Excel) =====
+function buildAnGrid(fkList){
+  const allD=Array.from({length:31},(_,i)=>i+1),actD=D.days_in_month||[];
+  const ranked=[...fkList].sort((a,b)=>anTotal(anCat,b)-anTotal(anCat,a));
+  const rm={};ranked.forEach((fk,i)=>{rm[fk]=i+1;});
+  let h="<table class='mtbl'><thead><tr><th class='sticky-col'>TÊN NHÂN VIÊN</th><th>BXH</th><th>Tổng</th>";
+  allD.forEach(d=>{h+="<th style='"+(actD.includes(d)?"":"color:#1e2545")+"'>"+d+"</th>";});
+  h+="</tr></thead><tbody>";
+  fkList.forEach(fk=>{
+    const fd=D.fk_data[fk],tot=anTotal(anCat,fk),rnk=rm[fk],bc=rnk===1?"cell-1":rnk===2?"cell-2":rnk===3?"cell-3":"";
+    h+="<tr><td class='sticky-col'>"+fd.name+"</td><td class='"+bc+"'>"+rnk+"</td><td class='cell-tot'>"+(tot>0?nn(tot):"-")+"</td>";
+    allD.forEach(d=>{
+      if(!actD.includes(d)){h+="<td class='cell-zero'>-</td>";return;}
+      const v=anGet(anCat,fk,d);
+      h+=`<td class="cell-edit" contenteditable="true" data-fk="${fk}" data-day="${d}" onblur="onAnBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${v||""}</td>`;
+    });
+    h+="</tr>";
+  });
+  const tg=fkList.reduce((s,fk)=>s+anTotal(anCat,fk),0);
+  h+="<tr class='total-row'><td class='sticky-col'>TỔNG</td><td>-</td><td>"+nn(tg)+"</td>";
+  allD.forEach(d=>{
+    if(!actD.includes(d)){h+="<td>-</td>";return;}
+    const v=fkList.reduce((s,fk)=>s+anGet(anCat,fk,d),0);
+    h+="<td>"+(v>0?nn(v):"-")+"</td>";
+  });
+  h+="</tr></tbody></table>";
+  return h;
+}
+function onAnBlur(el){
+  const fk=el.dataset.fk,day=Number(el.dataset.day);
+  const val=el.textContent.replace(/[^\d]/g,"");
+  anSet(anCat,fk,day,Number(val||0));
+  rKoAnomaly();
+}
+function rKoAnomaly(){
+  document.getElementById("an_cat_lbl").textContent=AN_CATS[anCat];
+  document.getElementById("anVipCount").textContent=D.fkvip.length+" người";
+  document.getElementById("anOnlCount").textContent=D.fkonl.length+" người";
+  document.getElementById("anVipTable").innerHTML=buildAnGrid(D.fkvip);
+  document.getElementById("anOnlTable").innerHTML=buildAnGrid(D.fkonl);
+
+  const vRanked=[...D.fkvip].sort((a,b)=>anTotal(anCat,b)-anTotal(anCat,a));
+  const oRanked=[...D.fkonl].sort((a,b)=>anTotal(anCat,b)-anTotal(anCat,a));
+  const totalAll=FK_KEYS.reduce((s,fk)=>s+anTotal(anCat,fk),0);
   document.getElementById("an_total").textContent=nn(totalAll);
-  document.getElementById("an_count").textContent=nn(countAll);
 
-  const topVip=vRanked[0],topVipS=topVip?anomalySummary(topVip):null;
-  const topOnl=oRanked[0],topOnlS=topOnl?anomalySummary(topOnl):null;
-  document.getElementById("an_topvip").textContent=topVipS&&topVipS.total>0?D.fk_data[topVip].name:"-";
-  document.getElementById("an_topvips").textContent=topVipS&&topVipS.total>0?"+"+nn(topVipS.total)+" điểm":"-";
-  document.getElementById("an_toponl").textContent=topOnlS&&topOnlS.total>0?D.fk_data[topOnl].name:"-";
-  document.getElementById("an_toponls").textContent=topOnlS&&topOnlS.total>0?"+"+nn(topOnlS.total)+" điểm":"-";
+  const topVip=vRanked[0],topVipT=topVip?anTotal(anCat,topVip):0;
+  const topOnl=oRanked[0],topOnlT=topOnl?anTotal(anCat,topOnl):0;
+  document.getElementById("an_topvip").textContent=topVipT>0?D.fk_data[topVip].name:"-";
+  document.getElementById("an_topvips").textContent=topVipT>0?nn(topVipT)+" lượt":"-";
+  document.getElementById("an_toponl").textContent=topOnlT>0?D.fk_data[topOnl].name:"-";
+  document.getElementById("an_toponls").textContent=topOnlT>0?nn(topOnlT)+" lượt":"-";
+
+  const allRanked=[...FK_KEYS].sort((a,b)=>anTotal(anCat,b)-anTotal(anCat,a));
+  const topAll=allRanked[0],topAllT=topAll?anTotal(anCat,topAll):0;
+  document.getElementById("an_topall").textContent=topAllT>0?D.fk_data[topAll].name:"-";
+  document.getElementById("an_topalls").textContent=topAllT>0?nn(topAllT)+" lượt":"-";
 }
 
-// ===== MODAL: Thêm điểm bất thường thủ công =====
-function openAddAnomaly(group){
-  const list=group==="vip"?D.fkvip:D.fkonl;
-  const sel=document.getElementById("am_fk");
-  sel.innerHTML=list.map(fk=>`<option value="${fk}">${D.fk_data[fk].name} (${group.toUpperCase()})</option>`).join("");
-  document.getElementById("am_date").value=new Date().toISOString().slice(0,10);
-  document.getElementById("am_points").value=3;
-  document.getElementById("am_note").value="";
-  document.getElementById("anomalyModal").classList.add("show");
-}
-function closeAddAnomaly(){document.getElementById("anomalyModal").classList.remove("show");}
-function submitAddAnomaly(){
-  const fk=document.getElementById("am_fk").value;
-  const date=document.getElementById("am_date").value;
-  const pts=document.getElementById("am_points").value;
-  const note=document.getElementById("am_note").value;
-  if(!fk||!date||!pts){alert("Vui lòng điền đủ thông tin");return;}
-  addAnomalyScore(fk,date,pts,note);
-  closeAddAnomaly();
-  rAnomaly();
+function rKO(){
+  if(koView==="overview")rKoOverview();
+  else if(koView==="daily")rKoDaily();
+  else rKoAnomaly();
 }
 
 // ===== TAB: PHÂN CA =====
