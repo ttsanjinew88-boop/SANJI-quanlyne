@@ -210,6 +210,10 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .ko-ov-foot .ofc{background:linear-gradient(135deg,#1a1040,#0f1229);border:1px solid var(--border2);border-radius:8px;padding:9px 10px;text-align:center}
 .ko-ov-foot .ofc .ofl{font-size:.54rem;color:var(--mu2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
 .ko-ov-foot .ofc .ofv{font-size:1.05rem;font-weight:800;color:var(--go)}
+.mtbl tr.onl-row td{background:rgba(59,130,246,.07)!important}
+.mtbl tr.onl-row td.sticky-col{background:rgba(59,130,246,.14)!important}
+.mtbl tr.vip-row td{background:rgba(240,180,41,.035)!important}
+.mtbl tr.vip-row td.sticky-col{background:rgba(240,180,41,.09)!important}
 
 /* HOUR TABLE */
 .htbl{border-collapse:collapse;font-size:.68rem;width:100%}
@@ -263,6 +267,8 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     <div id="hDate" class="hdate hdr-date">Tháng 06/2026</div>
     <label for="fh" class="upload-btn">📁 Upload Excel</label>
     <input type="file" id="fh" accept=".xlsx,.xls" multiple>
+    <label for="fhKM" class="upload-btn" style="background:rgba(16,185,129,.18);border-color:rgba(16,185,129,.35)">🎁 Upload KM</label>
+    <input type="file" id="fhKM" accept=".xlsx,.xls" multiple>
   </div>
 </div>
 
@@ -334,15 +340,25 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       <div class="vt-btn active" onclick="smv('diem',this)">Điểm</div>
       <div class="vt-btn" onclick="smv('don',this)">Số đơn</div>
     </div>
-    <div class="sec-hdr" style="color:var(--vip-c)">🏆 FKVIP <span class="cnt-badge" id="vipCount">0 người</span></div>
-    <div class="fk-grid" id="perfVipGrid"></div>
-    <div class="chart-card" style="margin-bottom:10px"><div class="chart-title">So sánh FKVIP theo ngày</div><div style="height:180px"><canvas id="perfVipChart"></canvas></div></div>
-    <div class="mtbl-wrap" id="perfVipTable" style="margin-bottom:24px"></div>
 
+    <div class="sec-hdr" style="color:var(--pu2)">📋 Hiệu Suất Duyệt Đơn</div>
+    <div class="sec-hdr" style="color:var(--vip-c)">🏆 FKVIP <span class="cnt-badge" id="vipCount">0 người</span></div>
+    <div class="fk-grid" id="perfVipGrid" style="margin-bottom:12px"></div>
     <div class="sec-hdr" style="color:var(--onl-c)">🎯 FKONL <span class="cnt-badge" id="onlCount">0 người</span></div>
-    <div class="fk-grid" id="perfOnlGrid"></div>
-    <div class="chart-card" style="margin-bottom:10px"><div class="chart-title">So sánh FKONL theo ngày</div><div style="height:180px"><canvas id="perfOnlChart"></canvas></div></div>
-    <div class="mtbl-wrap" id="perfOnlTable"></div>
+    <div class="fk-grid" id="perfOnlGrid" style="margin-bottom:12px"></div>
+    <div class="mtbl-wrap" id="perfCombinedTable" style="margin-bottom:26px"></div>
+
+    <div class="sec-hdr" style="color:#10b981">🎁 Hiệu Suất Duyệt Khuyến Mãi <span class="cnt-badge" id="kmStatusBadge" style="background:rgba(239,68,68,.15);color:#ef4444">Chưa có dữ liệu</span></div>
+    <div id="kmEmptyState" style="font-size:.65rem;color:var(--mu);padding:14px;border:1px dashed var(--border2);border-radius:8px;text-align:center">
+      Chưa có dữ liệu khuyến mãi tháng này — bấm <label for="fhKM" style="color:#10b981;font-weight:700;cursor:pointer;text-decoration:underline">Upload Excel Khuyến Mãi</label> ở góc trên để tải lên.
+    </div>
+    <div id="kmDataWrap" style="display:none">
+      <div class="sec-hdr" style="color:var(--vip-c)">🏆 FKVIP <span class="cnt-badge" id="kmVipCount">0 người</span></div>
+      <div class="fk-grid" id="kmVipGrid" style="margin-bottom:12px"></div>
+      <div class="sec-hdr" style="color:var(--onl-c)">🎯 FKONL <span class="cnt-badge" id="kmOnlCount">0 người</span></div>
+      <div class="fk-grid" id="kmOnlGrid" style="margin-bottom:12px"></div>
+      <div class="mtbl-wrap" id="kmCombinedTable"></div>
+    </div>
   </div>
 
   <!-- VIEW: BẤT THƯỜNG THEO NGÀY -->
@@ -436,7 +452,7 @@ function hrs(f,t){const a=[];if(f<=t){for(let h=f;h<=t;h++)a.push(h);}else{for(l
 function co(s){return{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:s,grid:{color:"rgba(255,255,255,.04)"},ticks:{color:"#64748b",font:{size:9}},border:{color:"#1e2545"}},y:{stacked:s,grid:{color:"rgba(255,255,255,.06)"},ticks:{color:"#64748b",font:{size:9}},border:{color:"#1e2545"}}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#131830",titleColor:"#e2e8f0",bodyColor:"#94a3b8",borderColor:"#252d55",borderWidth:1}}};}
 function coL(s){const o=co(s);o.plugins.legend={display:true,labels:{color:"#94a3b8",font:{size:9},boxWidth:9}};return o;}
 
-let D=MD,CH={},dCh=null,selDay=null,rkGrp="vip",mView="diem",selFK=null;
+let D=MD,KMD=null,CH={},dCh=null,selDay=null,rkGrp="vip",mView="diem",selFK=null;
 let koView="overview",anCat="abuse";
 let shAssign={};
 FK_KEYS.forEach(fk=>shAssign[fk]=null);
@@ -513,13 +529,19 @@ document.getElementById("fh").addEventListener("change",function(e){
   const files=Array.from(e.target.files);
   if(!files.length)return;
   e.target.value="";
-  processFiles(files,0,null);
+  processFiles(files,0,null,"don");
+});
+document.getElementById("fhKM").addEventListener("change",function(e){
+  const files=Array.from(e.target.files);
+  if(!files.length)return;
+  e.target.value="";
+  processFiles(files,0,null,"km");
 });
 
-function processFiles(files,idx,acc){
-  if(idx>=files.length){finalizeResult(acc);return;}
+function processFiles(files,idx,acc,target){
+  if(idx>=files.length){finalizeResult(acc,target);return;}
   const file=files[idx];
-  showProg(files.map(f=>f.name).join(", "));
+  showProg((target==="km"?"[Khuyến Mãi] ":"")+files.map(f=>f.name).join(", "));
   setProg(0,"Đang đọc file "+(idx+1)+"/"+files.length+"...","");
   const reader=new FileReader();
   reader.onload=function(ev){
@@ -533,7 +555,7 @@ function processFiles(files,idx,acc){
         setTimeout(function(){
           const aoa=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:""});
           const nd=initAccum();
-          processChunks(aoa,1,nd,files,idx,acc);
+          processChunks(aoa,1,nd,files,idx,acc,target);
         },30);
       }catch(err){hideProg();alert("Lỗi đọc file: "+err.message);}
     },50);
@@ -563,7 +585,7 @@ function initAccum(){
   return nd;
 }
 
-function processChunks(aoa,start,nd,files,fileIdx,prevAcc){
+function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
   const CHUNK=10000;
   const total=aoa.length;
   const end=Math.min(start+CHUNK,total);
@@ -596,10 +618,10 @@ function processChunks(aoa,start,nd,files,fileIdx,prevAcc){
   const totalPct=Math.round(fileBase+pct*fileShare/100);
   setProg(Math.min(99,totalPct),"Đã xử lý "+end.toLocaleString()+" / "+total.toLocaleString()+" dòng","File "+(fileIdx+1)+" / "+files.length);
   if(end<total){
-    setTimeout(()=>processChunks(aoa,end,nd,files,fileIdx,prevAcc),0);
+    setTimeout(()=>processChunks(aoa,end,nd,files,fileIdx,prevAcc,target),0);
   }else{
     const merged=mergeAccum(prevAcc,nd);
-    processFiles(files,fileIdx+1,merged);
+    processFiles(files,fileIdx+1,merged,target);
   }
 }
 
@@ -618,7 +640,7 @@ function mergeAccum(base,add){
   return base;
 }
 
-function finalizeResult(nd){
+function finalizeResult(nd,target){
   setProg(100,"Hoàn tất!","Đang cập nhật giao diện...");
   setTimeout(function(){
     for(let i=0;i<31;i++) nd.day_scores[i]=Math.ceil(nd._dayRaw[i]);
@@ -641,8 +663,12 @@ function finalizeResult(nd){
     nd.hour_labels_gmt7=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
     nd.hour_labels_gmt4=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
     nd.fkvip=FKVIP; nd.fkonl=FKONL;
-    D=nd;
-    document.getElementById("hDate").textContent="Tháng "+nd.month;
+    if(target==="km"){
+      KMD=nd;
+    }else{
+      D=nd;
+      document.getElementById("hDate").textContent="Tháng "+nd.month;
+    }
     hideProg();
     rAll();
   },50);
@@ -704,16 +730,17 @@ function rMonth(){
   dch("mdc");CH.mdc=new Chart(document.getElementById("mdc"),{type:"bar",data:{labels:actD.map(d=>""+d),datasets:[{label:"Điểm",data:actD.map(d=>D.day_scores[d-1]),backgroundColor:actD.map(d=>d===pd?"rgba(245,158,11,.85)":"rgba(124,58,237,.55)"),borderColor:actD.map(d=>d===pd?"#f59e0b":"#7c3aed"),borderWidth:1,borderRadius:4}]},options:co(false)});
 }
 
-// ===== TAB: HIỆU SUẤT DUYỆT ĐƠN (FKVIP / FKONL riêng biệt) =====
-function fkGroupCardHtml(fk,rank,isS){
-  const fd=D.fk_data[fk];
+// ===== TAB: HIỆU SUẤT DUYỆT ĐƠN (FKVIP / FKONL gộp 1 bảng, xếp hạng riêng biệt) =====
+function fkGroupCardHtml(fk,rank,isS,dataObj){
+  dataObj=dataObj||D;
+  const fd=dataObj.fk_data[fk];
   const tot=isS?fd.total_score:fd.total_count;
-  const max=isS?Math.max(...[...D.fkvip,...D.fkonl].map(k=>D.fk_data[k].total_score),1):Math.max(...[...D.fkvip,...D.fkonl].map(k=>D.fk_data[k].total_count),1);
+  const max=isS?Math.max(...[...dataObj.fkvip,...dataObj.fkonl].map(k=>dataObj.fk_data[k].total_score),1):Math.max(...[...dataObj.fkvip,...dataObj.fkonl].map(k=>dataObj.fk_data[k].total_count),1);
   const pct=Math.round((tot/max)*100);
   const col=FK_COL[fk]||"#7c3aed";
   const badgeCls=fd.group==="vip"?"vip-badge":"onl-badge";
   const rankCol=rank===1?"background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#111":rank===2?"background:linear-gradient(135deg,#94a3b8,#cbd5e1);color:#111":rank===3?"background:linear-gradient(135deg,#cd7f32,#b87333);color:#fff":"background:#1e2545;color:#64748b";
-  return `<div class="fk-card" onclick="rPerfDetail('${fk}')">
+  return `<div class="fk-card" onclick="rPerfDetail('${fk}','${dataObj===KMD?'km':'don'}')">
     <div class="fk-card-rank" style="${rankCol}">${tot>0?rank:"-"}</div>
     <div class="fk-card-type ${badgeCls}">${fd.group==="vip"?"FKVIP":"FKONL"}</div>
     <div class="fk-card-name">${fd.name}</div>
@@ -722,26 +749,35 @@ function fkGroupCardHtml(fk,rank,isS){
     <div class="fk-mini-bar"><div class="fk-mini-bar-fill" style="width:${pct}%;background:${col}"></div></div>
   </div>`;
 }
-function rPerfDetail(fk){
-  const fd=D.fk_data[fk];
-  alert(fd.name+" — "+(fd.group==="vip"?"FKVIP":"FKONL")+"\nTổng điểm: "+nn(fd.total_score)+"\nTổng đơn: "+nn(fd.total_count));
+function rPerfDetail(fk,which){
+  const dataObj=which==="km"?KMD:D;
+  if(!dataObj)return;
+  const fd=dataObj.fk_data[fk];
+  alert(fd.name+" — "+(fd.group==="vip"?"FKVIP":"FKONL")+(which==="km"?" (Khuyến Mãi)":" (Duyệt Đơn)")+"\nTổng điểm: "+nn(fd.total_score)+"\nTổng đơn: "+nn(fd.total_count));
 }
-function buildPerfTable(fkList,isS){
-  const allD=Array.from({length:31},(_,i)=>i+1),actD=D.days_in_month||[];
-  const ranked=[...fkList].sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score);
-  const rm={};ranked.forEach((fk,i)=>{rm[fk]=D.fk_data[fk].total_score>0?i+1:"-";});
+function buildCombinedPerfTable(dataObj,isS){
+  const allD=Array.from({length:31},(_,i)=>i+1),actD=dataObj.days_in_month||[];
+  const vipRanked=[...dataObj.fkvip].sort((a,b)=>dataObj.fk_data[b].total_score-dataObj.fk_data[a].total_score);
+  const onlRanked=[...dataObj.fkonl].sort((a,b)=>dataObj.fk_data[b].total_score-dataObj.fk_data[a].total_score);
+  const vipRank={};vipRanked.forEach((fk,i)=>{vipRank[fk]=dataObj.fk_data[fk].total_score>0?i+1:"-";});
+  const onlRank={};onlRanked.forEach((fk,i)=>{onlRank[fk]=dataObj.fk_data[fk].total_score>0?i+1:"-";});
   let h="<table class='mtbl'><thead><tr><th class='sticky-col'>TÊN NHÂN VIÊN</th><th>BXH</th><th>Tổng</th>";
   allD.forEach(d=>{h+="<th style='"+(actD.includes(d)?"":"color:#1e2545")+"'>"+d+"</th>";});
   h+="</tr></thead><tbody>";
-  fkList.forEach(fk=>{
-    const fd=D.fk_data[fk],tot=isS?fd.total_score:fd.total_count,rnk=rm[fk],bc=rnk===1?"cell-1":rnk===2?"cell-2":rnk===3?"cell-3":"";
-    h+="<tr><td class='sticky-col'>"+fd.name+"</td><td class='"+bc+"'>"+rnk+"</td><td class='cell-tot'>"+(tot>0?nn(tot):"-")+"</td>";
-    allD.forEach(d=>{const v=isS?fd.day_scores[d-1]:fd.day_counts[d-1];h+="<td class='"+(v===0?"cell-zero":v>=(isS?2000:800)?"cell-hi":"")+"'>"+(v===0?"-":nn(v))+"</td>";});
-    h+="</tr>";
-  });
-  const tg=isS?fkList.reduce((s,fk)=>s+D.fk_data[fk].total_score,0):fkList.reduce((s,fk)=>s+D.fk_data[fk].total_count,0);
+  function rowsFor(list,rankMap,rowCls){
+    list.forEach(fk=>{
+      const fd=dataObj.fk_data[fk],tot=isS?fd.total_score:fd.total_count,rnk=rankMap[fk],bc=rnk===1?"cell-1":rnk===2?"cell-2":rnk===3?"cell-3":"";
+      h+="<tr class='"+rowCls+"'><td class='sticky-col'>"+fd.name+"</td><td class='"+bc+"'>"+rnk+"</td><td class='cell-tot'>"+(tot>0?nn(tot):"-")+"</td>";
+      allD.forEach(d=>{const v=isS?fd.day_scores[d-1]:fd.day_counts[d-1];h+="<td class='"+(v===0?"cell-zero":v>=(isS?2000:800)?"cell-hi":"")+"'>"+(v===0?"-":nn(v))+"</td>";});
+      h+="</tr>";
+    });
+  }
+  rowsFor(dataObj.fkvip,vipRank,"vip-row");
+  rowsFor(dataObj.fkonl,onlRank,"onl-row");
+  const allFK=[...dataObj.fkvip,...dataObj.fkonl];
+  const tg=isS?allFK.reduce((s,fk)=>s+dataObj.fk_data[fk].total_score,0):allFK.reduce((s,fk)=>s+dataObj.fk_data[fk].total_count,0);
   h+="<tr class='total-row'><td class='sticky-col'>TỔNG</td><td>-</td><td>"+nn(tg)+"</td>";
-  allD.forEach(d=>{const v=isS?fkList.reduce((s,fk)=>s+D.fk_data[fk].day_scores[d-1],0):fkList.reduce((s,fk)=>s+D.fk_data[fk].day_counts[d-1],0);h+="<td>"+(v>0?nn(v):"-")+"</td>";});
+  allD.forEach(d=>{const v=isS?allFK.reduce((s,fk)=>s+dataObj.fk_data[fk].day_scores[d-1],0):allFK.reduce((s,fk)=>s+dataObj.fk_data[fk].day_counts[d-1],0);h+="<td>"+(v>0?nn(v):"-")+"</td>";});
   h+="</tr></tbody></table>";
   return h;
 }
@@ -751,15 +787,28 @@ function rKoDaily(){
   document.getElementById("onlCount").textContent=D.fkonl.length+" người";
   const vRanked=[...D.fkvip].sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score);
   const oRanked=[...D.fkonl].sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score);
-  document.getElementById("perfVipGrid").innerHTML=vRanked.map((fk,i)=>fkGroupCardHtml(fk,i+1,isS)).join("");
-  document.getElementById("perfOnlGrid").innerHTML=oRanked.map((fk,i)=>fkGroupCardHtml(fk,i+1,isS)).join("");
-  document.getElementById("perfVipTable").innerHTML=buildPerfTable(D.fkvip,isS);
-  document.getElementById("perfOnlTable").innerHTML=buildPerfTable(D.fkonl,isS);
-  const actD=D.days_in_month||[];
-  dch("perfVipChart");CH.perfVipChart=new Chart(document.getElementById("perfVipChart"),{type:"line",data:{labels:actD.map(d=>""+d),datasets:D.fkvip.filter(fk=>D.fk_data[fk].total_score>0).map(fk=>({label:D.fk_data[fk].name,data:actD.map(d=>isS?D.fk_data[fk].day_scores[d-1]:D.fk_data[fk].day_counts[d-1]),borderColor:FK_COL[fk],backgroundColor:ha(FK_COL[fk],.08),tension:.3,pointRadius:1.5,borderWidth:1.8}))},options:coL(false)});
-  dch("perfOnlChart");CH.perfOnlChart=new Chart(document.getElementById("perfOnlChart"),{type:"line",data:{labels:actD.map(d=>""+d),datasets:D.fkonl.filter(fk=>D.fk_data[fk].total_score>0).map(fk=>({label:D.fk_data[fk].name,data:actD.map(d=>isS?D.fk_data[fk].day_scores[d-1]:D.fk_data[fk].day_counts[d-1]),borderColor:FK_COL[fk],backgroundColor:ha(FK_COL[fk],.08),tension:.3,pointRadius:1.5,borderWidth:1.8}))},options:coL(false)});
-}
+  document.getElementById("perfVipGrid").innerHTML=vRanked.map((fk,i)=>fkGroupCardHtml(fk,i+1,isS,D)).join("");
+  document.getElementById("perfOnlGrid").innerHTML=oRanked.map((fk,i)=>fkGroupCardHtml(fk,i+1,isS,D)).join("");
+  document.getElementById("perfCombinedTable").innerHTML=buildCombinedPerfTable(D,isS);
 
+  if(KMD){
+    document.getElementById("kmEmptyState").style.display="none";
+    document.getElementById("kmDataWrap").style.display="block";
+    const badge=document.getElementById("kmStatusBadge");
+    badge.textContent="Tháng "+(KMD.month||"-");
+    badge.style.cssText="background:rgba(16,185,129,.15);color:#10b981";
+    document.getElementById("kmVipCount").textContent=KMD.fkvip.length+" người";
+    document.getElementById("kmOnlCount").textContent=KMD.fkonl.length+" người";
+    const kv=[...KMD.fkvip].sort((a,b)=>KMD.fk_data[b].total_score-KMD.fk_data[a].total_score);
+    const ko=[...KMD.fkonl].sort((a,b)=>KMD.fk_data[b].total_score-KMD.fk_data[a].total_score);
+    document.getElementById("kmVipGrid").innerHTML=kv.map((fk,i)=>fkGroupCardHtml(fk,i+1,isS,KMD)).join("");
+    document.getElementById("kmOnlGrid").innerHTML=ko.map((fk,i)=>fkGroupCardHtml(fk,i+1,isS,KMD)).join("");
+    document.getElementById("kmCombinedTable").innerHTML=buildCombinedPerfTable(KMD,isS);
+  }else{
+    document.getElementById("kmEmptyState").style.display="block";
+    document.getElementById("kmDataWrap").style.display="none";
+  }
+}
 // ===== TAB: TỔNG QUAN (Cộng/Trừ/Khác/KPI — giống bảng cũ, click để sửa) =====
 function ovWorkDays(fk){
   const fd=D.fk_data[fk];
@@ -770,10 +819,11 @@ function buildOvTable(fkList){
   const rm={};ranked.forEach((fk,i)=>{rm[fk]=i+1;});
   const grpTotal=fkList.reduce((s,fk)=>s+D.fk_data[fk].total_score,0)||1;
   const maxTotal=Math.max(...fkList.map(fk=>D.fk_data[fk].total_score),1);
-  let h="<thead><tr><th style='text-align:left'>Tên nhân viên</th><th>BXH</th><th style='text-align:left'>Tổng (duyệt đơn)</th><th>Ngày làm việc</th><th>TB ngày duyệt</th><th>Tỷ trọng</th><th>Cộng</th><th>Trừ</th><th>Khác</th><th>Tổng KPI</th><th style='text-align:left'>Ghi chú</th></tr></thead><tbody>";
+  let h="<thead><tr><th style='text-align:left'>Tên nhân viên</th><th>BXH</th><th style='text-align:left'>Tổng (duyệt đơn)</th><th style='color:#10b981'>Tổng KM</th><th>Ngày làm việc</th><th>TB ngày duyệt</th><th>Tỷ trọng</th><th>Cộng</th><th>Trừ</th><th>Khác</th><th>Tổng KPI</th><th style='text-align:left'>Ghi chú</th></tr></thead><tbody>";
   fkList.forEach(fk=>{
     const fd=D.fk_data[fk],tot=fd.total_score,wd=ovWorkDays(fk),avg=wd?Math.round(tot/wd):0,pct=Math.round(tot/grpTotal*1000)/10;
     const ov=ovGet(fk);
+    const kmTot=KMD?(KMD.fk_data[fk]?KMD.fk_data[fk].total_score:0):null;
     const kpi=tot+Number(ov.cong||0)-Number(ov.tru||0);
     const barPct=Math.round(tot/maxTotal*100);
     const col=FK_COL[fk]||"#7c3aed";
@@ -782,6 +832,7 @@ function buildOvTable(fkList){
       <td class="sticky-col"><b>${fd.name}</b></td>
       <td class="${bc}">${rnk}</td>
       <td class="bar-cell"><div class="bar-fill" style="width:${barPct}%;background:${col}"></div><span class="bar-text">${nn(tot)}</span></td>
+      <td style="color:#10b981;font-weight:700">${kmTot===null?"-":nn(kmTot)}</td>
       <td>${wd}</td>
       <td>${nn(avg)}</td>
       <td>${pct}%</td>
