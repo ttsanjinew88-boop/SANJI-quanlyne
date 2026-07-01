@@ -32,6 +32,11 @@ html,body{min-height:100vh;background:var(--bg);color:var(--tx);font-family:"Seg
 .upload-btn{background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:.72rem;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(124,58,237,.3);transition:all .2s}
 .upload-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,.45)}
 input#fh{display:none}
+.upload-dd-wrap{position:relative}
+.upload-dd-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:6px;min-width:180px;box-shadow:0 12px 32px rgba(0,0,0,.5);z-index:50}
+.upload-dd-menu.show{display:block}
+.upload-dd-item{padding:9px 12px;border-radius:7px;font-size:.7rem;font-weight:700;color:var(--tx);cursor:pointer;white-space:nowrap}
+.upload-dd-item:hover{background:rgba(124,58,237,.18)}
 
 /* PROGRESS */
 #progOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center}
@@ -265,53 +270,80 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
   <div class="hdr-right">
     <div class="hdr-badge">GMT−4 / GMT+7</div>
     <div id="hDate" class="hdate hdr-date">Tháng 06/2026</div>
-    <label for="fh" class="upload-btn">📁 Upload Excel</label>
-    <input type="file" id="fh" accept=".xlsx,.xls" multiple>
-    <label for="fhKM" class="upload-btn" style="background:rgba(16,185,129,.18);border-color:rgba(16,185,129,.35)">🎁 Upload KM</label>
-    <input type="file" id="fhKM" accept=".xlsx,.xls" multiple>
+    <div class="upload-dd-wrap">
+      <button type="button" class="upload-btn" onclick="toggleUploadMenu(event)">📁 Upload Excel ▾</button>
+      <div class="upload-dd-menu" id="uploadDdMenu">
+        <div class="upload-dd-item" onclick="pickUploadType('don')">📋 Duyệt Đơn</div>
+        <div class="upload-dd-item" onclick="pickUploadType('km')">🎁 Duyệt Khuyến Mãi</div>
+      </div>
+    </div>
+    <input type="file" id="fh" accept=".xlsx,.xls" multiple style="display:none">
   </div>
 </div>
 
 <div class="tabs-wrap">
-  <div class="tab active" onclick="sw('day',this)">📈 Ngày</div>
-  <div class="tab" onclick="sw('month',this)">📅 Tháng</div>
+  <div class="tab active" onclick="sw('data',this)">📊 Dữ Liệu</div>
   <div class="tab" onclick="sw('ko',this)">🎯 Hiệu Suất KO</div>
   <div class="tab" onclick="sw('shift',this)">⏱️ Phân Ca</div>
   <div class="tab" onclick="sw('rank',this)">🏆 Xếp Hạng</div>
-  <div class="tab" onclick="sw('hour',this)">🕐 Theo Giờ</div>
 </div>
 
-<!-- ============ TAB: NGÀY ============ -->
-<div class="pg active" id="pg-day">
-  <div id="dayBtns"></div>
-  <div class="stats-row">
-    <div class="stat-card pu"><div class="stat-lbl">Tổng điểm ngày</div><div class="stat-val pu" id="d_s">-</div><div class="stat-sub" id="d_ss">-</div></div>
-    <div class="stat-card go"><div class="stat-lbl">Tổng đơn ngày</div><div class="stat-val go" id="d_c">-</div><div class="stat-sub">đơn xử lý</div></div>
-    <div class="stat-card bl"><div class="stat-lbl">Giờ cao điểm (GMT+7)</div><div class="stat-val bl" id="d_ph">-</div><div class="stat-sub" id="d_ps">-</div></div>
-    <div class="stat-card gr"><div class="stat-lbl">FK dẫn đầu VIP</div><div class="stat-val gr" id="d_tv">-</div><div class="stat-sub" id="d_tvs">-</div></div>
-    <div class="stat-card pk"><div class="stat-lbl">FK dẫn đầu ONL</div><div class="stat-val pk" id="d_to">-</div><div class="stat-sub" id="d_tos">-</div></div>
+<!-- ============ TAB: DỮ LIỆU (gộp Ngày + Tháng + Theo Giờ, có nguồn Duyệt Đơn/Khuyến Mãi) ============ -->
+<div class="pg active" id="pg-data">
+  <div class="view-toggle">
+    <div class="vt-btn active" onclick="sds('don',this)">📋 Duyệt Đơn</div>
+    <div class="vt-btn" onclick="sds('km',this)">🎁 Khuyến Mãi</div>
   </div>
-  <div class="g21">
-    <div class="chart-card"><div class="chart-title">Điểm theo giờ — GMT−4 và GMT+7</div><div style="height:230px"><canvas id="dhc"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">⭐ Top 3 giờ (GMT+7)</div><div class="top3-list" id="dt3"></div></div>
+  <div class="view-toggle">
+    <div class="vt-btn active" onclick="ssv('day',this)">📈 Theo Ngày</div>
+    <div class="vt-btn" onclick="ssv('month',this)">📅 Theo Tháng</div>
+    <div class="vt-btn" onclick="ssv('hour',this)">🕐 Theo Giờ</div>
   </div>
-  <div class="g2">
-    <div class="chart-card"><div class="chart-title" style="color:var(--vip-c)">🏆 FKVIP theo giờ</div><div style="height:200px"><canvas id="dvc"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title" style="color:var(--onl-c)">🎯 FKONL theo giờ</div><div style="height:200px"><canvas id="doc"></canvas></div></div>
-  </div>
-</div>
 
-<!-- ============ TAB: THÁNG ============ -->
-<div class="pg" id="pg-month">
-  <div class="stats-row">
-    <div class="stat-card pu"><div class="stat-lbl">Tổng điểm tháng</div><div class="stat-val pu" id="m_s">-</div><div class="stat-sub" id="m_p">-</div></div>
-    <div class="stat-card go"><div class="stat-lbl">Tổng đơn</div><div class="stat-val go" id="m_c">-</div><div class="stat-sub">đơn trong tháng</div></div>
-    <div class="stat-card bl"><div class="stat-lbl">Ngày cao điểm</div><div class="stat-val bl" id="m_pd">-</div><div class="stat-sub" id="m_pds">-</div></div>
-    <div class="stat-card gr"><div class="stat-lbl">FK dẫn đầu VIP</div><div class="stat-val gr" id="m_tv">-</div><div class="stat-sub" id="m_tvs">-</div></div>
-    <div class="stat-card pk"><div class="stat-lbl">FK dẫn đầu ONL</div><div class="stat-val pk" id="m_to">-</div><div class="stat-sub" id="m_tos">-</div></div>
+  <div id="dataEmptyKm" style="display:none;font-size:.65rem;color:var(--mu);padding:18px;border:1px dashed var(--border2);border-radius:8px;text-align:center">
+    Chưa có dữ liệu Khuyến Mãi — bấm <b style="color:#10b981">Upload Excel ▾ → Duyệt Khuyến Mãi</b> ở góc trên để tải lên.
   </div>
-  <div class="chart-card" style="margin-bottom:16px"><div class="chart-title">Điểm theo ngày</div><div style="height:200px"><canvas id="mdc"></canvas></div></div>
-  <div class="sec-hdr pu">Tổng quan hiệu suất — xem chi tiết tại tab Hiệu Suất Duyệt Đơn</div>
+
+  <div id="dataBody">
+    <div class="data-sub" id="data-day">
+      <div id="dayBtns"></div>
+      <div class="stats-row">
+        <div class="stat-card pu"><div class="stat-lbl">Tổng điểm ngày</div><div class="stat-val pu" id="d_s">-</div><div class="stat-sub" id="d_ss">-</div></div>
+        <div class="stat-card go"><div class="stat-lbl">Tổng đơn ngày</div><div class="stat-val go" id="d_c">-</div><div class="stat-sub">đơn xử lý</div></div>
+        <div class="stat-card bl"><div class="stat-lbl">Giờ cao điểm (GMT+7)</div><div class="stat-val bl" id="d_ph">-</div><div class="stat-sub" id="d_ps">-</div></div>
+        <div class="stat-card gr"><div class="stat-lbl">FK dẫn đầu VIP</div><div class="stat-val gr" id="d_tv">-</div><div class="stat-sub" id="d_tvs">-</div></div>
+        <div class="stat-card pk"><div class="stat-lbl">FK dẫn đầu ONL</div><div class="stat-val pk" id="d_to">-</div><div class="stat-sub" id="d_tos">-</div></div>
+      </div>
+      <div class="g21">
+        <div class="chart-card"><div class="chart-title">Điểm theo giờ — GMT−4 và GMT+7</div><div style="height:230px"><canvas id="dhc"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">⭐ Top 3 giờ (GMT+7)</div><div class="top3-list" id="dt3"></div></div>
+      </div>
+      <div class="g2">
+        <div class="chart-card"><div class="chart-title" style="color:var(--vip-c)">🏆 FKVIP theo giờ</div><div style="height:200px"><canvas id="dvc"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title" style="color:var(--onl-c)">🎯 FKONL theo giờ</div><div style="height:200px"><canvas id="doc"></canvas></div></div>
+      </div>
+    </div>
+
+    <div class="data-sub" id="data-month" style="display:none">
+      <div class="stats-row">
+        <div class="stat-card pu"><div class="stat-lbl">Tổng điểm tháng</div><div class="stat-val pu" id="m_s">-</div><div class="stat-sub" id="m_p">-</div></div>
+        <div class="stat-card go"><div class="stat-lbl">Tổng đơn</div><div class="stat-val go" id="m_c">-</div><div class="stat-sub">đơn trong tháng</div></div>
+        <div class="stat-card bl"><div class="stat-lbl">Ngày cao điểm</div><div class="stat-val bl" id="m_pd">-</div><div class="stat-sub" id="m_pds">-</div></div>
+        <div class="stat-card gr"><div class="stat-lbl">FK dẫn đầu VIP</div><div class="stat-val gr" id="m_tv">-</div><div class="stat-sub" id="m_tvs">-</div></div>
+        <div class="stat-card pk"><div class="stat-lbl">FK dẫn đầu ONL</div><div class="stat-val pk" id="m_to">-</div><div class="stat-sub" id="m_tos">-</div></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:16px"><div class="chart-title">Điểm theo ngày</div><div style="height:200px"><canvas id="mdc"></canvas></div></div>
+      <div class="sec-hdr pu">Tổng quan hiệu suất — xem chi tiết tại tab Hiệu Suất KO</div>
+    </div>
+
+    <div class="data-sub" id="data-hour" style="display:none">
+      <div class="sec-hdr pu">Bảng giờ GMT−4 và GMT+7</div>
+      <div class="mtbl-wrap" style="margin-bottom:16px"><table class="htbl"><thead><tr><th class="col-g4">GMT−4</th><th class="col-g7">GMT+7</th><th class="col-g7">Điểm</th><th class="col-g7">Số đơn</th><th class="col-g4">Điểm GMT−4</th></tr></thead><tbody id="htblBody"></tbody></table></div>
+      <div class="stats-row" id="h_stats"></div>
+      <div class="chart-card" style="margin-bottom:14px"><div class="chart-title">Số đơn theo giờ (GMT+7)</div><div style="height:180px"><canvas id="h_cnt"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Điểm theo giờ (GMT+7) — từng FK</div><div style="height:240px"><canvas id="h_stk"></canvas></div></div>
+    </div>
+  </div>
 </div>
 
 <!-- ============ TAB: HIỆU SUẤT KO (gộp Duyệt Đơn + Bất Thường) ============ -->
@@ -425,14 +457,6 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
   </div>
 </div>
 
-<!-- ============ TAB: THEO GIỜ ============ -->
-<div class="pg" id="pg-hour">
-  <div class="sec-hdr pu">Bảng giờ GMT−4 và GMT+7</div>
-  <div class="mtbl-wrap" style="margin-bottom:16px"><table class="htbl"><thead><tr><th class="col-g4">GMT−4</th><th class="col-g7">GMT+7</th><th class="col-g7">Điểm</th><th class="col-g7">Số đơn</th><th class="col-g4">Điểm GMT−4</th></tr></thead><tbody id="htblBody"></tbody></table></div>
-  <div class="stats-row" id="h_stats"></div>
-  <div class="chart-card" style="margin-bottom:14px"><div class="chart-title">Số đơn theo giờ (GMT+7)</div><div style="height:180px"><canvas id="h_cnt"></canvas></div></div>
-  <div class="chart-card"><div class="chart-title">Điểm theo giờ (GMT+7) — từng FK</div><div style="height:240px"><canvas id="h_stk"></canvas></div></div>
-</div>
 
 <script>
 // ===== EMBEDDED DATA (replace via Upload Excel) =====
@@ -524,18 +548,40 @@ function gsc(b,a,s){
 }
 function mfk(note){const n=note.toLowerCase();for(const fk of FK_KEYS)if(n.includes(FK_SEARCH[fk]))return fk;return null;}
 
+// ===== UPLOAD DROPDOWN (chọn loại trước khi mở file picker) =====
+let pendingUploadTarget=null;
+function toggleUploadMenu(ev){
+  ev.stopPropagation();
+  document.getElementById("uploadDdMenu").classList.toggle("show");
+}
+function pickUploadType(target){
+  pendingUploadTarget=target;
+  document.getElementById("uploadDdMenu").classList.remove("show");
+  document.getElementById("fh").click();
+}
+document.addEventListener("click",function(e){
+  const menu=document.getElementById("uploadDdMenu");
+  if(menu&&menu.classList.contains("show")&&!e.target.closest(".upload-dd-wrap"))menu.classList.remove("show");
+});
+
 // ===== FILE UPLOAD =====
 document.getElementById("fh").addEventListener("change",function(e){
   const files=Array.from(e.target.files);
   if(!files.length)return;
   e.target.value="";
-  processFiles(files,0,null,"don");
-});
-document.getElementById("fhKM").addEventListener("change",function(e){
-  const files=Array.from(e.target.files);
-  if(!files.length)return;
-  e.target.value="";
-  processFiles(files,0,null,"km");
+  const target=pendingUploadTarget||"don";
+  pendingUploadTarget=null;
+  // Cảnh báo mềm nếu tên file gợi ý sai loại đang chọn (không chặn, chỉ xác nhận lại)
+  const allNames=files.map(f=>f.name.toLowerCase()).join(" | ");
+  const looksKM=/\bkm\b|khuyenmai|khuyến mãi|khuyen mai|promo/i.test(allNames);
+  const looksDon=/duyet ?don|duyệt đơn|don hang|đơn hàng/i.test(allNames);
+  if(target==="don"&&looksKM&&!looksDon){
+    if(!confirm("Tên file (\""+files.map(f=>f.name).join(", ")+"\") trông giống dữ liệu KHUYẾN MÃI, nhưng bạn đang chọn tải vào mục DUYỆT ĐƠN.\n\nBạn có chắc muốn tiếp tục?"))return;
+  }
+  if(target==="km"&&looksDon&&!looksKM){
+    if(!confirm("Tên file (\""+files.map(f=>f.name).join(", ")+"\") trông giống dữ liệu DUYỆT ĐƠN, nhưng bạn đang chọn tải vào mục KHUYẾN MÃI.\n\nBạn có chắc muốn tiếp tục?"))return;
+  }
+  processFiles(files,0,null,target);
 });
 
 function processFiles(files,idx,acc,target){
@@ -663,6 +709,12 @@ function finalizeResult(nd,target){
     nd.hour_labels_gmt7=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
     nd.hour_labels_gmt4=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
     nd.fkvip=FKVIP; nd.fkonl=FKONL;
+    const totalMatched=FK_KEYS.reduce((s,fk)=>s+nd.fk_data[fk].total_count,0);
+    if(totalMatched===0){
+      hideProg();
+      alert("❌ Không nhận diện được dữ liệu nào trong file.\n\nVui lòng kiểm tra lại:\n— File có đúng định dạng/cột như mẫu không?\n— Bạn có đang chọn đúng loại tải lên (Duyệt Đơn / Khuyến Mãi) không?\n\nDữ liệu hiện có KHÔNG bị thay đổi.");
+      return;
+    }
     if(target==="km"){
       KMD=nd;
     }else{
@@ -680,54 +732,66 @@ function smv(v,el){mView=v;el.parentElement.querySelectorAll(".vt-btn").forEach(
 function srk(g,el){rkGrp=g;selFK=null;document.getElementById("dp").classList.remove("show");document.getElementById("rkVipBtn").classList.remove("active");document.getElementById("rkOnlBtn").classList.remove("active");el.classList.add("active");rRank();}
 function skv(v,el){koView=v;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");document.querySelectorAll(".ko-view").forEach(p=>p.style.display="none");document.getElementById("ko-"+v).style.display="block";rKO();}
 function sac(c,el){anCat=c;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");rKoAnomaly();}
+let dataSrc="don",dataSubview="day";
+function sds(src,el){dataSrc=src;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");rDataTab();}
+function ssv(v,el){dataSubview=v;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");document.querySelectorAll(".data-sub").forEach(p=>p.style.display="none");document.getElementById("data-"+v).style.display="block";rDataTab();}
+function curDataSet(){return dataSrc==="km"?KMD:D;}
+function rDataTab(){
+  const ds=curDataSet();
+  const empty=document.getElementById("dataEmptyKm"),body=document.getElementById("dataBody");
+  if(dataSrc==="km"&&!ds){empty.style.display="block";body.style.display="none";return;}
+  empty.style.display="none";body.style.display="block";
+  if(dataSubview==="day"){if(!selDay&&ds.days_in_month?.length)selDay=ds.days_in_month[0];bldDayBtns(ds);rDay(ds);}
+  if(dataSubview==="month")rMonth(ds);
+  if(dataSubview==="hour")rHour(ds);
+}
 function rAll(){
   const act=document.querySelector(".pg.active")?.id;
-  bldDayBtns();
-  if(act==="pg-day"){if(!selDay&&D.days_in_month?.length)selDay=D.days_in_month[0];rDay();}
-  if(act==="pg-month")rMonth();
+  if(act==="pg-data")rDataTab();
   if(act==="pg-ko")rKO();
   if(act==="pg-shift")rShiftPanel();
   if(act==="pg-rank")rRank();
-  if(act==="pg-hour")rHour();
 }
-function bldDayBtns(){document.getElementById("dayBtns").innerHTML=(D.days_in_month||[]).map(d=>"<button class='day-btn"+(selDay===d?" active":"")+"' onclick='sDy("+d+",this)'>"+String(d).padStart(2,"0")+"</button>").join("");}
-function sDy(d,el){selDay=d;document.querySelectorAll(".day-btn").forEach(b=>b.classList.remove("active"));el.classList.add("active");rDay();}
+function bldDayBtns(ds){ds=ds||curDataSet();document.getElementById("dayBtns").innerHTML=(ds.days_in_month||[]).map(d=>"<button class='day-btn"+(selDay===d?" active":"")+"' onclick='sDy("+d+",this)'>"+String(d).padStart(2,"0")+"</button>").join("");}
+function sDy(d,el){selDay=d;document.querySelectorAll(".day-btn").forEach(b=>b.classList.remove("active"));el.classList.add("active");rDay(curDataSet());}
 
-// ===== TAB: NGÀY =====
-function rDay(){
+// ===== TAB: DỮ LIỆU — Theo Ngày =====
+function rDay(ds){
+  ds=ds||curDataSet();if(!ds)return;
   const d=selDay;if(!d)return;
-  const ts=D.day_scores[d-1]||0,tc=D.day_counts[d-1]||0;
-  const hs7=D.hour_scores_gmt7,peakH=hs7.indexOf(Math.max(...hs7));
+  const ts=ds.day_scores[d-1]||0,tc=ds.day_counts[d-1]||0;
+  const hs7=ds.hour_scores_gmt7,peakH=hs7.indexOf(Math.max(...hs7));
   document.getElementById("d_s").textContent=nn(ts);
-  document.getElementById("d_ss").textContent="Ngày "+String(d).padStart(2,"0")+" / Tháng "+D.month;
+  document.getElementById("d_ss").textContent="Ngày "+String(d).padStart(2,"0")+" / Tháng "+ds.month;
   document.getElementById("d_c").textContent=nn(tc);
   document.getElementById("d_ph").textContent=String(peakH).padStart(2,"0")+"H–"+String((peakH+1)%24).padStart(2,"0")+"H";
-  document.getElementById("d_ps").textContent=nn(D.hour_counts_gmt7[peakH])+" đơn/h";
-  const fkd={};FK_KEYS.forEach(fk=>fkd[fk]=D.fk_data[fk].day_scores[d-1]||0);
-  const vs=[...D.fkvip].sort((a,b)=>fkd[b]-fkd[a]),os=[...D.fkonl].sort((a,b)=>fkd[b]-fkd[a]);
-  document.getElementById("d_tv").textContent=vs[0]?D.fk_data[vs[0]].name:"-";document.getElementById("d_tvs").textContent=vs[0]?nn(fkd[vs[0]])+" điểm":"-";
-  document.getElementById("d_to").textContent=os[0]?D.fk_data[os[0]].name:"-";document.getElementById("d_tos").textContent=os[0]?nn(fkd[os[0]])+" điểm":"-";
-  const top3=hs7.map((s,i)=>({h:i,s,c:D.hour_counts_gmt7[i]})).sort((a,b)=>b.s-a.s).slice(0,3);
+  document.getElementById("d_ps").textContent=nn(ds.hour_counts_gmt7[peakH])+" đơn/h";
+  const fkd={};FK_KEYS.forEach(fk=>fkd[fk]=ds.fk_data[fk].day_scores[d-1]||0);
+  const vs=[...ds.fkvip].sort((a,b)=>fkd[b]-fkd[a]),os=[...ds.fkonl].sort((a,b)=>fkd[b]-fkd[a]);
+  document.getElementById("d_tv").textContent=vs[0]?ds.fk_data[vs[0]].name:"-";document.getElementById("d_tvs").textContent=vs[0]?nn(fkd[vs[0]])+" điểm":"-";
+  document.getElementById("d_to").textContent=os[0]?ds.fk_data[os[0]].name:"-";document.getElementById("d_tos").textContent=os[0]?nn(fkd[os[0]])+" điểm":"-";
+  const top3=hs7.map((s,i)=>({h:i,s,c:ds.hour_counts_gmt7[i]})).sort((a,b)=>b.s-a.s).slice(0,3);
   document.getElementById("dt3").innerHTML=top3.map((x,i)=>"<div class='top3-item'><div class='top3-rank rk"+(i+1)+"'>"+(i+1)+"</div><div class='top3-label'>"+String(x.h).padStart(2,"0")+"H – "+String((x.h+1)%24).padStart(2,"0")+"H</div><div><div class='top3-val'>"+nn(x.s)+"</div><div class='top3-sub'>"+nn(x.c)+" đơn</div></div></div>").join("");
-  const hs4=D.hour_scores_gmt4,lbl=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
+  const hs4=ds.hour_scores_gmt4,lbl=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
   dch("dhc");CH.dhc=new Chart(document.getElementById("dhc"),{type:"line",data:{labels:lbl,datasets:[{label:"GMT−4",data:hs4,borderColor:"#94a3b8",backgroundColor:"rgba(148,163,184,.05)",fill:true,tension:.4,pointRadius:2,borderWidth:1.5,borderDash:[4,3]},{label:"GMT+7",data:hs7,borderColor:"#7c3aed",backgroundColor:"rgba(124,58,237,.1)",fill:true,tension:.4,pointRadius:hs7.map((_,i)=>i===peakH?6:2),pointBackgroundColor:hs7.map((_,i)=>i===peakH?"#f59e0b":"#7c3aed"),borderWidth:2}]},options:coL(false)});
-  dch("dvc");CH.dvc=new Chart(document.getElementById("dvc"),{type:"bar",data:{labels:lbl,datasets:D.fkvip.filter(fk=>D.fk_data[fk].total_score>0).map(fk=>({label:D.fk_data[fk].name,data:D.fk_data[fk].hour_scores_gmt7,backgroundColor:ha(FK_COL[fk],.7),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
-  dch("doc");CH.doc=new Chart(document.getElementById("doc"),{type:"bar",data:{labels:lbl,datasets:D.fkonl.filter(fk=>D.fk_data[fk].total_score>0).map(fk=>({label:D.fk_data[fk].name,data:D.fk_data[fk].hour_scores_gmt7,backgroundColor:ha(FK_COL[fk],.7),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
+  dch("dvc");CH.dvc=new Chart(document.getElementById("dvc"),{type:"bar",data:{labels:lbl,datasets:ds.fkvip.filter(fk=>ds.fk_data[fk].total_score>0).map(fk=>({label:ds.fk_data[fk].name,data:ds.fk_data[fk].hour_scores_gmt7,backgroundColor:ha(FK_COL[fk],.7),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
+  dch("doc");CH.doc=new Chart(document.getElementById("doc"),{type:"bar",data:{labels:lbl,datasets:ds.fkonl.filter(fk=>ds.fk_data[fk].total_score>0).map(fk=>({label:ds.fk_data[fk].name,data:ds.fk_data[fk].hour_scores_gmt7,backgroundColor:ha(FK_COL[fk],.7),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
 }
 
-// ===== TAB: THÁNG =====
-function rMonth(){
-  const actD=D.days_in_month||[];
-  const ts=D.day_scores.reduce((a,b)=>a+b,0),tc=D.day_counts.reduce((a,b)=>a+b,0);
-  const pd=actD.length?actD.reduce((b,d)=>D.day_scores[d-1]>D.day_scores[b-1]?d:b,actD[0]):1;
-  const vs=[...D.fkvip].filter(fk=>D.fk_data[fk].total_score>0).sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score);
-  const os=[...D.fkonl].filter(fk=>D.fk_data[fk].total_score>0).sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score);
-  document.getElementById("m_s").textContent=nn(ts);document.getElementById("m_p").textContent="Tháng "+D.month;
+// ===== TAB: DỮ LIỆU — Theo Tháng =====
+function rMonth(ds){
+  ds=ds||curDataSet();if(!ds)return;
+  const actD=ds.days_in_month||[];
+  const ts=ds.day_scores.reduce((a,b)=>a+b,0),tc=ds.day_counts.reduce((a,b)=>a+b,0);
+  const pd=actD.length?actD.reduce((b,d)=>ds.day_scores[d-1]>ds.day_scores[b-1]?d:b,actD[0]):1;
+  const vs=[...ds.fkvip].filter(fk=>ds.fk_data[fk].total_score>0).sort((a,b)=>ds.fk_data[b].total_score-ds.fk_data[a].total_score);
+  const os=[...ds.fkonl].filter(fk=>ds.fk_data[fk].total_score>0).sort((a,b)=>ds.fk_data[b].total_score-ds.fk_data[a].total_score);
+  document.getElementById("m_s").textContent=nn(ts);document.getElementById("m_p").textContent="Tháng "+ds.month;
   document.getElementById("m_c").textContent=nn(tc);
-  document.getElementById("m_pd").textContent="Ngày "+pd;document.getElementById("m_pds").textContent=nn(D.day_scores[pd-1])+" điểm · "+nn(D.day_counts[pd-1])+" đơn";
-  document.getElementById("m_tv").textContent=vs[0]?D.fk_data[vs[0]].name:"-";document.getElementById("m_tvs").textContent=vs[0]?nn(D.fk_data[vs[0]].total_score)+" điểm":"-";
-  document.getElementById("m_to").textContent=os[0]?D.fk_data[os[0]].name:"-";document.getElementById("m_tos").textContent=os[0]?nn(D.fk_data[os[0]].total_score)+" điểm":"-";
-  dch("mdc");CH.mdc=new Chart(document.getElementById("mdc"),{type:"bar",data:{labels:actD.map(d=>""+d),datasets:[{label:"Điểm",data:actD.map(d=>D.day_scores[d-1]),backgroundColor:actD.map(d=>d===pd?"rgba(245,158,11,.85)":"rgba(124,58,237,.55)"),borderColor:actD.map(d=>d===pd?"#f59e0b":"#7c3aed"),borderWidth:1,borderRadius:4}]},options:co(false)});
+  document.getElementById("m_pd").textContent="Ngày "+pd;document.getElementById("m_pds").textContent=nn(ds.day_scores[pd-1])+" điểm · "+nn(ds.day_counts[pd-1])+" đơn";
+  document.getElementById("m_tv").textContent=vs[0]?ds.fk_data[vs[0]].name:"-";document.getElementById("m_tvs").textContent=vs[0]?nn(ds.fk_data[vs[0]].total_score)+" điểm":"-";
+  document.getElementById("m_to").textContent=os[0]?ds.fk_data[os[0]].name:"-";document.getElementById("m_tos").textContent=os[0]?nn(ds.fk_data[os[0]].total_score)+" điểm":"-";
+  dch("mdc");CH.mdc=new Chart(document.getElementById("mdc"),{type:"bar",data:{labels:actD.map(d=>""+d),datasets:[{label:"Điểm",data:actD.map(d=>ds.day_scores[d-1]),backgroundColor:actD.map(d=>d===pd?"rgba(245,158,11,.85)":"rgba(124,58,237,.55)"),borderColor:actD.map(d=>d===pd?"#f59e0b":"#7c3aed"),borderWidth:1,borderRadius:4}]},options:co(false)});
 }
 
 // ===== TAB: HIỆU SUẤT DUYỆT ĐƠN (FKVIP / FKONL gộp 1 bảng, xếp hạng riêng biệt) =====
@@ -993,8 +1057,9 @@ function rDC(fk){
 }
 
 // ===== TAB: THEO GIỜ =====
-function rHour(){
-  const hs7=D.hour_scores_gmt7,hs4=D.hour_scores_gmt4,hc7=D.hour_counts_gmt7;
+function rHour(ds){
+  ds=ds||curDataSet();if(!ds)return;
+  const hs7=ds.hour_scores_gmt7,hs4=ds.hour_scores_gmt4,hc7=ds.hour_counts_gmt7;
   const peak7=hs7.indexOf(Math.max(...hs7)),peak4=hs4.indexOf(Math.max(...hs4));
   let rows="";
   for(let h4=0;h4<24;h4++){const h7=(h4+GMT_OFFSET)%24,s4=hs4[h4]||0,s7=hs7[h7]||0,c7=hc7[h7]||0;if(!s4&&!s7&&!c7)continue;const pk7=h7===peak7,pk4=h4===peak4;rows+="<tr><td class='"+(pk4?"peak":"")+"'>"+String(h4).padStart(2,"0")+"H"+(pk4?" ⭐":"")+"</td><td class='"+(pk7?"peak":"")+"'>"+String(h7).padStart(2,"0")+"H"+(pk7?" ⭐":"")+"</td><td class='"+(pk7?"peak":s7>20000?"hi":s7>10000?"md":"")+"'>"+(s7?nn(s7):"-")+"</td><td>"+(c7?nn(c7):"-")+"</td><td style='color:#64748b'>"+(s4?nn(s4):"-")+"</td></tr>";}
@@ -1002,10 +1067,10 @@ function rHour(){
   const top5=hs7.map((s,i)=>({h:i,s,c:hc7[i]})).sort((a,b)=>b.s-a.s).slice(0,5);
   document.getElementById("h_stats").innerHTML=top5.map((x,i)=>"<div class='stat-card "+(i===0?"go":i===1?"pu":"bl")+"'><div class='stat-lbl'>Top "+(i+1)+"</div><div class='stat-val "+(i===0?"go":i===1?"pu":"bl")+"'>"+String(x.h).padStart(2,"0")+"H</div><div class='stat-sub'>"+nn(x.s)+" điểm · "+nn(x.c)+" đơn</div></div>").join("");
   const lbl=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
-  dch("h_cnt");const pc=D.hour_counts_gmt7.indexOf(Math.max(...D.hour_counts_gmt7));
+  dch("h_cnt");const pc=ds.hour_counts_gmt7.indexOf(Math.max(...ds.hour_counts_gmt7));
   CH.h_cnt=new Chart(document.getElementById("h_cnt"),{type:"bar",data:{labels:lbl,datasets:[{label:"Đơn",data:hc7,backgroundColor:hc7.map((_,i)=>i===pc?"rgba(245,158,11,.8)":"rgba(124,58,237,.5)"),borderColor:hc7.map((_,i)=>i===pc?"#f59e0b":"#7c3aed"),borderWidth:1,borderRadius:4}]},options:co(false)});
-  dch("h_stk");const aFK=FK_KEYS.filter(fk=>D.fk_data[fk]?.total_score>0);
-  CH.h_stk=new Chart(document.getElementById("h_stk"),{type:"bar",data:{labels:lbl,datasets:aFK.map(fk=>({label:D.fk_data[fk].name,data:D.fk_data[fk].hour_scores_gmt7,backgroundColor:ha(FK_COL[fk],.8),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
+  dch("h_stk");const aFK=FK_KEYS.filter(fk=>ds.fk_data[fk]?.total_score>0);
+  CH.h_stk=new Chart(document.getElementById("h_stk"),{type:"bar",data:{labels:lbl,datasets:aFK.map(fk=>({label:ds.fk_data[fk].name,data:ds.fk_data[fk].hour_scores_gmt7,backgroundColor:ha(FK_COL[fk],.8),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
 }
 
 rAll();
