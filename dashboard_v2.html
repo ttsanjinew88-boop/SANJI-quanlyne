@@ -643,11 +643,11 @@ function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
       else if(typeof row[1]==="number"&&row[1]>40000){pd=new Date((row[1]-25569)*86400000);}
       else if(row[1]){try{pd=new Date(String(row[1]).replace(" ","T"));}catch(e){}}
       if(!pd||isNaN(pd.getTime()))continue;
-      h4=pd.getHours();
-      const pd7=new Date(pd.getTime()-3600000); // GMT+8 → GMT+7
-      h7=pd7.getHours(); day=pd7.getDate();
+      // GMT+8 → GMT-4: trừ 12 giờ — đồng nhất logic ngày với file Duyệt Đơn
+      const pd4=new Date(pd.getTime()-12*3600000);
+      h4=pd4.getHours(); h7=(h4+GMT_OFFSET)%24; day=pd4.getDate();
       nd._daySet.add(day);
-      nd._mSet.add((pd7.getMonth()+1)+"/"+pd7.getFullYear());
+      nd._mSet.add((pd4.getMonth()+1)+"/"+pd4.getFullYear());
       fk=mfk(String(row[17]||""));
       if(!fk)continue;
       sc=1;
