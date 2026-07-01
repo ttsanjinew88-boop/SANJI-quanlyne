@@ -282,22 +282,21 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 </div>
 
 <div class="tabs-wrap">
-  <div class="tab active" onclick="sw('data',this)">📊 Dữ Liệu</div>
-  <div class="tab" onclick="sw('ko',this)">🎯 Hiệu Suất KO</div>
-  <div class="tab" onclick="sw('shift',this)">⏱️ Phân Ca</div>
-  <div class="tab" onclick="sw('rank',this)">🏆 Xếp Hạng</div>
+  <div class="tab active" onclick="sw('data',this)">Dữ Liệu</div>
+  <div class="tab" onclick="sw('ko',this)">Hiệu Suất KO</div>
+  <div class="tab" onclick="sw('shift',this)">Phân Ca</div>
+  <div class="tab" onclick="sw('rank',this)">Xếp Hạng</div>
 </div>
 
 <!-- ============ TAB: DỮ LIỆU (gộp Ngày + Tháng + Theo Giờ, có nguồn Duyệt Đơn/Khuyến Mãi) ============ -->
 <div class="pg active" id="pg-data">
   <div class="view-toggle">
-    <div class="vt-btn active" onclick="sds('don',this)">📋 Duyệt Đơn</div>
-    <div class="vt-btn" onclick="sds('km',this)">🎁 Khuyến Mãi</div>
+    <div class="vt-btn active" onclick="sds('don',this)">Duyệt Đơn</div>
+    <div class="vt-btn" onclick="sds('km',this)">Khuyến Mãi</div>
   </div>
   <div class="view-toggle">
-    <div class="vt-btn active" onclick="ssv('day',this)">📈 Theo Ngày</div>
-    <div class="vt-btn" onclick="ssv('month',this)">📅 Theo Tháng</div>
-    <div class="vt-btn" onclick="ssv('hour',this)">🕐 Theo Giờ</div>
+    <div class="vt-btn active" onclick="ssv('hour',this)">Theo Giờ</div>
+    <div class="vt-btn" onclick="ssv('day',this)">Theo Ngày / Tháng</div>
   </div>
 
   <div id="dataEmptyKm" style="display:none;font-size:.65rem;color:var(--mu);padding:18px;border:1px dashed var(--border2);border-radius:8px;text-align:center">
@@ -305,7 +304,8 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
   </div>
 
   <div id="dataBody">
-    <div class="data-sub" id="data-day">
+    <div class="data-sub" id="data-day" style="display:none">
+      <div class="sec-hdr pu">Theo Ngày</div>
       <div id="dayBtns"></div>
       <div class="stats-row">
         <div class="stat-card pu"><div class="stat-lbl">Tổng điểm ngày</div><div class="stat-val pu" id="d_s">-</div><div class="stat-sub" id="d_ss">-</div></div>
@@ -316,15 +316,14 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       </div>
       <div class="g21">
         <div class="chart-card"><div class="chart-title">Điểm theo giờ — GMT−4 và GMT+7</div><div style="height:230px"><canvas id="dhc"></canvas></div></div>
-        <div class="chart-card"><div class="chart-title">⭐ Top 3 giờ (GMT+7)</div><div class="top3-list" id="dt3"></div></div>
+        <div class="chart-card"><div class="chart-title">Top 3 giờ (GMT+7)</div><div class="top3-list" id="dt3"></div></div>
       </div>
       <div class="g2">
-        <div class="chart-card"><div class="chart-title" style="color:var(--vip-c)">🏆 FKVIP theo giờ</div><div style="height:200px"><canvas id="dvc"></canvas></div></div>
-        <div class="chart-card"><div class="chart-title" style="color:var(--onl-c)">🎯 FKONL theo giờ</div><div style="height:200px"><canvas id="doc"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title" style="color:var(--vip-c)">FKVIP theo giờ</div><div style="height:200px"><canvas id="dvc"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title" style="color:var(--onl-c)">FKONL theo giờ</div><div style="height:200px"><canvas id="doc"></canvas></div></div>
       </div>
-    </div>
 
-    <div class="data-sub" id="data-month" style="display:none">
+      <div class="sec-hdr pu" style="margin-top:20px">Theo Tháng</div>
       <div class="stats-row">
         <div class="stat-card pu"><div class="stat-lbl">Tổng điểm tháng</div><div class="stat-val pu" id="m_s">-</div><div class="stat-sub" id="m_p">-</div></div>
         <div class="stat-card go"><div class="stat-lbl">Tổng đơn</div><div class="stat-val go" id="m_c">-</div><div class="stat-sub">đơn trong tháng</div></div>
@@ -333,10 +332,9 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
         <div class="stat-card pk"><div class="stat-lbl">FK dẫn đầu ONL</div><div class="stat-val pk" id="m_to">-</div><div class="stat-sub" id="m_tos">-</div></div>
       </div>
       <div class="chart-card" style="margin-bottom:16px"><div class="chart-title">Điểm theo ngày</div><div style="height:200px"><canvas id="mdc"></canvas></div></div>
-      <div class="sec-hdr pu">Tổng quan hiệu suất — xem chi tiết tại tab Hiệu Suất KO</div>
     </div>
 
-    <div class="data-sub" id="data-hour" style="display:none">
+    <div class="data-sub" id="data-hour">
       <div class="sec-hdr pu">Bảng giờ GMT−4 và GMT+7</div>
       <div class="mtbl-wrap" style="margin-bottom:16px"><table class="htbl"><thead><tr><th class="col-g4">GMT−4</th><th class="col-g7">GMT+7</th><th class="col-g7">Điểm</th><th class="col-g7">Số đơn</th><th class="col-g4">Điểm GMT−4</th></tr></thead><tbody id="htblBody"></tbody></table></div>
       <div class="stats-row" id="h_stats"></div>
@@ -349,9 +347,9 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 <!-- ============ TAB: HIỆU SUẤT KO (gộp Duyệt Đơn + Bất Thường) ============ -->
 <div class="pg" id="pg-ko">
   <div class="view-toggle" id="koViewToggle">
-    <div class="vt-btn active" onclick="skv('overview',this)">📋 Tổng Quan</div>
-    <div class="vt-btn" onclick="skv('daily',this)">📅 Duyệt Đơn Theo Ngày</div>
-    <div class="vt-btn" onclick="skv('anomaly',this)">⚠️ Bất Thường Theo Ngày</div>
+    <div class="vt-btn active" onclick="skv('overview',this)">Tổng Quan</div>
+    <div class="vt-btn" onclick="skv('daily',this)">Duyệt Đơn Theo Ngày</div>
+    <div class="vt-btn" onclick="skv('anomaly',this)">Bất Thường Theo Ngày</div>
   </div>
 
   <!-- VIEW: TỔNG QUAN -->
@@ -402,8 +400,8 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       <div class="stat-card pk"><div class="stat-lbl">FKONL dẫn đầu BT</div><div class="stat-val pk" id="an_toponl">-</div><div class="stat-sub" id="an_toponls">-</div></div>
     </div>
     <div class="view-toggle" style="margin-bottom:14px">
-      <div class="vt-btn active" onclick="sac('abuse',this)">🎰 Cược bất thường — Lạm dụng</div>
-      <div class="vt-btn" onclick="sac('mkt',this)">🏪 Đại lý ngoài — MKT bất thường</div>
+      <div class="vt-btn active" onclick="sac('abuse',this)">Cược bất thường — Lạm dụng</div>
+      <div class="vt-btn" onclick="sac('mkt',this)">Đại lý ngoài — MKT bất thường</div>
     </div>
     <div style="font-size:.6rem;color:var(--mu);margin-bottom:10px">💡 Click vào ô số theo ngày để sửa trực tiếp — tự lưu &amp; tính lại tổng/xếp hạng ngay (giống thao tác trên bảng tính)</div>
 
@@ -449,7 +447,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 <!-- ============ TAB: XẾP HẠNG ============ -->
 <div class="pg" id="pg-rank">
   <div class="sec-hdr pu">Xếp hạng — <span id="rkpl" style="color:var(--tx);text-transform:none;letter-spacing:0;font-size:.9em"></span></div>
-  <div class="view-toggle"><div class="vt-btn active" id="rkVipBtn" onclick="srk('vip',this)">🏆 FKVIP</div><div class="vt-btn" id="rkOnlBtn" onclick="srk('onl',this)">🎯 FKONL</div></div>
+  <div class="view-toggle"><div class="vt-btn active" id="rkVipBtn" onclick="srk('vip',this)">FKVIP</div><div class="vt-btn" id="rkOnlBtn" onclick="srk('onl',this)">FKONL</div></div>
   <div class="rank-grid" id="rkg"></div>
   <div class="detail-panel" id="dp">
     <div class="dp-header"><div class="dp-name" id="dpn">-</div><span class="fk-card-type" id="dpb">-</span><div class="dp-stats"><span>Điểm: <b id="dp_sc">-</b></span><span>Đơn: <b id="dp_ct">-</b></span></div></div>
@@ -638,19 +636,36 @@ function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
   for(let i=start;i<end;i++){
     const row=aoa[i];
     if(!row||row.length<18)continue;
-    const note=String(row[20]||""),status=String(row[17]||"").trim(),colB=row[1];
-    const amt=typeof row[15]==="number"?row[15]:(parseFloat(String(row[15]||"").replace(/[^0-9.\-]/g,""))||0);
-    let pd=null;
-    if(row[19] instanceof Date){pd=row[19];}
-    else if(typeof row[19]==="number"&&row[19]>40000){pd=new Date((row[19]-25569)*86400000);}
-    else if(row[19]){try{pd=new Date(String(row[19]));}catch(e){}}
-    if(!pd||isNaN(pd.getTime()))continue;
-    const h4=pd.getHours(),h7=(h4+GMT_OFFSET)%24,day=pd.getDate();
-    nd._daySet.add(day);
-    nd._mSet.add((pd.getMonth()+1)+"/"+pd.getFullYear());
-    const fk=mfk(note);
-    if(!fk)continue;
-    const sc=gsc(colB,amt,status);
+    let pd=null,fk=null,sc=0,h4=0,h7=0,day=0;
+    if(target==="km"){
+      // KM: cột B (idx 1) = Thời gian gửi GMT+8, cột R (idx 17) = Nhân viên xử lý
+      if(row[1] instanceof Date){pd=row[1];}
+      else if(typeof row[1]==="number"&&row[1]>40000){pd=new Date((row[1]-25569)*86400000);}
+      else if(row[1]){try{pd=new Date(String(row[1]).replace(" ","T"));}catch(e){}}
+      if(!pd||isNaN(pd.getTime()))continue;
+      h4=pd.getHours();
+      const pd7=new Date(pd.getTime()-3600000); // GMT+8 → GMT+7
+      h7=pd7.getHours(); day=pd7.getDate();
+      nd._daySet.add(day);
+      nd._mSet.add((pd7.getMonth()+1)+"/"+pd7.getFullYear());
+      fk=mfk(String(row[17]||""));
+      if(!fk)continue;
+      sc=1;
+    }else{
+      // DON: cột T (idx 19) = ngày giờ, cột U (idx 20) = ghi chú FK
+      const note=String(row[20]||""),status=String(row[17]||"").trim(),colB=row[1];
+      const amt=typeof row[15]==="number"?row[15]:(parseFloat(String(row[15]||"").replace(/[^0-9.\-]/g,""))||0);
+      if(row[19] instanceof Date){pd=row[19];}
+      else if(typeof row[19]==="number"&&row[19]>40000){pd=new Date((row[19]-25569)*86400000);}
+      else if(row[19]){try{pd=new Date(String(row[19]));}catch(e){}}
+      if(!pd||isNaN(pd.getTime()))continue;
+      h4=pd.getHours(); h7=(h4+GMT_OFFSET)%24; day=pd.getDate();
+      nd._daySet.add(day);
+      nd._mSet.add((pd.getMonth()+1)+"/"+pd.getFullYear());
+      fk=mfk(note);
+      if(!fk)continue;
+      sc=gsc(colB,amt,status);
+    }
     nd.fk_data[fk]._dayRaw[day-1]+=sc; nd.fk_data[fk].day_counts[day-1]++;
     nd.fk_data[fk]._hr7Raw[h7]+=sc; nd.fk_data[fk].hour_counts_gmt7[h7]++;
     nd.fk_data[fk]._hr4Raw[h4]+=sc; nd.fk_data[fk].total_count++;
@@ -732,7 +747,7 @@ function smv(v,el){mView=v;el.parentElement.querySelectorAll(".vt-btn").forEach(
 function srk(g,el){rkGrp=g;selFK=null;document.getElementById("dp").classList.remove("show");document.getElementById("rkVipBtn").classList.remove("active");document.getElementById("rkOnlBtn").classList.remove("active");el.classList.add("active");rRank();}
 function skv(v,el){koView=v;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");document.querySelectorAll(".ko-view").forEach(p=>p.style.display="none");document.getElementById("ko-"+v).style.display="block";rKO();}
 function sac(c,el){anCat=c;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");rKoAnomaly();}
-let dataSrc="don",dataSubview="day";
+let dataSrc="don",dataSubview="hour";
 function sds(src,el){dataSrc=src;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");rDataTab();}
 function ssv(v,el){dataSubview=v;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");document.querySelectorAll(".data-sub").forEach(p=>p.style.display="none");document.getElementById("data-"+v).style.display="block";rDataTab();}
 function curDataSet(){return dataSrc==="km"?KMD:D;}
@@ -741,8 +756,7 @@ function rDataTab(){
   const empty=document.getElementById("dataEmptyKm"),body=document.getElementById("dataBody");
   if(dataSrc==="km"&&!ds){empty.style.display="block";body.style.display="none";return;}
   empty.style.display="none";body.style.display="block";
-  if(dataSubview==="day"){if(!selDay&&ds.days_in_month?.length)selDay=ds.days_in_month[0];bldDayBtns(ds);rDay(ds);}
-  if(dataSubview==="month")rMonth(ds);
+  if(dataSubview==="day"){if(!selDay&&ds.days_in_month?.length)selDay=ds.days_in_month[0];bldDayBtns(ds);rDay(ds);rMonth(ds);}
   if(dataSubview==="hour")rHour(ds);
 }
 function rAll(){
