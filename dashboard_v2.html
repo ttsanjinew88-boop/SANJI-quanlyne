@@ -539,8 +539,7 @@ function gsc(b,a,s){
   const st=String(s||"").trim();
   if(st==="Đã rút tiền"){
     if(ip){if(a>=50&&a<=500)v+=2;else if(a>=501&&a<=4999)v+=3;else if(a>=5000&&a<=49999)v+=4;else if(a>=50000&&a<=500000)v+=5;}
-    else if(lt&&a<100000){v+=1;}
-    if(a>=100000){v+=1.5;}
+    else if(lt){if(a<100000000)v+=1;else v+=1.5;}
   }else if(st==="Đã trả lại"){
     v+=1;
   }
