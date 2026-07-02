@@ -1970,24 +1970,27 @@ const BC={
   },
 
   genExcel(rows,agentName){
-    /* HTML-table-to-XLS: Excel/WPS reads inline CSS perfectly — colors, borders, alignment all preserved */
+    /* HTML-table-to-XLS: Excel/WPS reads inline CSS — colors, borders, alignment preserved */
     const HDRS=['STT','Đại lý','Tên tài khoản','Cấp bậc','Họ tên đăng kí','Khách','Chỉ tiêu','Cổng','Tổng nạp','Lần nạp','Tổng rút','Lần rút','Âm/Dương','Cược hợp lệ','Ngân hàng','Chi nhánh','STK','IP','Khu vực','IP đăng ký','IP đăng nhập','Thiết bị','Sảnh'];
-    const W=['30px','80px','110px','80px','130px','50px','65px','60px','90px','65px','90px','65px','90px','90px','100px','100px','110px','110px','80px','160px','160px','80px','90px'];
+    /* col index:  0      1       2         3        4        5       6       7      8         9       10        11      12          13          14          15       16    17     18       19          20            21       22  */
+    const W=['30px','80px','110px','130px','170px','50px','65px','60px','90px','65px','90px','65px','90px','95px','100px','100px','130px','110px','80px','160px','160px','80px','160px'];
     const HBG='#F4B084',DBG='#FFF2CC',ABG='#F4B084';
-    const BASE='border:1px solid #000;padding:4px 6px;text-align:center;font-family:Arial;font-size:10pt;font-weight:bold;vertical-align:middle;';
-    const td=(v,bg,w)=>`<td style="${BASE}background-color:${bg};width:${w};white-space:nowrap">${v??''}</td>`;
+    const BBASE='border:1px solid #000;padding:4px 6px;text-align:center;font-family:Arial;font-size:10pt;vertical-align:middle;white-space:nowrap;';
+    const th=(n,i)=>`<th style="${BBASE}font-weight:bold;background-color:${HBG};width:${W[i]}">${n}</th>`;
+    /* STK col (idx 16): mso-number-format:"@" forces Excel/WPS to treat as text → no scientific notation */
+    const td=(v,bg,w,extra='')=>`<td style="${BBASE}background-color:${bg};width:${w};${extra}">${v??''}</td>`;
     let h=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
 <head><meta charset="UTF-8">
 <xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Báo cáo</x:Name>
 <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
 </x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml>
 </head><body><table style="border-collapse:collapse"><thead><tr>`;
-    HDRS.forEach((n,i)=>h+=`<th style="${BASE}background-color:${HBG};width:${W[i]}">${n}</th>`);
+    HDRS.forEach((n,i)=>h+=th(n,i));
     h+=`</tr></thead><tbody>`;
     rows.forEach((r,i)=>{
       const vals=[i+1,r.dai_ly,r.id,r.cap_bac,r.ho_ten,r.khach,r.chi_tieu,'',r.tien_nap,r.lan_nap,r.tien_rut,r.lan_rut,r.am_duong,r.cuoc_hop_le,r.ngan_hang,r.chi_nhanh,r.stk,r.ip,'',r.link_dk,r.link_dn,r.thiet_bi,r.game];
       h+=`<tr>`;
-      vals.forEach((v,ci)=>h+=td(v,ci===1?ABG:DBG,W[ci]));
+      vals.forEach((v,ci)=>h+=td(v,ci===1?ABG:DBG,W[ci],ci===16?'mso-number-format:"@";':''));
       h+=`</tr>`;
     });
     h+=`</tbody></table></body></html>`;
