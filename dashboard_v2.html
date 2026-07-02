@@ -1205,9 +1205,9 @@ function rRank(){
     const s=[...fkList].sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score).slice(0,3);
     // visual order: 2nd(left), 1st(center), 3rd(right) — position in image
     const slots=[
-      {fk:s[1],l:'27%',t:'57%',nc:'#c4b5fd',sc:'#a855f7'},
-      {fk:s[0],l:'50%',t:'57%',nc:'#fbbf24',sc:'#f59e0b'},
-      {fk:s[2],l:'73%',t:'57%',nc:'#93c5fd',sc:'#60a5fa'}
+      {fk:s[1],l:'20%',t:'63%',nc:'#c4b5fd',sc:'#a855f7'},
+      {fk:s[0],l:'50%',t:'64%',nc:'#fbbf24',sc:'#f59e0b'},
+      {fk:s[2],l:'80%',t:'63%',nc:'#93c5fd',sc:'#60a5fa'}
     ].filter(x=>x.fk);
     const ov=slots.map(x=>{
       const fd=D.fk_data[x.fk];
