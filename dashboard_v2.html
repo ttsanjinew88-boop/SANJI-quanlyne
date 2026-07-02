@@ -1212,7 +1212,8 @@ function rRank(){
     const ov=slots.map(x=>{
       const fd=D.fk_data[x.fk];
       const stroke="-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff,0 0 10px "+x.nc;
-      const hasCong=(ovGet(x.fk).cong||0)>0;
+      const ov=KO_OV[x.fk];
+      const hasCong=!ov||(ov.cong||0)>0;
       const label=hasCong?fd.name:"";
       return "<div onclick=\"sFk('"+x.fk+"')\" style=\"position:absolute;left:"+x.l+";top:"+x.t+";transform:translate(-50%,-50%);text-align:center;cursor:pointer\"><div style=\"color:"+x.nc+";font-weight:900;font-size:"+x.fs+";text-shadow:"+stroke+";letter-spacing:1px;white-space:nowrap\">"+label+"</div></div>";
     }).join('');
