@@ -1697,11 +1697,15 @@ const BC={
     return`<span style="color:#888">0</span>`;
   },
 
-  rowHtml(r,i){
+  AGENT_COLORS:['#fff8f2','#f0f7ff','#f0fff6','#fdf4ff','#fffbf0','#f0fbff','#fff0f4','#f5fff0'],
+
+  rowHtml(r,i,bg,isFirst){
     const tb=r.thiet_bi==='Điện thoại'?'<span class="b-dt">📱 ĐT</span>':'<span class="b-mt">💻 MT</span>';
     const kh=r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>';
     const ct=r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-chua">Chưa</span>';
-    return`<tr><td class="tc stt">${i}</td><td><b>${r.dai_ly}</b></td><td>${r.id}</td>
+    const topBorder=isFirst?'border-top:2px solid #d4a88a;':'';
+    return`<tr style="background:${bg};${topBorder}">
+      <td class="tc stt">${i}</td><td><b>${r.dai_ly}</b></td><td>${r.id}</td>
       <td class="ell" title="${r.cap_bac}">${r.cap_bac}</td><td>${r.ho_ten}</td>
       <td class="tc">${kh}</td><td class="tc">${ct}</td>
       <td class="tc">${r.lan_nap}</td><td class="tc">${BC.fmt(r.tien_nap)}</td>
@@ -1716,7 +1720,16 @@ const BC={
 
   renderAll(){
     const s=(BC.pgAll-1)*BC.PS,e=s+BC.PS;
-    document.getElementById('bc-body-all').innerHTML=BC.filtAll.slice(s,e).map((r,i)=>BC.rowHtml(r,s+i+1)).join('');
+    const slice=BC.filtAll.slice(s,e);
+    // assign color index per agent across full list (not just current page)
+    const agColorMap={};let agIdx=0;
+    BC.filtAll.forEach(r=>{if(!(r.dai_ly in agColorMap))agColorMap[r.dai_ly]=agIdx++;});
+    let prevAgent=null;
+    document.getElementById('bc-body-all').innerHTML=slice.map((r,i)=>{
+      const bg=BC.AGENT_COLORS[agColorMap[r.dai_ly]%BC.AGENT_COLORS.length];
+      const isFirst=r.dai_ly!==prevAgent;prevAgent=r.dai_ly;
+      return BC.rowHtml(r,s+i+1,bg,isFirst);
+    }).join('');
     document.getElementById('bc-cnt-all').textContent=BC.filtAll.length+' kết quả';
     BC.renderPg('bc-pg-all',BC.filtAll.length,BC.pgAll,p=>{BC.pgAll=p;BC.renderAll();});
   },
