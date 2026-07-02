@@ -146,19 +146,33 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .vt-btn.active{background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;border-color:transparent;box-shadow:0 3px 10px rgba(124,58,237,.25)}
 
 /* RANK */
-.rank-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin-bottom:16px}
-.rank-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .2s}
-.rank-card:hover{border-color:var(--pu)}
-.rank-card.sel{border-color:var(--pu);background:var(--card2)}
-.rank-num{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.9rem;flex-shrink:0}
-.rn1{background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#111;box-shadow:0 3px 10px rgba(245,158,11,.3)}
-.rn2{background:linear-gradient(135deg,#94a3b8,#cbd5e1);color:#111}
-.rn3{background:linear-gradient(135deg,#cd7f32,#b87333);color:#fff}
-.rn-other{background:var(--card2);color:var(--mu);font-size:.75rem}
-.rank-name{font-weight:800;font-size:.88rem}
-.rank-orders{font-size:.6rem;color:var(--mu);margin-top:1px}
-.rank-score{font-size:1.05rem;font-weight:800;color:var(--go)}
-.rank-score-lbl{font-size:.56rem;color:var(--mu)}
+.trophy-section{margin-bottom:28px}
+.trophy-banner{text-align:center;font-size:.95rem;font-weight:900;letter-spacing:3px;padding:10px 24px;border-radius:8px;margin-bottom:18px;text-transform:uppercase}
+.vip-banner{background:linear-gradient(135deg,#2d0f6b,#150630);border:1px solid #7c3aed;color:#c4b5fd;box-shadow:0 0 18px rgba(124,58,237,.25)}
+.onl-banner{background:linear-gradient(135deg,#0c2a4a,#041020);border:1px solid #0ea5e9;color:#7dd3fc;box-shadow:0 0 18px rgba(14,165,233,.2)}
+.podium-row{display:flex;justify-content:center;align-items:flex-end;gap:10px;padding:0 4px}
+.pod-slot{display:flex;flex-direction:column;align-items:center;flex:1;max-width:190px;cursor:pointer}
+.pod-icon{font-size:2rem;line-height:1;margin-bottom:5px;text-align:center}
+.pod1-icon{color:#f59e0b;filter:drop-shadow(0 0 6px #f59e0b);font-size:2.4rem}
+.pod2-icon{color:#a855f7;filter:drop-shadow(0 0 6px #a855f7)}
+.pod3-icon{color:#60a5fa;filter:drop-shadow(0 0 6px #60a5fa)}
+.pod-name-frame{width:100%;border-radius:8px;padding:12px 8px 10px;text-align:center;position:relative}
+.pod1-frame{background:linear-gradient(180deg,#1c1000,#0d0800);border:2px solid #f59e0b;box-shadow:0 0 14px rgba(245,158,11,.35),inset 0 1px 0 rgba(245,158,11,.15)}
+.pod2-frame{background:linear-gradient(180deg,#140c28,#080414);border:2px solid #7c3aed;box-shadow:0 0 10px rgba(124,58,237,.3),inset 0 1px 0 rgba(168,85,247,.1)}
+.pod3-frame{background:linear-gradient(180deg,#091424,#040a14);border:2px solid #2563eb;box-shadow:0 0 10px rgba(37,99,235,.3),inset 0 1px 0 rgba(96,165,250,.1)}
+.pod-rank-badge{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.72rem;margin:0 auto 7px}
+.pod1-badge{background:#f59e0b;color:#000;box-shadow:0 0 8px rgba(245,158,11,.6)}
+.pod2-badge{background:#7c3aed;color:#fff;box-shadow:0 0 6px rgba(124,58,237,.5)}
+.pod3-badge{background:#1d4ed8;color:#fff;box-shadow:0 0 6px rgba(29,78,216,.5)}
+.pod-nm{font-size:.9rem;font-weight:900;margin-bottom:3px;letter-spacing:.5px}
+.pod1-nm{color:#fbbf24}.pod2-nm{color:#c4b5fd}.pod3-nm{color:#93c5fd}
+.pod-sc{font-size:.7rem;font-weight:700;margin-bottom:2px}
+.pod1-sc{color:#f59e0b}.pod2-sc{color:#a855f7}.pod3-sc{color:#60a5fa}
+.pod-ct{font-size:.58rem;color:var(--mu)}
+.pod-base{width:100%;border-radius:5px 5px 0 0}
+.pod1-base{height:68px;background:linear-gradient(180deg,#261600,#140c00);border:1px solid #f59e0b;border-bottom:none}
+.pod2-base{height:42px;background:linear-gradient(180deg,#180e30,#0a0618);border:1px solid #7c3aed;border-bottom:none}
+.pod3-base{height:22px;background:linear-gradient(180deg,#0c1830,#060e1c);border:1px solid #2563eb;border-bottom:none}
 
 /* DETAIL */
 .detail-panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:10px;display:none}
@@ -469,9 +483,15 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 <!-- ============ TAB: XẾP HẠNG ============ -->
 <div class="pg" id="pg-rank">
   <div class="sec-hdr pu">Xếp hạng — <span id="rkpl" style="color:var(--tx);text-transform:none;letter-spacing:0;font-size:.9em"></span></div>
-  <div class="view-toggle"><div class="vt-btn active" id="rkVipBtn" onclick="srk('vip',this)">FKVIP</div><div class="vt-btn" id="rkOnlBtn" onclick="srk('onl',this)">FKONL</div></div>
-  <div class="rank-grid" id="rkg"></div>
-  <div class="detail-panel" id="dp">
+  <div class="trophy-section">
+    <div class="trophy-banner vip-banner">&#9733; Vinh Danh FKVIP &#9733;</div>
+    <div class="podium-row" id="rk-vip"></div>
+  </div>
+  <div class="trophy-section" style="margin-top:24px">
+    <div class="trophy-banner onl-banner">&#9733; Vinh Danh FKONL &#9733;</div>
+    <div class="podium-row" id="rk-onl"></div>
+  </div>
+  <div class="detail-panel" id="dp" style="margin-top:16px">
     <div class="dp-header"><div class="dp-name" id="dpn">-</div><span class="fk-card-type" id="dpb">-</span><div class="dp-stats"><span>Điểm: <b id="dp_sc">-</b></span><span>Đơn: <b id="dp_ct">-</b></span></div></div>
     <div style="height:160px"><canvas id="dp_ch"></canvas></div>
   </div>
@@ -1180,11 +1200,20 @@ function rShift(){
 // ===== TAB: XẾP HẠNG =====
 function rRank(){
   document.getElementById("rkpl").textContent="Tháng "+D.month;
-  const fkList=rkGrp==="vip"?D.fkvip:D.fkonl,sorted=[...fkList].sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score);
-  document.getElementById("rkg").innerHTML=sorted.map((fk,i)=>{const fd=D.fk_data[fk],nc=i===0?"rn1":i===1?"rn2":i===2?"rn3":"rn-other";return "<div class='rank-card"+(selFK===fk?" sel":"")+"' onclick='sFk(\""+fk+"\")'><div class='rank-num "+nc+"'>"+(fd.total_score>0?i+1:"-")+"</div><div style='flex:1'><div class='rank-name' style='color:"+(rkGrp==="vip"?"var(--vip-c)":"var(--onl-c)")+"'>"+fd.name+"</div><div class='rank-orders'>"+nn(fd.total_count)+" đơn</div></div><div style='text-align:right'><div class='rank-score'>"+(fd.total_score>0?nn(fd.total_score):"-")+"</div><div class='rank-score-lbl'>điểm</div></div></div>";}).join("");
+  function mkPodium(fkList,cid){
+    const sorted=[...fkList].sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score).slice(0,3);
+    const display=[sorted[1],sorted[0],sorted[2]].filter(Boolean);
+    document.getElementById(cid).innerHTML=display.map(fk=>{
+      const fd=D.fk_data[fk],rank=sorted.indexOf(fk)+1,pc="pod"+rank;
+      const icon=rank===1?"♛":"◆";
+      return "<div class='pod-slot"+(rank===1?" pod-center":"")+"' onclick='sFk(\""+fk+"\")'><div class='pod-icon "+pc+"-icon'>"+icon+"</div><div class='pod-name-frame "+pc+"-frame'><div class='pod-rank-badge "+pc+"-badge'>"+rank+"</div><div class='pod-nm "+pc+"-nm'>"+fd.name+"</div><div class='pod-sc "+pc+"-sc'>"+nn(fd.total_score)+" đ</div><div class='pod-ct'>"+nn(fd.total_count)+" đơn</div></div><div class='pod-base "+pc+"-base'></div></div>";
+    }).join("");
+  }
+  mkPodium(D.fkvip,"rk-vip");
+  mkPodium(D.fkonl,"rk-onl");
   if(selFK)rDC(selFK);
 }
-function sFk(fk){selFK=fk;rRank();}
+function sFk(fk){selFK=fk;document.getElementById("dp").classList.add("show");rDC(fk);}
 function rDC(fk){
   const fd=D.fk_data[fk];if(!fd)return;
   document.getElementById("dp").classList.add("show");
