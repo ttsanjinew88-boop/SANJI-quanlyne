@@ -1954,7 +1954,7 @@ const BC={
       const d=new Date();
       const dateStr=`${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
       const caption=`🚨 BÁO CÁO ĐẠI LÝ BẤT THƯỜNG\n📅 ${dateStr}\n👤 FK: ${BC._selFk}\n🏢 Đại lý: ${agentName}\n📋 ${content||'(không có nội dung)'}`;
-      const filename=`BaoCao_${agentName}_${BC._selFk}_${d.getDate()}${d.getMonth()+1}.xlsx`;
+      const filename=`BaoCao_${agentName}_${BC._selFk}_${d.getDate()}${d.getMonth()+1}.xls`;
       const res=await BC.tgSend(blob,filename,caption);
       if(res.ok){
         status.style.color='#16a34a';status.textContent='✅ Gửi thành công!';
@@ -1970,29 +1970,28 @@ const BC={
   },
 
   genExcel(rows,agentName){
+    /* HTML-table-to-XLS: Excel/WPS reads inline CSS perfectly — colors, borders, alignment all preserved */
     const HDRS=['STT','Đại lý','Tên tài khoản','Cấp bậc','Họ tên đăng kí','Khách','Chỉ tiêu','Cổng','Tổng nạp','Lần nạp','Tổng rút','Lần rút','Âm/Dương','Cược hợp lệ','Ngân hàng','Chi nhánh','STK','IP','Khu vực','IP đăng ký','IP đăng nhập','Thiết bị','Sảnh'];
-    const HBGC='F4B084',DBGC='FFF2CC';
-    const bdr={top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}};
-    const mkSt=(bg)=>({fill:{patternType:'solid',fgColor:{rgb:bg}},font:{bold:true,name:'Arial',sz:10},border:bdr,alignment:{horizontal:'center',vertical:'center',wrapText:true}});
-    const hSt=mkSt(HBGC),dSt=mkSt(DBGC),agSt=mkSt(HBGC);
-    const aoa=[HDRS];
+    const W=['30px','80px','110px','80px','130px','50px','65px','60px','90px','65px','90px','65px','90px','90px','100px','100px','110px','110px','80px','160px','160px','80px','90px'];
+    const HBG='#F4B084',DBG='#FFF2CC',ABG='#F4B084';
+    const BASE='border:1px solid #000;padding:4px 6px;text-align:center;font-family:Arial;font-size:10pt;font-weight:bold;vertical-align:middle;';
+    const td=(v,bg,w)=>`<td style="${BASE}background-color:${bg};width:${w};white-space:nowrap">${v??''}</td>`;
+    let h=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="UTF-8">
+<xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Báo cáo</x:Name>
+<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml>
+</head><body><table style="border-collapse:collapse"><thead><tr>`;
+    HDRS.forEach((n,i)=>h+=`<th style="${BASE}background-color:${HBG};width:${W[i]}">${n}</th>`);
+    h+=`</tr></thead><tbody>`;
     rows.forEach((r,i)=>{
-      aoa.push([i+1,r.dai_ly,r.id,r.cap_bac,r.ho_ten,r.khach,r.chi_tieu,'',r.tien_nap,r.lan_nap,r.tien_rut,r.lan_rut,r.am_duong,r.cuoc_hop_le,r.ngan_hang,r.chi_nhanh,r.stk,r.ip,'',r.link_dk,r.link_dn,r.thiet_bi,r.game]);
+      const vals=[i+1,r.dai_ly,r.id,r.cap_bac,r.ho_ten,r.khach,r.chi_tieu,'',r.tien_nap,r.lan_nap,r.tien_rut,r.lan_rut,r.am_duong,r.cuoc_hop_le,r.ngan_hang,r.chi_nhanh,r.stk,r.ip,'',r.link_dk,r.link_dn,r.thiet_bi,r.game];
+      h+=`<tr>`;
+      vals.forEach((v,ci)=>h+=td(v,ci===1?ABG:DBG,W[ci]));
+      h+=`</tr>`;
     });
-    const ws=XLSX.utils.aoa_to_sheet(aoa);
-    const rng=XLSX.utils.decode_range(ws['!ref']);
-    for(let R=rng.s.r;R<=rng.e.r;R++){
-      for(let C=rng.s.c;C<=rng.e.c;C++){
-        const addr=XLSX.utils.encode_cell({r:R,c:C});
-        if(!ws[addr])ws[addr]={v:'',t:'s'};
-        ws[addr].s=R===0?hSt:(C===1?agSt:dSt);
-      }
-    }
-    ws['!cols']=HDRS.map((_,i)=>({wch:[4,10,14,10,16,6,8,8,12,8,12,8,12,12,12,12,14,14,10,20,20,10,12][i]||12}));
-    const wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,ws,'Báo cáo');
-    const out=XLSX.write(wb,{type:'array',bookType:'xlsx',cellStyles:true});
-    return new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    h+=`</tbody></table></body></html>`;
+    return new Blob(['﻿'+h],{type:'application/vnd.ms-excel;charset=utf-8'});
   },
 
   async tgSend(blob,filename,caption){
