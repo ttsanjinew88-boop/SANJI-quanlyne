@@ -485,11 +485,11 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
   <div class="sec-hdr pu">Xếp hạng — <span id="rkpl" style="color:var(--tx);text-transform:none;letter-spacing:0;font-size:.9em"></span></div>
   <div class="trophy-section">
     <div class="trophy-banner vip-banner">&#9733; Vinh Danh FKVIP &#9733;</div>
-    <div class="podium-row" id="rk-vip"></div>
+    <div id="rk-vip"></div>
   </div>
-  <div class="trophy-section" style="margin-top:24px">
+  <div class="trophy-section" style="margin-top:20px">
     <div class="trophy-banner onl-banner">&#9733; Vinh Danh FKONL &#9733;</div>
-    <div class="podium-row" id="rk-onl"></div>
+    <div id="rk-onl"></div>
   </div>
   <div class="detail-panel" id="dp" style="margin-top:16px">
     <div class="dp-header"><div class="dp-name" id="dpn">-</div><span class="fk-card-type" id="dpb">-</span><div class="dp-stats"><span>Điểm: <b id="dp_sc">-</b></span><span>Đơn: <b id="dp_ct">-</b></span></div></div>
@@ -1200,17 +1200,23 @@ function rShift(){
 // ===== TAB: XẾP HẠNG =====
 function rRank(){
   document.getElementById("rkpl").textContent="Tháng "+D.month;
-  function mkPodium(fkList,cid){
-    const sorted=[...fkList].sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score).slice(0,3);
-    const display=[sorted[1],sorted[0],sorted[2]].filter(Boolean);
-    document.getElementById(cid).innerHTML=display.map(fk=>{
-      const fd=D.fk_data[fk],rank=sorted.indexOf(fk)+1,pc="pod"+rank;
-      const icon=rank===1?"♛":"◆";
-      return "<div class='pod-slot"+(rank===1?" pod-center":"")+"' onclick='sFk(\""+fk+"\")'><div class='pod-icon "+pc+"-icon'>"+icon+"</div><div class='pod-name-frame "+pc+"-frame'><div class='pod-rank-badge "+pc+"-badge'>"+rank+"</div><div class='pod-nm "+pc+"-nm'>"+fd.name+"</div><div class='pod-sc "+pc+"-sc'>"+nn(fd.total_score)+" đ</div><div class='pod-ct'>"+nn(fd.total_count)+" đơn</div></div><div class='pod-base "+pc+"-base'></div></div>";
-    }).join("");
+  const IMG='https://media.88new11.com/public/new88/site-tong/180002c3-399a-4db3-a166-b8997b9be4c7.png';
+  function mkTrophyRow(fkList,cid){
+    const s=[...fkList].sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score).slice(0,3);
+    // visual order: 2nd(left), 1st(center), 3rd(right) — position in image
+    const slots=[
+      {fk:s[1],l:'21%',t:'63%',nc:'#c4b5fd',sc:'#a855f7'},
+      {fk:s[0],l:'50%',t:'58%',nc:'#fbbf24',sc:'#f59e0b'},
+      {fk:s[2],l:'79%',t:'63%',nc:'#93c5fd',sc:'#60a5fa'}
+    ].filter(x=>x.fk);
+    const ov=slots.map(x=>{
+      const fd=D.fk_data[x.fk];
+      return "<div onclick=\"sFk('"+x.fk+"')\" style=\"position:absolute;left:"+x.l+";top:"+x.t+";transform:translate(-50%,-50%);text-align:center;cursor:pointer\"><div style=\"color:"+x.nc+";font-weight:900;font-size:clamp(.72rem,2.2vw,1.05rem);text-shadow:0 0 10px "+x.nc+";line-height:1.2\">"+fd.name+"</div><div style=\"color:"+x.sc+";font-size:clamp(.54rem,1.5vw,.78rem);font-weight:700;margin-top:2px\">"+nn(fd.total_score)+" đ</div><div style=\"color:rgba(255,255,255,.55);font-size:clamp(.46rem,1.2vw,.64rem)\">"+nn(fd.total_count)+" đơn</div></div>";
+    }).join('');
+    document.getElementById(cid).innerHTML="<div style=\"position:relative;border-radius:12px;overflow:hidden\"><img src=\""+IMG+"\" style=\"width:100%;display:block\" loading=\"lazy\">"+ov+"</div>";
   }
-  mkPodium(D.fkvip,"rk-vip");
-  mkPodium(D.fkonl,"rk-onl");
+  mkTrophyRow(D.fkvip,'rk-vip');
+  mkTrophyRow(D.fkonl,'rk-onl');
   if(selFK)rDC(selFK);
 }
 function sFk(fk){selFK=fk;document.getElementById("dp").classList.add("show");rDC(fk);}
