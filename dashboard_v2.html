@@ -312,7 +312,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .bc-tool .tbl-wrap{overflow-x:auto}
 .bc-tool table{width:100%;border-collapse:collapse;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.07)}
 .bc-tool thead tr{background:#CC4400;color:white}
-.bc-tool thead th{padding:9px 8px;text-align:center;font-size:11px;white-space:nowrap;position:sticky;top:52px;z-index:2;font-weight:bold}
+.bc-tool thead th{padding:9px 8px;text-align:center;font-size:11px;white-space:nowrap;font-weight:bold}
 .bc-tool tbody tr{border-bottom:1px solid #f0e8e0;height:36px}
 .bc-tool tbody tr:nth-child(even){background:#fdf8f5}
 .bc-tool tbody tr:hover{background:#fff0e6}
@@ -1424,11 +1424,11 @@ rAll();
   </div>
   <div class="tbl-wrap">
     <table><thead><tr>
-      <th>STT</th><th>Đại lý</th><th>ID</th><th>Cấp bậc</th><th>Họ tên</th>
-      <th>Khách</th><th>Chỉ tiêu</th><th>Lần nạp</th><th>Tiền nạp</th>
-      <th>Lần rút</th><th>Tiền rút</th><th>Âm/Dương</th><th>Cược HL</th>
+      <th>STT</th><th>ĐL</th><th>Tên tài khoản</th><th>Cấp bậc</th><th>Họ tên đăng kí</th>
+      <th>Khách</th><th>Chỉ tiêu</th><th>Tiền nạp</th><th>Lần nạp</th>
+      <th>Tiền rút</th><th>Lần rút</th><th>Âm/Dương</th><th>Cược hợp lệ</th>
       <th>Ngân hàng</th><th>Chi nhánh</th><th>STK</th><th>IP</th>
-      <th>LINK ĐK</th><th>LINK ĐN</th><th>Thiết bị</th><th>GAME</th>
+      <th>Thiết bị</th><th>LINK đăng ký</th><th>LINK đăng nhập</th><th>Cược sảnh</th>
     </tr></thead>
     <tbody id="bc-body-all"></tbody></table>
   </div>
@@ -1464,11 +1464,11 @@ rAll();
   <div class="info-bar" id="bc-info-bar" style="display:none"></div>
   <div class="tbl-wrap">
     <table><thead><tr>
-      <th>STT</th><th>ID</th><th>Cấp bậc</th><th>Họ tên</th>
-      <th>Khách</th><th>Chỉ tiêu</th><th>Lần nạp</th><th>Tiền nạp</th>
-      <th>Lần rút</th><th>Tiền rút</th><th>Âm/Dương</th><th>Cược HL</th>
+      <th>STT</th><th>Tên tài khoản</th><th>Cấp bậc</th><th>Họ tên đăng kí</th>
+      <th>Khách</th><th>Chỉ tiêu</th><th>Tiền nạp</th><th>Lần nạp</th>
+      <th>Tiền rút</th><th>Lần rút</th><th>Âm/Dương</th><th>Cược hợp lệ</th>
       <th>Ngân hàng</th><th>Chi nhánh</th><th>STK</th><th>IP</th>
-      <th>LINK ĐK</th><th>LINK ĐN</th><th>Thiết bị</th><th>GAME</th>
+      <th>Thiết bị</th><th>LINK đăng ký</th><th>LINK đăng nhập</th><th>Cược sảnh</th>
     </tr></thead>
     <tbody id="bc-body-detail"></tbody></table>
   </div>
@@ -1708,14 +1708,15 @@ const BC={
       <td class="tc stt">${i}</td><td><b>${r.dai_ly}</b></td><td>${r.id}</td>
       <td class="ell" title="${r.cap_bac}">${r.cap_bac}</td><td>${r.ho_ten}</td>
       <td class="tc">${kh}</td><td class="tc">${ct}</td>
-      <td class="tc">${r.lan_nap}</td><td class="tc">${BC.fmt(r.tien_nap)}</td>
-      <td class="tc">${r.lan_rut}</td><td class="tc">${BC.fmt(r.tien_rut)}</td>
+      <td class="tc">${BC.fmt(r.tien_nap)}</td><td class="tc">${r.lan_nap}</td>
+      <td class="tc">${BC.fmt(r.tien_rut)}</td><td class="tc">${r.lan_rut}</td>
       <td class="tc">${BC.ad(r.am_duong)}</td><td class="tc">${BC.fmt(r.cuoc_hop_le)}</td>
       <td>${r.ngan_hang}</td><td>${r.chi_nhanh}</td><td>${r.stk}</td>
       <td style="font-size:10px">${r.ip}</td>
+      <td class="tc">${tb}</td>
       <td class="ell tc" title="${r.link_dk}" style="font-size:10px">${r.link_dk}</td>
       <td class="ell tc" title="${r.link_dn}" style="font-size:10px">${r.link_dn}</td>
-      <td class="tc">${tb}</td><td title="${r.game}">${r.game}</td></tr>`;
+      <td title="${r.game}">${r.game}</td></tr>`;
   },
 
   renderAll(){
@@ -1783,14 +1784,15 @@ const BC={
       return`<tr><td class="tc stt">${i+1}</td><td>${r.id}</td>
         <td class="ell" title="${r.cap_bac}">${r.cap_bac}</td><td>${r.ho_ten}</td>
         <td class="tc">${kh}</td><td class="tc">${ct}</td>
-        <td class="tc">${r.lan_nap}</td><td class="tc">${BC.fmt(r.tien_nap)}</td>
-        <td class="tc">${r.lan_rut}</td><td class="tc">${BC.fmt(r.tien_rut)}</td>
+        <td class="tc">${BC.fmt(r.tien_nap)}</td><td class="tc">${r.lan_nap}</td>
+        <td class="tc">${BC.fmt(r.tien_rut)}</td><td class="tc">${r.lan_rut}</td>
         <td class="tc">${BC.ad(r.am_duong)}</td><td class="tc">${BC.fmt(r.cuoc_hop_le)}</td>
         <td>${r.ngan_hang}</td><td>${r.chi_nhanh}</td><td>${r.stk}</td>
         <td style="font-size:10px">${r.ip}</td>
+        <td class="tc">${tb}</td>
         <td class="ell" title="${r.link_dk}" style="font-size:10px">${r.link_dk}</td>
         <td class="ell" title="${r.link_dn}" style="font-size:10px">${r.link_dn}</td>
-        <td class="tc">${tb}</td><td title="${r.game}">${r.game}</td></tr>`;
+        <td title="${r.game}">${r.game}</td></tr>`;
     }).join('');
   },
 
@@ -1844,8 +1846,8 @@ const BC={
   overlayMsg(m){document.getElementById('bc-overlay-msg').textContent=m;},
 
   exportCSV(type){
-    const H=['Đại lý','ID','Cấp bậc','Họ tên','Khách','Chỉ tiêu','Lần nạp','Tiền nạp','Lần rút','Tiền rút','Âm/Dương','Cược HL','Ngân hàng','Chi nhánh','STK','IP','LINK ĐK','LINK ĐN','Thiết bị','GAME'];
-    const toRow=r=>[r.dai_ly,r.id,r.cap_bac,r.ho_ten,r.khach,r.chi_tieu,r.lan_nap,r.tien_nap,r.lan_rut,r.tien_rut,r.am_duong,r.cuoc_hop_le,r.ngan_hang,r.chi_nhanh,r.stk,r.ip,r.link_dk,r.link_dn,r.thiet_bi,r.game];
+    const H=['ĐL','Tên tài khoản','Cấp bậc','Họ tên đăng kí','Khách','Chỉ tiêu','Tiền nạp','Lần nạp','Tiền rút','Lần rút','Âm/Dương','Cược hợp lệ','Ngân hàng','Chi nhánh','STK','IP','Thiết bị','LINK đăng ký','LINK đăng nhập','Cược sảnh'];
+    const toRow=r=>[r.dai_ly,r.id,r.cap_bac,r.ho_ten,r.khach,r.chi_tieu,r.tien_nap,r.lan_nap,r.tien_rut,r.lan_rut,r.am_duong,r.cuoc_hop_le,r.ngan_hang,r.chi_nhanh,r.stk,r.ip,r.thiet_bi,r.link_dk,r.link_dn,r.game];
     let headers,data,filename;
     if(type==='agents'){
       headers=['Đại lý','Tổng TV','KH hợp lệ','KH mới','KH cũ','Tổng nạp','Tổng rút','Âm/Dương','Cược HL'];
