@@ -374,6 +374,9 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 </head>
 <body>
 
+<!-- URL action toast (Telegram deep-link confirm/watch feedback) -->
+<div id="url-toast" style="display:none;position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:99999;padding:14px 24px;border-radius:10px;color:#fff;font-size:13px;font-weight:bold;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.35);transition:opacity .6s;max-width:90vw;line-height:1.6"></div>
+
 <div class="tool-sw">
   <button class="tool-sw-btn on" id="tsb1" onclick="switchTool('t1')">📊 Dashboard Hiệu Suất Nhân Viên</button>
   <button class="tool-sw-btn" id="tsb2" onclick="switchTool('t2')">📋 Báo Cáo Đại Lý - Gửi File</button>
@@ -661,14 +664,63 @@ function anSet(cat,fk,day,val){if(!KO_AN[cat])KO_AN[cat]={};if(!KO_AN[cat][fk])K
 function anTotal(cat,fk){const m=(KO_AN[cat]&&KO_AN[cat][fk])||{};return Object.values(m).reduce((s,v)=>s+(Number(v)||0),0);}
 function anAdd(cat,fk,day,delta){anSet(cat,fk,day,anGet(cat,fk,day)+delta);}
 
-// Auto-confirm via URL params (Telegram bot deep-link): ?confirm_anomaly=fkjade&date=2026-06-15&cat=abuse&count=1
-(function handleUrlConfirm(){
+// URL handler: ?confirm_anomaly=fkjade&date=2026-07-03&cat=mkt&count=3&rid=abc
+// URL handler: ?watch_anomaly=fkjade&date=2026-07-03&rid=abc
+(function handleUrlActions(){
   const p=new URLSearchParams(location.search);
+  const rid=p.get("rid");
+  const USED_KEY="bc_used_rids";
+  function isUsed(id){if(!id)return false;try{return(JSON.parse(localStorage.getItem(USED_KEY)||"[]")).includes(id);}catch(e){return false;}}
+  function markUsed(id){if(!id)return;try{const a=JSON.parse(localStorage.getItem(USED_KEY)||"[]");a.push(id);localStorage.setItem(USED_KEY,JSON.stringify(a));}catch(e){}}
+  let _toast=null;
+
+  /* CONFIRM */
   const fk=p.get("confirm_anomaly"),date=p.get("date"),cat=p.get("cat")==="mkt"?"mkt":"abuse",cnt=Number(p.get("count")||1);
   if(fk&&FK_KEYS.includes(fk)&&date){
-    const day=Number(date.slice(-2));
-    anAdd(cat,fk,day,cnt);
+    if(!isUsed(rid)){
+      const day=Number(date.slice(-2));
+      anAdd(cat,fk,day,cnt);
+      markUsed(rid);
+      _toast={type:"confirm",fk,cnt,date};
+    }else{
+      _toast={type:"used",fk,cnt,date};
+    }
     history.replaceState(null,"",location.pathname);
+  }
+
+  /* WATCH */
+  const fkw=p.get("watch_anomaly"),datew=p.get("date")||date;
+  if(fkw&&FK_KEYS.includes(fkw)&&datew&&!fk){
+    if(!isUsed(rid)){
+      markUsed(rid);
+      _toast={type:"watch",fk:fkw,date:datew};
+    }else{
+      _toast={type:"used",fk:fkw,cnt:0,date:datew};
+    }
+    history.replaceState(null,"",location.pathname);
+  }
+
+  if(_toast){
+    const t=_toast;
+    window.addEventListener("DOMContentLoaded",function(){
+      const el=document.getElementById("url-toast");
+      if(!el)return;
+      const nm=(typeof FK_NAMES!=="undefined"?FK_NAMES[t.fk]:t.fk)||t.fk;
+      const dayNum=t.date?Number(t.date.slice(-2)):"-";
+      const month=t.date?(Number(t.date.slice(5,7))):"-";
+      if(t.type==="confirm"){
+        el.innerHTML=`✅ Đã xác nhận báo cáo đại lý bất thường<br><b>+${t.cnt} điểm</b> cho <b>${nm}</b> ngày <b>${dayNum}/${month}</b>`;
+        el.style.background="#16a34a";
+      }else if(t.type==="watch"){
+        el.innerHTML=`👁 Đã ghi nhận <b>Theo Dõi Thêm</b> cho <b>${nm}</b>`;
+        el.style.background="#2563eb";
+      }else{
+        el.innerHTML=`⚠️ Báo cáo này đã được xử lý rồi, không thể thực hiện lần 2`;
+        el.style.background="#dc2626";
+      }
+      el.style.display="block";
+      setTimeout(()=>{el.style.opacity="0";setTimeout(()=>el.style.display="none",600);},4000);
+    });
   }
 })();
 
@@ -1478,7 +1530,6 @@ rAll();
   <div class="ph"><div class="ph-title">Kiểm Tra Theo Đại Lý</div></div>
   <div class="agent-sel-bar">
     <select id="bc-agent-select" onchange="BC.loadAgent()"><option value="">-- Chọn đại lý --</option></select>
-    <button class="export-btn" onclick="BC.exportCSV('detail')">⬇ Xuất CSV đại lý này</button>
     <button class="bc-bt-trigger" onclick="BC.openBtModal()">🚨 Báo cáo đại lý bất thường</button>
   </div>
   <div class="info-bar" id="bc-info-bar" style="display:none"></div>
@@ -1952,10 +2003,20 @@ const BC={
       const blob=BC.genExcel(rows,agentName);
       status.textContent='⏳ Đang gửi Telegram...';
       const d=new Date();
-      const dateStr=`${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+      const dd=d.getDate().toString().padStart(2,'0'),mm=(d.getMonth()+1).toString().padStart(2,'0'),yy=d.getFullYear();
+      const hh=d.getHours().toString().padStart(2,'0'),min=d.getMinutes().toString().padStart(2,'0');
+      const dateStr=`${dd}/${mm}/${yy} ${hh}:${min}`;
+      const isoDate=`${yy}-${mm}-${dd}`;
       const caption=`🚨 BÁO CÁO ĐẠI LÝ BẤT THƯỜNG\n📅 ${dateStr}\n👤 FK: ${BC._selFk}\n🏢 Đại lý: ${agentName}\n📋 ${content||'(không có nội dung)'}`;
-      const filename=`BaoCao_${agentName}_${BC._selFk}_${d.getDate()}${d.getMonth()+1}.xls`;
-      const res=await BC.tgSend(blob,filename,caption);
+      const filename=`BaoCao_${agentName}_${BC._selFk}_${dd}${mm}.xls`;
+      /* Inline keyboard: one-time use via rid (report ID) */
+      const rid=Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);
+      const base='https://ttsanjinew88-boop.github.io/SANJI-quanlyne/dashboard_v2.html';
+      const fkKey='fk'+BC._selFk.toLowerCase();
+      const confirmUrl=`${base}?confirm_anomaly=${fkKey}&date=${isoDate}&cat=mkt&count=3&rid=${rid}`;
+      const watchUrl=`${base}?watch_anomaly=${fkKey}&date=${isoDate}&rid=${rid}`;
+      const rm={inline_keyboard:[[{text:'✅ Xác Nhận (+3 điểm)',url:confirmUrl},{text:'👁 Theo Dõi Thêm',url:watchUrl}]]};
+      const res=await BC.tgSend(blob,filename,caption,rm);
       if(res.ok){
         status.style.color='#16a34a';status.textContent='✅ Gửi thành công!';
         setTimeout(()=>BC.closeBtModal(),1600);
@@ -1970,15 +2031,19 @@ const BC={
   },
 
   genExcel(rows,agentName){
-    /* HTML-table-to-XLS: Excel/WPS reads inline CSS — colors, borders, alignment preserved */
+    /* HTML-table-to-XLS with bgcolor attr + mso-number-format for reliable color & STK text */
     const HDRS=['STT','Đại lý','Tên tài khoản','Cấp bậc','Họ tên đăng kí','Khách','Chỉ tiêu','Cổng','Tổng nạp','Lần nạp','Tổng rút','Lần rút','Âm/Dương','Cược hợp lệ','Ngân hàng','Chi nhánh','STK','IP','Khu vực','IP đăng ký','IP đăng nhập','Thiết bị','Sảnh'];
-    /* col index:  0      1       2         3        4        5       6       7      8         9       10        11      12          13          14          15       16    17     18       19          20            21       22  */
     const W=['30px','80px','110px','130px','170px','50px','65px','60px','90px','65px','90px','65px','90px','95px','100px','100px','130px','110px','80px','160px','160px','80px','160px'];
     const HBG='#F4B084',DBG='#FFF2CC',ABG='#F4B084';
-    const BBASE='border:1px solid #000;padding:4px 6px;text-align:center;font-family:Arial;font-size:10pt;vertical-align:middle;white-space:nowrap;';
-    const th=(n,i)=>`<th style="${BBASE}font-weight:bold;background-color:${HBG};width:${W[i]}">${n}</th>`;
-    /* STK col (idx 16): mso-number-format:"@" forces Excel/WPS to treat as text → no scientific notation */
-    const td=(v,bg,w,extra='')=>`<td style="${BBASE}background-color:${bg};width:${w};${extra}">${v??''}</td>`;
+    const BS='border:1px solid #000;padding:4px 6px;text-align:center;font-family:Arial;font-size:10pt;vertical-align:middle;white-space:nowrap;';
+    /* bgcolor attr + background-color CSS = double-ensures color renders in all WPS/Excel versions */
+    const th=(n,i)=>`<th bgcolor="${HBG}" style="${BS}font-weight:bold;background-color:${HBG};width:${W[i]}">${n}</th>`;
+    /* STK col (idx 16): x:str attr + mso-number-format:'@' = force text, prevent scientific notation */
+    const td=(v,bg,w,isStk=false)=>{
+      const sAttr=isStk?` x:str="${String(v??'').replace(/"/g,'&quot;')}"`:' ';
+      const sSty=isStk?`mso-number-format:'@';`:'';
+      return`<td${sAttr}bgcolor="${bg}" style="${BS}background-color:${bg};width:${w};${sSty}">${v??''}</td>`;
+    };
     let h=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
 <head><meta charset="UTF-8">
 <xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Báo cáo</x:Name>
@@ -1990,18 +2055,19 @@ const BC={
     rows.forEach((r,i)=>{
       const vals=[i+1,r.dai_ly,r.id,r.cap_bac,r.ho_ten,r.khach,r.chi_tieu,'',r.tien_nap,r.lan_nap,r.tien_rut,r.lan_rut,r.am_duong,r.cuoc_hop_le,r.ngan_hang,r.chi_nhanh,r.stk,r.ip,'',r.link_dk,r.link_dn,r.thiet_bi,r.game];
       h+=`<tr>`;
-      vals.forEach((v,ci)=>h+=td(v,ci===1?ABG:DBG,W[ci],ci===16?'mso-number-format:"@";':''));
+      vals.forEach((v,ci)=>h+=td(v,ci===1?ABG:DBG,W[ci],ci===16));
       h+=`</tr>`;
     });
     h+=`</tbody></table></body></html>`;
     return new Blob(['﻿'+h],{type:'application/vnd.ms-excel;charset=utf-8'});
   },
 
-  async tgSend(blob,filename,caption){
+  async tgSend(blob,filename,caption,replyMarkup){
     const fd=new FormData();
     fd.append('chat_id','-1002508451381');
     fd.append('document',blob,filename);
     fd.append('caption',caption);
+    if(replyMarkup)fd.append('reply_markup',JSON.stringify(replyMarkup));
     const r=await fetch('https://api.telegram.org/bot8521438412:AAHUPTf3Y1H02wY3ZsVWe-ciM0T86K5Rztk/sendDocument',{method:'POST',body:fd});
     return r.json();
   }
