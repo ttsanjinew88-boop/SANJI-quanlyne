@@ -1205,14 +1205,14 @@ function rRank(){
     const s=[...fkList].sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score).slice(0,3);
     // visual order: 2nd(left), 1st(center), 3rd(right) — position in image
     const slots=[
-      {fk:s[1],l:'18%',t:'68%',nc:'#c4b5fd',sc:'#a855f7'},
-      {fk:s[0],l:'50.8%',t:'67%',nc:'#fbbf24',sc:'#f59e0b'},
-      {fk:s[2],l:'83%',t:'68%',nc:'#93c5fd',sc:'#60a5fa'}
+      {fk:s[1],l:'18%',t:'68%',nc:'#c4b5fd',sc:'#a855f7',fs:'clamp(1rem,3.2vw,1.5rem)'},
+      {fk:s[0],l:'50.8%',t:'67%',nc:'#fbbf24',sc:'#f59e0b',fs:'clamp(1.3rem,4.2vw,1.95rem)'},
+      {fk:s[2],l:'83%',t:'68%',nc:'#93c5fd',sc:'#60a5fa',fs:'clamp(1rem,3.2vw,1.5rem)'}
     ].filter(x=>x.fk);
     const ov=slots.map(x=>{
       const fd=D.fk_data[x.fk];
       const stroke="-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff,0 0 10px "+x.nc;
-      return "<div onclick=\"sFk('"+x.fk+"')\" style=\"position:absolute;left:"+x.l+";top:"+x.t+";transform:translate(-50%,-50%);text-align:center;cursor:pointer\"><div style=\"color:"+x.nc+";font-weight:900;font-size:clamp(1rem,3.2vw,1.5rem);text-shadow:"+stroke+";letter-spacing:1px;white-space:nowrap\">"+fd.name+"</div></div>";
+      return "<div onclick=\"sFk('"+x.fk+"')\" style=\"position:absolute;left:"+x.l+";top:"+x.t+";transform:translate(-50%,-50%);text-align:center;cursor:pointer\"><div style=\"color:"+x.nc+";font-weight:900;font-size:"+x.fs+";text-shadow:"+stroke+";letter-spacing:1px;white-space:nowrap\">"+fd.name+"</div></div>";
     }).join('');
     document.getElementById(cid).innerHTML="<div style=\"position:relative;border-radius:12px;overflow:hidden\"><img src=\""+IMG+"\" style=\"width:100%;display:block\" loading=\"lazy\">"+ov+"</div>";
   }
