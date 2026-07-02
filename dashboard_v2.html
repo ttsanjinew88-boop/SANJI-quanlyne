@@ -2015,7 +2015,7 @@ const BC={
       const fkKey='fk'+BC._selFk.toLowerCase();
       const confirmUrl=`${base}?confirm_anomaly=${fkKey}&date=${isoDate}&cat=mkt&count=3&rid=${rid}`;
       const watchUrl=`${base}?watch_anomaly=${fkKey}&date=${isoDate}&rid=${rid}`;
-      const rm={inline_keyboard:[[{text:'✅ Xác Nhận (+3 điểm)',url:confirmUrl},{text:'👁 Theo Dõi Thêm',url:watchUrl}]]};
+      const rm={inline_keyboard:[[{text:'✅ Xác Nhận',url:confirmUrl},{text:'Theo Dõi Thêm',url:watchUrl}]]};
       const res=await BC.tgSend(blob,filename,caption,rm);
       if(res.ok){
         status.style.color='#16a34a';status.textContent='✅ Gửi thành công!';
@@ -2063,13 +2063,25 @@ const BC={
   },
 
   async tgSend(blob,filename,caption,replyMarkup){
+    const BOT='https://api.telegram.org/bot8521438412:AAHUPTf3Y1H02wY3ZsVWe-ciM0T86K5Rztk';
+    const CHAT='-1002508451381';
+    /* Step 1: send file via multipart */
     const fd=new FormData();
-    fd.append('chat_id','-1002508451381');
+    fd.append('chat_id',CHAT);
     fd.append('document',blob,filename);
     fd.append('caption',caption);
-    if(replyMarkup)fd.append('reply_markup',JSON.stringify(replyMarkup));
-    const r=await fetch('https://api.telegram.org/bot8521438412:AAHUPTf3Y1H02wY3ZsVWe-ciM0T86K5Rztk/sendDocument',{method:'POST',body:fd});
-    return r.json();
+    const r=await fetch(`${BOT}/sendDocument`,{method:'POST',body:fd});
+    const result=await r.json();
+    /* Step 2: edit message to attach inline keyboard (JSON is more reliable than multipart for reply_markup) */
+    if(result.ok&&replyMarkup){
+      const msgId=result.result.message_id;
+      await fetch(`${BOT}/editMessageReplyMarkup`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({chat_id:CHAT,message_id:msgId,reply_markup:replyMarkup})
+      });
+    }
+    return result;
   }
 };
 
