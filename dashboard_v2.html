@@ -313,10 +313,29 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .bc-tool table{width:100%;border-collapse:collapse;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.07)}
 .bc-tool thead tr{background:#CC4400;color:white}
 .bc-tool thead th{padding:9px 8px;text-align:center;font-size:11px;white-space:nowrap;font-weight:bold}
-.bc-tool tbody tr{border-bottom:1px solid #f0e8e0;height:36px}
-.bc-tool tbody tr:nth-child(even){background:#fdf8f5}
-.bc-tool tbody tr:hover{background:#fff0e6}
-.bc-tool tbody td{padding:7px 8px;font-size:11px;vertical-align:middle}
+.bc-tool tbody tr{height:36px}
+.bc-tool tbody tr:hover{background:#fff0e6 !important}
+.bc-tool tbody td{padding:6px 8px;font-size:11px;vertical-align:middle;border:1px solid #ccc;text-align:center}
+/* bc bat thuong modal */
+.bc-bt-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center}
+.bc-bt-box{background:#fff;border-radius:12px;padding:24px;width:min(560px,95vw);max-height:85vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.35)}
+.bc-bt-title{font-size:15px;font-weight:bold;color:#CC4400;margin-bottom:14px;text-align:center;border-bottom:2px solid #f0e0d0;padding-bottom:10px}
+.bc-bt-agent{background:#fff3eb;border:1px solid #ffcc99;border-radius:8px;padding:9px 14px;margin-bottom:14px;font-size:12px;color:#CC4400;font-weight:bold}
+.bc-bt-lbl{font-size:11px;font-weight:bold;color:#666;display:block;margin-bottom:7px}
+.bc-bt-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+.bc-bt-chip{padding:7px 14px;border:2px solid #CC4400;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold;color:#CC4400;transition:all .15s;user-select:none}
+.bc-bt-chip.sel{background:#CC4400;color:#fff}
+.bc-bt-chip:hover:not(.sel){background:#fff0e8}
+.bc-bt-textarea{width:100%;height:90px;border:1px solid #ddd;border-radius:6px;padding:9px;font-size:12px;resize:vertical;font-family:Arial,sans-serif;box-sizing:border-box}
+.bc-bt-actions{display:flex;gap:10px;margin-top:16px}
+.bc-bt-send{flex:1;padding:10px;background:#CC4400;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold}
+.bc-bt-send:hover{background:#a83000}
+.bc-bt-send:disabled{background:#ccc;cursor:not-allowed}
+.bc-bt-cancel{padding:10px 18px;background:#fff;color:#CC4400;border:2px solid #CC4400;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold}
+.bc-bt-cancel:hover{background:#fff0e8}
+.bc-bt-status{text-align:center;font-size:12px;margin-top:10px;min-height:18px;font-weight:bold}
+.bc-bt-trigger{padding:7px 14px;background:#7c3aed;color:white;border:none;border-radius:5px;cursor:pointer;font-size:11px;font-weight:bold;margin-left:8px}
+.bc-bt-trigger:hover{background:#6d28d9}
 .bc-tool .tc{text-align:center}.bc-tool .tl{text-align:left}
 .bc-tool .stt{color:#bbb;font-size:10px}
 .bc-tool .b-dat{background:#22c55e;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
@@ -1460,6 +1479,7 @@ rAll();
   <div class="agent-sel-bar">
     <select id="bc-agent-select" onchange="BC.loadAgent()"><option value="">-- Chọn đại lý --</option></select>
     <button class="export-btn" onclick="BC.exportCSV('detail')">⬇ Xuất CSV đại lý này</button>
+    <button class="bc-bt-trigger" onclick="BC.openBtModal()">🚨 Báo cáo đại lý bất thường</button>
   </div>
   <div class="info-bar" id="bc-info-bar" style="display:none"></div>
   <div class="tbl-wrap">
@@ -1471,6 +1491,35 @@ rAll();
       <th>Thiết bị</th><th>LINK đăng ký</th><th>LINK đăng nhập</th><th>Cược sảnh</th>
     </tr></thead>
     <tbody id="bc-body-detail"></tbody></table>
+  </div>
+</div>
+
+<!-- Báo Cáo Đại Lý Bất Thường Modal -->
+<div class="bc-bt-modal" id="bc-bt-modal" style="display:none">
+  <div class="bc-bt-box">
+    <div class="bc-bt-title">🚨 Báo Cáo Đại Lý Bất Thường</div>
+    <div class="bc-bt-agent" id="bc-bt-agent-info"></div>
+    <div style="margin-bottom:14px">
+      <span class="bc-bt-lbl">Nhân viên phụ trách (FK):</span>
+      <div class="bc-bt-chips">
+        <div class="bc-bt-chip" onclick="BC.selectFk('JADE')">JADE</div>
+        <div class="bc-bt-chip" onclick="BC.selectFk('CARBON')">CARBON</div>
+        <div class="bc-bt-chip" onclick="BC.selectFk('MEMBER')">MEMBER</div>
+        <div class="bc-bt-chip" onclick="BC.selectFk('ANGEL')">ANGEL</div>
+        <div class="bc-bt-chip" onclick="BC.selectFk('GEON')">GEON</div>
+        <div class="bc-bt-chip" onclick="BC.selectFk('DANTE')">DANTE</div>
+        <div class="bc-bt-chip" onclick="BC.selectFk('PIU')">PIU</div>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <span class="bc-bt-lbl">Nội dung kiểm tra:</span>
+      <textarea id="bc-bt-content" class="bc-bt-textarea" placeholder="Nhập nội dung đã kiểm tra, ghi chú bất thường..."></textarea>
+    </div>
+    <div class="bc-bt-actions">
+      <button class="bc-bt-send" id="bc-bt-send-btn" onclick="BC.sendBatThuong()">📤 Gửi Báo Cáo</button>
+      <button class="bc-bt-cancel" onclick="BC.closeBtModal()">✕ Hủy bỏ</button>
+    </div>
+    <div id="bc-bt-status" class="bc-bt-status"></div>
   </div>
 </div>
 
@@ -1700,23 +1749,23 @@ const BC={
   AGENT_COLORS:['#fff8f2','#f0f7ff','#f0fff6','#fdf4ff','#fffbf0','#f0fbff','#fff0f4','#f5fff0'],
 
   rowHtml(r,i,bg,isFirst){
-    const tb=r.thiet_bi==='Điện thoại'?'<span class="b-dt">📱 ĐT</span>':'<span class="b-mt">💻 MT</span>';
+    const tb=r.thiet_bi==='Điện thoại'?'Điện Thoại':'Máy Tính';
     const kh=r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>';
     const ct=r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-chua">Chưa</span>';
-    const topBorder=isFirst?'border-top:2px solid #d4a88a;':'';
-    return`<tr style="background:${bg};${topBorder}">
+    const sep=isFirst?'border-top:3px solid #111;':'';
+    return`<tr style="background:${bg};${sep}">
       <td class="tc stt">${i}</td><td><b>${r.dai_ly}</b></td><td>${r.id}</td>
-      <td class="ell" title="${r.cap_bac}">${r.cap_bac}</td><td>${r.ho_ten}</td>
-      <td class="tc">${kh}</td><td class="tc">${ct}</td>
-      <td class="tc">${BC.fmt(r.tien_nap)}</td><td class="tc">${r.lan_nap}</td>
-      <td class="tc">${BC.fmt(r.tien_rut)}</td><td class="tc">${r.lan_rut}</td>
-      <td class="tc">${BC.ad(r.am_duong)}</td><td class="tc">${BC.fmt(r.cuoc_hop_le)}</td>
+      <td class="ell">${r.cap_bac}</td><td>${r.ho_ten}</td>
+      <td>${kh}</td><td>${ct}</td>
+      <td>${BC.fmt(r.tien_nap)}</td><td>${r.lan_nap}</td>
+      <td>${BC.fmt(r.tien_rut)}</td><td>${r.lan_rut}</td>
+      <td>${BC.ad(r.am_duong)}</td><td>${BC.fmt(r.cuoc_hop_le)}</td>
       <td>${r.ngan_hang}</td><td>${r.chi_nhanh}</td><td>${r.stk}</td>
       <td style="font-size:10px">${r.ip}</td>
-      <td class="tc">${tb}</td>
-      <td class="ell tc" title="${r.link_dk}" style="font-size:10px">${r.link_dk}</td>
-      <td class="ell tc" title="${r.link_dn}" style="font-size:10px">${r.link_dn}</td>
-      <td title="${r.game}">${r.game}</td></tr>`;
+      <td>${tb}</td>
+      <td class="ell" title="${r.link_dk}" style="font-size:10px">${r.link_dk}</td>
+      <td class="ell" title="${r.link_dn}" style="font-size:10px">${r.link_dn}</td>
+      <td>${r.game}</td></tr>`;
   },
 
   renderAll(){
@@ -1864,6 +1913,95 @@ const BC={
     const a=document.createElement('a');
     a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
     a.download=filename;a.click();
+  },
+
+  // ---- Báo cáo đại lý bất thường ----
+  _selFk: null,
+
+  openBtModal(){
+    const name=document.getElementById('bc-agent-select').value;
+    if(!name){alert('Vui lòng chọn đại lý trước!');return;}
+    const ag=BC.AGENTS.find(a=>a.dai_ly===name);
+    document.getElementById('bc-bt-agent-info').innerHTML=
+      `<b>Đại lý: ${name}</b> &nbsp;·&nbsp; KH hợp lệ: ${ag?ag.khach_hop_le:0} &nbsp;·&nbsp; Tổng thành viên: ${ag?ag.tong_thanh_vien:0}`;
+    BC._selFk=null;
+    document.querySelectorAll('.bc-bt-chip').forEach(c=>c.classList.remove('sel'));
+    document.getElementById('bc-bt-content').value='';
+    document.getElementById('bc-bt-status').textContent='';
+    document.getElementById('bc-bt-send-btn').disabled=false;
+    document.getElementById('bc-bt-modal').style.display='flex';
+  },
+
+  closeBtModal(){document.getElementById('bc-bt-modal').style.display='none';},
+
+  selectFk(fk){
+    BC._selFk=fk;
+    document.querySelectorAll('.bc-bt-chip').forEach(c=>c.classList.toggle('sel',c.textContent===fk));
+  },
+
+  async sendBatThuong(){
+    if(!BC._selFk){alert('Vui lòng chọn nhân viên phụ trách (FK)!');return;}
+    const agentName=document.getElementById('bc-agent-select').value;
+    const content=document.getElementById('bc-bt-content').value.trim();
+    const rows=BC.ROWS.filter(r=>r.dai_ly===agentName);
+    const status=document.getElementById('bc-bt-status');
+    const btn=document.getElementById('bc-bt-send-btn');
+    btn.disabled=true;
+    status.style.color='#888';status.textContent='⏳ Đang tạo file Excel...';
+    try{
+      const blob=BC.genExcel(rows,agentName);
+      status.textContent='⏳ Đang gửi Telegram...';
+      const d=new Date();
+      const dateStr=`${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+      const caption=`🚨 BÁO CÁO ĐẠI LÝ BẤT THƯỜNG\n📅 ${dateStr}\n👤 FK: ${BC._selFk}\n🏢 Đại lý: ${agentName}\n📋 ${content||'(không có nội dung)'}`;
+      const filename=`BaoCao_${agentName}_${BC._selFk}_${d.getDate()}${d.getMonth()+1}.xlsx`;
+      const res=await BC.tgSend(blob,filename,caption);
+      if(res.ok){
+        status.style.color='#16a34a';status.textContent='✅ Gửi thành công!';
+        setTimeout(()=>BC.closeBtModal(),1600);
+      }else{
+        status.style.color='#dc2626';status.textContent='❌ Lỗi: '+(res.description||'Unknown');
+        btn.disabled=false;
+      }
+    }catch(err){
+      status.style.color='#dc2626';status.textContent='❌ Lỗi kết nối: '+err.message;
+      btn.disabled=false;
+    }
+  },
+
+  genExcel(rows,agentName){
+    const HDRS=['STT','Đại lý','Tên tài khoản','Cấp bậc','Họ tên đăng kí','Khách','Chỉ tiêu','Cổng','Tổng nạp','Lần nạp','Tổng rút','Lần rút','Âm/Dương','Cược hợp lệ','Ngân hàng','Chi nhánh','STK','IP','Khu vực','IP đăng ký','IP đăng nhập','Thiết bị','Sảnh'];
+    const HBGC='F4B084',DBGC='FFF2CC';
+    const bdr={top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}};
+    const mkSt=(bg)=>({fill:{patternType:'solid',fgColor:{rgb:bg}},font:{bold:true,name:'Arial',sz:10},border:bdr,alignment:{horizontal:'center',vertical:'center',wrapText:true}});
+    const hSt=mkSt(HBGC),dSt=mkSt(DBGC),agSt=mkSt(HBGC);
+    const aoa=[HDRS];
+    rows.forEach((r,i)=>{
+      aoa.push([i+1,r.dai_ly,r.id,r.cap_bac,r.ho_ten,r.khach,r.chi_tieu,'',r.tien_nap,r.lan_nap,r.tien_rut,r.lan_rut,r.am_duong,r.cuoc_hop_le,r.ngan_hang,r.chi_nhanh,r.stk,r.ip,'',r.link_dk,r.link_dn,r.thiet_bi,r.game]);
+    });
+    const ws=XLSX.utils.aoa_to_sheet(aoa);
+    const rng=XLSX.utils.decode_range(ws['!ref']);
+    for(let R=rng.s.r;R<=rng.e.r;R++){
+      for(let C=rng.s.c;C<=rng.e.c;C++){
+        const addr=XLSX.utils.encode_cell({r:R,c:C});
+        if(!ws[addr])ws[addr]={v:'',t:'s'};
+        ws[addr].s=R===0?hSt:(C===1?agSt:dSt);
+      }
+    }
+    ws['!cols']=HDRS.map((_,i)=>({wch:[4,10,14,10,16,6,8,8,12,8,12,8,12,12,12,12,14,14,10,20,20,10,12][i]||12}));
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Báo cáo');
+    const out=XLSX.write(wb,{type:'array',bookType:'xlsx',cellStyles:true});
+    return new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  },
+
+  async tgSend(blob,filename,caption){
+    const fd=new FormData();
+    fd.append('chat_id','-1002508451381');
+    fd.append('document',blob,filename);
+    fd.append('caption',caption);
+    const r=await fetch('https://api.telegram.org/bot8521438412:AAHUPTf3Y1H02wY3ZsVWe-ciM0T86K5Rztk/sendDocument',{method:'POST',body:fd});
+    return r.json();
   }
 };
 
