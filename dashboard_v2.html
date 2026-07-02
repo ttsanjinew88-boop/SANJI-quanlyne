@@ -1211,7 +1211,7 @@ function rRank(){
     ].filter(x=>x.fk);
     const ov=slots.map(x=>{
       const fd=D.fk_data[x.fk];
-      return "<div onclick=\"sFk('"+x.fk+"')\" style=\"position:absolute;left:"+x.l+";top:"+x.t+";transform:translate(-50%,-50%);text-align:center;cursor:pointer\"><div style=\"color:"+x.nc+";font-weight:900;font-size:clamp(.72rem,2.2vw,1.05rem);text-shadow:0 0 10px "+x.nc+";line-height:1.2\">"+fd.name+"</div><div style=\"color:"+x.sc+";font-size:clamp(.54rem,1.5vw,.78rem);font-weight:700;margin-top:2px\">"+nn(fd.total_score)+" đ</div><div style=\"color:rgba(255,255,255,.55);font-size:clamp(.46rem,1.2vw,.64rem)\">"+nn(fd.total_count)+" đơn</div></div>";
+      return "<div onclick=\"sFk('"+x.fk+"')\" style=\"position:absolute;left:"+x.l+";top:"+x.t+";transform:translate(-50%,-50%);text-align:center;cursor:pointer\"><div style=\"color:"+x.nc+";font-weight:900;font-size:clamp(.8rem,2.5vw,1.2rem);text-shadow:0 0 12px "+x.nc+",0 2px 4px rgba(0,0,0,.8);letter-spacing:.5px\">"+fd.name+"</div></div>";
     }).join('');
     document.getElementById(cid).innerHTML="<div style=\"position:relative;border-radius:12px;overflow:hidden\"><img src=\""+IMG+"\" style=\"width:100%;display:block\" loading=\"lazy\">"+ov+"</div>";
   }
