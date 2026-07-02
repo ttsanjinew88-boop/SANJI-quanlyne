@@ -2031,35 +2031,31 @@ const BC={
   },
 
   genExcel(rows,agentName){
-    /* HTML-table-to-XLS with bgcolor attr + mso-number-format for reliable color & STK text */
+    /* SpreadsheetML XML — explicit ss:Type per cell → STK stays text, colors via ss:Interior */
     const HDRS=['STT','Đại lý','Tên tài khoản','Cấp bậc','Họ tên đăng kí','Khách','Chỉ tiêu','Cổng','Tổng nạp','Lần nạp','Tổng rút','Lần rút','Âm/Dương','Cược hợp lệ','Ngân hàng','Chi nhánh','STK','IP','Khu vực','IP đăng ký','IP đăng nhập','Thiết bị','Sảnh'];
-    const W=['30px','80px','110px','130px','170px','50px','65px','60px','90px','65px','90px','65px','90px','95px','100px','100px','130px','110px','80px','160px','160px','80px','160px'];
-    const HBG='#F4B084',DBG='#FFF2CC',ABG='#F4B084';
-    const BS='border:1px solid #000;padding:4px 6px;text-align:center;font-family:Arial;font-size:10pt;vertical-align:middle;white-space:nowrap;';
-    /* bgcolor attr + background-color CSS = double-ensures color renders in all WPS/Excel versions */
-    const th=(n,i)=>`<th bgcolor="${HBG}" style="${BS}font-weight:bold;background-color:${HBG};width:${W[i]}">${n}</th>`;
-    /* STK col (idx 16): x:str attr + mso-number-format:'@' = force text, prevent scientific notation */
-    const td=(v,bg,w,isStk=false)=>{
-      const sAttr=isStk?` x:str="${String(v??'').replace(/"/g,'&quot;')}"`:' ';
-      const sSty=isStk?`mso-number-format:'@';`:'';
-      return`<td${sAttr}bgcolor="${bg}" style="${BS}background-color:${bg};width:${w};${sSty}">${v??''}</td>`;
+    const CW=[28,60,80,95,125,40,50,45,70,50,70,50,70,72,75,75,100,82,60,120,120,60,120];
+    const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const B='<Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>';
+    const c=(v,sty,forceStr=false)=>{
+      const num=!forceStr&&v!==''&&v!==null&&v!==undefined&&String(v).trim()!==''&&!isNaN(Number(v));
+      return`<Cell ss:StyleID="${sty}"><Data ss:Type="${num?'Number':'String'}">${esc(num?v:String(v??''))}</Data></Cell>`;
     };
-    let h=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-<head><meta charset="UTF-8">
-<xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Báo cáo</x:Name>
-<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
-</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml>
-</head><body><table style="border-collapse:collapse"><thead><tr>`;
-    HDRS.forEach((n,i)=>h+=th(n,i));
-    h+=`</tr></thead><tbody>`;
+    let x=`<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Styles>
+<Style ss:ID="h"><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/><Borders>${B}</Borders><Font ss:Bold="1" ss:Name="Arial" ss:Size="10"/><Interior ss:Color="#F4B084" ss:Pattern="Solid"/></Style>
+<Style ss:ID="d"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Borders>${B}</Borders><Font ss:Name="Arial" ss:Size="10"/><Interior ss:Color="#FFF2CC" ss:Pattern="Solid"/></Style>
+<Style ss:ID="a"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Borders>${B}</Borders><Font ss:Name="Arial" ss:Size="10"/><Interior ss:Color="#F4B084" ss:Pattern="Solid"/></Style>
+</Styles>
+<Worksheet ss:Name="Báo cáo"><Table>
+${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
+<Row ss:AutoFitHeight="1">${HDRS.map(h=>c(h,'h')).join('')}</Row>`;
     rows.forEach((r,i)=>{
       const vals=[i+1,r.dai_ly,r.id,r.cap_bac,r.ho_ten,r.khach,r.chi_tieu,'',r.tien_nap,r.lan_nap,r.tien_rut,r.lan_rut,r.am_duong,r.cuoc_hop_le,r.ngan_hang,r.chi_nhanh,r.stk,r.ip,'',r.link_dk,r.link_dn,r.thiet_bi,r.game];
-      h+=`<tr>`;
-      vals.forEach((v,ci)=>h+=td(v,ci===1?ABG:DBG,W[ci],ci===16));
-      h+=`</tr>`;
+      x+=`<Row>${vals.map((v,ci)=>c(v,ci===1?'a':'d',ci===16)).join('')}</Row>`;
     });
-    h+=`</tbody></table></body></html>`;
-    return new Blob(['﻿'+h],{type:'application/vnd.ms-excel;charset=utf-8'});
+    x+=`</Table></Worksheet></Workbook>`;
+    return new Blob(['﻿'+x],{type:'application/vnd.ms-excel;charset=utf-8'});
   },
 
   async tgSend(blob,filename,caption,replyMarkup){
