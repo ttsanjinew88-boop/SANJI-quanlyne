@@ -258,10 +258,109 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .modal-btn.primary{background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;box-shadow:0 4px 12px rgba(124,58,237,.3)}
 .modal-btn.cancel{background:var(--card2);color:var(--mu2);border:1px solid var(--border)}
 .modal-btn:hover{opacity:.9;transform:translateY(-1px)}
+/* ===== TOOL SWITCHER ===== */
+.tool-sw{display:flex;background:#050816;border-bottom:2px solid #1e2545;position:sticky;top:0;z-index:300;flex-shrink:0}
+.tool-sw-btn{flex:1;padding:15px 20px;font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;border:none;background:transparent;color:#64748b;transition:all .2s;border-bottom:3px solid transparent;display:flex;align-items:center;justify-content:center;gap:7px}
+.tool-sw-btn:hover{color:#9f67ff;background:rgba(124,58,237,.06)}
+.tool-sw-btn.on{color:#9f67ff;border-bottom-color:#7c3aed;background:rgba(124,58,237,.1)}
+/* ===== BC-TOOL SCOPED CSS ===== */
+.bc-tool{font-family:Arial,sans-serif;font-size:12px;background:#f0e8df;color:#333;min-height:calc(100vh - 52px)}
+.bc-tool *{box-sizing:border-box;margin:0;padding:0}
+.bc-tool .topbar{background:#6B1A00;color:white;padding:12px 24px;display:flex;align-items:center;gap:12px}
+.bc-tool .topbar-title{font-size:15px;font-weight:bold;letter-spacing:.5px}
+.bc-tool .topbar-sub{font-size:11px;color:#ffcc99;margin-left:auto}
+.bc-tool .upload-section{background:#fffaf7;border-bottom:2px solid #e8d5c4;padding:16px 24px}
+.bc-tool .upload-title{font-weight:bold;color:#CC4400;font-size:13px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.bc-tool .upload-grid{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+.bc-tool .drop-zone{border:2px dashed #CC4400;border-radius:10px;padding:16px 20px;text-align:center;cursor:pointer;transition:all .2s;background:#fff8f4;width:220px;flex:0 0 220px}
+.bc-tool .drop-zone:hover,.bc-tool .drop-zone.dragover{background:#ffeedf;border-color:#a83000}
+.bc-tool .drop-zone input{display:none}
+.bc-tool .drop-zone .dz-icon{font-size:24px;margin-bottom:4px}
+.bc-tool .drop-zone .dz-label{font-size:11px;color:#888;margin-top:3px}
+.bc-tool .drop-zone.loaded{border-color:#22c55e;background:#f0fff4}
+.bc-tool .drop-zone.loaded .dz-icon{color:#22c55e}
+.bc-tool .upload-actions{display:flex;flex-direction:column;gap:8px;justify-content:center}
+.bc-tool .btn-process{padding:10px 22px;background:#CC4400;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;white-space:nowrap}
+.bc-tool .btn-process:hover{background:#a83000}
+.bc-tool .btn-process:disabled{background:#ccc;cursor:not-allowed}
+.bc-tool .btn-reset{padding:7px 16px;background:white;color:#CC4400;border:2px solid #CC4400;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold}
+.bc-tool .btn-reset:hover{background:#fff8f4}
+.bc-tool .upload-log{background:#1a1a1a;color:#00ff88;font-family:monospace;font-size:11px;padding:10px 12px;border-radius:6px;max-height:90px;overflow-y:auto;min-width:260px;flex:1;white-space:pre-wrap;line-height:1.5}
+.bc-tool .upload-log.hidden{display:none}
+.bc-tool .file-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.bc-tool .file-tag{background:#ffeedf;border:1px solid #ffcc99;color:#CC4400;padding:3px 9px;border-radius:12px;font-size:10px;display:flex;align-items:center;gap:4px}
+.bc-tool .file-tag .rm{cursor:pointer;color:#999}
+.bc-tool .file-tag .rm:hover{color:#cc0000}
+.bc-tool .progress-bar{height:4px;background:#f0e8e0;border-radius:2px;overflow:hidden;margin-top:8px;display:none}
+.bc-tool .progress-fill{height:100%;background:#CC4400;transition:width .3s;width:0}
+.bc-tool .bc-tabs{display:flex;background:#8B2500}
+.bc-tool .bc-tab{padding:11px 22px;color:#ffcc99;cursor:pointer;font-weight:bold;font-size:12px;border-right:1px solid #a83000;transition:background .2s;white-space:nowrap}
+.bc-tool .bc-tab:hover{background:#a83000}
+.bc-tool .bc-tab.active{background:#CC4400;color:#fff;border-bottom:3px solid #ffaa00}
+.bc-tool .data-source-badge{font-size:10px;background:#ffaa00;color:#6B1A00;padding:2px 7px;border-radius:8px;margin-left:8px;font-weight:bold}
+.bc-tool .bc-panel{display:none;padding:16px 24px}
+.bc-tool .bc-panel.active{display:block}
+.bc-tool .cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.bc-tool .card{background:#fff;border-radius:10px;padding:12px 18px;min-width:140px;max-width:200px;box-shadow:0 2px 8px rgba(0,0,0,.09);border-top:3px solid #CC4400;flex:1;text-align:center}
+.bc-tool .card-label{color:#888;font-size:10px;margin-bottom:3px}
+.bc-tool .card-value{font-size:20px;font-weight:bold;color:#CC4400}
+.bc-tool .tbl-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.bc-tool .tbl-toolbar input{padding:6px 11px;border:1px solid #ddd;border-radius:4px;width:240px;font-size:11px}
+.bc-tool .bc-badge{background:#CC4400;color:white;padding:3px 9px;border-radius:10px;font-size:10px}
+.bc-tool .export-btn{padding:6px 14px;background:#16a34a;color:white;border:none;border-radius:5px;cursor:pointer;font-size:11px;font-weight:bold;margin-left:auto}
+.bc-tool .export-btn:hover{background:#15803d}
+.bc-tool .tbl-wrap{overflow-x:auto}
+.bc-tool table{width:100%;border-collapse:collapse;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.07)}
+.bc-tool thead tr{background:#CC4400;color:white}
+.bc-tool thead th{padding:9px 8px;text-align:center;font-size:11px;white-space:nowrap;position:sticky;top:52px;z-index:2;font-weight:bold}
+.bc-tool tbody tr{border-bottom:1px solid #f0e8e0;height:36px}
+.bc-tool tbody tr:nth-child(even){background:#fdf8f5}
+.bc-tool tbody tr:hover{background:#fff0e6}
+.bc-tool tbody td{padding:7px 8px;font-size:11px;vertical-align:middle}
+.bc-tool .tc{text-align:center}.bc-tool .tl{text-align:left}
+.bc-tool .stt{color:#bbb;font-size:10px}
+.bc-tool .b-dat{background:#22c55e;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
+.bc-tool .b-chua{background:#ef4444;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
+.bc-tool .b-moi{background:#3b82f6;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
+.bc-tool .b-cu{background:#9ca3af;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
+.bc-tool .b-dt{background:#8b5cf6;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
+.bc-tool .b-mt{background:#6b7280;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
+.bc-tool .pos{color:#16a34a;font-weight:bold}.bc-tool .neg{color:#dc2626;font-weight:bold}
+.bc-tool .view-btn{padding:2px 9px;background:#CC4400;color:white;border:none;border-radius:4px;cursor:pointer;font-size:10px}
+.bc-tool .view-btn:hover{background:#a83000}
+.bc-tool .ell{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bc-tool .agent-sel-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.bc-tool .agent-sel-bar select{padding:7px 12px;border:2px solid #CC4400;border-radius:6px;font-size:12px;font-weight:bold;color:#CC4400;min-width:240px;cursor:pointer}
+.bc-tool .info-bar{background:#fff3eb;border:1px solid #ffcc99;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+.bc-tool .info-item .lbl{font-size:10px;color:#888}
+.bc-tool .info-item .val{font-size:14px;font-weight:bold;color:#CC4400}
+.bc-tool .bc-pg{display:flex;gap:3px;margin-top:8px;align-items:center;justify-content:flex-end}
+.bc-tool .pg-btn{padding:3px 8px;border:1px solid #ddd;border-radius:3px;cursor:pointer;font-size:10px;background:white}
+.bc-tool .pg-btn.on{background:#CC4400;color:white;border-color:#CC4400}
+.bc-tool .pg-btn:hover:not(.on){background:#f5ece6}
+.bc-tool .pg-info{font-size:10px;color:#777;margin:0 5px}
+.bc-tool .ph{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.bc-tool .ph-title{font-size:15px;font-weight:bold;color:#CC4400}
+.bc-tool .ph-sub{font-size:10px;color:#999}
+.bc-tool .empty{text-align:center;padding:40px;color:#aaa;font-size:13px}
+.bc-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center}
+.bc-overlay.show{display:flex}
+.bc-overlay .overlay-box{background:white;border-radius:12px;padding:28px 36px;text-align:center}
+.bc-overlay .overlay-spinner{width:40px;height:40px;border:4px solid #f0e8e0;border-top-color:#CC4400;border-radius:50%;animation:bc-spin 1s linear infinite;margin:0 auto 14px}
+@keyframes bc-spin{to{transform:rotate(360deg)}}
+.bc-overlay .overlay-msg{font-size:13px;color:#CC4400;font-weight:bold}
+.bc-tool .dz-hint{font-size:10px;color:#CC4400;margin-top:6px;opacity:.7}
+@media(max-width:768px){.bc-tool .upload-grid{justify-content:center}.bc-tool .drop-zone{flex:1 1 160px}}
 </style>
 </head>
 <body>
 
+<div class="tool-sw">
+  <button class="tool-sw-btn on" id="tsb1" onclick="switchTool('t1')">📊 Dashboard Hiệu Suất Nhân Viên</button>
+  <button class="tool-sw-btn" id="tsb2" onclick="switchTool('t2')">📋 Báo Cáo Đại Lý - Gửi File</button>
+</div>
+
+<div id="t1">
 <div id="progOverlay">
   <div class="prog-box">
     <div class="prog-title">⚡ Đang xử lý file Excel...</div>
@@ -1255,6 +1354,505 @@ function rHour(ds){
 }
 
 rAll();
+</script>
+</div><!-- /t1 -->
+
+<!-- ===== T2: BÁO CÁO ĐẠI LÝ ===== -->
+<div id="t2" style="display:none" class="bc-tool">
+
+<div class="bc-overlay" id="bc-overlay">
+  <div class="overlay-box">
+    <div class="overlay-spinner"></div>
+    <div class="overlay-msg" id="bc-overlay-msg">Đang xử lý dữ liệu...</div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-title">📊 BÁO CÁO TỔNG HỢP ĐẠI LÝ</div>
+  <div class="topbar-sub">Điều kiện: Nạp ≥ 1,000 · Cược ≥ 3,000 · Đại lý ≥ 3 KH hợp lệ</div>
+</div>
+
+<div class="upload-section">
+  <div class="upload-title">📁 Tải file dữ liệu mới <span style="font-size:10px;color:#999;font-weight:normal">(hỗ trợ gộp nhiều file · kéo thả hoặc bấm chọn)</span></div>
+  <div class="upload-grid">
+    <div class="drop-zone" id="bc-dz1" onclick="document.getElementById('bc-f1').click()" ondragover="BC.onDrag(event,'bc-dz1')" ondragleave="BC.offDrag('bc-dz1')" ondrop="BC.onDrop(event,'f1','bc-dz1','bc-ft1')">
+      <input type="file" id="bc-f1" multiple accept=".xlsx" onchange="BC.addFiles(this,'f1','bc-dz1','bc-ft1')">
+      <div class="dz-icon">👤</div>
+      <div style="font-weight:bold;font-size:12px">Xuất dữ liệu thành viên</div>
+      <div class="dz-label">Ngân hàng · STK · IP · Link đăng ký</div>
+      <div class="dz-hint">Kéo thả hoặc bấm chọn</div>
+      <div class="file-tags" id="bc-ft1"></div>
+    </div>
+    <div class="drop-zone" id="bc-dz2" onclick="document.getElementById('bc-f2').click()" ondragover="BC.onDrag(event,'bc-dz2')" ondragleave="BC.offDrag('bc-dz2')" ondrop="BC.onDrop(event,'f2','bc-dz2','bc-ft2')">
+      <input type="file" id="bc-f2" multiple accept=".xlsx" onchange="BC.addFiles(this,'f2','bc-dz2','bc-ft2')">
+      <div class="dz-icon">📋</div>
+      <div style="font-weight:bold;font-size:12px">Báo cáo thành viên</div>
+      <div class="dz-label">Nạp · Rút · Cược hợp lệ · Cấp bậc</div>
+      <div class="dz-hint">Kéo thả hoặc bấm chọn</div>
+      <div class="file-tags" id="bc-ft2"></div>
+    </div>
+    <div class="drop-zone" id="bc-dz3" onclick="document.getElementById('bc-f3').click()" ondragover="BC.onDrag(event,'bc-dz3')" ondragleave="BC.offDrag('bc-dz3')" ondrop="BC.onDrop(event,'f3','bc-dz3','bc-ft3')">
+      <input type="file" id="bc-f3" multiple accept=".xlsx" onchange="BC.addFiles(this,'f3','bc-dz3','bc-ft3')">
+      <div class="dz-icon">🎮</div>
+      <div style="font-weight:bold;font-size:12px">Báo cáo nhà cung cấp</div>
+      <div class="dz-label">Sảnh trò chơi · Cược per game</div>
+      <div class="dz-hint">Kéo thả hoặc bấm chọn</div>
+      <div class="file-tags" id="bc-ft3"></div>
+    </div>
+    <div class="upload-actions">
+      <button class="btn-process" id="bc-btn-process" onclick="BC.processFiles()" disabled>⚡ Tính toán</button>
+      <button class="btn-reset" onclick="BC.resetToDefault()">↺ Dữ liệu gốc</button>
+      <div class="progress-bar" id="bc-prog-bar"><div class="progress-fill" id="bc-prog-fill"></div></div>
+    </div>
+    <div class="upload-log hidden" id="bc-upload-log"></div>
+  </div>
+</div>
+
+<div class="bc-tabs">
+  <div class="bc-tab active" onclick="BC.showPanel('summary')">📊 TỔNG HỢP <span class="data-source-badge" id="bc-ds-badge" style="background:#9ca3af">TRỐNG</span></div>
+  <div class="bc-tab" onclick="BC.showPanel('agents')">📋 DANH SÁCH ĐẠI LÝ</div>
+  <div class="bc-tab" onclick="BC.showPanel('detail')">🔍 KIỂM TRA ĐẠI LÝ</div>
+</div>
+
+<div class="bc-panel active" id="bc-panel-summary">
+  <div class="ph"><div><div class="ph-title">Tổng Hợp Toàn Bộ</div><div class="ph-sub">Chỉ tính thành viên đủ điều kiện (nạp ≥ 1,000 & cược ≥ 3,000) · Đại lý cần ≥ 3 KH hợp lệ</div></div></div>
+  <div class="cards" id="bc-summary-cards"></div>
+  <div class="tbl-toolbar">
+    <input type="text" id="bc-s-all" placeholder="Tìm ID, Họ tên, Đại lý, Ngân hàng..." oninput="BC.filterAll()">
+    <span class="bc-badge" id="bc-cnt-all"></span>
+    <button class="export-btn" onclick="BC.exportCSV('all')">⬇ Xuất CSV</button>
+  </div>
+  <div class="tbl-wrap">
+    <table><thead><tr>
+      <th>STT</th><th>Đại lý</th><th>ID</th><th>Cấp bậc</th><th>Họ tên</th>
+      <th>Khách</th><th>Chỉ tiêu</th><th>Lần nạp</th><th>Tiền nạp</th>
+      <th>Lần rút</th><th>Tiền rút</th><th>Âm/Dương</th><th>Cược HL</th>
+      <th>Ngân hàng</th><th>Chi nhánh</th><th>STK</th><th>IP</th>
+      <th>LINK ĐK</th><th>LINK ĐN</th><th>Thiết bị</th><th>GAME</th>
+    </tr></thead>
+    <tbody id="bc-body-all"></tbody></table>
+  </div>
+  <div class="bc-pg" id="bc-pg-all"></div>
+</div>
+
+<div class="bc-panel" id="bc-panel-agents">
+  <div class="ph">
+    <div><div class="ph-title">Danh Sách Đại Lý Đủ Điều Kiện</div><div class="ph-sub">Đại lý có ≥ 3 KH hợp lệ</div></div>
+    <button class="export-btn" onclick="BC.exportCSV('agents')">⬇ Xuất CSV</button>
+  </div>
+  <div class="tbl-toolbar">
+    <input type="text" id="bc-s-agents" placeholder="Tìm tên đại lý..." oninput="BC.filterAgents()">
+    <span class="bc-badge" id="bc-cnt-agents"></span>
+  </div>
+  <div class="tbl-wrap">
+    <table><thead><tr>
+      <th>STT</th><th>Tên đại lý</th><th>Tổng TV</th><th>KH hợp lệ</th>
+      <th>KH mới</th><th>KH cũ</th><th>Tổng nạp</th><th>Tổng rút</th>
+      <th>Âm/Dương</th><th>Cược HL</th><th></th>
+    </tr></thead>
+    <tbody id="bc-body-agents"></tbody></table>
+  </div>
+  <div class="bc-pg" id="bc-pg-agents"></div>
+</div>
+
+<div class="bc-panel" id="bc-panel-detail">
+  <div class="ph"><div class="ph-title">Kiểm Tra Theo Đại Lý</div></div>
+  <div class="agent-sel-bar">
+    <select id="bc-agent-select" onchange="BC.loadAgent()"><option value="">-- Chọn đại lý --</option></select>
+    <button class="export-btn" onclick="BC.exportCSV('detail')">⬇ Xuất CSV đại lý này</button>
+  </div>
+  <div class="info-bar" id="bc-info-bar" style="display:none"></div>
+  <div class="tbl-wrap">
+    <table><thead><tr>
+      <th>STT</th><th>ID</th><th>Cấp bậc</th><th>Họ tên</th>
+      <th>Khách</th><th>Chỉ tiêu</th><th>Lần nạp</th><th>Tiền nạp</th>
+      <th>Lần rút</th><th>Tiền rút</th><th>Âm/Dương</th><th>Cược HL</th>
+      <th>Ngân hàng</th><th>Chi nhánh</th><th>STK</th><th>IP</th>
+      <th>LINK ĐK</th><th>LINK ĐN</th><th>Thiết bị</th><th>GAME</th>
+    </tr></thead>
+    <tbody id="bc-body-detail"></tbody></table>
+  </div>
+</div>
+
+</div><!-- /t2 -->
+
+<script>
+// ===== TOOL SWITCHER =====
+function switchTool(id){
+  document.getElementById('t1').style.display=id==='t1'?'':'none';
+  document.getElementById('t2').style.display=id==='t2'?'':'none';
+  document.getElementById('tsb1').classList.toggle('on',id==='t1');
+  document.getElementById('tsb2').classList.toggle('on',id==='t2');
+}
+
+// ===== BC NAMESPACE =====
+const BC={
+  PS:100,
+  ROWS:[],AGENTS:[],MAX_MONTH:'',
+  fileStore:{f1:[],f2:[],f3:[]},
+  filtAll:[],filtAgents:[],pgAll:1,pgAgents:1,
+
+  onDrag(e,id){e.preventDefault();e.stopPropagation();document.getElementById(id).classList.add('dragover');},
+  offDrag(id){document.getElementById(id).classList.remove('dragover');},
+
+  onDrop(e,store,dzId,ftId){
+    e.preventDefault();e.stopPropagation();BC.offDrag(dzId);
+    const files=Array.from(e.dataTransfer.files).filter(f=>f.name.endsWith('.xlsx'));
+    if(!files.length){BC.log('⚠ Chỉ chấp nhận file .xlsx');return;}
+    files.forEach(f=>BC.addFileToStore(f,store,ftId));BC.checkBtn();
+  },
+
+  addFiles(input,store,dzId,ftId){
+    Array.from(input.files).forEach(f=>BC.addFileToStore(f,store,ftId));
+    document.getElementById(dzId).classList.add('loaded');BC.checkBtn();input.value='';
+  },
+
+  addFileToStore(file,store,ftId){
+    if(BC.fileStore[store].find(f=>f.name===file.name&&f.size===file.size)){BC.log('⚠ Đã có: '+file.name);return;}
+    BC.fileStore[store].push(file);
+    const idx=BC.fileStore[store].length-1;
+    const tag=document.createElement('div');tag.className='file-tag';
+    tag.innerHTML=`📄 ${file.name.substring(0,22)}${file.name.length>22?'...':''} <span class="rm" onclick="BC.removeFile('${store}',${idx},'${ftId}')">✕</span>`;
+    document.getElementById(ftId).appendChild(tag);
+    BC.log('✅ Đã thêm: '+file.name);
+  },
+
+  removeFile(store,idx,ftId){BC.fileStore[store].splice(idx,1);BC.renderFileTags(store,ftId);BC.checkBtn();},
+
+  renderFileTags(store,ftId){
+    const el=document.getElementById(ftId);el.innerHTML='';
+    BC.fileStore[store].forEach((f,i)=>{
+      const tag=document.createElement('div');tag.className='file-tag';
+      tag.innerHTML=`📄 ${f.name.substring(0,22)} <span class="rm" onclick="BC.removeFile('${store}',${i},'${ftId}')">✕</span>`;
+      el.appendChild(tag);
+    });
+  },
+
+  checkBtn(){document.getElementById('bc-btn-process').disabled=!BC.fileStore.f2.length;},
+
+  log(msg){
+    const el=document.getElementById('bc-upload-log');
+    el.classList.remove('hidden');el.textContent+=msg+'\n';el.scrollTop=el.scrollHeight;
+  },
+
+  setProgress(pct){
+    const bar=document.getElementById('bc-prog-bar');bar.style.display='block';
+    document.getElementById('bc-prog-fill').style.width=pct+'%';
+    if(pct>=100)setTimeout(()=>{bar.style.display='none';},800);
+  },
+
+  readXlsx(file){
+    return new Promise((res,rej)=>{
+      const reader=new FileReader();
+      reader.onload=e=>{
+        try{
+          const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+          const ws=wb.Sheets[wb.SheetNames[0]];
+          res(XLSX.utils.sheet_to_json(ws,{defval:''}));
+        }catch(err){rej(err);}
+      };
+      reader.onerror=rej;reader.readAsArrayBuffer(file);
+    });
+  },
+
+  async processFiles(){
+    BC.showOverlay('Đang đọc file...');BC.setProgress(5);BC.log('\n🔄 Bắt đầu xử lý...');
+    try{
+      const seen=new Set();
+      const allFiles=[...BC.fileStore.f1,...BC.fileStore.f2,...BC.fileStore.f3]
+        .filter(f=>{const k=f.name+'|'+f.size;if(seen.has(k))return false;seen.add(k);return true;});
+      if(!allFiles.length){BC.hideOverlay();BC.log('❌ Chưa có file nào!');return;}
+      BC.log(`  📦 ${allFiles.length} file`);
+      let df1=[],df2=[],df3=[];
+      for(const file of allFiles){
+        BC.log(`  📖 ${file.name}`);
+        const rows=await BC.readXlsx(file);
+        if(!rows.length){BC.log('  ⚠ File rỗng');continue;}
+        const cols=Object.keys(rows[0]);const n=cols.length;
+        if(cols.some(c=>c.includes('ảnh'))||cols.some(c=>c.includes('nh')&&c.includes('tr')&&c.includes('ch'))){
+          df3.push(...rows);BC.log(`  ✅ [Game] ${rows.length} dòng`);
+        }else if(n<=10&&(cols[0].includes('kho')||cols[0].toLowerCase().includes('tai')||cols[0].includes('account'))){
+          df1.push(...rows);BC.log(`  ✅ [Thành viên] ${rows.length} dòng`);
+        }else if(n>=10||cols.some(c=>c.includes('gửi')||c.includes('nhuợng'))){
+          df2.push(...rows);BC.log(`  ✅ [Báo cáo] ${rows.length} dòng`);
+        }else{
+          BC.log(`  ❓ Fallback: ${cols.slice(0,3).join('|')}`);
+          if(n<=10)df1.push(...rows);else df2.push(...rows);
+        }
+      }
+      BC.setProgress(40);
+      BC.log(`  TV=${df1.length} BáoCáo=${df2.length} Game=${df3.length}`);
+      if(!df2.length){BC.hideOverlay();BC.log('❌ Không tìm thấy file Báo cáo thành viên!');return;}
+      BC.overlayMsg('Đang tính toán...');BC.setProgress(55);
+
+      const memMap={};
+      df2.forEach(row=>{
+        const agent=row['Bên nhượng quyền']||'';const user=row['Thành viên']||'';
+        if(!agent||!user)return;
+        const key=agent+'|||'+user;
+        if(!memMap[key])memMap[key]={dai_ly:agent,id:user,cap_bac:row['cấp thành viên']||'',lan_nap:0,tien_nap:0,lan_rut:0,tien_rut:0,cuoc_hop_le:0};
+        const m=memMap[key];
+        m.lan_nap+=Number(row['Số lần gửi tiền'])||0;
+        m.tien_nap+=Number(row['Tổng số tiền gửi'])||0;
+        m.lan_rut+=Number(row['Số lần rút tiền'])||0;
+        m.tien_rut+=Number(row['Số tiền rút'])||0;
+        m.cuoc_hop_le+=Number(row['Tổng số tiền đặt cược hợp lệ'])||0;
+      });
+
+      const infoMap={};
+      df1.forEach(row=>{
+        const u=row['số tài khoản']||'';if(!u)return;
+        const linkDn=String(row['URL nguồn-Đăng nhập']||'');
+        const thiet_bi=linkDn.split('://').pop().startsWith('m.')?'Điện thoại':'Máy tính';
+        let regDate=null;
+        const dval=row['Thời gian gửi tiền thực tế đầu tiên'];
+        if(dval instanceof Date)regDate=dval;
+        else if(typeof dval==='number')regDate=new Date(Math.round((dval-25569)*86400*1000));
+        else if(typeof dval==='string'&&dval)regDate=new Date(dval);
+        infoMap[u]={ho_ten:row['tên thật']||'',ip:row['IP đăng nhập lần cuối']||'',
+          link_dk:row['Đăng ký URL nguồn']||'',link_dn:linkDn,
+          ngan_hang:row['Ngân hàng_1']||'',chi_nhanh:row['Ngân hàng_1 - Quận']||'',
+          stk:String(row['Ngân hàng_1 - Tài khoản']||''),thiet_bi,regDate};
+      });
+
+      let maxTs=0;
+      Object.values(infoMap).forEach(m=>{if(m.regDate&&m.regDate.getTime()>maxTs)maxTs=m.regDate.getTime();});
+      const maxDate=maxTs?new Date(maxTs):new Date();
+      const maxM=maxDate.getFullYear()+'-'+(String(maxDate.getMonth()+1).padStart(2,'0'));
+      BC.log(`  📅 Tháng hiện tại: ${maxM}`);
+
+      const gameMap={};
+      df3.forEach(row=>{
+        const agent=row['Bên nhượng quyền']||'',user=row['Thành viên']||'',game=row['Sảnh trò chơi']||'';
+        const bet=Number(row['Tổng số tiền đặt cược'])||0;
+        if(!agent||!user||!game)return;
+        const key=agent+'|||'+user;
+        if(!gameMap[key])gameMap[key]={};
+        gameMap[key][game]=(gameMap[key][game]||0)+bet;
+      });
+      const gameTop2={};
+      Object.keys(gameMap).forEach(k=>{
+        gameTop2[k]=Object.entries(gameMap[k]).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]).join(' / ');
+      });
+      BC.setProgress(75);
+
+      const members=Object.values(memMap);
+      members.forEach(m=>{
+        m.am_duong=m.tien_nap-m.tien_rut;
+        m.hop_le=m.tien_nap>=1000&&m.cuoc_hop_le>=3000;
+        m.chi_tieu=m.hop_le?'Đạt':'Chưa đạt';
+        const info=infoMap[m.id]||{};
+        Object.assign(m,{ho_ten:info.ho_ten||'',ip:info.ip||'',link_dk:info.link_dk||'',
+          link_dn:info.link_dn||'',ngan_hang:info.ngan_hang||'',chi_nhanh:info.chi_nhanh||'',
+          stk:info.stk||'',thiet_bi:info.thiet_bi||'Máy tính'});
+        const rd=info.regDate;
+        m.khach=rd&&(rd.getFullYear()+'-'+String(rd.getMonth()+1).padStart(2,'0'))===maxM?'Mới':'Cũ';
+        m.game=gameTop2[m.dai_ly+'|||'+m.id]||'';
+      });
+
+      const agentValid={};
+      members.forEach(m=>{if(!agentValid[m.dai_ly])agentValid[m.dai_ly]=0;if(m.hop_le)agentValid[m.dai_ly]++;});
+      const qualified=new Set(Object.keys(agentValid).filter(a=>agentValid[a]>=3));
+      BC.log(`  ✅ Đại lý đủ điều kiện: ${qualified.size}`);
+
+      BC.ROWS=members.filter(m=>m.hop_le&&qualified.has(m.dai_ly))
+        .sort((a,b)=>a.dai_ly.localeCompare(b.dai_ly)||b.tien_nap-a.tien_nap);
+
+      const agSum={};
+      members.filter(m=>qualified.has(m.dai_ly)).forEach(m=>{
+        if(!agSum[m.dai_ly])agSum[m.dai_ly]={dai_ly:m.dai_ly,tong_thanh_vien:0,khach_hop_le:0,tong_nap:0,tong_rut:0,am_duong:0,cuoc_hop_le:0,khach_moi:0,khach_cu:0};
+        const a=agSum[m.dai_ly];a.tong_thanh_vien++;
+        if(m.hop_le)a.khach_hop_le++;
+        a.tong_nap+=m.tien_nap;a.tong_rut+=m.tien_rut;a.am_duong+=m.am_duong;a.cuoc_hop_le+=m.cuoc_hop_le;
+        if(m.khach==='Mới')a.khach_moi++;else a.khach_cu++;
+      });
+      BC.AGENTS=Object.values(agSum).sort((a,b)=>a.dai_ly.localeCompare(b.dai_ly));
+      BC.MAX_MONTH=maxM;BC.setProgress(90);
+
+      BC.filtAll=[...BC.ROWS];BC.filtAgents=[...BC.AGENTS];BC.pgAll=1;BC.pgAgents=1;
+      BC.log(`  📊 Tổng KH hợp lệ: ${BC.ROWS.length}`);BC.log('✅ Xong!');BC.setProgress(100);
+      const badge=document.getElementById('bc-ds-badge');
+      badge.textContent='MỚI';badge.style.background='#22c55e';badge.style.color='white';
+      BC.hideOverlay();BC.rebuildAll();
+    }catch(err){BC.hideOverlay();BC.log('❌ Lỗi: '+err.message);console.error(err);}
+  },
+
+  resetToDefault(){
+    BC.ROWS=[];BC.AGENTS=[];BC.MAX_MONTH='';
+    BC.filtAll=[];BC.filtAgents=[];BC.pgAll=1;BC.pgAgents=1;
+    ['f1','f2','f3'].forEach(k=>BC.fileStore[k]=[]);
+    ['bc-ft1','bc-ft2','bc-ft3'].forEach(id=>document.getElementById(id).innerHTML='');
+    ['bc-dz1','bc-dz2','bc-dz3'].forEach(id=>document.getElementById(id).classList.remove('loaded'));
+    const ul=document.getElementById('bc-upload-log');ul.textContent='';ul.classList.add('hidden');
+    document.getElementById('bc-btn-process').disabled=true;
+    const badge=document.getElementById('bc-ds-badge');badge.textContent='TRỐNG';badge.style.background='#9ca3af';badge.style.color='white';
+    BC.rebuildAll();BC.log('↺ Đã xóa. Upload file mới để tính toán.');
+  },
+
+  fmt(n){return(n===null||n===undefined||n==='')?'':Number(n).toLocaleString('vi-VN');},
+
+  ad(n){
+    if(n<0)return`<span class="pos">+${BC.fmt(Math.abs(n))}</span>`;
+    if(n>0)return`<span class="neg">-${BC.fmt(n)}</span>`;
+    return`<span style="color:#888">0</span>`;
+  },
+
+  rowHtml(r,i){
+    const tb=r.thiet_bi==='Điện thoại'?'<span class="b-dt">📱 ĐT</span>':'<span class="b-mt">💻 MT</span>';
+    const kh=r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>';
+    const ct=r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-chua">Chưa</span>';
+    return`<tr><td class="tc stt">${i}</td><td><b>${r.dai_ly}</b></td><td>${r.id}</td>
+      <td class="ell" title="${r.cap_bac}">${r.cap_bac}</td><td>${r.ho_ten}</td>
+      <td class="tc">${kh}</td><td class="tc">${ct}</td>
+      <td class="tc">${r.lan_nap}</td><td class="tc">${BC.fmt(r.tien_nap)}</td>
+      <td class="tc">${r.lan_rut}</td><td class="tc">${BC.fmt(r.tien_rut)}</td>
+      <td class="tc">${BC.ad(r.am_duong)}</td><td class="tc">${BC.fmt(r.cuoc_hop_le)}</td>
+      <td>${r.ngan_hang}</td><td>${r.chi_nhanh}</td><td>${r.stk}</td>
+      <td style="font-size:10px">${r.ip}</td>
+      <td class="ell tc" title="${r.link_dk}" style="font-size:10px">${r.link_dk}</td>
+      <td class="ell tc" title="${r.link_dn}" style="font-size:10px">${r.link_dn}</td>
+      <td class="tc">${tb}</td><td title="${r.game}">${r.game}</td></tr>`;
+  },
+
+  renderAll(){
+    const s=(BC.pgAll-1)*BC.PS,e=s+BC.PS;
+    document.getElementById('bc-body-all').innerHTML=BC.filtAll.slice(s,e).map((r,i)=>BC.rowHtml(r,s+i+1)).join('');
+    document.getElementById('bc-cnt-all').textContent=BC.filtAll.length+' kết quả';
+    BC.renderPg('bc-pg-all',BC.filtAll.length,BC.pgAll,p=>{BC.pgAll=p;BC.renderAll();});
+  },
+
+  filterAll(){
+    const q=document.getElementById('bc-s-all').value.toLowerCase();
+    BC.filtAll=q?BC.ROWS.filter(r=>r.id.toLowerCase().includes(q)||r.ho_ten.toLowerCase().includes(q)||r.dai_ly.toLowerCase().includes(q)||(r.ngan_hang||'').toLowerCase().includes(q)):[...BC.ROWS];
+    BC.pgAll=1;BC.renderAll();
+  },
+
+  renderAgents(){
+    const s=(BC.pgAgents-1)*BC.PS,e=s+BC.PS;
+    document.getElementById('bc-body-agents').innerHTML=BC.filtAgents.slice(s,e).map((a,i)=>{
+      const ad2=a.am_duong<0?`<span class='pos'>+${BC.fmt(Math.abs(a.am_duong))}</span>`:`<span class='neg'>-${BC.fmt(a.am_duong)}</span>`;
+      return`<tr><td class="tc stt">${s+i+1}</td><td><b>${a.dai_ly}</b></td>
+        <td class="tc">${a.tong_thanh_vien}</td><td class="tc"><b style="color:#CC4400">${a.khach_hop_le}</b></td>
+        <td class="tc"><span class="b-moi">${a.khach_moi}</span></td>
+        <td class="tc"><span class="b-cu">${a.khach_cu}</span></td>
+        <td class="tc">${BC.fmt(a.tong_nap)}</td><td class="tc">${BC.fmt(a.tong_rut)}</td>
+        <td class="tc">${ad2}</td><td class="tc">${BC.fmt(Math.round(a.cuoc_hop_le))}</td>
+        <td class="tc"><button class="view-btn" onclick="BC.goAgent('${a.dai_ly}')">Xem</button></td></tr>`;
+    }).join('');
+    document.getElementById('bc-cnt-agents').textContent=BC.filtAgents.length+' đại lý';
+    BC.renderPg('bc-pg-agents',BC.filtAgents.length,BC.pgAgents,p=>{BC.pgAgents=p;BC.renderAgents();});
+  },
+
+  filterAgents(){
+    const q=document.getElementById('bc-s-agents').value.toLowerCase();
+    BC.filtAgents=q?BC.AGENTS.filter(a=>a.dai_ly.toLowerCase().includes(q)):[...BC.AGENTS];
+    BC.pgAgents=1;BC.renderAgents();
+  },
+
+  loadAgent(){
+    const name=document.getElementById('bc-agent-select').value;
+    const ib=document.getElementById('bc-info-bar');
+    if(!name){document.getElementById('bc-body-detail').innerHTML='<tr><td colspan="20" class="empty">Chọn đại lý để xem chi tiết</td></tr>';ib.style.display='none';return;}
+    const rows=BC.ROWS.filter(r=>r.dai_ly===name);
+    const info=BC.AGENTS.find(a=>a.dai_ly===name)||{};
+    ib.style.display='flex';
+    ib.innerHTML=[['Tổng TV',info.tong_thanh_vien],
+      ['KH hợp lệ',`<span style="color:#CC4400;font-weight:bold">${info.khach_hop_le}</span>`],
+      ['KH mới',`<span style="color:#3b82f6;font-weight:bold">${info.khach_moi}</span>`],['KH cũ',info.khach_cu],
+      ['Tổng nạp',BC.fmt(info.tong_nap)],['Tổng rút',BC.fmt(info.tong_rut)],
+      ['Âm/Dương',`<span style="color:${info.am_duong<0?'#16a34a':'#dc2626'};font-weight:bold">${info.am_duong<0?'+'+BC.fmt(Math.abs(info.am_duong)):'-'+BC.fmt(info.am_duong)}</span>`],
+      ['Cược HL',BC.fmt(Math.round(info.cuoc_hop_le))]
+    ].map(([l,v])=>`<div class="info-item"><div class="lbl">${l}</div><div class="val">${v}</div></div>`).join('');
+    document.getElementById('bc-body-detail').innerHTML=rows.map((r,i)=>{
+      const tb=r.thiet_bi==='Điện thoại'?'<span class="b-dt">📱 ĐT</span>':'<span class="b-mt">💻 MT</span>';
+      const kh=r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>';
+      const ct=r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-chua">Chưa</span>';
+      return`<tr><td class="tc stt">${i+1}</td><td>${r.id}</td>
+        <td class="ell" title="${r.cap_bac}">${r.cap_bac}</td><td>${r.ho_ten}</td>
+        <td class="tc">${kh}</td><td class="tc">${ct}</td>
+        <td class="tc">${r.lan_nap}</td><td class="tc">${BC.fmt(r.tien_nap)}</td>
+        <td class="tc">${r.lan_rut}</td><td class="tc">${BC.fmt(r.tien_rut)}</td>
+        <td class="tc">${BC.ad(r.am_duong)}</td><td class="tc">${BC.fmt(r.cuoc_hop_le)}</td>
+        <td>${r.ngan_hang}</td><td>${r.chi_nhanh}</td><td>${r.stk}</td>
+        <td style="font-size:10px">${r.ip}</td>
+        <td class="ell" title="${r.link_dk}" style="font-size:10px">${r.link_dk}</td>
+        <td class="ell" title="${r.link_dn}" style="font-size:10px">${r.link_dn}</td>
+        <td class="tc">${tb}</td><td title="${r.game}">${r.game}</td></tr>`;
+    }).join('');
+  },
+
+  goAgent(name){document.getElementById('bc-agent-select').value=name;BC.loadAgent();BC.showPanel('detail');},
+
+  initCards(){
+    const tn=BC.ROWS.reduce((s,r)=>s+r.tien_nap,0);
+    const tr=BC.ROWS.reduce((s,r)=>s+r.tien_rut,0);
+    const tc=BC.ROWS.reduce((s,r)=>s+r.cuoc_hop_le,0);
+    const moi=BC.ROWS.filter(r=>r.khach==='Mới').length;
+    document.getElementById('bc-summary-cards').innerHTML=`
+      <div class="card"><div class="card-label">Đại lý đủ điều kiện</div><div class="card-value">${BC.AGENTS.length}</div></div>
+      <div class="card"><div class="card-label">Tổng KH hợp lệ</div><div class="card-value">${BC.ROWS.length}</div></div>
+      <div class="card"><div class="card-label">KH mới (${BC.MAX_MONTH})</div><div class="card-value" style="color:#3b82f6">${moi}</div></div>
+      <div class="card"><div class="card-label">KH cũ</div><div class="card-value" style="color:#6b7280">${BC.ROWS.length-moi}</div></div>
+      <div class="card"><div class="card-label">Tổng tiền nạp</div><div class="card-value">${BC.fmt(tn)}</div></div>
+      <div class="card"><div class="card-label">Tổng tiền rút</div><div class="card-value">${BC.fmt(tr)}</div></div>
+      <div class="card"><div class="card-label">Âm/Dương</div><div class="card-value" style="color:${tn-tr>=0?'#16a34a':'#dc2626'}">${BC.fmt(tn-tr)}</div></div>
+      <div class="card"><div class="card-label">Tổng cược HL</div><div class="card-value">${BC.fmt(Math.round(tc))}</div></div>`;
+  },
+
+  rebuildAll(){
+    BC.initCards();BC.renderAll();BC.renderAgents();
+    const sel=document.getElementById('bc-agent-select');
+    sel.innerHTML='<option value="">-- Chọn đại lý --</option>';
+    BC.AGENTS.forEach(a=>{const o=document.createElement('option');o.value=a.dai_ly;o.textContent=`${a.dai_ly} (${a.khach_hop_le} KH hợp lệ)`;sel.appendChild(o);});
+    document.getElementById('bc-body-detail').innerHTML='<tr><td colspan="20" class="empty">Chọn đại lý để xem chi tiết</td></tr>';
+    document.getElementById('bc-info-bar').style.display='none';
+  },
+
+  renderPg(id,total,cur,onClick){
+    const pages=Math.ceil(total/BC.PS);
+    if(pages<=1){document.getElementById(id).innerHTML='';return;}
+    let h=`<span class="pg-info">Trang ${cur}/${pages}</span>`;
+    if(cur>1)h+=`<button class="pg-btn" onclick="(${onClick})(${cur-1})">‹</button>`;
+    for(let p=Math.max(1,cur-2);p<=Math.min(pages,cur+2);p++)
+      h+=`<button class="pg-btn ${p===cur?'on':''}" onclick="(${onClick})(${p})">${p}</button>`;
+    if(cur<pages)h+=`<button class="pg-btn" onclick="(${onClick})(${cur+1})">›</button>`;
+    document.getElementById(id).innerHTML=h;
+  },
+
+  showPanel(n){
+    document.querySelectorAll('#t2 .bc-panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('#t2 .bc-tab').forEach(t=>t.classList.remove('active'));
+    document.getElementById('bc-panel-'+n).classList.add('active');
+    document.querySelectorAll('#t2 .bc-tab')[{summary:0,agents:1,detail:2}[n]].classList.add('active');
+  },
+
+  showOverlay(msg){document.getElementById('bc-overlay').classList.add('show');BC.overlayMsg(msg);},
+  hideOverlay(){document.getElementById('bc-overlay').classList.remove('show');},
+  overlayMsg(m){document.getElementById('bc-overlay-msg').textContent=m;},
+
+  exportCSV(type){
+    const H=['Đại lý','ID','Cấp bậc','Họ tên','Khách','Chỉ tiêu','Lần nạp','Tiền nạp','Lần rút','Tiền rút','Âm/Dương','Cược HL','Ngân hàng','Chi nhánh','STK','IP','LINK ĐK','LINK ĐN','Thiết bị','GAME'];
+    const toRow=r=>[r.dai_ly,r.id,r.cap_bac,r.ho_ten,r.khach,r.chi_tieu,r.lan_nap,r.tien_nap,r.lan_rut,r.tien_rut,r.am_duong,r.cuoc_hop_le,r.ngan_hang,r.chi_nhanh,r.stk,r.ip,r.link_dk,r.link_dn,r.thiet_bi,r.game];
+    let headers,data,filename;
+    if(type==='agents'){
+      headers=['Đại lý','Tổng TV','KH hợp lệ','KH mới','KH cũ','Tổng nạp','Tổng rút','Âm/Dương','Cược HL'];
+      data=BC.filtAgents.map(a=>[a.dai_ly,a.tong_thanh_vien,a.khach_hop_le,a.khach_moi,a.khach_cu,a.tong_nap,a.tong_rut,a.am_duong,a.cuoc_hop_le]);
+      filename='danh_sach_dai_ly.csv';
+    }else if(type==='detail'){
+      const name=document.getElementById('bc-agent-select').value;
+      if(!name){alert('Vui lòng chọn đại lý!');return;}
+      headers=H;data=BC.ROWS.filter(r=>r.dai_ly===name).map(toRow);filename=`dai_ly_${name}.csv`;
+    }else{
+      headers=H;data=BC.filtAll.map(toRow);filename='tong_hop_thanh_vien.csv';
+    }
+    const csv='﻿'+[headers,...data].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    a.download=filename;a.click();
+  }
+};
+
+BC.rebuildAll();
 </script>
 </body>
 </html>
