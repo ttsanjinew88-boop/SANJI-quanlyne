@@ -344,11 +344,16 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .bc-cu-chip.sel{background:#0369a1;color:#fff}
 .bc-cu-chip:hover:not(.sel){background:#e0f2fe}
 .bc-cu-file-wrap{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.bc-cu-file-label{display:flex;align-items:center;gap:9px;padding:14px 16px;border:2px dashed #0369a1;border-radius:9px;cursor:pointer;font-size:12px;color:#0369a1;font-weight:bold;width:100%;background:#f0f9ff;box-sizing:border-box;transition:all .15s;text-align:center;justify-content:center;min-height:56px}
-.bc-cu-file-label:hover,.bc-cu-file-label.drag{background:#bae6fd;border-color:#0284c7;color:#0284c7;border-style:solid}
-.bc-cu-file-label input[type=file]{display:none}
-.bc-cu-fname{font-weight:normal;color:#374151;font-size:11px;margin-top:2px}
-.bc-cu-has-file{border-style:solid;background:#dcfce7;border-color:#16a34a;color:#15803d}
+.bc-cu-file-label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:18px 14px;border:2.5px dashed #0369a1;border-radius:10px;cursor:pointer;width:100%;background:#f0f9ff;box-sizing:border-box;transition:all .18s;min-height:120px;user-select:none}
+.bc-cu-file-label:hover,.bc-cu-file-label.drag{background:#bae6fd;border-color:#0284c7;border-style:solid}
+.bc-cu-file-label input[type=file]{display:none;pointer-events:none}
+.bc-cu-dz-icon{font-size:30px;line-height:1;margin-bottom:2px}
+.bc-cu-dz-main{font-size:13px;font-weight:bold;color:#0369a1}
+.bc-cu-dz-sub{font-size:11px;color:#64748b;font-weight:normal}
+.bc-cu-fname{font-size:12px;font-weight:bold;color:#15803d;margin-top:3px;text-align:center;max-width:100%;word-break:break-all}
+.bc-cu-has-file{border-style:solid;background:#dcfce7;border-color:#16a34a}
+.bc-cu-has-file .bc-cu-dz-icon::after{content:'✅';font-size:26px}
+.bc-cu-has-file .bc-cu-dz-icon{font-size:0}
 .bc-cu-send{flex:1;padding:10px;background:#0369a1;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold}
 .bc-cu-send:hover{background:#075985}
 .bc-cu-send:disabled{background:#ccc;cursor:not-allowed}
@@ -1631,10 +1636,10 @@ rAll();
       <label class="bc-cu-file-label" id="bc-cu-drop"
         ondragover="BC.onCuDrag(event,true)" ondragleave="BC.onCuDrag(event,false)" ondrop="BC.onCuDrop(event)">
         <input type="file" id="bc-cu-file" accept="image/*,.xlsx,.xls,.pdf,.zip,.rar,.doc,.docx" onchange="BC.onCuFile(this)">
-        <div style="text-align:center;line-height:1.7">
-          <div>📎 Kéo file vào đây &nbsp;·&nbsp; Dán ảnh <kbd style="background:#e5e7eb;border-radius:3px;padding:1px 5px;font-size:10px">Ctrl+V</kbd> &nbsp;·&nbsp; hoặc bấm để chọn</div>
-          <div class="bc-cu-fname" id="bc-cu-fname"></div>
-        </div>
+        <div class="bc-cu-dz-icon">📁</div>
+        <div class="bc-cu-dz-main">Kéo thả file / hình ảnh vào đây</div>
+        <div class="bc-cu-dz-sub">hoặc dán ảnh bằng <kbd style="background:#e5e7eb;border-radius:3px;padding:1px 5px;font-size:10px;font-family:inherit">Ctrl+V</kbd>&nbsp;·&nbsp;hoặc bấm để chọn file</div>
+        <div class="bc-cu-fname" id="bc-cu-fname"></div>
       </label>
     </div>
     <div style="margin-bottom:14px">
@@ -2141,9 +2146,16 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
     BC._cuFile=f;
     const dz=document.getElementById('bc-cu-drop');
     const nm=document.getElementById('bc-cu-fname');
-    const size=(f.size/1024).toFixed(0);
-    nm.textContent=`✅ ${f.name||'clipboard.png'} (${size} KB)`;
+    const size=f.size>1024*1024?(f.size/1024/1024).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB';
+    nm.textContent=`${f.name||'paste.png'} (${size})`;
     dz.classList.add('bc-cu-has-file');
+    /* hide default text, show only filename */
+    const icon=dz.querySelector('.bc-cu-dz-icon');
+    const main=dz.querySelector('.bc-cu-dz-main');
+    const sub=dz.querySelector('.bc-cu-dz-sub');
+    if(icon)icon.style.display='none';
+    if(main)main.textContent='✅ Đã chọn file';
+    if(sub)sub.style.display='none';
   },
 
   openCuModal(){
@@ -2152,28 +2164,40 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
     document.getElementById('bc-cu-content').value='';
     document.getElementById('bc-cu-file').value='';
     document.getElementById('bc-cu-fname').textContent='';
-    document.getElementById('bc-cu-drop').classList.remove('bc-cu-has-file');
+    const _dz=document.getElementById('bc-cu-drop');
+    _dz.classList.remove('bc-cu-has-file');
+    const _dzIcon=_dz.querySelector('.bc-cu-dz-icon');
+    const _dzMain=_dz.querySelector('.bc-cu-dz-main');
+    const _dzSub=_dz.querySelector('.bc-cu-dz-sub');
+    if(_dzIcon){_dzIcon.style.display='';_dzIcon.textContent='📁';}
+    if(_dzMain){_dzMain.style.display='';_dzMain.textContent='Kéo thả file / hình ảnh vào đây';}
+    if(_dzSub)_dzSub.style.display='';
     document.getElementById('bc-cu-status').textContent='';
     document.getElementById('bc-cu-send-btn').disabled=false;
     document.getElementById('bc-cu-modal').style.display='flex';
-    /* paste listener */
+    /* paste listener — capture phase so we intercept before textarea */
+    if(BC._cuPaste){document.removeEventListener('paste',BC._cuPaste,true);BC._cuPaste=null;}
     BC._cuPaste=function(e){
       const items=(e.clipboardData||window.clipboardData)?.items;
       if(!items)return;
       for(const it of [...items]){
         if(it.type.startsWith('image/')){
           const f=it.getAsFile();
-          if(f){BC._cuSetFile(new File([f],`clipboard_${Date.now()}.png`,{type:f.type}));e.preventDefault();}
-          break;
+          if(f){
+            BC._cuSetFile(new File([f],`paste_${Date.now()}.png`,{type:f.type}));
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          return;
         }
       }
     };
-    document.addEventListener('paste',BC._cuPaste);
+    document.addEventListener('paste',BC._cuPaste,true);
   },
 
   closeCuModal(){
     document.getElementById('bc-cu-modal').style.display='none';
-    if(BC._cuPaste){document.removeEventListener('paste',BC._cuPaste);BC._cuPaste=null;}
+    if(BC._cuPaste){document.removeEventListener('paste',BC._cuPaste,true);BC._cuPaste=null;}
   },
 
   selectCuFk(fk){
