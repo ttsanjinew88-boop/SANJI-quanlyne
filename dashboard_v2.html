@@ -344,10 +344,11 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .bc-cu-chip.sel{background:#0369a1;color:#fff}
 .bc-cu-chip:hover:not(.sel){background:#e0f2fe}
 .bc-cu-file-wrap{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.bc-cu-file-label{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border:2px dashed #0369a1;border-radius:7px;cursor:pointer;font-size:11px;color:#0369a1;font-weight:bold;flex:1;min-width:0;background:#f0f9ff}
-.bc-cu-file-label:hover{background:#e0f2fe}
+.bc-cu-file-label{display:flex;align-items:center;gap:9px;padding:14px 16px;border:2px dashed #0369a1;border-radius:9px;cursor:pointer;font-size:12px;color:#0369a1;font-weight:bold;width:100%;background:#f0f9ff;box-sizing:border-box;transition:all .15s;text-align:center;justify-content:center;min-height:56px}
+.bc-cu-file-label:hover,.bc-cu-file-label.drag{background:#bae6fd;border-color:#0284c7;color:#0284c7;border-style:solid}
 .bc-cu-file-label input[type=file]{display:none}
-.bc-cu-fname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;font-weight:normal;color:#555}
+.bc-cu-fname{font-weight:normal;color:#374151;font-size:11px;margin-top:2px}
+.bc-cu-has-file{border-style:solid;background:#dcfce7;border-color:#16a34a;color:#15803d}
 .bc-cu-send{flex:1;padding:10px;background:#0369a1;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold}
 .bc-cu-send:hover{background:#075985}
 .bc-cu-send:disabled{background:#ccc;cursor:not-allowed}
@@ -1627,9 +1628,13 @@ rAll();
     </div>
     <div style="margin-bottom:14px">
       <span class="bc-bt-lbl">Đính kèm file / hình ảnh (tuỳ chọn):</span>
-      <label class="bc-cu-file-label">
+      <label class="bc-cu-file-label" id="bc-cu-drop"
+        ondragover="BC.onCuDrag(event,true)" ondragleave="BC.onCuDrag(event,false)" ondrop="BC.onCuDrop(event)">
         <input type="file" id="bc-cu-file" accept="image/*,.xlsx,.xls,.pdf,.zip,.rar,.doc,.docx" onchange="BC.onCuFile(this)">
-        📎 <span class="bc-cu-fname" id="bc-cu-fname">Chọn file hoặc hình ảnh...</span>
+        <div style="text-align:center;line-height:1.7">
+          <div>📎 Kéo file vào đây &nbsp;·&nbsp; Dán ảnh <kbd style="background:#e5e7eb;border-radius:3px;padding:1px 5px;font-size:10px">Ctrl+V</kbd> &nbsp;·&nbsp; hoặc bấm để chọn</div>
+          <div class="bc-cu-fname" id="bc-cu-fname"></div>
+        </div>
       </label>
     </div>
     <div style="margin-bottom:14px">
@@ -2129,34 +2134,68 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
   },
 
   // ---- Báo cáo cược bất thường ----
-  _selCuFk:null,
+  _selCuFk:null, _cuFile:null, _cuPaste:null,
+
+  _cuSetFile(f){
+    if(!f)return;
+    BC._cuFile=f;
+    const dz=document.getElementById('bc-cu-drop');
+    const nm=document.getElementById('bc-cu-fname');
+    const size=(f.size/1024).toFixed(0);
+    nm.textContent=`✅ ${f.name||'clipboard.png'} (${size} KB)`;
+    dz.classList.add('bc-cu-has-file');
+  },
 
   openCuModal(){
-    BC._selCuFk=null;
+    BC._selCuFk=null;BC._cuFile=null;
     document.querySelectorAll('.bc-cu-chip').forEach(c=>c.classList.remove('sel'));
     document.getElementById('bc-cu-content').value='';
     document.getElementById('bc-cu-file').value='';
-    document.getElementById('bc-cu-fname').textContent='Chọn file hoặc hình ảnh...';
+    document.getElementById('bc-cu-fname').textContent='';
+    document.getElementById('bc-cu-drop').classList.remove('bc-cu-has-file');
     document.getElementById('bc-cu-status').textContent='';
     document.getElementById('bc-cu-send-btn').disabled=false;
     document.getElementById('bc-cu-modal').style.display='flex';
+    /* paste listener */
+    BC._cuPaste=function(e){
+      const items=(e.clipboardData||window.clipboardData)?.items;
+      if(!items)return;
+      for(const it of [...items]){
+        if(it.type.startsWith('image/')){
+          const f=it.getAsFile();
+          if(f){BC._cuSetFile(new File([f],`clipboard_${Date.now()}.png`,{type:f.type}));e.preventDefault();}
+          break;
+        }
+      }
+    };
+    document.addEventListener('paste',BC._cuPaste);
   },
 
-  closeCuModal(){document.getElementById('bc-cu-modal').style.display='none';},
+  closeCuModal(){
+    document.getElementById('bc-cu-modal').style.display='none';
+    if(BC._cuPaste){document.removeEventListener('paste',BC._cuPaste);BC._cuPaste=null;}
+  },
 
   selectCuFk(fk){
     BC._selCuFk=fk;
     document.querySelectorAll('.bc-cu-chip').forEach(c=>c.classList.toggle('sel',c.textContent===fk));
   },
 
-  onCuFile(inp){
-    document.getElementById('bc-cu-fname').textContent=inp.files[0]?inp.files[0].name:'Chọn file hoặc hình ảnh...';
+  onCuFile(inp){if(inp.files[0])BC._cuSetFile(inp.files[0]);},
+
+  onCuDrag(e,on){e.preventDefault();document.getElementById('bc-cu-drop').classList.toggle('drag',on);},
+
+  onCuDrop(e){
+    e.preventDefault();
+    document.getElementById('bc-cu-drop').classList.remove('drag');
+    const f=e.dataTransfer?.files[0];
+    if(f)BC._cuSetFile(f);
   },
 
   async sendCuocBatThuong(){
     if(!BC._selCuFk){alert('Vui lòng chọn nhân viên phụ trách (FK)!');return;}
     const content=document.getElementById('bc-cu-content').value.trim();
-    const file=document.getElementById('bc-cu-file').files[0];
+    const file=BC._cuFile;
     const status=document.getElementById('bc-cu-status');
     const btn=document.getElementById('bc-cu-send-btn');
     btn.disabled=true;
