@@ -336,6 +336,21 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .bc-bt-status{text-align:center;font-size:12px;margin-top:10px;min-height:18px;font-weight:bold}
 .bc-bt-trigger{padding:7px 14px;background:#7c3aed;color:white;border:none;border-radius:5px;cursor:pointer;font-size:11px;font-weight:bold;margin-left:8px}
 .bc-bt-trigger:hover{background:#6d28d9}
+.bc-cu-trigger{padding:7px 14px;background:#0369a1;color:white;border:none;border-radius:5px;cursor:pointer;font-size:11px;font-weight:bold;margin-left:8px}
+.bc-cu-trigger:hover{background:#075985}
+/* bc cuoc bat thuong modal */
+.bc-cu-title{font-size:15px;font-weight:bold;color:#0369a1;margin-bottom:14px;text-align:center;border-bottom:2px solid #bae6fd;padding-bottom:10px}
+.bc-cu-chip{padding:6px 12px;border:2px solid #0369a1;border-radius:6px;cursor:pointer;font-size:11px;font-weight:bold;color:#0369a1;transition:all .15s;user-select:none}
+.bc-cu-chip.sel{background:#0369a1;color:#fff}
+.bc-cu-chip:hover:not(.sel){background:#e0f2fe}
+.bc-cu-file-wrap{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.bc-cu-file-label{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border:2px dashed #0369a1;border-radius:7px;cursor:pointer;font-size:11px;color:#0369a1;font-weight:bold;flex:1;min-width:0;background:#f0f9ff}
+.bc-cu-file-label:hover{background:#e0f2fe}
+.bc-cu-file-label input[type=file]{display:none}
+.bc-cu-fname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;font-weight:normal;color:#555}
+.bc-cu-send{flex:1;padding:10px;background:#0369a1;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold}
+.bc-cu-send:hover{background:#075985}
+.bc-cu-send:disabled{background:#ccc;cursor:not-allowed}
 .bc-tool .tc{text-align:center}.bc-tool .tl{text-align:left}
 .bc-tool .stt{color:#bbb;font-size:10px}
 .bc-tool .b-dat{background:#22c55e;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
@@ -700,6 +715,14 @@ function anAdd(cat,fk,day,delta){anSet(cat,fk,day,anGet(cat,fk,day)+delta);}
     history.replaceState(null,"",location.pathname);
   }
 
+  /* DISMISS (Hủy Bỏ báo cáo cược bất thường) */
+  const fkd=p.get("dismiss_anomaly"),dated=p.get("date")||date;
+  if(fkd&&!fk&&!fkw){
+    if(!isUsed(rid)){markUsed(rid);}
+    _toast={type:"dismiss",fk:fkd,date:dated};
+    history.replaceState(null,"",location.pathname);
+  }
+
   if(_toast){
     const t=_toast;
     window.addEventListener("DOMContentLoaded",function(){
@@ -714,6 +737,9 @@ function anAdd(cat,fk,day,delta){anSet(cat,fk,day,anGet(cat,fk,day)+delta);}
       }else if(t.type==="watch"){
         el.innerHTML=`👁 Đã ghi nhận <b>Theo Dõi Thêm</b> cho <b>${nm}</b>`;
         el.style.background="#2563eb";
+      }else if(t.type==="dismiss"){
+        el.innerHTML=`❌ Đã <b>Hủy Bỏ</b> báo cáo cược bất thường của <b>${nm}</b>`;
+        el.style.background="#6b7280";
       }else{
         el.innerHTML=`⚠️ Báo cáo này đã được xử lý rồi, không thể thực hiện lần 2`;
         el.style.background="#dc2626";
@@ -1531,6 +1557,7 @@ rAll();
   <div class="agent-sel-bar">
     <select id="bc-agent-select" onchange="BC.loadAgent()"><option value="">-- Chọn đại lý --</option></select>
     <button class="bc-bt-trigger" onclick="BC.openBtModal()">🚨 Báo cáo đại lý bất thường</button>
+    <button class="bc-cu-trigger" onclick="BC.openCuModal()">🎰 Báo cáo cược bất thường</button>
   </div>
   <div class="info-bar" id="bc-info-bar" style="display:none"></div>
   <div class="tbl-wrap">
@@ -1571,6 +1598,49 @@ rAll();
       <button class="bc-bt-cancel" onclick="BC.closeBtModal()">✕ Hủy bỏ</button>
     </div>
     <div id="bc-bt-status" class="bc-bt-status"></div>
+  </div>
+</div>
+
+<!-- Báo Cáo Cược Bất Thường Modal -->
+<div class="bc-bt-modal" id="bc-cu-modal" style="display:none">
+  <div class="bc-bt-box">
+    <div class="bc-cu-title">🎰 Báo Cáo Cược Bất Thường</div>
+    <div style="margin-bottom:14px">
+      <span class="bc-bt-lbl">Nhân viên phụ trách (FK):</span>
+      <div class="bc-bt-chips" style="gap:6px">
+        <div class="bc-cu-chip" onclick="BC.selectCuFk('JADE')">JADE</div>
+        <div class="bc-cu-chip" onclick="BC.selectCuFk('CARBON')">CARBON</div>
+        <div class="bc-cu-chip" onclick="BC.selectCuFk('MEMBER')">MEMBER</div>
+        <div class="bc-cu-chip" onclick="BC.selectCuFk('ANGEL')">ANGEL</div>
+        <div class="bc-cu-chip" onclick="BC.selectCuFk('GEON')">GEON</div>
+        <div class="bc-cu-chip" onclick="BC.selectCuFk('DANTE')">DANTE</div>
+        <div class="bc-cu-chip" onclick="BC.selectCuFk('PIU')">PIU</div>
+        <div class="bc-cu-chip" onclick="BC.selectCuFk('CHAMY')">CHAMY</div>
+        <div class="bc-cu-chip" onclick="BC.selectCuFk('LUBY')">LUBY</div>
+        <div class="bc-cu-chip" onclick="BC.selectCuFk('AIMEE')">AIMEE</div>
+        <div class="bc-cu-chip" onclick="BC.selectCuFk('ANTONY')">ANTONY</div>
+        <div class="bc-cu-chip" onclick="BC.selectCuFk('TRUCIA')">TRUCIA</div>
+        <div class="bc-cu-chip" onclick="BC.selectCuFk('MINTY')">MINTY</div>
+        <div class="bc-cu-chip" onclick="BC.selectCuFk('BRENNA')">BRENNA</div>
+        <div class="bc-cu-chip" onclick="BC.selectCuFk('SEREN')">SEREN</div>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <span class="bc-bt-lbl">Đính kèm file / hình ảnh (tuỳ chọn):</span>
+      <label class="bc-cu-file-label">
+        <input type="file" id="bc-cu-file" accept="image/*,.xlsx,.xls,.pdf,.zip,.rar,.doc,.docx" onchange="BC.onCuFile(this)">
+        📎 <span class="bc-cu-fname" id="bc-cu-fname">Chọn file hoặc hình ảnh...</span>
+      </label>
+    </div>
+    <div style="margin-bottom:14px">
+      <span class="bc-bt-lbl">Nội dung báo cáo:</span>
+      <textarea id="bc-cu-content" class="bc-bt-textarea" style="height:100px" placeholder="Nhập nội dung cược bất thường, mô tả chi tiết..."></textarea>
+    </div>
+    <div class="bc-bt-actions">
+      <button class="bc-cu-send" id="bc-cu-send-btn" onclick="BC.sendCuocBatThuong()">📤 Gửi Báo Cáo</button>
+      <button class="bc-bt-cancel" style="color:#0369a1;border-color:#0369a1" onclick="BC.closeCuModal()">✕ Hủy bỏ</button>
+    </div>
+    <div id="bc-cu-status" class="bc-bt-status"></div>
   </div>
 </div>
 
@@ -2056,6 +2126,91 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
     });
     x+=`</Table></Worksheet></Workbook>`;
     return new Blob(['﻿'+x],{type:'application/vnd.ms-excel;charset=utf-8'});
+  },
+
+  // ---- Báo cáo cược bất thường ----
+  _selCuFk:null,
+
+  openCuModal(){
+    BC._selCuFk=null;
+    document.querySelectorAll('.bc-cu-chip').forEach(c=>c.classList.remove('sel'));
+    document.getElementById('bc-cu-content').value='';
+    document.getElementById('bc-cu-file').value='';
+    document.getElementById('bc-cu-fname').textContent='Chọn file hoặc hình ảnh...';
+    document.getElementById('bc-cu-status').textContent='';
+    document.getElementById('bc-cu-send-btn').disabled=false;
+    document.getElementById('bc-cu-modal').style.display='flex';
+  },
+
+  closeCuModal(){document.getElementById('bc-cu-modal').style.display='none';},
+
+  selectCuFk(fk){
+    BC._selCuFk=fk;
+    document.querySelectorAll('.bc-cu-chip').forEach(c=>c.classList.toggle('sel',c.textContent===fk));
+  },
+
+  onCuFile(inp){
+    document.getElementById('bc-cu-fname').textContent=inp.files[0]?inp.files[0].name:'Chọn file hoặc hình ảnh...';
+  },
+
+  async sendCuocBatThuong(){
+    if(!BC._selCuFk){alert('Vui lòng chọn nhân viên phụ trách (FK)!');return;}
+    const content=document.getElementById('bc-cu-content').value.trim();
+    const file=document.getElementById('bc-cu-file').files[0];
+    const status=document.getElementById('bc-cu-status');
+    const btn=document.getElementById('bc-cu-send-btn');
+    btn.disabled=true;
+    status.style.color='#888';status.textContent='⏳ Đang gửi...';
+    const BOT='https://api.telegram.org/bot8521438412:AAHUPTf3Y1H02wY3ZsVWe-ciM0T86K5Rztk';
+    const G1='-5266235608';   /* nhóm 1: chỉ nhận text */
+    const G2='-1002508451381';/* nhóm 2: nhận file + inline keyboard */
+    try{
+      const d=new Date();
+      const dd=d.getDate().toString().padStart(2,'0'),mm=(d.getMonth()+1).toString().padStart(2,'0'),yy=d.getFullYear();
+      const hh=d.getHours().toString().padStart(2,'0'),mi=d.getMinutes().toString().padStart(2,'0');
+      const dateStr=`${dd}/${mm}/${yy} ${hh}:${mi}`;
+      const isoDate=`${yy}-${mm}-${dd}`;
+      const txt=`🎰 BÁO CÁO CƯỢC BẤT THƯỜNG\n📅 ${dateStr}\n👤 FK: ${BC._selCuFk}\n📋 ${content||'(không có nội dung)'}`;
+      /* Nhóm 1: text only */
+      await fetch(`${BOT}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({chat_id:G1,text:txt})});
+      /* Nhóm 2: file/ảnh + inline keyboard (Xác Nhận / Hủy Bỏ) */
+      const rid=Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);
+      const base='https://ttsanjinew88-boop.github.io/SANJI-quanlyne/dashboard_v2.html';
+      const fkKey='fk'+BC._selCuFk.toLowerCase();
+      const rm={inline_keyboard:[[
+        {text:'✅ Xác Nhận',url:`${base}?confirm_anomaly=${fkKey}&date=${isoDate}&cat=abuse&count=3&rid=${rid}`},
+        {text:'❌ Hủy Bỏ',  url:`${base}?dismiss_anomaly=${fkKey}&date=${isoDate}&rid=${rid}`}
+      ]]};
+      let msgId=null;
+      if(file){
+        const isImg=file.type.startsWith('image/');
+        const fd=new FormData();
+        fd.append('chat_id',G2);
+        fd.append('caption',txt);
+        fd.append(isImg?'photo':'document',file,file.name);
+        const r=await fetch(`${BOT}/${isImg?'sendPhoto':'sendDocument'}`,{method:'POST',body:fd});
+        const res=await r.json();
+        if(res.ok)msgId=res.result.message_id;
+        else throw new Error(res.description||'Lỗi gửi file');
+      }else{
+        /* Không có file → gửi text với inline keyboard thẳng */
+        const r=await fetch(`${BOT}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({chat_id:G2,text:txt,reply_markup:rm})});
+        const res=await r.json();
+        if(!res.ok)throw new Error(res.description||'Lỗi gửi tin');
+      }
+      /* Gắn keyboard bằng editMessageReplyMarkup (chỉ khi có file) */
+      if(msgId){
+        await fetch(`${BOT}/editMessageReplyMarkup`,{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({chat_id:G2,message_id:msgId,reply_markup:rm})});
+      }
+      status.style.color='#16a34a';status.textContent='✅ Đã gửi thành công vào 2 nhóm!';
+      setTimeout(()=>BC.closeCuModal(),1800);
+    }catch(err){
+      status.style.color='#dc2626';status.textContent='❌ Lỗi: '+err.message;
+      btn.disabled=false;
+    }
   },
 
   async tgSend(blob,filename,caption,replyMarkup){
