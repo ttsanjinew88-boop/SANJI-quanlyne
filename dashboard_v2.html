@@ -497,7 +497,14 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       <div class="mtbl-wrap" style="margin-bottom:16px"><table class="htbl"><thead><tr><th class="col-g4">GMT−4</th><th class="col-g7">GMT+7</th><th class="col-g7">Điểm</th><th class="col-g7">Số đơn</th><th class="col-g4">Điểm GMT−4</th></tr></thead><tbody id="htblBody"></tbody></table></div>
       <div class="stats-row" id="h_stats"></div>
       <div class="chart-card" style="margin-bottom:14px"><div class="chart-title">Số đơn theo giờ (GMT+7)</div><div style="height:180px"><canvas id="h_cnt"></canvas></div></div>
-      <div class="chart-card"><div class="chart-title">Điểm theo giờ (GMT+7) — từng FK</div><div style="height:240px"><canvas id="h_stk"></canvas></div></div>
+      <div class="chart-card">
+        <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span>Điểm theo giờ (GMT+7) — từng FK</span>
+          <button onclick="toggleFKColorPicker()" style="flex-shrink:0;font-size:.62rem;padding:3px 10px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);color:var(--pu2);border-radius:5px;cursor:pointer;font-weight:700">Tùy chỉnh màu</button>
+        </div>
+        <div id="fk-color-picker" style="display:none;flex-wrap:wrap;gap:6px;padding:8px 0 10px;border-bottom:1px solid var(--border);margin-bottom:8px"></div>
+        <div style="height:240px"><canvas id="h_stk"></canvas></div>
+      </div>
     </div>
   </div>
 </div>
@@ -652,6 +659,10 @@ const FK_NAMES = {fkjade:"JADE",fkcarbon:"CARBON",fkmember:"MEMBER",fkangel:"ANG
 const FKVIP=["fkjade","fkcarbon","fkmember","fkangel","fkgeon","fkdante","fkpiu"];
 const FKONL=["fkchamy","fkluby","fkaimee","fkantony","fktrucia","fkminty","fkbrenna","fkseren"];
 const FK_COL={fkangel:"#f0b429",fkpiu:"#ff6b35",fkcarbon:"#3b82f6",fkbrenna:"#ec4899",fkdante:"#8b5cf6",fkgeon:"#10b981",fkluby:"#06b6d4",fkjade:"#f97316",fkmember:"#a855f7",fkchamy:"#60a5fa",fkantony:"#a78bfa",fkaimee:"#34d399",fktrucia:"#fb923c",fkminty:"#e879f9",fkseren:"#facc15"};
+// Load persisted custom colors for hourly chart
+(function(){const s=JSON.parse(localStorage.getItem('FK_COL_CUSTOM')||'{}');FK_KEYS.forEach(k=>{if(s[k])FK_COL[k]=s[k];});})();
+const VIP_COL='#3b82f6',ONL_COL='#7c3aed';
+function fkGrpCol(fk){return FKVIP.includes(fk)?VIP_COL:ONL_COL;}
 
 function ha(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return `rgba(${r},${g},${b},${a})`;}
 function nn(v){return(v||0).toLocaleString("vi-VN");}
@@ -1078,7 +1089,7 @@ function fkGroupCardHtml(fk,rank,isS,dataObj){
   const tot=isS?fd.total_score:fd.total_count;
   const max=isS?Math.max(...[...dataObj.fkvip,...dataObj.fkonl].map(k=>dataObj.fk_data[k].total_score),1):Math.max(...[...dataObj.fkvip,...dataObj.fkonl].map(k=>dataObj.fk_data[k].total_count),1);
   const pct=Math.round((tot/max)*100);
-  const col=FK_COL[fk]||"#7c3aed";
+  const col=fkGrpCol(fk);
   const badgeCls=fd.group==="vip"?"vip-badge":"onl-badge";
   const rankCol=rank===1?"background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#111":rank===2?"background:linear-gradient(135deg,#94a3b8,#cbd5e1);color:#111":rank===3?"background:linear-gradient(135deg,#cd7f32,#b87333);color:#fff":"background:#1e2545;color:#64748b";
   return `<div class="fk-card" onclick="rPerfDetail('${fk}','${dataObj===KMD?'km':'don'}')">
@@ -1199,7 +1210,7 @@ function buildOvTable(fkList){
     const avg=wd?Math.round(ctot/wd):0;
     const pct=isExcl?"-":Math.round(ctot/grpTotal*1000)/10+"%";
     const barPct=Math.round(ctot/maxTotal*100);
-    const col=FK_COL[fk]||"#7c3aed";
+    const col=fkGrpCol(fk);
     const rnk=isExcl?"-":(rm[fk]||"-");
     const bc=rnk===1?"cell-1":rnk===2?"cell-2":rnk===3?"cell-3":"";
     const congVal=isExcl?0:congMap[fk];
@@ -1456,6 +1467,29 @@ function rHour(ds){
   CH.h_cnt=new Chart(document.getElementById("h_cnt"),{type:"bar",data:{labels:lbl,datasets:[{label:"Đơn",data:hc7,backgroundColor:hc7.map((_,i)=>i===pc?"rgba(245,158,11,.8)":"rgba(124,58,237,.5)"),borderColor:hc7.map((_,i)=>i===pc?"#f59e0b":"#7c3aed"),borderWidth:1,borderRadius:4}]},options:co(false)});
   dch("h_stk");const aFK=FK_KEYS.filter(fk=>ds.fk_data[fk]?.total_score>0);
   CH.h_stk=new Chart(document.getElementById("h_stk"),{type:"bar",data:{labels:lbl,datasets:aFK.map(fk=>({label:ds.fk_data[fk].name,data:ds.fk_data[fk].hour_scores_gmt7,backgroundColor:ha(FK_COL[fk],.8),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
+}
+
+function toggleFKColorPicker(){
+  const el=document.getElementById('fk-color-picker');
+  if(!el)return;
+  if(el.style.display==='none'){
+    el.innerHTML=FK_KEYS.map(fk=>`<label style="display:flex;align-items:center;gap:5px;background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer"><input type="color" value="${FK_COL[fk]||'#7c3aed'}" onchange="updateFKColor('${fk}',this.value)" style="width:22px;height:22px;border:none;border-radius:3px;cursor:pointer;padding:0;background:none"><span style="font-size:.68rem;font-weight:700;color:var(--tx)">${FK_NAMES[fk]}</span></label>`).join('');
+    el.style.display='flex';
+  }else{
+    el.style.display='none';
+  }
+}
+function updateFKColor(fk,hex){
+  FK_COL[fk]=hex;
+  const s=JSON.parse(localStorage.getItem('FK_COL_CUSTOM')||'{}');
+  s[fk]=hex;localStorage.setItem('FK_COL_CUSTOM',JSON.stringify(s));
+  const ds=curDataSet();if(!ds)return;
+  const lbl=Array.from({length:24},(_,h)=>String(h).padStart(2,'0')+'H');
+  ['h_stk','dvc','doc'].forEach(id=>{if(CH[id]){CH[id].destroy();delete CH[id];}});
+  dch('h_stk');const aFK=FK_KEYS.filter(f=>ds.fk_data[f]?.total_score>0);
+  CH.h_stk=new Chart(document.getElementById('h_stk'),{type:'bar',data:{labels:lbl,datasets:aFK.map(f=>({label:ds.fk_data[f].name,data:ds.fk_data[f].hour_scores_gmt7,backgroundColor:ha(FK_COL[f],.8),borderColor:FK_COL[f],borderWidth:1}))},options:coL(true)});
+  dch('dvc');CH.dvc=new Chart(document.getElementById('dvc'),{type:'bar',data:{labels:lbl,datasets:ds.fkvip.filter(f=>ds.fk_data[f].total_score>0).map(f=>({label:ds.fk_data[f].name,data:ds.fk_data[f].hour_scores_gmt7,backgroundColor:ha(FK_COL[f],.7),borderColor:FK_COL[f],borderWidth:1}))},options:coL(true)});
+  dch('doc');CH.doc=new Chart(document.getElementById('doc'),{type:'bar',data:{labels:lbl,datasets:ds.fkonl.filter(f=>ds.fk_data[f].total_score>0).map(f=>({label:ds.fk_data[f].name,data:ds.fk_data[f].hour_scores_gmt7,backgroundColor:ha(FK_COL[f],.7),borderColor:FK_COL[f],borderWidth:1}))},options:coL(true)});
 }
 
 rAll();
