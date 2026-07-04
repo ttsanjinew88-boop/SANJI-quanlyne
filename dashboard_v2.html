@@ -6,6 +6,7 @@
 <title>Dashboard Hiệu Suất Nhân Viên</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 :root{
   --bg:#080b1a;--card:#0f1229;--card2:#131830;--border:#1e2545;--border2:#252d55;
@@ -428,6 +429,11 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
   <div class="hdr-right">
     <div class="hdr-badge">GMT−4 / GMT+7</div>
     <div id="hDate" class="hdate hdr-date">Tháng 06/2026</div>
+    <span id="cloudStatus" style="font-size:.62rem;color:var(--mu2);min-width:0"></span>
+    <div class="upload-dd-wrap">
+      <button type="button" class="upload-btn" style="background:rgba(124,58,237,.15);box-shadow:none;border:1px solid rgba(124,58,237,.35);color:var(--pu2)" onclick="toggleHistMenu(event)">Tháng cũ ▾</button>
+      <div class="upload-dd-menu" id="histDdMenu" style="min-width:230px"></div>
+    </div>
     <div class="upload-dd-wrap">
       <button type="button" class="upload-btn" onclick="toggleUploadMenu(event)">Upload Excel ▾</button>
       <div class="upload-dd-menu" id="uploadDdMenu">
@@ -671,6 +677,118 @@ function hrs(f,t){const a=[];if(f<=t){for(let h=f;h<=t;h++)a.push(h);}else{for(l
 function co(s){return{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:s,grid:{color:"rgba(255,255,255,.04)"},ticks:{color:"#64748b",font:{size:9}},border:{color:"#1e2545"}},y:{stacked:s,grid:{color:"rgba(255,255,255,.06)"},ticks:{color:"#64748b",font:{size:9}},border:{color:"#1e2545"}}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#131830",titleColor:"#e2e8f0",bodyColor:"#94a3b8",borderColor:"#252d55",borderWidth:1}}};}
 function coL(s){const o=co(s);o.plugins.legend={display:true,labels:{color:"#94a3b8",font:{size:9},boxWidth:9}};return o;}
 
+// ===== SUPABASE CLOUD STORAGE =====
+// Điền 2 giá trị dưới đây sau khi tạo project trên supabase.com
+// (Settings -> API -> Project URL và anon public key)
+const SB_URL="";  // ví dụ: "https://abcdxyz.supabase.co"
+const SB_KEY="";  // anon public key (dài, bắt đầu bằng "eyJ...")
+const SB=(function(){
+  let cli=null;
+  function ready(){
+    if(cli)return true;
+    if(!SB_URL||!SB_KEY||!window.supabase)return false;
+    cli=window.supabase.createClient(SB_URL,SB_KEY);
+    return true;
+  }
+  async function saveReport(type,month,data){
+    if(!ready())return{skipped:true};
+    const{error}=await cli.from('reports').upsert({type,month,data,updated_at:new Date().toISOString()},{onConflict:'type,month'});
+    if(error)throw error;
+    return{ok:true};
+  }
+  async function uploadOriginals(files,type,month){
+    if(!ready()||!files||!files.length)return{skipped:true};
+    for(const f of files){
+      const path=`${type}/${month}/${Date.now()}_${f.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+      const{error}=await cli.storage.from('originals').upload(path,f,{upsert:false});
+      if(error&&!/already exists/i.test(String(error.message||'')))throw error;
+    }
+    return{ok:true};
+  }
+  async function listReports(){
+    if(!ready())return[];
+    const{data,error}=await cli.from('reports').select('type,month,updated_at').order('month',{ascending:false});
+    if(error)throw error;
+    return data||[];
+  }
+  async function loadReport(type,month){
+    if(!ready())return null;
+    const{data,error}=await cli.from('reports').select('data').eq('type',type).eq('month',month).maybeSingle();
+    if(error)throw error;
+    return data?data.data:null;
+  }
+  return{ready,saveReport,uploadOriginals,listReports,loadReport};
+})();
+// "06/2026" hoặc "6/2026" -> "2026-06" (định dạng lưu DB, sort được)
+function normMonth(m){const p=/^(\d{1,2})\/(\d{4})$/.exec(String(m||'').trim());return p?p[2]+'-'+p[1].padStart(2,'0'):String(m||'').trim();}
+// "2026-06" -> "06/2026" (định dạng hiển thị)
+function dispMonth(m){const p=/^(\d{4})-(\d{2})$/.exec(String(m||''));return p?p[2]+'/'+p[1]:m;}
+function setCloudStatus(msg,isErr){
+  const el=document.getElementById('cloudStatus');
+  if(!el)return;
+  el.textContent=msg||'';
+  el.style.color=isErr?'var(--re)':'var(--mu2)';
+  if(msg&&!isErr&&/✓/.test(msg))setTimeout(()=>{if(el.textContent===msg)el.textContent='';},6000);
+}
+async function cloudSaveKO(target,nd){
+  if(!SB.ready())return;
+  const type=target==="km"?"km":"don";
+  const month=normMonth(nd.month);
+  try{
+    setCloudStatus("Đang lưu cloud...");
+    await SB.saveReport(type,month,nd);
+    await SB.uploadOriginals(window._lastUploadFiles,type,month);
+    window._lastUploadFiles=null;
+    setCloudStatus("Đã lưu cloud ✓");
+  }catch(e){
+    console.error("cloudSaveKO",e);
+    setCloudStatus("Lỗi lưu cloud: "+(e.message||e),true);
+  }
+}
+async function toggleHistMenu(ev){
+  ev.stopPropagation();
+  const menu=document.getElementById("histDdMenu");
+  if(menu.classList.contains("show")){menu.classList.remove("show");return;}
+  document.getElementById("uploadDdMenu")?.classList.remove("show");
+  menu.classList.add("show");
+  if(!SB.ready()){
+    menu.innerHTML="<div class='upload-dd-item' style='color:var(--mu);cursor:default'>Chưa cấu hình cloud — điền SB_URL và SB_KEY trong file</div>";
+    return;
+  }
+  menu.innerHTML="<div class='upload-dd-item' style='color:var(--mu);cursor:default'>Đang tải danh sách...</div>";
+  try{
+    const rows=(await SB.listReports()).filter(r=>r.type==="don"||r.type==="km");
+    const byMonth={};
+    rows.forEach(r=>{(byMonth[r.month]=byMonth[r.month]||[]).push(r.type);});
+    const months=Object.keys(byMonth).sort().reverse();
+    if(!months.length){
+      menu.innerHTML="<div class='upload-dd-item' style='color:var(--mu);cursor:default'>Chưa có tháng nào trên cloud — upload Excel để lưu</div>";
+      return;
+    }
+    menu.innerHTML=months.map(m=>`<div class="upload-dd-item" onclick="loadHistMonth('${m}')">Tháng ${dispMonth(m)}${byMonth[m].includes('km')?' — Đơn + KM':' — Đơn'}</div>`).join("");
+  }catch(e){
+    console.error("toggleHistMenu",e);
+    menu.innerHTML="<div class='upload-dd-item' style='color:var(--re);cursor:default'>Lỗi tải danh sách cloud</div>";
+  }
+}
+async function loadHistMonth(m){
+  document.getElementById("histDdMenu").classList.remove("show");
+  try{
+    setCloudStatus("Đang tải tháng "+dispMonth(m)+"...");
+    const don=await SB.loadReport("don",m);
+    const km=await SB.loadReport("km",m);
+    if(!don&&!km){setCloudStatus("Không có dữ liệu tháng này",true);return;}
+    if(don){D=don;document.getElementById("hDate").textContent="Tháng "+(don.month||dispMonth(m));}
+    KMD=km||null;
+    selDay=null;
+    rAll();
+    setCloudStatus("Đã tải tháng "+dispMonth(m)+" ✓");
+  }catch(e){
+    console.error("loadHistMonth",e);
+    setCloudStatus("Lỗi tải dữ liệu cloud",true);
+  }
+}
+
 let D=MD,KMD=null,CH={},dCh=null,selDay=null,rkGrp="vip",mView="diem",selFK=null;
 let koView="overview",anCat="abuse";
 let shAssign={},shView="don";
@@ -815,8 +933,11 @@ function pickUploadType(target){
   document.getElementById("fh").click();
 }
 document.addEventListener("click",function(e){
-  const menu=document.getElementById("uploadDdMenu");
-  if(menu&&menu.classList.contains("show")&&!e.target.closest(".upload-dd-wrap"))menu.classList.remove("show");
+  if(e.target.closest(".upload-dd-wrap")||e.target.closest(".upload-actions"))return;
+  ["uploadDdMenu","histDdMenu","bcHistMenu"].forEach(id=>{
+    const menu=document.getElementById(id);
+    if(menu&&menu.classList.contains("show"))menu.classList.remove("show");
+  });
 });
 
 // ===== FILE UPLOAD =====
@@ -836,6 +957,7 @@ document.getElementById("fh").addEventListener("change",function(e){
   if(target==="km"&&looksDon&&!looksKM){
     if(!confirm("Tên file (\""+files.map(f=>f.name).join(", ")+"\") trông giống dữ liệu DUYỆT ĐƠN, nhưng bạn đang chọn tải vào mục KHUYẾN MÃI.\n\nBạn có chắc muốn tiếp tục?"))return;
   }
+  window._lastUploadFiles=files; // giữ file gốc để backup lên cloud sau khi xử lý xong
   processFiles(files,0,null,target);
 });
 
@@ -1008,6 +1130,7 @@ function finalizeResult(nd,target){
     }
     hideProg();
     rAll();
+    cloudSaveKO(target,nd);
   },50);
 }
 
@@ -1538,9 +1661,11 @@ rAll();
       <div class="dz-hint">Kéo thả hoặc bấm chọn</div>
       <div class="file-tags" id="bc-ft3"></div>
     </div>
-    <div class="upload-actions">
+    <div class="upload-actions" style="position:relative">
       <button class="btn-process" id="bc-btn-process" onclick="BC.processFiles()" disabled>Tính toán</button>
       <button class="btn-reset" onclick="BC.resetToDefault()">↺ Dữ liệu gốc</button>
+      <button class="btn-reset" onclick="BC.toggleCloudMenu(event)">Tháng cũ ▾</button>
+      <div class="upload-dd-menu" id="bcHistMenu" style="right:auto;left:0;top:100%"></div>
       <div class="progress-bar" id="bc-prog-bar"><div class="progress-fill" id="bc-prog-fill"></div></div>
     </div>
     <div class="upload-log hidden" id="bc-upload-log"></div>
@@ -1890,7 +2015,65 @@ const BC={
       const badge=document.getElementById('bc-ds-badge');
       badge.textContent='MỚI';badge.style.background='#22c55e';badge.style.color='white';
       BC.hideOverlay();BC.rebuildAll();
+      BC.cloudSave();
     }catch(err){BC.hideOverlay();BC.log('❌ Lỗi: '+err.message);console.error(err);}
+  },
+
+  async cloudSave(){
+    if(!SB.ready())return;
+    try{
+      BC.log('☁ Đang lưu lên cloud...');
+      const month=BC.MAX_MONTH||new Date().toISOString().slice(0,7);
+      await SB.saveReport('bc',month,{ROWS:BC.ROWS,AGENTS:BC.AGENTS,MAX_MONTH:BC.MAX_MONTH});
+      const allFiles=[...BC.fileStore.f1,...BC.fileStore.f2,...BC.fileStore.f3];
+      await SB.uploadOriginals(allFiles,'bc',month);
+      BC.log('☁ Đã lưu cloud: báo cáo + '+allFiles.length+' file gốc ✓');
+    }catch(e){
+      console.error('BC.cloudSave',e);
+      BC.log('☁ Lỗi lưu cloud: '+(e.message||e));
+    }
+  },
+
+  async toggleCloudMenu(ev){
+    ev.stopPropagation();
+    const menu=document.getElementById('bcHistMenu');
+    if(menu.classList.contains('show')){menu.classList.remove('show');return;}
+    menu.classList.add('show');
+    if(!SB.ready()){
+      menu.innerHTML="<div class='upload-dd-item' style='color:var(--mu);cursor:default'>Chưa cấu hình cloud — điền SB_URL và SB_KEY trong file</div>";
+      return;
+    }
+    menu.innerHTML="<div class='upload-dd-item' style='color:var(--mu);cursor:default'>Đang tải danh sách...</div>";
+    try{
+      const rows=(await SB.listReports()).filter(r=>r.type==='bc');
+      if(!rows.length){
+        menu.innerHTML="<div class='upload-dd-item' style='color:var(--mu);cursor:default'>Chưa có báo cáo nào trên cloud</div>";
+        return;
+      }
+      menu.innerHTML=rows.map(r=>`<div class="upload-dd-item" onclick="BC.loadCloud('${r.month}')">Tháng ${dispMonth(r.month)}</div>`).join('');
+    }catch(e){
+      console.error('BC.toggleCloudMenu',e);
+      menu.innerHTML="<div class='upload-dd-item' style='color:var(--re);cursor:default'>Lỗi tải danh sách cloud</div>";
+    }
+  },
+
+  async loadCloud(month){
+    document.getElementById('bcHistMenu').classList.remove('show');
+    try{
+      BC.showOverlay('Đang tải tháng '+dispMonth(month)+' từ cloud...');
+      const data=await SB.loadReport('bc',month);
+      if(!data){BC.hideOverlay();BC.log('☁ Không có dữ liệu tháng '+dispMonth(month));return;}
+      BC.ROWS=data.ROWS||[];BC.AGENTS=data.AGENTS||[];BC.MAX_MONTH=data.MAX_MONTH||month;
+      BC.filtAll=[...BC.ROWS];BC.filtAgents=[...BC.AGENTS];BC.pgAll=1;BC.pgAgents=1;
+      const badge=document.getElementById('bc-ds-badge');
+      badge.textContent='CLOUD '+dispMonth(month);badge.style.background='#7c3aed';badge.style.color='white';
+      BC.hideOverlay();BC.rebuildAll();
+      BC.log('☁ Đã tải tháng '+dispMonth(month)+' từ cloud ✓');
+    }catch(e){
+      console.error('BC.loadCloud',e);
+      BC.hideOverlay();
+      BC.log('☁ Lỗi tải cloud: '+(e.message||e));
+    }
   },
 
   resetToDefault(){
