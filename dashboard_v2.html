@@ -1790,7 +1790,7 @@ function buildCombinedPerfTable(dataObj,isS){
   const vipRank={};vipRanked.forEach((fk,i)=>{vipRank[fk]=dataObj.fk_data[fk].total_score>0?i+1:"-";});
   const onlRank={};onlRanked.forEach((fk,i)=>{onlRank[fk]=dataObj.fk_data[fk].total_score>0?i+1:"-";});
   let h="<table class='mtbl'><thead><tr><th class='sticky-col'>TÊN NHÂN VIÊN</th><th>BXH</th><th>Tổng</th>";
-  allD.forEach(d=>{h+="<th style='"+(actD.includes(d)?"":"color:#1e2545")+"'>"+d+"</th>";});
+  allD.forEach(d=>{h+="<th style='"+(actD.includes(d)?"":"color:#64748b")+"'>"+d+"</th>";});
   h+="</tr></thead><tbody>";
   function rowsFor(list,rankMap,rowCls){
     list.forEach(fk=>{
@@ -1947,13 +1947,12 @@ function buildAnGridAbuse(fkList){
   const ranked=[...fkList].sort((a,b)=>anCombined(b)-anCombined(a));
   const rm={};ranked.forEach((fk,i)=>{rm[fk]=i+1;});
   let h="<table class='mtbl'><thead><tr><th class='sticky-col'>TÊN NHÂN VIÊN</th><th>BXH</th><th>Tổng</th>";
-  allD.forEach(d=>{h+="<th style='"+(actD.includes(d)?"":"color:#1e2545")+"'>"+d+"</th>";});
+  allD.forEach(d=>{h+="<th style='"+(actD.includes(d)?"":"color:#64748b")+"'>"+d+"</th>";});
   h+="</tr></thead><tbody>";
   fkList.forEach(fk=>{
     const fd=D.fk_data[fk],tot=anCombined(fk),rnk=rm[fk],bc=rnk===1?"cell-1":rnk===2?"cell-2":rnk===3?"cell-3":"";
     h+="<tr><td class='sticky-col'>"+fd.name+"</td><td class='"+bc+"'>"+rnk+"</td><td class='cell-tot'>"+(tot>0?nn(tot):"-")+"</td>";
     allD.forEach(d=>{
-      if(!actD.includes(d)){h+="<td class='cell-zero'>-</td>";return;}
       const v=anGet('abuse',fk,d);
       h+=`<td class="cell-edit" contenteditable="true" data-fk="${fk}" data-day="${d}" data-cat="abuse" onblur="onAnBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${v||""}</td>`;
     });
@@ -1962,7 +1961,6 @@ function buildAnGridAbuse(fkList){
   const tg=fkList.reduce((s,fk)=>s+anCombined(fk),0);
   h+="<tr class='total-row'><td class='sticky-col'>TỔNG</td><td>-</td><td>"+nn(tg)+"</td>";
   allD.forEach(d=>{
-    if(!actD.includes(d)){h+="<td>-</td>";return;}
     const v=fkList.reduce((s,fk)=>s+anGet('abuse',fk,d)+anGet('mkt',fk,d),0);
     h+="<td>"+(v>0?nn(v):"-")+"</td>";
   });
@@ -1972,13 +1970,12 @@ function buildAnGridAbuse(fkList){
 function buildAnGridMkt(fkList){
   const allD=Array.from({length:31},(_,i)=>i+1),actD=D.days_in_month||[];
   let h="<table class='mtbl'><thead><tr><th class='sticky-col'>TÊN NHÂN VIÊN</th><th>Tổng</th>";
-  allD.forEach(d=>{h+="<th style='"+(actD.includes(d)?"":"color:#1e2545")+"'>"+d+"</th>";});
+  allD.forEach(d=>{h+="<th style='"+(actD.includes(d)?"":"color:#64748b")+"'>"+d+"</th>";});
   h+="</tr></thead><tbody>";
   fkList.forEach(fk=>{
     const fd=D.fk_data[fk],tot=anTotal('mkt',fk);
     h+="<tr><td class='sticky-col'>"+fd.name+"</td><td class='cell-tot'>"+(tot>0?nn(tot):"-")+"</td>";
     allD.forEach(d=>{
-      if(!actD.includes(d)){h+="<td class='cell-zero'>-</td>";return;}
       const v=anGet('mkt',fk,d);
       h+=`<td class="cell-edit" contenteditable="true" data-fk="${fk}" data-day="${d}" data-cat="mkt" onblur="onAnBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${v||""}</td>`;
     });
@@ -1987,7 +1984,6 @@ function buildAnGridMkt(fkList){
   const tg=fkList.reduce((s,fk)=>s+anTotal('mkt',fk),0);
   h+="<tr class='total-row'><td class='sticky-col'>TỔNG</td><td>"+nn(tg)+"</td>";
   allD.forEach(d=>{
-    if(!actD.includes(d)){h+="<td>-</td>";return;}
     const v=fkList.reduce((s,fk)=>s+anGet('mkt',fk,d),0);
     h+="<td>"+(v>0?nn(v):"-")+"</td>";
   });
@@ -2222,8 +2218,6 @@ rAll();
     <div class="upload-actions" style="position:relative">
       <button class="btn-process" id="bc-btn-process" onclick="BC.processFiles()" disabled>Tính toán</button>
       <button class="btn-reset" onclick="BC.resetToDefault()">↺ Dữ liệu gốc</button>
-      <button class="btn-reset" onclick="BC.toggleCloudMenu(event)">Tháng cũ ▾</button>
-      <div class="upload-dd-menu" id="bcHistMenu" style="right:auto;left:0;top:100%"></div>
       <div class="progress-bar" id="bc-prog-bar"><div class="progress-fill" id="bc-prog-fill"></div></div>
     </div>
     <div class="upload-log hidden" id="bc-upload-log"></div>
@@ -2574,7 +2568,7 @@ const BC={
       const badge=document.getElementById('bc-ds-badge');
       badge.textContent='MỚI';badge.style.background='#22c55e';badge.style.color='white';
       BC.hideOverlay();BC.rebuildAll();
-      BC.cloudSave();
+      /* Báo cáo đại lý chỉ giữ trên máy (không lưu cloud) — F5 là dữ liệu về mặc định */
     }catch(err){BC.hideOverlay();BC.log('❌ Lỗi: '+err.message);console.error(err);}
   },
 
@@ -2664,13 +2658,14 @@ const BC={
     return`<span style="color:#888">0</span>`;
   },
 
-  AGENT_COLORS:['#fff8f2','#f0f7ff','#f0fff6','#fdf4ff','#fffbf0','#f0fbff','#fff0f4','#f5fff0'],
+  /* Nền tối phân biệt từng đại lý — 8 sắc thái đậm khác hue, chữ trắng vẫn đọc rõ */
+  AGENT_COLORS:['#10162e','#0e2233','#12291f','#241733','#2b2414','#0e2b2e','#2b1520','#1a2038'],
 
   rowHtml(r,i,bg,isFirst){
     const tb=r.thiet_bi==='Điện thoại'?'Điện Thoại':'Máy Tính';
     const kh=r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>';
     const ct=r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-chua">Chưa</span>';
-    const sep=isFirst?'border-top:3px solid #111;':'';
+    const sep=isFirst?'border-top:2px solid #7c3aed;':'';
     return`<tr style="background:${bg};${sep}">
       <td class="tc stt">${i}</td><td><b>${r.dai_ly}</b></td><td>${r.id}</td>
       <td class="ell">${r.cap_bac}</td><td>${r.ho_ten}</td>
@@ -2713,7 +2708,7 @@ const BC={
     document.getElementById('bc-body-agents').innerHTML=BC.filtAgents.slice(s,e).map((a,i)=>{
       const ad2=a.am_duong<0?`<span class='pos'>+${BC.fmt(Math.abs(a.am_duong))}</span>`:`<span class='neg'>-${BC.fmt(a.am_duong)}</span>`;
       return`<tr><td class="tc stt">${s+i+1}</td><td><b>${a.dai_ly}</b></td>
-        <td class="tc">${a.tong_thanh_vien}</td><td class="tc"><b style="color:#CC4400">${a.khach_hop_le}</b></td>
+        <td class="tc">${a.tong_thanh_vien}</td><td class="tc"><b style="color:#9f67ff">${a.khach_hop_le}</b></td>
         <td class="tc"><span class="b-moi">${a.khach_moi}</span></td>
         <td class="tc"><span class="b-cu">${a.khach_cu}</span></td>
         <td class="tc">${BC.fmt(a.tong_nap)}</td><td class="tc">${BC.fmt(a.tong_rut)}</td>
@@ -2738,7 +2733,7 @@ const BC={
     const info=BC.AGENTS.find(a=>a.dai_ly===name)||{};
     ib.style.display='flex';
     ib.innerHTML=[['Tổng TV',info.tong_thanh_vien],
-      ['KH hợp lệ',`<span style="color:#CC4400;font-weight:bold">${info.khach_hop_le}</span>`],
+      ['KH hợp lệ',`<span style="color:#9f67ff;font-weight:bold">${info.khach_hop_le}</span>`],
       ['KH mới',`<span style="color:#3b82f6;font-weight:bold">${info.khach_moi}</span>`],['KH cũ',info.khach_cu],
       ['Tổng nạp',BC.fmt(info.tong_nap)],['Tổng rút',BC.fmt(info.tong_rut)],
       ['Âm/Dương',`<span style="color:${info.am_duong<0?'#16a34a':'#dc2626'};font-weight:bold">${info.am_duong<0?'+'+BC.fmt(Math.abs(info.am_duong)):'-'+BC.fmt(info.am_duong)}</span>`],
@@ -3030,7 +3025,7 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
       const rid=Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);
       const fkKey='fk'+BC._selCuFk.toLowerCase();
       const rm={inline_keyboard:[[
-        {text:'✅ Xác Nhận',callback_data:`cf|${fkKey}|${isoDate}|a|3|${rid}`},
+        {text:'✅ Xác Nhận',callback_data:`cf|${fkKey}|${isoDate}|a|1|${rid}`},
         {text:'❌ Hủy Bỏ',callback_data:`dm|${fkKey}|${isoDate}|${rid}`}
       ]]};
       let msgId=null;
