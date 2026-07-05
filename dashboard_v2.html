@@ -702,6 +702,10 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
       <input class="adm-inp" id="au-user" placeholder="Tên đăng nhập (3-20 ký tự)" autocomplete="off">
       <input class="adm-inp" id="au-pass" placeholder="Mật khẩu (tối thiểu 6 ký tự)" autocomplete="off">
+      <select class="adm-inp" id="au-role" onchange="admRolePreset()" style="cursor:pointer">
+        <option value="nhanvien">Cấp bậc: Nhân viên</option>
+        <option value="totruong">Cấp bậc: Tổ Trưởng</option>
+      </select>
     </div>
     <div style="font-size:.62rem;color:var(--mu);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em;font-weight:700">Quyền xem</div>
     <div id="au-perms" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
@@ -789,6 +793,17 @@ const PERM_TABS=[
   {k:'bc',el:null,label:'Báo Cáo Đại Lý'}
 ];
 let CUR_PROFILE=null;
+// Cấp bậc: lưu trong perms._role; preset = quyền mặc định khi chọn cấp bậc lúc tạo tài khoản
+const ROLES={
+  totruong:{label:'TỔ TRƯỞNG',color:'#3b82f6',preset:['data','ko','shift','rank','bc']},
+  nhanvien:{label:'NHÂN VIÊN',color:'#64748b',preset:['data','ko']}
+};
+function roleOf(profile){
+  if(!profile)return null;
+  if(profile.is_admin)return{key:'admin',label:'ADMIN',color:'#7c3aed'};
+  const k=(profile.perms&&profile.perms._role)==='totruong'?'totruong':'nhanvien';
+  return{key:k,label:ROLES[k].label,color:ROLES[k].color};
+}
 const AUTH={
   emailOf(u){return u.trim().toLowerCase()+'@sanji.app';},
   async init(){
@@ -863,7 +878,7 @@ function applyPerms(){
   const ta=document.getElementById('tabAdmin');
   if(ta)ta.style.display=p.is_admin?'':'none';
   const chip=document.getElementById('userChip');
-  document.getElementById('userChipName').textContent=(p.username||'').toUpperCase()+(p.is_admin?' · ADMIN':'');
+  document.getElementById('userChipName').textContent=(p.username||'').toUpperCase()+' · '+roleOf(p).label;
   chip.style.display='flex';
   // nếu tab đang mở bị ẩn -> nhảy sang tab đầu tiên được phép
   const active=document.querySelector('.tabs-wrap .tab.active');
@@ -881,10 +896,16 @@ function rAdminPanel(){
   if(!CUR_PROFILE||!CUR_PROFILE.is_admin)return;
   const pf=document.getElementById('au-perms');
   if(!pf.dataset.built){
-    pf.innerHTML=PERM_TABS.map(t=>`<label class="adm-chk"><input type="checkbox" data-k="${t.k}" checked> ${t.label}</label>`).join('');
+    pf.innerHTML=PERM_TABS.map(t=>`<label class="adm-chk"><input type="checkbox" data-k="${t.k}"> ${t.label}</label>`).join('');
     pf.dataset.built="1";
+    admRolePreset();
   }
   admLoadUsers();
+}
+function admRolePreset(){
+  const r=document.getElementById('au-role').value;
+  const preset=(ROLES[r]||ROLES.nhanvien).preset;
+  document.querySelectorAll('#au-perms input[type=checkbox]').forEach(c=>{c.checked=preset.includes(c.dataset.k);});
 }
 async function admLoadUsers(){
   const list=document.getElementById('admUserList');
@@ -892,11 +913,19 @@ async function admLoadUsers(){
   try{
     const{data,error}=await SB.client().from('profiles').select('*').order('created_at');
     if(error)throw error;
-    list.innerHTML=`<table class="adm-tbl"><thead><tr><th>Tài khoản</th>${PERM_TABS.map(t=>`<th class="tc">${t.label}</th>`).join('')}<th class="tc">Admin</th></tr></thead><tbody>`+
+    list.innerHTML=`<table class="adm-tbl"><thead><tr><th>Tài khoản</th><th class="tc">Cấp bậc</th>${PERM_TABS.map(t=>`<th class="tc">${t.label}</th>`).join('')}<th class="tc">Admin</th></tr></thead><tbody>`+
       data.map(u=>{
         const perms=u.perms||{};
         const isSelf=u.user_id===CUR_PROFILE.user_id;
+        const role=roleOf(u);
+        const roleCell=u.is_admin
+          ?`<span style="background:rgba(124,58,237,.18);color:var(--pu2);border-radius:10px;padding:2px 10px;font-size:.6rem;font-weight:800">ADMIN</span>`
+          :`<select class="adm-inp" style="min-width:110px;padding:4px 8px;font-size:.65rem" onchange="admSetRole('${u.user_id}',this.value,this)">
+              <option value="nhanvien" ${role.key==='nhanvien'?'selected':''}>Nhân viên</option>
+              <option value="totruong" ${role.key==='totruong'?'selected':''}>Tổ Trưởng</option>
+            </select>`;
         return `<tr><td style="font-weight:700;color:var(--tx)">${(u.username||'').toUpperCase()}${isSelf?' <span style="color:var(--pu2);font-size:.6rem">(bạn)</span>':''}</td>`+
+          `<td class="tc">${roleCell}</td>`+
           PERM_TABS.map(t=>`<td class="tc"><input type="checkbox" ${u.is_admin?'checked disabled':(perms[t.k]?'checked':'')} onchange="admSetPerm('${u.user_id}','${t.k}',this.checked,this)"></td>`).join('')+
           `<td class="tc"><input type="checkbox" ${u.is_admin?'checked':''} ${isSelf?'disabled':''} onchange="admSetAdmin('${u.user_id}',this.checked,this)"></td></tr>`;
       }).join('')+'</tbody></table>';
@@ -916,6 +945,19 @@ async function admSetPerm(uid,k,val,cb){
     console.error('admSetPerm',e);
     if(cb)cb.checked=!val;
     alert('Lỗi lưu quyền: '+(e.message||e));
+  }
+}
+async function admSetRole(uid,role,sel){
+  try{
+    const{data,error}=await SB.client().from('profiles').select('perms').eq('user_id',uid).single();
+    if(error)throw error;
+    const perms=data.perms||{};perms._role=role;
+    const{error:e2}=await SB.client().from('profiles').update({perms}).eq('user_id',uid);
+    if(e2)throw e2;
+  }catch(e){
+    console.error('admSetRole',e);
+    alert('Lỗi lưu cấp bậc: '+(e.message||e));
+    admLoadUsers();
   }
 }
 async function admSetAdmin(uid,val,cb){
@@ -938,7 +980,7 @@ async function admCreateUser(){
   msg.style.color='var(--mu2)';msg.textContent='';
   if(!/^[a-zA-Z0-9_]{3,20}$/.test(u)){msg.style.color='var(--re)';msg.textContent='Tên đăng nhập 3-20 ký tự, chỉ chữ/số/gạch dưới';return;}
   if(p.length<6){msg.style.color='var(--re)';msg.textContent='Mật khẩu tối thiểu 6 ký tự';return;}
-  const perms={};
+  const perms={_role:document.getElementById('au-role').value};
   document.querySelectorAll('#au-perms input[type=checkbox]').forEach(c=>{if(c.checked)perms[c.dataset.k]=true;});
   msg.textContent='Đang tạo tài khoản...';
   try{
