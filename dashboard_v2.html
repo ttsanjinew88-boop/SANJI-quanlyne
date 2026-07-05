@@ -637,7 +637,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       <span style="font-size:.67rem;color:var(--mu);font-weight:700">Giờ (GMT+7):</span>
       <div class="si-group"><div class="si-dot" style="background:var(--cy)"></div><label>Ca Sáng:</label><input type="number" id="sf" value="8" min="0" max="23">H →<input type="number" id="st" value="17" min="0" max="23">H</div>
       <div class="si-group"><div class="si-dot" style="background:#a78bfa"></div><label>Ca Trung:</label><input type="number" id="tf" value="22" min="0" max="23">H →<input type="number" id="tt" value="4" min="0" max="23">H<span style="font-size:.6rem;color:var(--mu)">(qua đêm)</span></div>
-      <button class="shift-update-btn" onclick="rShiftPanel()">Cập nhật</button>
+      <button class="shift-update-btn" onclick="shUpdateHours()">Cập nhật</button>
     </div>
     <div class="shift-cols">
       <div class="shift-col"><div class="shift-col-hdr"><div class="si-dot" style="background:var(--cy)"></div><div style="font-size:.7rem;font-weight:700;color:var(--cy)">CA SÁNG</div></div><div style="font-size:.6rem;color:var(--mu);margin-bottom:7px" id="sh_sang_hrs"></div><div class="fk-chips" id="sh_sang_fks"></div></div>
@@ -850,6 +850,7 @@ const AUTH={
       CUR_PROFILE=data;
       document.getElementById('loginOverlay').style.display='none';
       applyPerms();
+      bootData();
     }catch(e){
       console.error('AUTH.postLogin',e);
       document.getElementById('lg-err').textContent='Lỗi tải hồ sơ người dùng';
@@ -1006,6 +1007,54 @@ async function admCreateUser(){
   }
 }
 
+// ===== THÁNG HIỆN TẠI + DỮ LIỆU THEO THÁNG =====
+let CUR_MONTH=null,_shiftReady=false;
+function curMonthKey(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');}
+// Dataset rỗng (tháng chưa có dữ liệu) — đủ cấu trúc để mọi tab render không lỗi
+function emptyDataset(mk){
+  const z31=()=>Array(31).fill(0),z24=()=>Array(24).fill(0);
+  const lbl=Array.from({length:24},(_,h)=>String(h).padStart(2,'0')+'H');
+  const fd={};
+  FK_KEYS.forEach(fk=>{fd[fk]={name:FK_NAMES[fk],group:FKVIP.includes(fk)?'vip':'onl',total_score:0,total_count:0,day_scores:z31(),day_counts:z31(),hour_scores_gmt7:z24(),hour_counts_gmt7:z24(),hour_scores_gmt4:z24()};});
+  return{month:dispMonth(mk),empty:true,days:Array.from({length:31},(_,i)=>i+1),days_in_month:[],hour_labels_gmt7:lbl,hour_labels_gmt4:lbl,day_scores:z31(),day_counts:z31(),hour_scores_gmt7:z24(),hour_counts_gmt7:z24(),hour_scores_gmt4:z24(),hour_counts_gmt4:z24(),fk_data:fd,fkvip:FKVIP,fkonl:FKONL};
+}
+// Áp dữ liệu phân ca đã lưu (gán FK + khung giờ)
+function applyShiftData(sd){
+  if(sd&&sd.assign)FK_KEYS.forEach(fk=>{shAssign[fk]=sd.assign[fk]||null;});
+  if(sd&&sd.hours)['sf','st','tf','tt'].forEach(k=>{if(sd.hours[k]!=null){const el=document.getElementById(k);if(el)el.value=sd.hours[k];}});
+}
+// Lưu phân ca lên cloud theo tháng đang xem
+async function saveShift(){
+  if(!SB.ready()||!CUR_PROFILE||!CUR_MONTH||!_shiftReady)return;
+  try{
+    const hours={sf:+document.getElementById('sf').value||8,st:+document.getElementById('st').value||17,tf:+document.getElementById('tf').value||22,tt:+document.getElementById('tt').value||4};
+    await SB.saveReport('shift',CUR_MONTH,{assign:shAssign,hours});
+    setCloudStatus('Đã lưu phân ca tháng '+dispMonth(CUR_MONTH)+' ✓');
+  }catch(e){console.error('saveShift',e);setCloudStatus('Lỗi lưu phân ca',true);}
+}
+function shUpdateHours(){rShiftPanel();saveShift();}
+// Tải dữ liệu của THÁNG HIỆN TẠI sau khi đăng nhập (tự chuyển khi qua tháng mới)
+async function bootData(){
+  if(!SB.ready())return;
+  const mk=curMonthKey();
+  CUR_MONTH=mk;
+  try{
+    setCloudStatus('Đang tải dữ liệu tháng '+dispMonth(mk)+'...');
+    const[don,km,shift]=await Promise.all([SB.loadReport('don',mk),SB.loadReport('km',mk),SB.loadReport('shift',mk)]);
+    D=don||emptyDataset(mk);
+    KMD=km||null;
+    if(shift)applyShiftData(shift);
+    _shiftReady=true;
+    selDay=null;
+    document.getElementById('hDate').textContent='Tháng '+dispMonth(mk)+(don?'':' (trống)');
+    rAll();
+    setCloudStatus(don?'Dữ liệu tháng '+dispMonth(mk)+' ✓':'Chưa có dữ liệu tháng '+dispMonth(mk)+' — bấm Upload Excel để thêm',!don);
+  }catch(e){
+    console.error('bootData',e);
+    _shiftReady=true;
+    setCloudStatus('Lỗi tải dữ liệu cloud',true);
+  }
+}
 // "06/2026" hoặc "6/2026" -> "2026-06" (định dạng lưu DB, sort được)
 function normMonth(m){const p=/^(\d{1,2})\/(\d{4})$/.exec(String(m||'').trim());return p?p[2]+'-'+p[1].padStart(2,'0'):String(m||'').trim();}
 // "2026-06" -> "06/2026" (định dạng hiển thị)
@@ -1021,12 +1070,28 @@ async function cloudSaveKO(target,nd){
   if(!SB.ready())return;
   const type=target==="km"?"km":"don";
   const month=normMonth(nd.month);
+  const lbl=type==="km"?"Khuyến Mãi":"Duyệt Đơn";
   try{
+    // Nhận diện dữ liệu trùng tháng cũ đã có trên cloud
+    let exists=false;
+    try{const rows=await SB.listReports();exists=rows.some(r=>r.type===type&&r.month===month);}catch(e){}
+    if(exists){
+      if(!confirm("CẢNH BÁO TRÙNG DỮ LIỆU\n\nTháng "+dispMonth(month)+" ĐÃ CÓ dữ liệu "+lbl+" trên cloud.\n\nBạn có muốn THAY THẾ dữ liệu cũ của tháng "+dispMonth(month)+" bằng dữ liệu vừa upload không?\n\n— OK: ghi đè dữ liệu cũ\n— Cancel: giữ nguyên dữ liệu cũ trên cloud")){
+        setCloudStatus("Không lưu — dữ liệu cũ tháng "+dispMonth(month)+" trên cloud được giữ nguyên",true);
+        return;
+      }
+    }else if(month!==curMonthKey()){
+      if(!confirm("Dữ liệu vừa upload thuộc THÁNG CŨ ("+dispMonth(month)+"), không phải tháng hiện tại ("+dispMonth(curMonthKey())+").\n\nLưu vào tháng "+dispMonth(month)+" trên cloud?")){
+        setCloudStatus("Đã hủy lưu cloud",true);
+        return;
+      }
+    }
     setCloudStatus("Đang lưu cloud...");
     await SB.saveReport(type,month,nd);
     await SB.uploadOriginals(window._lastUploadFiles,type,month);
     window._lastUploadFiles=null;
-    setCloudStatus("Đã lưu cloud ✓");
+    CUR_MONTH=month;
+    setCloudStatus("Đã lưu cloud tháng "+dispMonth(month)+" ✓");
   }catch(e){
     console.error("cloudSaveKO",e);
     setCloudStatus("Lỗi lưu cloud: "+(e.message||e),true);
@@ -1062,11 +1127,13 @@ async function loadHistMonth(m){
   document.getElementById("histDdMenu").classList.remove("show");
   try{
     setCloudStatus("Đang tải tháng "+dispMonth(m)+"...");
-    const don=await SB.loadReport("don",m);
-    const km=await SB.loadReport("km",m);
+    const[don,km,shift]=await Promise.all([SB.loadReport("don",m),SB.loadReport("km",m),SB.loadReport("shift",m)]);
     if(!don&&!km){setCloudStatus("Không có dữ liệu tháng này",true);return;}
-    if(don){D=don;document.getElementById("hDate").textContent="Tháng "+(don.month||dispMonth(m));}
+    CUR_MONTH=m;
+    D=don||emptyDataset(m);
     KMD=km||null;
+    if(shift)applyShiftData(shift);
+    document.getElementById("hDate").textContent="Tháng "+dispMonth(m)+(don?"":" (trống)");
     selDay=null;
     rAll();
     setCloudStatus("Đã tải tháng "+dispMonth(m)+" ✓");
@@ -1769,7 +1836,7 @@ function rKO(){
 }
 
 // ===== TAB: PHÂN CA =====
-function toggleFK(fk,ca){shAssign[fk]=shAssign[fk]===ca?null:ca;rShiftPanel();}
+function toggleFK(fk,ca){shAssign[fk]=shAssign[fk]===ca?null:ca;rShiftPanel();saveShift();}
 function rShiftPanel(){
   const sf=parseInt(document.getElementById("sf").value)||8,st=parseInt(document.getElementById("st").value)||17;
   const tf=parseInt(document.getElementById("tf").value)||22,tt=parseInt(document.getElementById("tt").value)||4;
@@ -2310,8 +2377,15 @@ const BC={
   async cloudSave(){
     if(!SB.ready())return;
     try{
-      BC.log('☁ Đang lưu lên cloud...');
       const month=BC.MAX_MONTH||new Date().toISOString().slice(0,7);
+      // Nhận diện báo cáo trùng tháng đã có trên cloud
+      let exists=false;
+      try{const rows=await SB.listReports();exists=rows.some(r=>r.type==='bc'&&r.month===month);}catch(e){}
+      if(exists&&!confirm("CẢNH BÁO TRÙNG DỮ LIỆU\n\nTháng "+dispMonth(month)+" ĐÃ CÓ báo cáo đại lý trên cloud.\n\nBạn có muốn THAY THẾ báo cáo cũ bằng kết quả vừa tính không?")){
+        BC.log('☁ Không lưu — giữ nguyên báo cáo cũ tháng '+dispMonth(month)+' trên cloud.');
+        return;
+      }
+      BC.log('☁ Đang lưu lên cloud...');
       await SB.saveReport('bc',month,{ROWS:BC.ROWS,AGENTS:BC.AGENTS,MAX_MONTH:BC.MAX_MONTH});
       const allFiles=[...BC.fileStore.f1,...BC.fileStore.f2,...BC.fileStore.f3];
       await SB.uploadOriginals(allFiles,'bc',month);
