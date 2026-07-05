@@ -466,12 +466,10 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
   </div>
   <div class="hdr-right">
     <div class="user-chip" id="userChip" style="display:none"><span id="userChipName"></span><button class="lo-btn" style="background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3);color:var(--pu2)" onclick="selfChangePw()">Đổi MK</button><button class="lo-btn" onclick="AUTH.logout()">Đăng xuất</button></div>
-    <div class="hdr-badge">GMT−4 / GMT+7</div>
-    <div id="hDate" class="hdate hdr-date">Tháng 06/2026</div>
     <span id="cloudStatus" style="font-size:.62rem;color:var(--mu2);min-width:0"></span>
     <div class="upload-dd-wrap">
-      <button type="button" class="upload-btn" style="background:rgba(124,58,237,.15);box-shadow:none;border:1px solid rgba(124,58,237,.35);color:var(--pu2)" onclick="toggleHistMenu(event)">Tháng cũ ▾</button>
-      <div class="upload-dd-menu" id="histDdMenu" style="min-width:230px"></div>
+      <button type="button" class="upload-btn" id="btnMonth" style="background:rgba(124,58,237,.15);box-shadow:none;border:1px solid rgba(124,58,237,.35);color:var(--pu2);font-weight:800" onclick="toggleHistMenu(event)">Tháng ▾</button>
+      <div class="upload-dd-menu" id="histDdMenu" style="min-width:250px"></div>
     </div>
     <div class="upload-dd-wrap">
       <button type="button" class="upload-btn" id="btnUploadExcel" onclick="toggleUploadMenu(event)">Upload Excel ▾</button>
@@ -1119,6 +1117,8 @@ async function admCreateUser(){
 // ===== THÁNG HIỆN TẠI + DỮ LIỆU THEO THÁNG =====
 let CUR_MONTH=null,_shiftReady=false;
 function curMonthKey(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');}
+// Cập nhật nhãn tháng trên nút chọn tháng (header)
+function setMonthLabel(mk,empty){const b=document.getElementById('btnMonth');if(b)b.textContent='Tháng '+dispMonth(mk)+(empty?' (trống)':'')+' ▾';}
 // Dataset rỗng (tháng chưa có dữ liệu) — đủ cấu trúc để mọi tab render không lỗi
 function emptyDataset(mk){
   const z31=()=>Array(31).fill(0),z24=()=>Array(24).fill(0);
@@ -1164,7 +1164,7 @@ async function bootData(){
     if(shift)applyShiftData(shift);
     _shiftReady=true;
     selDay=null;
-    document.getElementById('hDate').textContent='Tháng '+dispMonth(mk)+(don?'':' (trống)');
+    setMonthLabel(mk,!don);
     rAll();
     setCloudStatus(don?'Dữ liệu tháng '+dispMonth(mk)+' ✓':'Chưa có dữ liệu tháng '+dispMonth(mk)+' — bấm Upload Excel để thêm',!don);
   }catch(e){
@@ -1250,12 +1250,16 @@ async function toggleHistMenu(ev){
     const rows=(await SB.listReports()).filter(r=>r.type==="don"||r.type==="km");
     const byMonth={};
     rows.forEach(r=>{(byMonth[r.month]=byMonth[r.month]||[]).push(r.type);});
+    const mk=curMonthKey();
+    if(!byMonth[mk])byMonth[mk]=[]; // tháng hiện tại luôn có trong danh sách kể cả khi trống
     const months=Object.keys(byMonth).sort().reverse();
-    if(!months.length){
-      menu.innerHTML="<div class='upload-dd-item' style='color:var(--mu);cursor:default'>Chưa có tháng nào trên cloud — upload Excel để lưu</div>";
-      return;
-    }
-    menu.innerHTML=months.map(m=>`<div class="upload-dd-item" onclick="loadHistMonth('${m}')">Tháng ${dispMonth(m)}${byMonth[m].includes('km')?' — Đơn + KM':' — Đơn'}</div>`).join("");
+    menu.innerHTML=months.map(m=>{
+      const has=byMonth[m];
+      const tag=m===mk?' <span style="color:var(--gr);font-size:.6rem">(hiện tại)</span>':'';
+      const info=has.length?(has.includes('km')?' — Đơn + KM':' — Đơn'):' — trống';
+      const cur=m===CUR_MONTH?' style="background:rgba(124,58,237,.18)"':'';
+      return `<div class="upload-dd-item"${cur} onclick="loadHistMonth('${m}')">Tháng ${dispMonth(m)}${tag}${info}</div>`;
+    }).join("");
   }catch(e){
     console.error("toggleHistMenu",e);
     menu.innerHTML="<div class='upload-dd-item' style='color:var(--re);cursor:default'>Lỗi tải danh sách cloud</div>";
@@ -1266,15 +1270,14 @@ async function loadHistMonth(m){
   try{
     setCloudStatus("Đang tải tháng "+dispMonth(m)+"...");
     const[don,km,shift]=await Promise.all([SB.loadReport("don",m),SB.loadReport("km",m),SB.loadReport("shift",m)]);
-    if(!don&&!km){setCloudStatus("Không có dữ liệu tháng này",true);return;}
     CUR_MONTH=m;
     D=don||emptyDataset(m);
     KMD=km||null;
     if(shift)applyShiftData(shift);
-    document.getElementById("hDate").textContent="Tháng "+dispMonth(m)+(don?"":" (trống)");
+    setMonthLabel(m,!don);
     selDay=null;
     rAll();
-    setCloudStatus("Đã tải tháng "+dispMonth(m)+" ✓");
+    setCloudStatus(don?"Đã tải tháng "+dispMonth(m)+" ✓":"Tháng "+dispMonth(m)+" chưa có dữ liệu — Upload Excel để thêm",!don);
   }catch(e){
     console.error("loadHistMonth",e);
     setCloudStatus("Lỗi tải dữ liệu cloud",true);
@@ -1408,7 +1411,7 @@ function gsc(b,a,s){
   const st=String(s||"").trim();
   if(st==="Đã rút tiền"){
     if(ip){if(a>=50&&a<=500)v+=2;else if(a>=501&&a<=4999)v+=3;else if(a>=5000&&a<=49999)v+=4;else if(a>=50000&&a<=500000)v+=5;}
-    else if(lt){if(a<100000000)v+=1;else v+=1.5;}
+    else if(lt){if(a<100000)v+=1;else v+=1.5;}
   }else if(st==="Đã trả lại"){
     v+=1;
   }
@@ -1621,7 +1624,7 @@ function finalizeResult(nd,target){
       KMD=nd;
     }else{
       D=nd;
-      document.getElementById("hDate").textContent="Tháng "+nd.month;
+      setMonthLabel(normMonth(nd.month),false);
     }
     hideProg();
     rAll();
@@ -2050,9 +2053,7 @@ function rRank(){
     const ov=slots.map(x=>{
       const fd=D.fk_data[x.fk];
       const stroke="-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff,0 0 10px "+x.nc;
-      const ov=KO_OV[x.fk];
-      const hasCong=!ov||(ov.cong||0)>0;
-      const label=hasCong?fd.name:"";
+      const label=fd.total_score>0?fd.name:"";
       return "<div onclick=\"sFk('"+x.fk+"')\" style=\"position:absolute;left:"+x.l+";top:"+x.t+";transform:translate(-50%,-50%);text-align:center;cursor:pointer\"><div style=\"color:"+x.nc+";font-weight:900;font-size:"+x.fs+";text-shadow:"+stroke+";letter-spacing:1px;white-space:nowrap\">"+label+"</div></div>";
     }).join('');
     document.getElementById(cid).innerHTML="<div style=\"position:relative;border-radius:12px;overflow:hidden\"><img src=\""+IMG+"\" style=\"width:100%;display:block\" loading=\"lazy\">"+ov+"</div>";
