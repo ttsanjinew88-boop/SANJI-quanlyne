@@ -2043,7 +2043,11 @@ function rRank(){
   document.getElementById("rkpl").textContent="Tháng "+D.month;
   const IMG='https://media.88new11.com/public/new88/site-tong/8d45f036-33ce-42e4-86c7-6b4174a6e109.png';
   function mkTrophyRow(fkList,cid){
-    const s=[...fkList].sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score).slice(0,3);
+    // Đồng bộ logic BXH của bảng Tổng Quan: Tổng (đơn + KM), loại Học Việc/Nghỉ Việc/Về Phép/C.Bộ Phận
+    const EXCL=['C.Bộ Phận','Về Phép','Học Việc','Nghỉ Việc'];
+    const {cong}=calcBonusPenalty(fkList);
+    const active=fkList.filter(fk=>!EXCL.includes(ovGet(fk).khac));
+    const s=[...active].sort((a,b)=>combinedTotal(b)-combinedTotal(a)).slice(0,3);
     // visual order: 2nd(left), 1st(center), 3rd(right) — position in image
     const slots=[
       {fk:s[1],l:'18%',t:'68%',nc:'#c4b5fd',sc:'#a855f7',fs:'clamp(1rem,3.2vw,1.5rem)'},
@@ -2053,7 +2057,8 @@ function rRank(){
     const ov=slots.map(x=>{
       const fd=D.fk_data[x.fk];
       const stroke="-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff,0 0 10px "+x.nc;
-      const label=fd.total_score>0?fd.name:"";
+      // Đứng top nhưng không được điểm CỘNG (do hạng xử lý bất thường thấp) -> ẩn tên khỏi bục
+      const label=(combinedTotal(x.fk)>0&&(cong[x.fk]||0)>0)?fd.name:"";
       return "<div onclick=\"sFk('"+x.fk+"')\" style=\"position:absolute;left:"+x.l+";top:"+x.t+";transform:translate(-50%,-50%);text-align:center;cursor:pointer\"><div style=\"color:"+x.nc+";font-weight:900;font-size:"+x.fs+";text-shadow:"+stroke+";letter-spacing:1px;white-space:nowrap\">"+label+"</div></div>";
     }).join('');
     document.getElementById(cid).innerHTML="<div style=\"position:relative;border-radius:12px;overflow:hidden\"><img src=\""+IMG+"\" style=\"width:100%;display:block\" loading=\"lazy\">"+ov+"</div>";
