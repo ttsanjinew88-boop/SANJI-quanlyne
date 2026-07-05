@@ -394,9 +394,47 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .bc-overlay .overlay-msg{font-size:13px;color:var(--pu2);font-weight:bold}
 .bc-tool .dz-hint{font-size:10px;color:var(--mu);margin-top:6px;opacity:.8}
 @media(max-width:768px){.bc-tool .upload-grid{justify-content:center}.bc-tool .drop-zone{flex:1 1 160px}}
+/* ===== LOGIN + ADMIN ===== */
+#loginOverlay{position:fixed;inset:0;background:var(--bg);z-index:100000;display:flex;align-items:center;justify-content:center}
+.login-box{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:38px 42px;width:min(380px,92vw);box-shadow:0 25px 60px rgba(0,0,0,.6);text-align:center}
+.login-logo{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--pu),var(--bl));display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;margin:0 auto 14px;box-shadow:0 0 20px rgba(124,58,237,.4);letter-spacing:-.5px}
+.login-title{font-size:1rem;font-weight:800;letter-spacing:.08em;margin-bottom:4px}
+.login-sub{font-size:.65rem;color:var(--mu);margin-bottom:22px}
+.login-inp{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:11px 14px;font-size:.8rem;color:var(--tx);outline:none;margin-bottom:10px;box-sizing:border-box;font-family:inherit}
+.login-inp:focus{border-color:var(--pu)}
+.login-btn{width:100%;background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;border:none;border-radius:8px;padding:11px;font-size:.8rem;font-weight:800;cursor:pointer;box-shadow:0 4px 15px rgba(124,58,237,.3);margin-top:4px;letter-spacing:.05em}
+.login-btn:hover{opacity:.9}
+.login-btn:disabled{background:var(--border2);color:var(--mu);cursor:not-allowed;box-shadow:none}
+.login-err{font-size:.68rem;color:var(--re);margin-top:10px;min-height:16px;font-weight:600}
+.user-chip{display:flex;align-items:center;gap:8px;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);border-radius:20px;padding:4px 6px 4px 12px;font-size:.68rem;font-weight:700;color:var(--pu2)}
+.user-chip .lo-btn{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:14px;padding:2px 10px;font-size:.62rem;font-weight:700;cursor:pointer}
+.user-chip .lo-btn:hover{background:rgba(239,68,68,.28)}
+.adm-inp{background:var(--card2);border:1px solid var(--border2);border-radius:7px;padding:8px 12px;font-size:.72rem;color:var(--tx);outline:none;font-family:inherit;min-width:170px}
+.adm-inp:focus{border-color:var(--pu)}
+.adm-chk{display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:600;color:var(--mu2);cursor:pointer;user-select:none;background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:5px 10px}
+.adm-chk input{accent-color:var(--pu);cursor:pointer}
+.adm-tbl{border-collapse:collapse;width:100%;font-size:.68rem}
+.adm-tbl th{background:rgba(0,0,0,.2);color:var(--mu2);padding:8px 12px;text-align:left;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)}
+.adm-tbl td{padding:9px 12px;border-bottom:1px solid rgba(30,37,69,.5)}
+.adm-tbl tr:hover td{background:rgba(124,58,237,.05)}
+.adm-tbl .tc{text-align:center}
+.adm-tbl input[type=checkbox]{accent-color:var(--pu);cursor:pointer;width:15px;height:15px}
 </style>
 </head>
 <body>
+
+<!-- LOGIN OVERLAY -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo">KO</div>
+    <div class="login-title">ĐĂNG NHẬP HỆ THỐNG</div>
+    <div class="login-sub">Dashboard Hiệu Suất Nhân Viên · NEW88</div>
+    <input class="login-inp" id="lg-user" placeholder="Tên đăng nhập" autocomplete="username">
+    <input class="login-inp" id="lg-pass" type="password" placeholder="Mật khẩu" autocomplete="current-password" onkeydown="if(event.key==='Enter')AUTH.login()">
+    <button class="login-btn" id="lg-btn" onclick="AUTH.login()">Đăng nhập</button>
+    <div class="login-err" id="lg-err"></div>
+  </div>
+</div>
 
 <!-- URL action toast (Telegram deep-link confirm/watch feedback) -->
 <div id="url-toast" style="display:none;position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:99999;padding:14px 24px;border-radius:10px;color:#fff;font-size:13px;font-weight:bold;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.35);transition:opacity .6s;max-width:90vw;line-height:1.6"></div>
@@ -427,6 +465,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     </div>
   </div>
   <div class="hdr-right">
+    <div class="user-chip" id="userChip" style="display:none"><span id="userChipName"></span><button class="lo-btn" onclick="AUTH.logout()">Đăng xuất</button></div>
     <div class="hdr-badge">GMT−4 / GMT+7</div>
     <div id="hDate" class="hdate hdr-date">Tháng 06/2026</div>
     <span id="cloudStatus" style="font-size:.62rem;color:var(--mu2);min-width:0"></span>
@@ -446,10 +485,11 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 </div>
 
 <div class="tabs-wrap">
-  <div class="tab active" onclick="sw('data',this)">Dữ Liệu</div>
-  <div class="tab" onclick="sw('ko',this)">Hiệu Suất KO</div>
-  <div class="tab" onclick="sw('shift',this)">Phân Ca</div>
-  <div class="tab" onclick="sw('rank',this)">Xếp Hạng</div>
+  <div class="tab active" id="tabData" onclick="sw('data',this)">Dữ Liệu</div>
+  <div class="tab" id="tabKo" onclick="sw('ko',this)">Hiệu Suất KO</div>
+  <div class="tab" id="tabShift" onclick="sw('shift',this)">Phân Ca</div>
+  <div class="tab" id="tabRank" onclick="sw('rank',this)">Xếp Hạng</div>
+  <div class="tab" id="tabAdmin" style="display:none" onclick="sw('admin',this)">Quản Trị</div>
 </div>
 
 <!-- ============ TAB: DỮ LIỆU (gộp Ngày + Tháng + Theo Giờ, có nguồn Duyệt Đơn/Khuyến Mãi) ============ -->
@@ -654,6 +694,26 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
   </div>
 </div>
 
+<!-- ============ TAB: QUẢN TRỊ (chỉ admin) ============ -->
+<div class="pg" id="pg-admin">
+  <div class="sec-hdr pu">QUẢN TRỊ TÀI KHOẢN</div>
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="chart-title">Tạo tài khoản mới</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+      <input class="adm-inp" id="au-user" placeholder="Tên đăng nhập (3-20 ký tự)" autocomplete="off">
+      <input class="adm-inp" id="au-pass" placeholder="Mật khẩu (tối thiểu 6 ký tự)" autocomplete="off">
+    </div>
+    <div style="font-size:.62rem;color:var(--mu);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em;font-weight:700">Quyền xem</div>
+    <div id="au-perms" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
+    <button class="upload-btn" onclick="admCreateUser()">Tạo tài khoản</button>
+    <div id="au-msg" style="font-size:.7rem;margin-top:10px;min-height:16px;font-weight:600"></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Danh sách tài khoản <span style="font-size:.58rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— tích/bỏ tích là lưu ngay</span></div>
+    <div id="admUserList" style="overflow-x:auto"></div>
+  </div>
+</div>
+
 
 <script>
 // ===== EMBEDDED DATA (replace via Upload Excel) =====
@@ -717,8 +777,193 @@ const SB=(function(){
     if(error)throw error;
     return data?data.data:null;
   }
-  return{ready,saveReport,uploadOriginals,listReports,loadReport};
+  function client(){ready();return cli;}
+  return{ready,client,saveReport,uploadOriginals,listReports,loadReport};
 })();
+// ===== AUTH: ĐĂNG NHẬP + PHÂN QUYỀN THEO TAB =====
+const PERM_TABS=[
+  {k:'data',el:'tabData',label:'Dữ Liệu'},
+  {k:'ko',el:'tabKo',label:'Hiệu Suất KO'},
+  {k:'shift',el:'tabShift',label:'Phân Ca'},
+  {k:'rank',el:'tabRank',label:'Xếp Hạng'},
+  {k:'bc',el:null,label:'Báo Cáo Đại Lý'}
+];
+let CUR_PROFILE=null;
+const AUTH={
+  emailOf(u){return u.trim().toLowerCase()+'@sanji.app';},
+  async init(){
+    if(!SB.ready()){
+      document.getElementById('lg-err').textContent='Chưa cấu hình cloud (SB_URL/SB_KEY)';
+      return;
+    }
+    try{
+      const{data}=await SB.client().auth.getSession();
+      if(data&&data.session){await AUTH.postLogin(data.session.user);return;}
+    }catch(e){console.error('AUTH.init',e);}
+    // chưa đăng nhập -> overlay đang hiển thị sẵn
+  },
+  async login(){
+    const u=document.getElementById('lg-user').value.trim();
+    const p=document.getElementById('lg-pass').value;
+    const err=document.getElementById('lg-err'),btn=document.getElementById('lg-btn');
+    err.textContent='';
+    if(!u||!p){err.textContent='Nhập tên đăng nhập và mật khẩu';return;}
+    if(!SB.ready()){err.textContent='Chưa cấu hình cloud';return;}
+    btn.disabled=true;btn.textContent='Đang đăng nhập...';
+    try{
+      const{data,error}=await SB.client().auth.signInWithPassword({email:AUTH.emailOf(u),password:p});
+      if(error){
+        err.textContent=/invalid/i.test(error.message)?'Sai tên đăng nhập hoặc mật khẩu':('Lỗi: '+error.message);
+        return;
+      }
+      await AUTH.postLogin(data.user);
+    }catch(e){
+      console.error('AUTH.login',e);
+      err.textContent='Lỗi kết nối, thử lại';
+    }finally{
+      btn.disabled=false;btn.textContent='Đăng nhập';
+    }
+  },
+  async postLogin(user){
+    try{
+      const{data,error}=await SB.client().from('profiles').select('*').eq('user_id',user.id).single();
+      if(error||!data){
+        document.getElementById('lg-err').textContent='Tài khoản chưa có hồ sơ quyền — liên hệ admin';
+        await SB.client().auth.signOut();
+        return;
+      }
+      CUR_PROFILE=data;
+      document.getElementById('loginOverlay').style.display='none';
+      applyPerms();
+    }catch(e){
+      console.error('AUTH.postLogin',e);
+      document.getElementById('lg-err').textContent='Lỗi tải hồ sơ người dùng';
+    }
+  },
+  async logout(){
+    try{await SB.client().auth.signOut();}catch(e){}
+    location.reload();
+  }
+};
+function curPerms(){
+  if(!CUR_PROFILE)return{};
+  if(CUR_PROFILE.is_admin)return{data:true,ko:true,shift:true,rank:true,bc:true};
+  return CUR_PROFILE.perms||{};
+}
+function applyPerms(){
+  const p=CUR_PROFILE;if(!p)return;
+  const perms=curPerms();
+  PERM_TABS.forEach(t=>{
+    if(!t.el)return;
+    const el=document.getElementById(t.el);
+    if(el)el.style.display=perms[t.k]?'':'none';
+  });
+  const tsb2=document.getElementById('tsb2');
+  if(tsb2)tsb2.style.display=perms.bc?'':'none';
+  const ta=document.getElementById('tabAdmin');
+  if(ta)ta.style.display=p.is_admin?'':'none';
+  const chip=document.getElementById('userChip');
+  document.getElementById('userChipName').textContent=(p.username||'').toUpperCase()+(p.is_admin?' · ADMIN':'');
+  chip.style.display='flex';
+  // nếu tab đang mở bị ẩn -> nhảy sang tab đầu tiên được phép
+  const active=document.querySelector('.tabs-wrap .tab.active');
+  if(active&&active.style.display==='none'){
+    const first=[...document.querySelectorAll('.tabs-wrap .tab')].find(t=>t.style.display!=='none');
+    if(first)first.click();
+  }
+  // nếu đang đứng ở BC tool mà mất quyền -> về tool 1
+  if(!perms.bc&&document.getElementById('t2').style.display!=='none'){
+    switchTool('t1');
+  }
+}
+// ===== ADMIN PANEL =====
+function rAdminPanel(){
+  if(!CUR_PROFILE||!CUR_PROFILE.is_admin)return;
+  const pf=document.getElementById('au-perms');
+  if(!pf.dataset.built){
+    pf.innerHTML=PERM_TABS.map(t=>`<label class="adm-chk"><input type="checkbox" data-k="${t.k}" checked> ${t.label}</label>`).join('');
+    pf.dataset.built="1";
+  }
+  admLoadUsers();
+}
+async function admLoadUsers(){
+  const list=document.getElementById('admUserList');
+  list.innerHTML='<div style="color:var(--mu);font-size:.7rem;padding:10px 0">Đang tải...</div>';
+  try{
+    const{data,error}=await SB.client().from('profiles').select('*').order('created_at');
+    if(error)throw error;
+    list.innerHTML=`<table class="adm-tbl"><thead><tr><th>Tài khoản</th>${PERM_TABS.map(t=>`<th class="tc">${t.label}</th>`).join('')}<th class="tc">Admin</th></tr></thead><tbody>`+
+      data.map(u=>{
+        const perms=u.perms||{};
+        const isSelf=u.user_id===CUR_PROFILE.user_id;
+        return `<tr><td style="font-weight:700;color:var(--tx)">${(u.username||'').toUpperCase()}${isSelf?' <span style="color:var(--pu2);font-size:.6rem">(bạn)</span>':''}</td>`+
+          PERM_TABS.map(t=>`<td class="tc"><input type="checkbox" ${u.is_admin?'checked disabled':(perms[t.k]?'checked':'')} onchange="admSetPerm('${u.user_id}','${t.k}',this.checked,this)"></td>`).join('')+
+          `<td class="tc"><input type="checkbox" ${u.is_admin?'checked':''} ${isSelf?'disabled':''} onchange="admSetAdmin('${u.user_id}',this.checked,this)"></td></tr>`;
+      }).join('')+'</tbody></table>';
+  }catch(e){
+    console.error('admLoadUsers',e);
+    list.innerHTML='<div style="color:var(--re);font-size:.7rem;padding:10px 0">Lỗi tải danh sách: '+(e.message||e)+'</div>';
+  }
+}
+async function admSetPerm(uid,k,val,cb){
+  try{
+    const{data,error}=await SB.client().from('profiles').select('perms').eq('user_id',uid).single();
+    if(error)throw error;
+    const perms=data.perms||{};perms[k]=val;
+    const{error:e2}=await SB.client().from('profiles').update({perms}).eq('user_id',uid);
+    if(e2)throw e2;
+  }catch(e){
+    console.error('admSetPerm',e);
+    if(cb)cb.checked=!val;
+    alert('Lỗi lưu quyền: '+(e.message||e));
+  }
+}
+async function admSetAdmin(uid,val,cb){
+  if(!confirm(val?'Cấp quyền ADMIN cho tài khoản này? Admin có toàn quyền, kể cả tạo tài khoản.':'Gỡ quyền ADMIN của tài khoản này?')){
+    if(cb)cb.checked=!val;return;
+  }
+  try{
+    const{error}=await SB.client().from('profiles').update({is_admin:val}).eq('user_id',uid);
+    if(error)throw error;
+    admLoadUsers();
+  }catch(e){
+    console.error('admSetAdmin',e);
+    if(cb)cb.checked=!val;
+    alert('Lỗi: '+(e.message||e));
+  }
+}
+async function admCreateUser(){
+  const uEl=document.getElementById('au-user'),pEl=document.getElementById('au-pass'),msg=document.getElementById('au-msg');
+  const u=uEl.value.trim(),p=pEl.value;
+  msg.style.color='var(--mu2)';msg.textContent='';
+  if(!/^[a-zA-Z0-9_]{3,20}$/.test(u)){msg.style.color='var(--re)';msg.textContent='Tên đăng nhập 3-20 ký tự, chỉ chữ/số/gạch dưới';return;}
+  if(p.length<6){msg.style.color='var(--re)';msg.textContent='Mật khẩu tối thiểu 6 ký tự';return;}
+  const perms={};
+  document.querySelectorAll('#au-perms input[type=checkbox]').forEach(c=>{if(c.checked)perms[c.dataset.k]=true;});
+  msg.textContent='Đang tạo tài khoản...';
+  try{
+    // client phụ để signUp không ảnh hưởng phiên admin đang đăng nhập
+    const tmp=window.supabase.createClient(SB_URL,SB_KEY,{auth:{storageKey:'sb-tmp-signup',persistSession:false,autoRefreshToken:false}});
+    const{data,error}=await tmp.auth.signUp({email:AUTH.emailOf(u),password:p});
+    if(error){
+      msg.style.color='var(--re)';
+      msg.textContent=/already/i.test(error.message)?'Tên đăng nhập đã tồn tại':('Lỗi: '+error.message);
+      return;
+    }
+    // trigger đã tạo hồ sơ; giờ cập nhật quyền theo lựa chọn
+    const{error:e2}=await SB.client().from('profiles').update({perms}).eq('user_id',data.user.id);
+    if(e2)throw e2;
+    msg.style.color='var(--gr)';
+    msg.textContent='Đã tạo tài khoản '+u.toUpperCase()+' ✓ (mật khẩu bạn vừa đặt, hãy gửi cho nhân viên)';
+    uEl.value='';pEl.value='';
+    admLoadUsers();
+  }catch(e){
+    console.error('admCreateUser',e);
+    msg.style.color='var(--re)';
+    msg.textContent='Lỗi tạo tài khoản: '+(e.message||e);
+  }
+}
+
 // "06/2026" hoặc "6/2026" -> "2026-06" (định dạng lưu DB, sort được)
 function normMonth(m){const p=/^(\d{1,2})\/(\d{4})$/.exec(String(m||'').trim());return p?p[2]+'-'+p[1].padStart(2,'0'):String(m||'').trim();}
 // "2026-06" -> "06/2026" (định dạng hiển thị)
@@ -1158,6 +1403,7 @@ function rAll(){
   if(act==="pg-ko")rKO();
   if(act==="pg-shift")rShiftPanel();
   if(act==="pg-rank")rRank();
+  if(act==="pg-admin")rAdminPanel();
 }
 function bldDayBtns(ds){ds=ds||curDataSet();const days=ds.days_in_month_d7||ds.days_in_month||[];document.getElementById("dayBtns").innerHTML=days.map(d=>"<button class='day-btn"+(selDay===d?" active":"")+"' onclick='sDy("+d+",this)'>"+String(d).padStart(2,"0")+"</button>").join("");}
 function sDy(d,el){selDay=d;document.querySelectorAll(".day-btn").forEach(b=>b.classList.remove("active"));el.classList.add("active");rDay(curDataSet());}
@@ -2519,6 +2765,7 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
 };
 
 BC.rebuildAll();
+AUTH.init();
 </script>
 </body>
 </html>
