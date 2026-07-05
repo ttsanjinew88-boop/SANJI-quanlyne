@@ -2877,13 +2877,13 @@ const BC={
       const isoDate=`${yy}-${mm}-${dd}`;
       const caption=`🚨 BÁO CÁO ĐẠI LÝ BẤT THƯỜNG\n📅 ${dateStr}\n👤 FK: ${BC._selFk}\n🏢 Đại lý: ${agentName}\n📋 ${content||'(không có nội dung)'}`;
       const filename=`BaoCao_${agentName}_${BC._selFk}_${dd}${mm}.xls`;
-      /* Inline keyboard: one-time use via rid (report ID) */
+      /* Inline keyboard callback: bot webhook (Supabase Edge Function) cộng điểm trực tiếp, rid dùng 1 lần */
       const rid=Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);
-      const base='https://ttsanjinew88-boop.github.io/SANJI-quanlyne/dashboard_v2.html';
       const fkKey='fk'+BC._selFk.toLowerCase();
-      const confirmUrl=`${base}?confirm_anomaly=${fkKey}&date=${isoDate}&cat=mkt&count=3&rid=${rid}`;
-      const watchUrl=`${base}?watch_anomaly=${fkKey}&date=${isoDate}&rid=${rid}`;
-      const rm={inline_keyboard:[[{text:'✅ Xác Nhận',url:confirmUrl},{text:'Theo Dõi Thêm',url:watchUrl}]]};
+      const rm={inline_keyboard:[[
+        {text:'✅ Xác Nhận',callback_data:`cf|${fkKey}|${isoDate}|m|3|${rid}`},
+        {text:'👁 Theo Dõi Thêm',callback_data:`wt|${fkKey}|${isoDate}|${rid}`}
+      ]]};
       const res=await BC.tgSend(blob,filename,caption,rm);
       if(res.ok){
         status.style.color='#22c55e';status.textContent='Gửi thành công!';
@@ -3028,11 +3028,10 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
         body:JSON.stringify({chat_id:G1,text:txt})});
       /* Nhóm 2: file/ảnh + inline keyboard (Xác Nhận / Hủy Bỏ) */
       const rid=Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);
-      const base='https://ttsanjinew88-boop.github.io/SANJI-quanlyne/dashboard_v2.html';
       const fkKey='fk'+BC._selCuFk.toLowerCase();
       const rm={inline_keyboard:[[
-        {text:'✅ Xác Nhận',url:`${base}?confirm_anomaly=${fkKey}&date=${isoDate}&cat=abuse&count=3&rid=${rid}`},
-        {text:'❌ Hủy Bỏ',  url:`${base}?dismiss_anomaly=${fkKey}&date=${isoDate}&rid=${rid}`}
+        {text:'✅ Xác Nhận',callback_data:`cf|${fkKey}|${isoDate}|a|3|${rid}`},
+        {text:'❌ Hủy Bỏ',callback_data:`dm|${fkKey}|${isoDate}|${rid}`}
       ]]};
       let msgId=null;
       if(file){
