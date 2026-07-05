@@ -599,6 +599,12 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       <div class="fk-grid" id="kmOnlGrid" style="margin-bottom:12px"></div>
       <div class="mtbl-wrap" id="kmCombinedTable"></div>
     </div>
+
+    <!-- Chi tiết theo ngày: hiện khi bấm vào thẻ nhân viên (Đơn hoặc KM) -->
+    <div class="detail-panel" id="koDp" style="display:none;margin-top:18px">
+      <div class="dp-header"><div class="dp-name" id="koDpName">-</div><span class="fk-card-type" id="koDpBadge">-</span><div class="dp-stats"><span>Điểm: <b id="koDpSc">-</b></span><span>Đơn: <b id="koDpCt">-</b></span></div></div>
+      <div style="height:180px"><canvas id="koDpCh"></canvas></div>
+    </div>
   </div>
 
   <!-- VIEW: BẤT THƯỜNG THEO NGÀY -->
@@ -1158,15 +1164,27 @@ async function bootData(){
   CUR_MONTH=mk;
   try{
     setCloudStatus('Đang tải dữ liệu tháng '+dispMonth(mk)+'...');
-    const[don,km,shift]=await Promise.all([SB.loadReport('don',mk),SB.loadReport('km',mk),SB.loadReport('shift',mk)]);
+    const[don,km,shift,an]=await Promise.all([SB.loadReport('don',mk),SB.loadReport('km',mk),SB.loadReport('shift',mk),SB.loadReport('anomaly',mk)]);
     D=don||emptyDataset(mk);
     KMD=km||null;
     if(shift)applyShiftData(shift);
     _shiftReady=true;
+    if(an&&an.abuse){
+      KO_AN=an;
+    }else{
+      // di trú 1 lần: bảng bất thường cũ còn trong máy (localStorage) -> cloud tháng hiện tại
+      const legacy=loadKoAnLegacy();
+      const hasLegacy=Object.keys(legacy.abuse||{}).length>0||Object.keys(legacy.mkt||{}).length>0;
+      KO_AN=hasLegacy?legacy:{abuse:{},mkt:{}};
+      if(hasLegacy){
+        try{await SB.saveReport('anomaly',mk,KO_AN);localStorage.removeItem(KO_AN_KEY);}catch(e){}
+      }
+    }
     selDay=null;
     setMonthLabel(mk,!don);
     rAll();
     setCloudStatus(don?'Dữ liệu tháng '+dispMonth(mk)+' ✓':'Chưa có dữ liệu tháng '+dispMonth(mk)+' — bấm Upload Excel để thêm',!don);
+    processUrlAction();
   }catch(e){
     console.error('bootData',e);
     _shiftReady=true;
@@ -1269,11 +1287,12 @@ async function loadHistMonth(m){
   document.getElementById("histDdMenu").classList.remove("show");
   try{
     setCloudStatus("Đang tải tháng "+dispMonth(m)+"...");
-    const[don,km,shift]=await Promise.all([SB.loadReport("don",m),SB.loadReport("km",m),SB.loadReport("shift",m)]);
+    const[don,km,shift,an]=await Promise.all([SB.loadReport("don",m),SB.loadReport("km",m),SB.loadReport("shift",m),SB.loadReport("anomaly",m)]);
     CUR_MONTH=m;
     D=don||emptyDataset(m);
     KMD=km||null;
     if(shift)applyShiftData(shift);
+    KO_AN=(an&&an.abuse)?an:{abuse:{},mkt:{}};
     setMonthLabel(m,!don);
     selDay=null;
     rAll();
@@ -1299,12 +1318,24 @@ let KO_OV=loadKoOv();
 function ovGet(fk){return {cong:0,tru:0,khac:"",note:"",wd:null,...(KO_OV[fk]||{})};}
 function ovSet(fk,field,val){if(!KO_OV[fk])KO_OV[fk]={cong:0,tru:0,khac:"",note:"",wd:null};KO_OV[fk][field]=val;saveKoOv();}
 
-// ===== KO: BẢNG BẤT THƯỜNG THEO NGÀY (2 danh mục) — localStorage =====
-const KO_AN_KEY="fk_ko_anomaly_grid_v1";
+// ===== KO: BẢNG BẤT THƯỜNG THEO NGÀY (2 danh mục) — lưu CLOUD theo tháng =====
+const KO_AN_KEY="fk_ko_anomaly_grid_v1"; // chỉ còn dùng để di trú dữ liệu cũ 1 lần
 const AN_CATS={abuse:"Cược bất thường — Lạm dụng",mkt:"Đại lý ngoài — MKT bất thường"};
-function loadKoAn(){try{const d=JSON.parse(localStorage.getItem(KO_AN_KEY));return d&&d.abuse?d:{abuse:{},mkt:{}};}catch(e){return {abuse:{},mkt:{}};}}
-function saveKoAn(){localStorage.setItem(KO_AN_KEY,JSON.stringify(KO_AN));}
-let KO_AN=loadKoAn();
+function loadKoAnLegacy(){try{const d=JSON.parse(localStorage.getItem(KO_AN_KEY));return d&&d.abuse?d:{abuse:{},mkt:{}};}catch(e){return {abuse:{},mkt:{}};}}
+let KO_AN={abuse:{},mkt:{}};
+let _anTimer=null;
+function saveKoAn(){
+  clearTimeout(_anTimer);
+  _anTimer=setTimeout(_saveKoAnCloud,1200);
+}
+async function _saveKoAnCloud(){
+  if(!SB.ready()||!CUR_PROFILE||!CUR_MONTH)return;
+  try{
+    await SB.saveReport('anomaly',CUR_MONTH,KO_AN);
+    setCloudStatus('Đã lưu bất thường tháng '+dispMonth(CUR_MONTH)+' ✓');
+    logAction('Chỉnh bất thường','Tháng '+dispMonth(CUR_MONTH));
+  }catch(e){console.error('_saveKoAnCloud',e);setCloudStatus('Lỗi lưu bất thường',true);}
+}
 
 function anGet(cat,fk,day){return (KO_AN[cat]&&KO_AN[cat][fk]&&KO_AN[cat][fk][day])||0;}
 function anSet(cat,fk,day,val){
@@ -1314,76 +1345,89 @@ function anSet(cat,fk,day,val){
 function anTotal(cat,fk){const m=(KO_AN[cat]&&KO_AN[cat][fk])||{};return Object.values(m).reduce((s,v)=>s+(Number(v)||0),0);}
 function anAdd(cat,fk,day,delta){anSet(cat,fk,day,anGet(cat,fk,day)+delta);}
 
-// URL handler: ?confirm_anomaly=fkjade&date=2026-07-03&cat=mkt&count=3&rid=abc
-// URL handler: ?watch_anomaly=fkjade&date=2026-07-03&rid=abc
-(function handleUrlActions(){
+// ===== URL handler (nút Xác Nhận/Theo Dõi/Hủy từ Telegram) =====
+// ?confirm_anomaly=fkjade&date=2026-07-03&cat=mkt&count=3&rid=abc
+// Bắt action lúc mở trang, XỬ LÝ SAU KHI ĐĂNG NHẬP để ghi điểm lên cloud (đúng người, đúng ngày, đúng tháng)
+let PENDING_URL={action:null};
+(function captureUrlAction(){
   const p=new URLSearchParams(location.search);
   const rid=p.get("rid");
-  const USED_KEY="bc_used_rids";
-  function isUsed(id){if(!id)return false;try{return(JSON.parse(localStorage.getItem(USED_KEY)||"[]")).includes(id);}catch(e){return false;}}
-  function markUsed(id){if(!id)return;try{const a=JSON.parse(localStorage.getItem(USED_KEY)||"[]");a.push(id);localStorage.setItem(USED_KEY,JSON.stringify(a));}catch(e){}}
-  let _toast=null;
-
-  /* CONFIRM */
   const fk=p.get("confirm_anomaly"),date=p.get("date"),cat=p.get("cat")==="mkt"?"mkt":"abuse",cnt=Number(p.get("count")||1);
-  if(fk&&FK_KEYS.includes(fk)&&date){
-    if(!isUsed(rid)){
-      const day=Number(date.slice(-2));
-      anAdd(cat,fk,day,cnt);
-      markUsed(rid);
-      _toast={type:"confirm",fk,cnt,date};
-    }else{
-      _toast={type:"used",fk,cnt,date};
-    }
-    history.replaceState(null,"",location.pathname);
-  }
-
-  /* WATCH */
-  const fkw=p.get("watch_anomaly"),datew=p.get("date")||date;
-  if(fkw&&FK_KEYS.includes(fkw)&&datew&&!fk){
-    if(!isUsed(rid)){
-      markUsed(rid);
-      _toast={type:"watch",fk:fkw,date:datew};
-    }else{
-      _toast={type:"used",fk:fkw,cnt:0,date:datew};
-    }
-    history.replaceState(null,"",location.pathname);
-  }
-
-  /* DISMISS (Hủy Bỏ báo cáo cược bất thường) */
-  const fkd=p.get("dismiss_anomaly"),dated=p.get("date")||date;
-  if(fkd&&!fk&&!fkw){
-    if(!isUsed(rid)){markUsed(rid);}
-    _toast={type:"dismiss",fk:fkd,date:dated};
-    history.replaceState(null,"",location.pathname);
-  }
-
-  if(_toast){
-    const t=_toast;
-    window.addEventListener("DOMContentLoaded",function(){
-      const el=document.getElementById("url-toast");
-      if(!el)return;
-      const nm=(typeof FK_NAMES!=="undefined"?FK_NAMES[t.fk]:t.fk)||t.fk;
-      const dayNum=t.date?Number(t.date.slice(-2)):"-";
-      const month=t.date?(Number(t.date.slice(5,7))):"-";
-      if(t.type==="confirm"){
-        el.innerHTML=`Đã xác nhận báo cáo đại lý bất thường<br><b>+${t.cnt} điểm</b> cho <b>${nm}</b> ngày <b>${dayNum}/${month}</b>`;
-        el.style.background="#16a34a";
-      }else if(t.type==="watch"){
-        el.innerHTML=`Đã ghi nhận <b>Theo Dõi Thêm</b> cho <b>${nm}</b>`;
-        el.style.background="#2563eb";
-      }else if(t.type==="dismiss"){
-        el.innerHTML=`Đã <b>Hủy Bỏ</b> báo cáo cược bất thường của <b>${nm}</b>`;
-        el.style.background="#6b7280";
-      }else{
-        el.innerHTML=`Báo cáo này đã được xử lý rồi, không thể thực hiện lần 2`;
-        el.style.background="#dc2626";
-      }
-      el.style.display="block";
-      setTimeout(()=>{el.style.opacity="0";setTimeout(()=>el.style.display="none",600);},4000);
-    });
-  }
+  const fkw=p.get("watch_anomaly"),fkd=p.get("dismiss_anomaly");
+  if(fk&&FK_KEYS.includes(fk)&&date)PENDING_URL.action={type:'confirm',fk,date,cat,cnt,rid};
+  else if(fkw&&FK_KEYS.includes(fkw))PENDING_URL.action={type:'watch',fk:fkw,date:p.get("date")||'',rid};
+  else if(fkd)PENDING_URL.action={type:'dismiss',fk:fkd,date:p.get("date")||'',rid};
+  if(PENDING_URL.action)history.replaceState(null,"",location.pathname);
 })();
+function showUrlToast(t){
+  const el=document.getElementById("url-toast");
+  if(!el)return;
+  const nm=(FK_NAMES[t.fk]||t.fk||"");
+  const dayNum=t.date?Number(t.date.slice(-2)):"-";
+  const month=t.date?Number(t.date.slice(5,7)):"-";
+  if(t.type==="confirm"){
+    el.innerHTML=`Đã xác nhận báo cáo bất thường<br><b>+${t.cnt} điểm</b> cho <b>${nm}</b> ngày <b>${dayNum}/${month}</b> (đã lưu cloud)`;
+    el.style.background="#16a34a";
+  }else if(t.type==="watch"){
+    el.innerHTML=`Đã ghi nhận <b>Theo Dõi Thêm</b> cho <b>${nm}</b>`;
+    el.style.background="#2563eb";
+  }else if(t.type==="dismiss"){
+    el.innerHTML=`Đã <b>Hủy Bỏ</b> báo cáo cược bất thường của <b>${nm}</b>`;
+    el.style.background="#6b7280";
+  }else if(t.type==="err"){
+    el.innerHTML=t.msg||"Lỗi xử lý";
+    el.style.background="#dc2626";
+  }else{
+    el.innerHTML=`Báo cáo này đã được xử lý rồi, không thể thực hiện lần 2`;
+    el.style.background="#dc2626";
+  }
+  el.style.display="block";el.style.opacity="1";
+  setTimeout(()=>{el.style.opacity="0";setTimeout(()=>el.style.display="none",600);},5000);
+}
+// Gọi sau khi đăng nhập + tải xong dữ liệu tháng
+async function processUrlAction(){
+  const a=PENDING_URL.action;
+  if(!a)return;
+  PENDING_URL.action=null;
+  try{
+    // rid dùng 1 lần — kiểm tra trên CLOUD nên chặn được cả khi mở link trên máy khác
+    let rids=null;
+    if(a.rid){
+      rids=(await SB.loadReport('rids','all'))||{list:[]};
+      if((rids.list||[]).includes(a.rid)){showUrlToast({type:'used',fk:a.fk,date:a.date});return;}
+    }
+    if(a.type==='confirm'){
+      if(!canEdit('ko')){showUrlToast({type:'err',msg:'Tài khoản của bạn không có quyền SỬA tab Hiệu Suất KO — không thể cộng điểm'});return;}
+      const mk=a.date.slice(0,7);
+      const day=Number(a.date.slice(-2));
+      if(mk===CUR_MONTH){
+        // tháng đang xem: cộng trực tiếp, tự lưu cloud
+        if(!KO_AN[a.cat])KO_AN[a.cat]={};
+        if(!KO_AN[a.cat][a.fk])KO_AN[a.cat][a.fk]={};
+        KO_AN[a.cat][a.fk][day]=(Number(KO_AN[a.cat][a.fk][day])||0)+a.cnt;
+        saveKoAn();
+        if(document.querySelector('.pg.active')?.id==='pg-ko')rKO();
+      }else{
+        // tháng khác: đọc-sửa-ghi thẳng lên cloud của tháng đó
+        const an=(await SB.loadReport('anomaly',mk))||{abuse:{},mkt:{}};
+        if(!an[a.cat])an[a.cat]={};
+        if(!an[a.cat][a.fk])an[a.cat][a.fk]={};
+        an[a.cat][a.fk][day]=(Number(an[a.cat][a.fk][day])||0)+a.cnt;
+        await SB.saveReport('anomaly',mk,an);
+      }
+      logAction('Xác nhận bất thường (Telegram)',(FK_NAMES[a.fk]||a.fk)+' · +'+a.cnt+' · ngày '+a.date+' · '+(a.cat==='mkt'?'Đại lý ngoài':'Cược lạm dụng'));
+    }else if(a.type==='watch'){
+      logAction('Theo dõi thêm (Telegram)',(FK_NAMES[a.fk]||a.fk)+' · ngày '+a.date);
+    }else if(a.type==='dismiss'){
+      logAction('Hủy báo cáo (Telegram)',(FK_NAMES[a.fk]||a.fk)+' · ngày '+a.date);
+    }
+    if(a.rid&&rids){rids.list=rids.list||[];rids.list.push(a.rid);await SB.saveReport('rids','all',rids);}
+    showUrlToast(a);
+  }catch(e){
+    console.error('processUrlAction',e);
+    showUrlToast({type:'err',msg:'Lỗi xử lý xác nhận — hãy mở lại link từ Telegram'});
+  }
+}
 
 // ===== PROGRESS UI =====
 function showProg(fileName){
@@ -1727,8 +1771,17 @@ function fkGroupCardHtml(fk,rank,isS,dataObj){
 function rPerfDetail(fk,which){
   const dataObj=which==="km"?KMD:D;
   if(!dataObj)return;
-  const fd=dataObj.fk_data[fk];
-  alert(fd.name+" — "+(fd.group==="vip"?"FKVIP":"FKONL")+(which==="km"?" (Khuyến Mãi)":" (Duyệt Đơn)")+"\nTổng điểm: "+nn(fd.total_score)+"\nTổng đơn: "+nn(fd.total_count));
+  const fd=dataObj.fk_data[fk];if(!fd)return;
+  const panel=document.getElementById('koDp');
+  panel.style.display='block';
+  document.getElementById('koDpName').textContent=fd.name;
+  document.getElementById('koDpBadge').textContent=(fd.group==="vip"?"FKVIP":"FKONL")+(which==="km"?" · KHUYẾN MÃI":" · DUYỆT ĐƠN");
+  document.getElementById('koDpSc').textContent=nn(fd.total_score);
+  document.getElementById('koDpCt').textContent=nn(fd.total_count);
+  const scores=which==='km'?(fd.day_scores_d7||fd.day_scores):fd.day_scores;
+  dch('koDpCh');
+  CH.koDpCh=new Chart(document.getElementById('koDpCh'),{type:'bar',data:{labels:dataObj.days,datasets:[{label:'Điểm theo ngày',data:scores,backgroundColor:ha(fkGrpCol(fk),.75),borderColor:fkGrpCol(fk),borderWidth:1,borderRadius:3}]},options:co(false)});
+  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 function buildCombinedPerfTable(dataObj,isS){
   const allD=Array.from({length:31},(_,i)=>i+1),actD=dataObj.days_in_month||[];
@@ -2059,13 +2112,12 @@ function rRank(){
       const stroke="-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff,0 0 10px "+x.nc;
       // Đứng top nhưng không được điểm CỘNG (do hạng xử lý bất thường thấp) -> ẩn tên khỏi bục
       const label=(combinedTotal(x.fk)>0&&(cong[x.fk]||0)>0)?fd.name:"";
-      return "<div onclick=\"sFk('"+x.fk+"')\" style=\"position:absolute;left:"+x.l+";top:"+x.t+";transform:translate(-50%,-50%);text-align:center;cursor:pointer\"><div style=\"color:"+x.nc+";font-weight:900;font-size:"+x.fs+";text-shadow:"+stroke+";letter-spacing:1px;white-space:nowrap\">"+label+"</div></div>";
+      return "<div style=\"position:absolute;left:"+x.l+";top:"+x.t+";transform:translate(-50%,-50%);text-align:center\"><div style=\"color:"+x.nc+";font-weight:900;font-size:"+x.fs+";text-shadow:"+stroke+";letter-spacing:1px;white-space:nowrap\">"+label+"</div></div>";
     }).join('');
     document.getElementById(cid).innerHTML="<div style=\"position:relative;border-radius:12px;overflow:hidden\"><img src=\""+IMG+"\" style=\"width:100%;display:block\" loading=\"lazy\">"+ov+"</div>";
   }
   mkTrophyRow(D.fkvip,'rk-vip');
   mkTrophyRow(D.fkonl,'rk-onl');
-  if(selFK)rDC(selFK);
 }
 function sFk(fk){selFK=fk;document.getElementById("dp").classList.add("show");rDC(fk);}
 function rDC(fk){
