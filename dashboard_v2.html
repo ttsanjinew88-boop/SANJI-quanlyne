@@ -730,6 +730,15 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     <div class="chart-title">Danh sách tài khoản <span style="font-size:.58rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— tích/bỏ tích là lưu ngay</span></div>
     <div id="admUserList" style="overflow-x:auto"></div>
   </div>
+  <div class="chart-card" id="admDeleteCard" style="margin-top:16px;border:1px solid rgba(239,68,68,.4)">
+    <div class="chart-title" style="color:#f87171">Xóa dữ liệu theo tháng — NGUY HIỂM</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <select class="adm-inp" id="admDelMonth" style="cursor:pointer"><option value="">-- Chọn tháng --</option></select>
+      <button onclick="admDeleteMonth()" style="padding:8px 18px;background:#dc2626;color:#fff;border:none;border-radius:7px;font-weight:800;cursor:pointer;font-size:.72rem">Xóa toàn bộ tháng này</button>
+    </div>
+    <div style="font-size:.62rem;color:var(--mu);margin-top:8px">Xóa vĩnh viễn trên cloud: Duyệt Đơn · Khuyến Mãi · Phân Ca · Bất Thường · Báo cáo đại lý của tháng đã chọn. File Excel gốc trong Storage được GIỮ LẠI để khôi phục khi cần (upload lại là xong).</div>
+    <div id="admDelMsg" style="font-size:.7rem;margin-top:8px;min-height:14px;font-weight:600"></div>
+  </div>
 </div>
 
 
@@ -907,6 +916,9 @@ function applyPerms(){
   // Chỉ quyền SỬA tab Dữ Liệu mới được upload Excel
   const upBtn=document.getElementById('btnUploadExcel');
   if(upBtn)upBtn.parentElement.style.display=canEdit('data')?'':'none';
+  // Tab Nghi Ngờ trong BC tool: chỉ ADMIN
+  const tsus=document.getElementById('bcTabSuspect');
+  if(tsus)tsus.style.display=p.is_admin?'':'none';
   const chip=document.getElementById('userChip');
   document.getElementById('userChipName').textContent=(p.username||'').toUpperCase()+' · '+roleOf(p).label;
   chip.style.display='flex';
@@ -926,9 +938,11 @@ function rAdminPanel(){
   if(!CUR_PROFILE)return;
   const isAdmin=CUR_PROFILE.is_admin,isTT=roleOf(CUR_PROFILE).key==='totruong';
   if(!isAdmin&&!isTT)return;
-  // Tổ Trưởng: ẩn form tạo tài khoản, chỉ thấy danh sách để đổi mật khẩu nhân viên
+  // Tổ Trưởng: ẩn form tạo tài khoản + khu xóa dữ liệu, chỉ thấy danh sách để đổi mật khẩu nhân viên
   const createCard=document.getElementById('au-user');
   if(createCard)createCard.closest('.chart-card').style.display=isAdmin?'':'none';
+  const delCard=document.getElementById('admDeleteCard');
+  if(delCard){delCard.style.display=isAdmin?'':'none';if(isAdmin)admFillDelMonths();}
   const pf=document.getElementById('au-perms');
   if(isAdmin&&!pf.dataset.built){
     pf.innerHTML=PERM_TABS.map(t=>
@@ -1037,6 +1051,38 @@ async function selfChangePw(){
   }catch(e){
     console.error('selfChangePw',e);
     alert('Lỗi: '+(e.message||e));
+  }
+}
+// Xóa toàn bộ dữ liệu cloud của 1 tháng (chỉ ADMIN, xác nhận 2 lớp)
+async function admFillDelMonths(){
+  try{
+    const rows=await SB.listReports();
+    const months=[...new Set(rows.map(r=>r.month).filter(m=>/^\d{4}-\d{2}$/.test(m)))].sort().reverse();
+    const sel=document.getElementById('admDelMonth');
+    const cur=sel.value;
+    sel.innerHTML='<option value="">-- Chọn tháng --</option>'+months.map(m=>`<option value="${m}">Tháng ${dispMonth(m)}</option>`).join('');
+    if(cur)sel.value=cur;
+  }catch(e){console.error('admFillDelMonths',e);}
+}
+async function admDeleteMonth(){
+  if(!CUR_PROFILE||!CUR_PROFILE.is_admin)return;
+  const m=document.getElementById('admDelMonth').value;
+  const msg=document.getElementById('admDelMsg');
+  if(!m){msg.style.color='var(--re)';msg.textContent='Chưa chọn tháng';return;}
+  if(!confirm('XÓA VĨNH VIỄN toàn bộ dữ liệu tháng '+dispMonth(m)+' trên cloud?\n\nGồm: Duyệt Đơn · Khuyến Mãi · Phân Ca · Bất Thường · Báo cáo đại lý\n\nHành động KHÔNG THỂ hoàn tác!'))return;
+  const typed=prompt('Xác nhận lần cuối — gõ chính xác:\n\nXOA '+dispMonth(m));
+  if(typed!=='XOA '+dispMonth(m)){msg.style.color='var(--re)';msg.textContent='Chuỗi xác nhận không khớp — đã hủy, không xóa gì.';return;}
+  try{
+    msg.style.color='var(--mu2)';msg.textContent='Đang xóa...';
+    const{error}=await SB.client().from('reports').delete().eq('month',m);
+    if(error)throw error;
+    logAction('XÓA DỮ LIỆU THÁNG','Tháng '+dispMonth(m)+' — toàn bộ báo cáo trên cloud');
+    msg.style.color='var(--gr)';msg.textContent='Đã xóa sạch dữ liệu tháng '+dispMonth(m)+' trên cloud ✓ (file Excel gốc vẫn còn trong Storage)';
+    admFillDelMonths();
+    if(m===CUR_MONTH)bootData(); // đang xem đúng tháng vừa xóa -> tải lại thành trống
+  }catch(e){
+    console.error('admDeleteMonth',e);
+    msg.style.color='var(--re)';msg.textContent='Lỗi xóa: '+(e.message||e);
   }
 }
 // ===== TAB LỊCH SỬ =====
@@ -1184,6 +1230,7 @@ async function bootData(){
     setMonthLabel(mk,!don);
     rAll();
     setCloudStatus(don?'Dữ liệu tháng '+dispMonth(mk)+' ✓':'Chưa có dữ liệu tháng '+dispMonth(mk)+' — bấm Upload Excel để thêm',!don);
+    BC.loadSuspects();
     processUrlAction();
   }catch(e){
     console.error('bootData',e);
@@ -2228,6 +2275,7 @@ rAll();
   <div class="bc-tab active" onclick="BC.showPanel('summary')">TỔNG HỢP <span class="data-source-badge" id="bc-ds-badge" style="background:#475569">TRỐNG</span></div>
   <div class="bc-tab" onclick="BC.showPanel('agents')">DANH SÁCH ĐẠI LÝ</div>
   <div class="bc-tab" onclick="BC.showPanel('detail')">KIỂM TRA ĐẠI LÝ</div>
+  <div class="bc-tab" id="bcTabSuspect" style="display:none" onclick="BC.showPanel('suspect')">NGHI NGỜ <span class="data-source-badge" id="bc-suspect-badge" style="background:#ef4444">0</span></div>
 </div>
 
 <div class="bc-panel active" id="bc-panel-summary">
@@ -2289,6 +2337,17 @@ rAll();
     </tr></thead>
     <tbody id="bc-body-detail"></tbody></table>
   </div>
+</div>
+
+<!-- Panel: NGHI NGỜ (chỉ ADMIN) — đại lý được đánh dấu từ tab Tổng Hợp, lưu cloud -->
+<div class="bc-panel" id="bc-panel-suspect">
+  <div class="ph">
+    <div>
+      <div class="ph-title" style="color:#f87171">Đại Lý Nghi Ngờ</div>
+      <div class="ph-sub">Tích ô "Nghi ngờ" ở cột Đại Lý (tab Tổng Hợp) để đưa vào đây · thông tin được chụp lại tại thời điểm đánh dấu · lưu trên cloud</div>
+    </div>
+  </div>
+  <div id="bc-suspect-list"></div>
 </div>
 
 <!-- Báo Cáo Đại Lý Bất Thường Modal -->
@@ -2661,13 +2720,28 @@ const BC={
   /* Nền tối phân biệt từng đại lý — 8 sắc thái đậm khác hue, chữ trắng vẫn đọc rõ */
   AGENT_COLORS:['#10162e','#0e2233','#12291f','#241733','#2b2414','#0e2b2e','#2b1520','#1a2038'],
 
-  rowHtml(r,i,bg,isFirst){
+  rowHtml(r,i,bg,isFirst,agSpan){
     const tb=r.thiet_bi==='Điện thoại'?'Điện Thoại':'Máy Tính';
     const kh=r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>';
     const ct=r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-chua">Chưa</span>';
     const sep=isFirst?'border-top:2px solid #7c3aed;':'';
+    /* Ô đại lý gộp (rowspan): tên click được -> Kiểm Tra Đại Lý; ADMIN có ô tích Nghi Ngờ */
+    let agCell='';
+    if(isFirst){
+      const ag=String(r.dai_ly).replace(/'/g,"\\'");
+      const flagged=BC.isSuspect(r.dai_ly);
+      const chk=(CUR_PROFILE&&CUR_PROFILE.is_admin)
+        ?`<label style="display:flex;align-items:center;justify-content:center;gap:4px;font-size:9px;color:${flagged?'#f87171':'var(--mu2)'};cursor:pointer;font-weight:700"><input type="checkbox" ${flagged?'checked':''} onchange="BC.toggleSuspect('${ag}',this)" style="accent-color:#ef4444;cursor:pointer">Nghi ngờ</label>`
+        :'';
+      agCell=`<td rowspan="${agSpan||1}" style="vertical-align:middle;background:${bg};border:1px solid var(--border)">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:2px">
+          <b style="cursor:pointer;color:#9f67ff;text-decoration:underline" title="Bấm để kiểm tra đại lý" onclick="BC.goAgent('${ag}')">${r.dai_ly}</b>
+          ${chk}
+        </div>
+      </td>`;
+    }
     return`<tr style="background:${bg};${sep}">
-      <td class="tc stt">${i}</td><td><b>${r.dai_ly}</b></td><td>${r.id}</td>
+      <td class="tc stt">${i}</td>${agCell}<td>${r.id}</td>
       <td class="ell">${r.cap_bac}</td><td>${r.ho_ten}</td>
       <td>${kh}</td><td>${ct}</td>
       <td>${BC.fmt(r.tien_nap)}</td><td>${r.lan_nap}</td>
@@ -2687,12 +2761,18 @@ const BC={
     // assign color index per agent across full list (not just current page)
     const agColorMap={};let agIdx=0;
     BC.filtAll.forEach(r=>{if(!(r.dai_ly in agColorMap))agColorMap[r.dai_ly]=agIdx++;});
-    let prevAgent=null;
-    document.getElementById('bc-body-all').innerHTML=slice.map((r,i)=>{
-      const bg=BC.AGENT_COLORS[agColorMap[r.dai_ly]%BC.AGENT_COLORS.length];
-      const isFirst=r.dai_ly!==prevAgent;prevAgent=r.dai_ly;
-      return BC.rowHtml(r,s+i+1,bg,isFirst);
-    }).join('');
+    /* Gộp ô đại lý: đếm số dòng liên tiếp cùng đại lý trong trang để rowspan */
+    let html='',i2=0;
+    while(i2<slice.length){
+      const ag=slice[i2].dai_ly;
+      let j=i2;
+      while(j<slice.length&&slice[j].dai_ly===ag)j++;
+      const span=j-i2;
+      const bg=BC.AGENT_COLORS[agColorMap[ag]%BC.AGENT_COLORS.length];
+      for(let k=i2;k<j;k++)html+=BC.rowHtml(slice[k],s+k+1,bg,k===i2,span);
+      i2=j;
+    }
+    document.getElementById('bc-body-all').innerHTML=html;
     document.getElementById('bc-cnt-all').textContent=BC.filtAll.length+' kết quả';
     BC.renderPg('bc-pg-all',BC.filtAll.length,BC.pgAll,p=>{BC.pgAll=p;BC.renderAll();});
   },
@@ -2800,7 +2880,92 @@ const BC={
     document.querySelectorAll('#t2 .bc-panel').forEach(p=>p.classList.remove('active'));
     document.querySelectorAll('#t2 .bc-tab').forEach(t=>t.classList.remove('active'));
     document.getElementById('bc-panel-'+n).classList.add('active');
-    document.querySelectorAll('#t2 .bc-tab')[{summary:0,agents:1,detail:2}[n]].classList.add('active');
+    document.querySelectorAll('#t2 .bc-tab')[{summary:0,agents:1,detail:2,suspect:3}[n]].classList.add('active');
+    if(n==='suspect')BC.renderSuspects();
+  },
+
+  /* ===== NGHI NGỜ (chỉ ADMIN) — lưu cloud, không mất khi F5 ===== */
+  SUSPECTS:[],
+  isSuspect(ag){return BC.SUSPECTS.some(x=>x.dai_ly===ag);},
+  updateSuspectBadge(){
+    const b=document.getElementById('bc-suspect-badge');
+    if(b)b.textContent=BC.SUSPECTS.length;
+  },
+  async loadSuspects(){
+    if(!SB.ready())return;
+    try{
+      const d=await SB.loadReport('suspects','all');
+      BC.SUSPECTS=(d&&d.list)||[];
+      BC.updateSuspectBadge();
+    }catch(e){console.error('loadSuspects',e);}
+  },
+  async toggleSuspect(ag,cb){
+    if(!CUR_PROFILE||!CUR_PROFILE.is_admin){
+      alert('Chỉ tài khoản ADMIN mới dùng được chức năng Nghi Ngờ.');
+      if(cb)cb.checked=!cb.checked;
+      return;
+    }
+    try{
+      if(BC.isSuspect(ag)){
+        BC.SUSPECTS=BC.SUSPECTS.filter(x=>x.dai_ly!==ag);
+        logAction('Bỏ nghi ngờ đại lý',ag);
+      }else{
+        const summary=BC.AGENTS.find(a=>a.dai_ly===ag)||null;
+        const members=BC.ROWS.filter(r=>r.dai_ly===ag);
+        BC.SUSPECTS.push({dai_ly:ag,at:new Date().toISOString(),by:CUR_PROFILE.username,summary,members});
+        logAction('Đánh dấu nghi ngờ đại lý',ag+' · '+members.length+' KH hợp lệ');
+      }
+      await SB.saveReport('suspects','all',{list:BC.SUSPECTS});
+      BC.updateSuspectBadge();
+      BC.renderAll();
+      if(document.getElementById('bc-panel-suspect').classList.contains('active'))BC.renderSuspects();
+    }catch(e){
+      console.error('toggleSuspect',e);
+      alert('Lỗi lưu nghi ngờ: '+(e.message||e));
+      if(cb)cb.checked=!cb.checked;
+    }
+  },
+  renderSuspects(){
+    const el=document.getElementById('bc-suspect-list');
+    if(!el)return;
+    if(!CUR_PROFILE||!CUR_PROFILE.is_admin){el.innerHTML='<div class="empty">Chỉ ADMIN xem được mục này.</div>';return;}
+    if(!BC.SUSPECTS.length){el.innerHTML='<div class="empty">Chưa có đại lý nào bị đánh dấu nghi ngờ.</div>';return;}
+    el.innerHTML=BC.SUSPECTS.map((s,idx)=>{
+      const t=new Date(s.at).toLocaleString('vi-VN',{timeZone:'Asia/Bangkok',hour12:false});
+      const sm=s.summary||{};
+      const stats=s.summary
+        ?`<span>KH hợp lệ: <b style="color:#9f67ff">${sm.khach_hop_le??'-'}</b></span>
+           <span>Tổng nạp: <b>${BC.fmt(sm.tong_nap)}</b></span>
+           <span>Tổng rút: <b>${BC.fmt(sm.tong_rut)}</b></span>
+           <span>Âm/Dương: ${BC.ad(sm.am_duong||0)}</span>
+           <span>KH mới: <b style="color:#3b82f6">${sm.khach_moi??'-'}</b></span>`
+        :'<span style="color:var(--mu)">(không có số liệu tổng — đánh dấu lúc chưa tính toán)</span>';
+      const memRows=(s.members||[]).map((r,i)=>`<tr>
+        <td class="tc stt">${i+1}</td><td>${r.id}</td><td class="ell">${r.cap_bac}</td><td>${r.ho_ten}</td>
+        <td>${r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>'}</td>
+        <td>${BC.fmt(r.tien_nap)}</td><td>${BC.fmt(r.tien_rut)}</td><td>${BC.ad(r.am_duong)}</td>
+        <td>${BC.fmt(r.cuoc_hop_le)}</td><td>${r.ngan_hang}</td><td>${r.stk}</td>
+        <td style="font-size:10px">${r.ip}</td><td>${r.game||''}</td>
+      </tr>`).join('');
+      return`<div style="background:var(--card);border:1px solid rgba(239,68,68,.35);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+          <b style="font-size:14px;color:#f87171">${s.dai_ly}</b>
+          <span style="font-size:10px;color:var(--mu)">Đánh dấu: ${t} · bởi ${(s.by||'').toUpperCase()}</span>
+          <button class="view-btn" onclick="BC.goAgent('${String(s.dai_ly).replace(/'/g,"\\'")}')">Kiểm tra lại</button>
+          <button onclick="BC.suspectToggleDetail(${idx})" style="padding:2px 9px;background:var(--card2);color:var(--mu2);border:1px solid var(--border2);border-radius:4px;cursor:pointer;font-size:10px">Chi tiết KH (${(s.members||[]).length})</button>
+          <button onclick="BC.toggleSuspect('${String(s.dai_ly).replace(/'/g,"\\'")}',null)" style="padding:2px 9px;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.35);border-radius:4px;cursor:pointer;font-size:10px;margin-left:auto">Bỏ nghi ngờ</button>
+        </div>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:var(--mu2)">${stats}</div>
+        <div id="bc-suspect-detail-${idx}" style="display:none;margin-top:10px;overflow-x:auto">
+          <table><thead><tr><th>STT</th><th>Tên tài khoản</th><th>Cấp bậc</th><th>Họ tên</th><th>Khách</th><th>Tiền nạp</th><th>Tiền rút</th><th>Âm/Dương</th><th>Cược hợp lệ</th><th>Ngân hàng</th><th>STK</th><th>IP</th><th>Cược sảnh</th></tr></thead>
+          <tbody>${memRows||'<tr><td colspan="13" class="tc" style="color:var(--mu)">Không có dữ liệu khách</td></tr>'}</tbody></table>
+        </div>
+      </div>`;
+    }).join('');
+  },
+  suspectToggleDetail(idx){
+    const el=document.getElementById('bc-suspect-detail-'+idx);
+    if(el)el.style.display=el.style.display==='none'?'block':'none';
   },
 
   showOverlay(msg){document.getElementById('bc-overlay').classList.add('show');BC.overlayMsg(msg);},
