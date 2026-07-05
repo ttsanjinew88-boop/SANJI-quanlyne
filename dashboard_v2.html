@@ -465,7 +465,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     </div>
   </div>
   <div class="hdr-right">
-    <div class="user-chip" id="userChip" style="display:none"><span id="userChipName"></span><button class="lo-btn" onclick="AUTH.logout()">Đăng xuất</button></div>
+    <div class="user-chip" id="userChip" style="display:none"><span id="userChipName"></span><button class="lo-btn" style="background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3);color:var(--pu2)" onclick="selfChangePw()">Đổi MK</button><button class="lo-btn" onclick="AUTH.logout()">Đăng xuất</button></div>
     <div class="hdr-badge">GMT−4 / GMT+7</div>
     <div id="hDate" class="hdate hdr-date">Tháng 06/2026</div>
     <span id="cloudStatus" style="font-size:.62rem;color:var(--mu2);min-width:0"></span>
@@ -474,7 +474,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       <div class="upload-dd-menu" id="histDdMenu" style="min-width:230px"></div>
     </div>
     <div class="upload-dd-wrap">
-      <button type="button" class="upload-btn" onclick="toggleUploadMenu(event)">Upload Excel ▾</button>
+      <button type="button" class="upload-btn" id="btnUploadExcel" onclick="toggleUploadMenu(event)">Upload Excel ▾</button>
       <div class="upload-dd-menu" id="uploadDdMenu">
         <div class="upload-dd-item" onclick="pickUploadType('don')">Duyệt Đơn</div>
         <div class="upload-dd-item" onclick="pickUploadType('km')">Duyệt Khuyến Mãi</div>
@@ -489,6 +489,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
   <div class="tab" id="tabKo" onclick="sw('ko',this)">Hiệu Suất KO</div>
   <div class="tab" id="tabShift" onclick="sw('shift',this)">Phân Ca</div>
   <div class="tab" id="tabRank" onclick="sw('rank',this)">Xếp Hạng</div>
+  <div class="tab" id="tabLog" style="display:none" onclick="sw('log',this)">Lịch Sử</div>
   <div class="tab" id="tabAdmin" style="display:none" onclick="sw('admin',this)">Quản Trị</div>
 </div>
 
@@ -694,6 +695,15 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
   </div>
 </div>
 
+<!-- ============ TAB: LỊCH SỬ THAO TÁC ============ -->
+<div class="pg" id="pg-log">
+  <div class="sec-hdr pu">LỊCH SỬ THAO TÁC (GMT+7)</div>
+  <div class="chart-card">
+    <div class="chart-title">300 thao tác gần nhất <button onclick="rLogPanel()" style="flex-shrink:0;font-size:.62rem;padding:3px 10px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);color:var(--pu2);border-radius:5px;cursor:pointer;font-weight:700">Làm mới</button></div>
+    <div id="logList" style="overflow-x:auto"></div>
+  </div>
+</div>
+
 <!-- ============ TAB: QUẢN TRỊ (chỉ admin) ============ -->
 <div class="pg" id="pg-admin">
   <div class="sec-hdr pu">QUẢN TRỊ TÀI KHOẢN</div>
@@ -790,14 +800,26 @@ const PERM_TABS=[
   {k:'ko',el:'tabKo',label:'Hiệu Suất KO'},
   {k:'shift',el:'tabShift',label:'Phân Ca'},
   {k:'rank',el:'tabRank',label:'Xếp Hạng'},
-  {k:'bc',el:null,label:'Báo Cáo Đại Lý'}
+  {k:'bc',el:null,label:'Báo Cáo Đại Lý'},
+  {k:'log',el:'tabLog',label:'Lịch Sử'}
 ];
 let CUR_PROFILE=null;
 // Cấp bậc: lưu trong perms._role; preset = quyền mặc định khi chọn cấp bậc lúc tạo tài khoản
+// Mỗi tab có 2 mức quyền: 'view' (chỉ xem) | 'edit' (xem + chỉnh sửa)
 const ROLES={
-  totruong:{label:'TỔ TRƯỞNG',color:'#3b82f6',preset:['data','ko','shift','rank','bc']},
-  nhanvien:{label:'NHÂN VIÊN',color:'#64748b',preset:['data','ko']}
+  totruong:{label:'TỔ TRƯỞNG',color:'#3b82f6',preset:{data:'edit',ko:'edit',shift:'edit',rank:'edit',bc:'edit',log:'view'}},
+  nhanvien:{label:'NHÂN VIÊN',color:'#64748b',preset:{data:'view',ko:'view'}}
 };
+// Quyền xem: có bất kỳ giá trị nào (view/edit/true cũ). Quyền sửa: đúng 'edit' (giá trị true cũ = chỉ xem)
+function canView(k){if(!CUR_PROFILE)return false;if(CUR_PROFILE.is_admin)return true;return !!(CUR_PROFILE.perms||{})[k];}
+function canEdit(k){if(!CUR_PROFILE)return false;if(CUR_PROFILE.is_admin)return true;return (CUR_PROFILE.perms||{})[k]==='edit';}
+// Ghi lịch sử thao tác lên cloud
+async function logAction(action,detail){
+  if(!SB.ready()||!CUR_PROFILE)return;
+  try{
+    await SB.client().from('audit_log').insert({user_id:CUR_PROFILE.user_id,username:CUR_PROFILE.username,action,detail:detail||''});
+  }catch(e){console.error('logAction',e);}
+}
 function roleOf(profile){
   if(!profile)return null;
   if(profile.is_admin)return{key:'admin',label:'ADMIN',color:'#7c3aed'};
@@ -868,16 +890,19 @@ function curPerms(){
 }
 function applyPerms(){
   const p=CUR_PROFILE;if(!p)return;
-  const perms=curPerms();
   PERM_TABS.forEach(t=>{
     if(!t.el)return;
     const el=document.getElementById(t.el);
-    if(el)el.style.display=perms[t.k]?'':'none';
+    if(el)el.style.display=canView(t.k)?'':'none';
   });
   const tsb2=document.getElementById('tsb2');
-  if(tsb2)tsb2.style.display=perms.bc?'':'none';
+  if(tsb2)tsb2.style.display=canView('bc')?'':'none';
+  // Quản Trị: admin thấy đầy đủ; Tổ Trưởng thấy để đổi mật khẩu nhân viên
   const ta=document.getElementById('tabAdmin');
-  if(ta)ta.style.display=p.is_admin?'':'none';
+  if(ta)ta.style.display=(p.is_admin||roleOf(p).key==='totruong')?'':'none';
+  // Chỉ quyền SỬA tab Dữ Liệu mới được upload Excel
+  const upBtn=document.getElementById('btnUploadExcel');
+  if(upBtn)upBtn.parentElement.style.display=canEdit('data')?'':'none';
   const chip=document.getElementById('userChip');
   document.getElementById('userChipName').textContent=(p.username||'').toUpperCase()+' · '+roleOf(p).label;
   chip.style.display='flex';
@@ -888,16 +913,26 @@ function applyPerms(){
     if(first)first.click();
   }
   // nếu đang đứng ở BC tool mà mất quyền -> về tool 1
-  if(!perms.bc&&document.getElementById('t2').style.display!=='none'){
+  if(!canView('bc')&&document.getElementById('t2').style.display!=='none'){
     switchTool('t1');
   }
 }
 // ===== ADMIN PANEL =====
 function rAdminPanel(){
-  if(!CUR_PROFILE||!CUR_PROFILE.is_admin)return;
+  if(!CUR_PROFILE)return;
+  const isAdmin=CUR_PROFILE.is_admin,isTT=roleOf(CUR_PROFILE).key==='totruong';
+  if(!isAdmin&&!isTT)return;
+  // Tổ Trưởng: ẩn form tạo tài khoản, chỉ thấy danh sách để đổi mật khẩu nhân viên
+  const createCard=document.getElementById('au-user');
+  if(createCard)createCard.closest('.chart-card').style.display=isAdmin?'':'none';
   const pf=document.getElementById('au-perms');
-  if(!pf.dataset.built){
-    pf.innerHTML=PERM_TABS.map(t=>`<label class="adm-chk"><input type="checkbox" data-k="${t.k}"> ${t.label}</label>`).join('');
+  if(isAdmin&&!pf.dataset.built){
+    pf.innerHTML=PERM_TABS.map(t=>
+      `<label class="adm-chk" style="gap:7px">${t.label}
+        <select data-k="${t.k}" class="adm-inp" style="min-width:76px;padding:3px 6px;font-size:.65rem">
+          <option value="">—</option><option value="view">Xem</option><option value="edit">Sửa</option>
+        </select>
+      </label>`).join('');
     pf.dataset.built="1";
     admRolePreset();
   }
@@ -906,46 +941,117 @@ function rAdminPanel(){
 function admRolePreset(){
   const r=document.getElementById('au-role').value;
   const preset=(ROLES[r]||ROLES.nhanvien).preset;
-  document.querySelectorAll('#au-perms input[type=checkbox]').forEach(c=>{c.checked=preset.includes(c.dataset.k);});
+  document.querySelectorAll('#au-perms select[data-k]').forEach(s=>{s.value=preset[s.dataset.k]||'';});
 }
+function permVal(v){return v==='edit'?'edit':(v?'view':'');}
+function permLabel(v){return v==='edit'?'Sửa':(v?'Xem':'—');}
 async function admLoadUsers(){
   const list=document.getElementById('admUserList');
+  const isAdmin=CUR_PROFILE.is_admin;
   list.innerHTML='<div style="color:var(--mu);font-size:.7rem;padding:10px 0">Đang tải...</div>';
   try{
     const{data,error}=await SB.client().from('profiles').select('*').order('created_at');
     if(error)throw error;
-    list.innerHTML=`<table class="adm-tbl"><thead><tr><th>Tài khoản</th><th class="tc">Cấp bậc</th>${PERM_TABS.map(t=>`<th class="tc">${t.label}</th>`).join('')}<th class="tc">Admin</th></tr></thead><tbody>`+
+    const headPerms=isAdmin?PERM_TABS.map(t=>`<th class="tc">${t.label}</th>`).join(''):'';
+    list.innerHTML=`<table class="adm-tbl"><thead><tr><th>Tài khoản</th><th class="tc">Cấp bậc</th>${headPerms}${isAdmin?'<th class="tc">Admin</th>':''}<th class="tc">Mật khẩu</th></tr></thead><tbody>`+
       data.map(u=>{
         const perms=u.perms||{};
         const isSelf=u.user_id===CUR_PROFILE.user_id;
         const role=roleOf(u);
         const roleCell=u.is_admin
           ?`<span style="background:rgba(124,58,237,.18);color:var(--pu2);border-radius:10px;padding:2px 10px;font-size:.6rem;font-weight:800">ADMIN</span>`
-          :`<select class="adm-inp" style="min-width:110px;padding:4px 8px;font-size:.65rem" onchange="admSetRole('${u.user_id}',this.value,this)">
-              <option value="nhanvien" ${role.key==='nhanvien'?'selected':''}>Nhân viên</option>
-              <option value="totruong" ${role.key==='totruong'?'selected':''}>Tổ Trưởng</option>
-            </select>`;
+          :(isAdmin
+            ?`<select class="adm-inp" style="min-width:110px;padding:4px 8px;font-size:.65rem" onchange="admSetRole('${u.user_id}',this.value,this)">
+                <option value="nhanvien" ${role.key==='nhanvien'?'selected':''}>Nhân viên</option>
+                <option value="totruong" ${role.key==='totruong'?'selected':''}>Tổ Trưởng</option>
+              </select>`
+            :`<span style="background:rgba(100,116,139,.18);color:var(--mu2);border-radius:10px;padding:2px 10px;font-size:.6rem;font-weight:800">${role.label}</span>`);
+        // Nút đổi mật khẩu: admin đổi tất cả; Tổ Trưởng chỉ đổi Nhân viên; ai cũng đổi được của mình (nút trên chip)
+        const canPw=isAdmin||(role.key==='nhanvien'&&!u.is_admin);
+        const pwCell=(canPw&&!isSelf)
+          ?`<button onclick="admChangePw('${u.user_id}','${(u.username||'').replace(/'/g,'')}')" style="padding:3px 10px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.35);color:var(--pu2);border-radius:5px;cursor:pointer;font-size:.62rem;font-weight:700">Đổi MK</button>`
+          :(isSelf?'<span style="color:var(--mu);font-size:.6rem">(nút Đổi MK trên góc phải)</span>':'<span style="color:var(--mu)">—</span>');
+        const permCells=isAdmin
+          ?PERM_TABS.map(t=>`<td class="tc">${u.is_admin
+              ?'<span style="color:var(--pu2);font-size:.62rem;font-weight:700">Sửa</span>'
+              :`<select class="adm-inp" style="min-width:66px;padding:3px 4px;font-size:.62rem" onchange="admSetPermLevel('${u.user_id}','${t.k}',this.value,this)">
+                  <option value="" ${!perms[t.k]?'selected':''}>—</option>
+                  <option value="view" ${permVal(perms[t.k])==='view'?'selected':''}>Xem</option>
+                  <option value="edit" ${permVal(perms[t.k])==='edit'?'selected':''}>Sửa</option>
+                </select>`}</td>`).join('')
+          :'';
+        const adminCell=isAdmin?`<td class="tc"><input type="checkbox" ${u.is_admin?'checked':''} ${isSelf?'disabled':''} onchange="admSetAdmin('${u.user_id}',this.checked,this)"></td>`:'';
         return `<tr><td style="font-weight:700;color:var(--tx)">${(u.username||'').toUpperCase()}${isSelf?' <span style="color:var(--pu2);font-size:.6rem">(bạn)</span>':''}</td>`+
-          `<td class="tc">${roleCell}</td>`+
-          PERM_TABS.map(t=>`<td class="tc"><input type="checkbox" ${u.is_admin?'checked disabled':(perms[t.k]?'checked':'')} onchange="admSetPerm('${u.user_id}','${t.k}',this.checked,this)"></td>`).join('')+
-          `<td class="tc"><input type="checkbox" ${u.is_admin?'checked':''} ${isSelf?'disabled':''} onchange="admSetAdmin('${u.user_id}',this.checked,this)"></td></tr>`;
+          `<td class="tc">${roleCell}</td>${permCells}${adminCell}<td class="tc">${pwCell}</td></tr>`;
       }).join('')+'</tbody></table>';
   }catch(e){
     console.error('admLoadUsers',e);
     list.innerHTML='<div style="color:var(--re);font-size:.7rem;padding:10px 0">Lỗi tải danh sách: '+(e.message||e)+'</div>';
   }
 }
-async function admSetPerm(uid,k,val,cb){
+async function admSetPermLevel(uid,k,val,sel){
   try{
-    const{data,error}=await SB.client().from('profiles').select('perms').eq('user_id',uid).single();
+    const{data,error}=await SB.client().from('profiles').select('perms,username').eq('user_id',uid).single();
     if(error)throw error;
-    const perms=data.perms||{};perms[k]=val;
+    const perms=data.perms||{};
+    if(val)perms[k]=val;else delete perms[k];
     const{error:e2}=await SB.client().from('profiles').update({perms}).eq('user_id',uid);
     if(e2)throw e2;
+    logAction('Phân quyền','Tài khoản '+(data.username||'').toUpperCase()+' · '+k+' = '+permLabel(val));
   }catch(e){
-    console.error('admSetPerm',e);
-    if(cb)cb.checked=!val;
+    console.error('admSetPermLevel',e);
     alert('Lỗi lưu quyền: '+(e.message||e));
+    admLoadUsers();
+  }
+}
+// Đổi mật khẩu tài khoản khác (admin: tất cả; Tổ Trưởng: chỉ nhân viên — server kiểm tra lại)
+async function admChangePw(uid,uname){
+  const pw=prompt('Nhập MẬT KHẨU MỚI cho tài khoản '+uname.toUpperCase()+' (tối thiểu 6 ký tự):');
+  if(pw===null)return;
+  if(pw.length<6){alert('Mật khẩu tối thiểu 6 ký tự');return;}
+  try{
+    const{error}=await SB.client().rpc('change_password',{target_id:uid,new_password:pw});
+    if(error)throw error;
+    alert('Đã đổi mật khẩu cho '+uname.toUpperCase()+' ✓\nHãy gửi mật khẩu mới cho người dùng.');
+    logAction('Đổi mật khẩu','Tài khoản '+uname.toUpperCase());
+  }catch(e){
+    console.error('admChangePw',e);
+    alert('Lỗi: '+(e.message||e));
+  }
+}
+// Tự đổi mật khẩu của chính mình (nút trên chip góc phải)
+async function selfChangePw(){
+  if(!CUR_PROFILE)return;
+  const pw=prompt('Nhập MẬT KHẨU MỚI cho tài khoản của bạn (tối thiểu 6 ký tự):');
+  if(pw===null)return;
+  if(pw.length<6){alert('Mật khẩu tối thiểu 6 ký tự');return;}
+  try{
+    const{error}=await SB.client().rpc('change_password',{target_id:CUR_PROFILE.user_id,new_password:pw});
+    if(error)throw error;
+    alert('Đã đổi mật khẩu ✓ Lần đăng nhập sau dùng mật khẩu mới.');
+    logAction('Đổi mật khẩu','Tự đổi mật khẩu của mình');
+  }catch(e){
+    console.error('selfChangePw',e);
+    alert('Lỗi: '+(e.message||e));
+  }
+}
+// ===== TAB LỊCH SỬ =====
+async function rLogPanel(){
+  const el=document.getElementById('logList');
+  if(!el)return;
+  el.innerHTML='<div style="color:var(--mu);font-size:.7rem;padding:10px 0">Đang tải...</div>';
+  try{
+    const{data,error}=await SB.client().from('audit_log').select('*').order('id',{ascending:false}).limit(300);
+    if(error)throw error;
+    if(!data.length){el.innerHTML='<div style="color:var(--mu);font-size:.7rem;padding:10px 0">Chưa có thao tác nào được ghi nhận.</div>';return;}
+    el.innerHTML=`<table class="adm-tbl"><thead><tr><th>Thời gian (GMT+7)</th><th>Tài khoản</th><th>Thao tác</th><th>Chi tiết</th></tr></thead><tbody>`+
+      data.map(r=>{
+        const t=new Date(r.created_at).toLocaleString('vi-VN',{timeZone:'Asia/Bangkok',hour12:false});
+        return `<tr><td style="white-space:nowrap;color:var(--mu2)">${t}</td><td style="font-weight:700;color:var(--pu2)">${(r.username||'?').toUpperCase()}</td><td style="font-weight:600">${r.action}</td><td style="color:var(--mu2)">${r.detail||''}</td></tr>`;
+      }).join('')+'</tbody></table>';
+  }catch(e){
+    console.error('rLogPanel',e);
+    el.innerHTML='<div style="color:var(--re);font-size:.7rem;padding:10px 0">Lỗi tải lịch sử: '+(e.message||e)+'<br>(Bạn đã chạy file supabase_update2.sql chưa?)</div>';
   }
 }
 async function admSetRole(uid,role,sel){
@@ -955,6 +1061,7 @@ async function admSetRole(uid,role,sel){
     const perms=data.perms||{};perms._role=role;
     const{error:e2}=await SB.client().from('profiles').update({perms}).eq('user_id',uid);
     if(e2)throw e2;
+    logAction('Đổi cấp bậc','Tài khoản ID '+uid.slice(0,8)+' → '+(ROLES[role]?ROLES[role].label:role));
   }catch(e){
     console.error('admSetRole',e);
     alert('Lỗi lưu cấp bậc: '+(e.message||e));
@@ -968,6 +1075,7 @@ async function admSetAdmin(uid,val,cb){
   try{
     const{error}=await SB.client().from('profiles').update({is_admin:val}).eq('user_id',uid);
     if(error)throw error;
+    logAction(val?'Cấp quyền ADMIN':'Gỡ quyền ADMIN','Tài khoản ID '+uid.slice(0,8));
     admLoadUsers();
   }catch(e){
     console.error('admSetAdmin',e);
@@ -982,7 +1090,7 @@ async function admCreateUser(){
   if(!/^[a-zA-Z0-9_]{3,20}$/.test(u)){msg.style.color='var(--re)';msg.textContent='Tên đăng nhập 3-20 ký tự, chỉ chữ/số/gạch dưới';return;}
   if(p.length<6){msg.style.color='var(--re)';msg.textContent='Mật khẩu tối thiểu 6 ký tự';return;}
   const perms={_role:document.getElementById('au-role').value};
-  document.querySelectorAll('#au-perms input[type=checkbox]').forEach(c=>{if(c.checked)perms[c.dataset.k]=true;});
+  document.querySelectorAll('#au-perms select[data-k]').forEach(s=>{if(s.value)perms[s.dataset.k]=s.value;});
   msg.textContent='Đang tạo tài khoản...';
   try{
     // client phụ để signUp không ảnh hưởng phiên admin đang đăng nhập
@@ -998,6 +1106,7 @@ async function admCreateUser(){
     if(e2)throw e2;
     msg.style.color='var(--gr)';
     msg.textContent='Đã tạo tài khoản '+u.toUpperCase()+' ✓ (mật khẩu bạn vừa đặt, hãy gửi cho nhân viên)';
+    logAction('Tạo tài khoản',u.toUpperCase()+' · cấp bậc '+(ROLES[perms._role]?ROLES[perms._role].label:perms._role));
     uEl.value='';pEl.value='';
     admLoadUsers();
   }catch(e){
@@ -1023,16 +1132,25 @@ function applyShiftData(sd){
   if(sd&&sd.assign)FK_KEYS.forEach(fk=>{shAssign[fk]=sd.assign[fk]||null;});
   if(sd&&sd.hours)['sf','st','tf','tt'].forEach(k=>{if(sd.hours[k]!=null){const el=document.getElementById(k);if(el)el.value=sd.hours[k];}});
 }
-// Lưu phân ca lên cloud theo tháng đang xem
-async function saveShift(){
+// Lưu phân ca lên cloud theo tháng đang xem (debounce để gom nhiều click thành 1 lần lưu)
+let _shiftTimer=null;
+function saveShift(){
+  clearTimeout(_shiftTimer);
+  _shiftTimer=setTimeout(_saveShiftNow,1200);
+}
+async function _saveShiftNow(){
   if(!SB.ready()||!CUR_PROFILE||!CUR_MONTH||!_shiftReady)return;
   try{
     const hours={sf:+document.getElementById('sf').value||8,st:+document.getElementById('st').value||17,tf:+document.getElementById('tf').value||22,tt:+document.getElementById('tt').value||4};
     await SB.saveReport('shift',CUR_MONTH,{assign:shAssign,hours});
     setCloudStatus('Đã lưu phân ca tháng '+dispMonth(CUR_MONTH)+' ✓');
+    logAction('Chỉnh phân ca','Tháng '+dispMonth(CUR_MONTH));
   }catch(e){console.error('saveShift',e);setCloudStatus('Lỗi lưu phân ca',true);}
 }
-function shUpdateHours(){rShiftPanel();saveShift();}
+function shUpdateHours(){
+  if(CUR_PROFILE&&!canEdit('shift')){setCloudStatus('Bạn chỉ có quyền XEM phân ca',true);return;}
+  rShiftPanel();saveShift();
+}
 // Tải dữ liệu của THÁNG HIỆN TẠI sau khi đăng nhập (tự chuyển khi qua tháng mới)
 async function bootData(){
   if(!SB.ready())return;
@@ -1076,9 +1194,27 @@ async function cloudSaveKO(target,nd){
     let exists=false;
     try{const rows=await SB.listReports();exists=rows.some(r=>r.type===type&&r.month===month);}catch(e){}
     if(exists){
-      if(!confirm("CẢNH BÁO TRÙNG DỮ LIỆU\n\nTháng "+dispMonth(month)+" ĐÃ CÓ dữ liệu "+lbl+" trên cloud.\n\nBạn có muốn THAY THẾ dữ liệu cũ của tháng "+dispMonth(month)+" bằng dữ liệu vừa upload không?\n\n— OK: ghi đè dữ liệu cũ\n— Cancel: giữ nguyên dữ liệu cũ trên cloud")){
-        setCloudStatus("Không lưu — dữ liệu cũ tháng "+dispMonth(month)+" trên cloud được giữ nguyên",true);
-        return;
+      // Lưới an toàn: bản mới ít ngày hơn bản cloud -> cảnh báo mất dữ liệu
+      let dayWarn='';
+      try{
+        const old=await SB.loadReport(type,month);
+        const oldDays=((old&&old.days_in_month)||[]).length;
+        const newDays=((nd&&nd.days_in_month)||[]).length;
+        if(newDays<oldDays){
+          if(!confirm("NGUY HIỂM — SẼ MẤT DỮ LIỆU!\n\nBản upload mới chỉ có "+newDays+" ngày dữ liệu.\nBản trên cloud của tháng "+dispMonth(month)+" đang có "+oldDays+" ngày.\n\nThay thế sẽ MẤT "+(oldDays-newDays)+" ngày dữ liệu!\n(Có thể bạn quên chọn đủ file từ đầu tháng?)\n\nBạn có CHẮC CHẮN muốn thay thế không?")){
+            setCloudStatus("Không lưu — dữ liệu cũ tháng "+dispMonth(month)+" ("+oldDays+" ngày) được giữ nguyên",true);
+            return;
+          }
+          dayWarn=' (bản mới ÍT ngày hơn: '+newDays+' so với '+oldDays+')';
+        }else if(!confirm("CẢNH BÁO TRÙNG DỮ LIỆU\n\nTháng "+dispMonth(month)+" ĐÃ CÓ dữ liệu "+lbl+" trên cloud ("+oldDays+" ngày). Bản mới có "+newDays+" ngày.\n\nBạn có muốn THAY THẾ dữ liệu cũ bằng dữ liệu vừa upload không?\n\n— OK: ghi đè dữ liệu cũ\n— Cancel: giữ nguyên dữ liệu cũ trên cloud")){
+          setCloudStatus("Không lưu — dữ liệu cũ tháng "+dispMonth(month)+" trên cloud được giữ nguyên",true);
+          return;
+        }
+      }catch(e){
+        if(!confirm("CẢNH BÁO TRÙNG DỮ LIỆU\n\nTháng "+dispMonth(month)+" ĐÃ CÓ dữ liệu "+lbl+" trên cloud.\n\nBạn có muốn THAY THẾ không?")){
+          setCloudStatus("Không lưu — giữ nguyên dữ liệu cũ",true);
+          return;
+        }
       }
     }else if(month!==curMonthKey()){
       if(!confirm("Dữ liệu vừa upload thuộc THÁNG CŨ ("+dispMonth(month)+"), không phải tháng hiện tại ("+dispMonth(curMonthKey())+").\n\nLưu vào tháng "+dispMonth(month)+" trên cloud?")){
@@ -1088,10 +1224,12 @@ async function cloudSaveKO(target,nd){
     }
     setCloudStatus("Đang lưu cloud...");
     await SB.saveReport(type,month,nd);
+    const fCnt=(window._lastUploadFiles||[]).length;
     await SB.uploadOriginals(window._lastUploadFiles,type,month);
     window._lastUploadFiles=null;
     CUR_MONTH=month;
     setCloudStatus("Đã lưu cloud tháng "+dispMonth(month)+" ✓");
+    logAction('Upload dữ liệu '+lbl,'Tháng '+dispMonth(month)+' · '+fCnt+' file · '+(((nd&&nd.days_in_month)||[]).length)+' ngày'+(exists?' · thay thế bản cũ':' · lưu mới'));
   }catch(e){
     console.error("cloudSaveKO",e);
     setCloudStatus("Lỗi lưu cloud: "+(e.message||e),true);
@@ -1166,7 +1304,10 @@ function saveKoAn(){localStorage.setItem(KO_AN_KEY,JSON.stringify(KO_AN));}
 let KO_AN=loadKoAn();
 
 function anGet(cat,fk,day){return (KO_AN[cat]&&KO_AN[cat][fk]&&KO_AN[cat][fk][day])||0;}
-function anSet(cat,fk,day,val){if(!KO_AN[cat])KO_AN[cat]={};if(!KO_AN[cat][fk])KO_AN[cat][fk]={};KO_AN[cat][fk][day]=Math.max(0,Number(val)||0);saveKoAn();}
+function anSet(cat,fk,day,val){
+  if(typeof CUR_PROFILE!=='undefined'&&CUR_PROFILE&&typeof canEdit==='function'&&!canEdit('ko')){alert('Bạn chỉ có quyền XEM tab Hiệu Suất KO.');if(typeof rKoAnomaly==='function')rKoAnomaly();return;}
+  if(!KO_AN[cat])KO_AN[cat]={};if(!KO_AN[cat][fk])KO_AN[cat][fk]={};KO_AN[cat][fk][day]=Math.max(0,Number(val)||0);saveKoAn();
+}
 function anTotal(cat,fk){const m=(KO_AN[cat]&&KO_AN[cat][fk])||{};return Object.values(m).reduce((s,v)=>s+(Number(v)||0),0);}
 function anAdd(cat,fk,day,delta){anSet(cat,fk,day,anGet(cat,fk,day)+delta);}
 
@@ -1513,6 +1654,7 @@ function rAll(){
   if(act==="pg-shift")rShiftPanel();
   if(act==="pg-rank")rRank();
   if(act==="pg-admin")rAdminPanel();
+  if(act==="pg-log")rLogPanel();
 }
 function bldDayBtns(ds){ds=ds||curDataSet();const days=ds.days_in_month_d7||ds.days_in_month||[];document.getElementById("dayBtns").innerHTML=days.map(d=>"<button class='day-btn"+(selDay===d?" active":"")+"' onclick='sDy("+d+",this)'>"+String(d).padStart(2,"0")+"</button>").join("");}
 function sDy(d,el){selDay=d;document.querySelectorAll(".day-btn").forEach(b=>b.classList.remove("active"));el.classList.add("active");rDay(curDataSet());}
@@ -1836,7 +1978,10 @@ function rKO(){
 }
 
 // ===== TAB: PHÂN CA =====
-function toggleFK(fk,ca){shAssign[fk]=shAssign[fk]===ca?null:ca;rShiftPanel();saveShift();}
+function toggleFK(fk,ca){
+  if(CUR_PROFILE&&!canEdit('shift')){setCloudStatus('Bạn chỉ có quyền XEM phân ca',true);return;}
+  shAssign[fk]=shAssign[fk]===ca?null:ca;rShiftPanel();saveShift();
+}
 function rShiftPanel(){
   const sf=parseInt(document.getElementById("sf").value)||8,st=parseInt(document.getElementById("st").value)||17;
   const tf=parseInt(document.getElementById("tf").value)||22,tt=parseInt(document.getElementById("tt").value)||4;
@@ -2252,6 +2397,7 @@ const BC={
   },
 
   async processFiles(){
+    if(CUR_PROFILE&&!canEdit('bc')){alert('Bạn chỉ có quyền XEM báo cáo đại lý, không được tính toán dữ liệu mới.');return;}
     BC.showOverlay('Đang đọc file...');BC.setProgress(5);BC.log('\n🔄 Bắt đầu xử lý...');
     try{
       const seen=new Set();
@@ -2390,6 +2536,7 @@ const BC={
       const allFiles=[...BC.fileStore.f1,...BC.fileStore.f2,...BC.fileStore.f3];
       await SB.uploadOriginals(allFiles,'bc',month);
       BC.log('☁ Đã lưu cloud: báo cáo + '+allFiles.length+' file gốc ✓');
+      logAction('Lưu báo cáo đại lý','Tháng '+dispMonth(month)+' · '+allFiles.length+' file · '+BC.ROWS.length+' KH hợp lệ');
     }catch(e){
       console.error('BC.cloudSave',e);
       BC.log('☁ Lỗi lưu cloud: '+(e.message||e));
@@ -2439,6 +2586,7 @@ const BC={
   },
 
   resetToDefault(){
+    if(CUR_PROFILE&&!canEdit('bc')){alert('Bạn chỉ có quyền XEM báo cáo đại lý.');return;}
     BC.ROWS=[];BC.AGENTS=[];BC.MAX_MONTH='';
     BC.filtAll=[];BC.filtAgents=[];BC.pgAll=1;BC.pgAgents=1;
     ['f1','f2','f3'].forEach(k=>BC.fileStore[k]=[]);
@@ -2631,6 +2779,7 @@ const BC={
   _selFk: null,
 
   openBtModal(){
+    if(CUR_PROFILE&&!canEdit('bc')){alert('Bạn chỉ có quyền XEM, không được gửi báo cáo.');return;}
     const name=document.getElementById('bc-agent-select').value;
     if(!name){alert('Vui lòng chọn đại lý trước!');return;}
     const ag=BC.AGENTS.find(a=>a.dai_ly===name);
@@ -2740,6 +2889,7 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
   },
 
   openCuModal(){
+    if(CUR_PROFILE&&!canEdit('bc')){alert('Bạn chỉ có quyền XEM, không được gửi báo cáo.');return;}
     BC._selCuFk=null;BC._cuFile=null;
     document.querySelectorAll('.bc-cu-chip').forEach(c=>c.classList.remove('sel'));
     document.getElementById('bc-cu-content').value='';
