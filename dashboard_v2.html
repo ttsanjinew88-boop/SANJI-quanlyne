@@ -7,13 +7,16 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#080b1a;--card:#0f1229;--card2:#131830;--border:#1e2545;--border2:#252d55;
   --pu:#7c3aed;--pu2:#9f67ff;--bl:#3b82f6;--bl2:#60a5fa;--cy:#06b6d4;
   --gr:#10b981;--go:#f59e0b;--re:#ef4444;--pk:#ec4899;
   --tx:#e2e8f0;--mu:#64748b;--mu2:#94a3b8;
-  --vip-c:#f0b429;--onl-c:#3b82f6;
+  --vip-c:#06b6d4;--onl-c:#a78bfa;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100vh;background:var(--bg);color:var(--tx);font-family:"Segoe UI",system-ui,sans-serif}
@@ -261,7 +264,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .modal-btn:hover{opacity:.9;transform:translateY(-1px)}
 /* ===== TOOL SWITCHER ===== */
 .tool-sw{display:flex;background:#050816;border-bottom:2px solid #1e2545;position:sticky;top:0;z-index:300;flex-shrink:0}
-.tool-sw-btn{flex:1;padding:15px 20px;font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;border:none;background:transparent;color:#64748b;transition:all .2s;border-bottom:3px solid transparent;display:flex;align-items:center;justify-content:center;gap:7px}
+.tool-sw-btn{flex:1;padding:15px 20px;font-family:"Be Vietnam Pro","Segoe UI",sans-serif;font-size:.8rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;border:none;background:transparent;color:#64748b;transition:all .2s;border-bottom:3px solid transparent;display:flex;align-items:center;justify-content:center;gap:7px}
 .tool-sw-btn:hover{color:#9f67ff;background:rgba(124,58,237,.06)}
 .tool-sw-btn.on{color:#9f67ff;border-bottom-color:#7c3aed;background:rgba(124,58,237,.1)}
 /* ===== BC-TOOL SCOPED CSS ===== */
@@ -558,8 +561,8 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 <div class="pg" id="pg-ko">
   <div class="view-toggle" id="koViewToggle">
     <div class="vt-btn active" onclick="skv('overview',this)">Tổng Quan</div>
-    <div class="vt-btn" onclick="skv('daily',this)">Duyệt Đơn Theo Ngày</div>
-    <div class="vt-btn" onclick="skv('anomaly',this)">Bất Thường Theo Ngày</div>
+    <div class="vt-btn" onclick="skv('daily',this)">Duyệt Đơn</div>
+    <div class="vt-btn" onclick="skv('anomaly',this)">Bất Thường</div>
   </div>
 
   <!-- VIEW: TỔNG QUAN -->
@@ -754,7 +757,7 @@ const FKONL=["fkchamy","fkluby","fkaimee","fkantony","fktrucia","fkminty","fkbre
 const FK_COL={fkangel:"#f0b429",fkpiu:"#ff6b35",fkcarbon:"#3b82f6",fkbrenna:"#ec4899",fkdante:"#8b5cf6",fkgeon:"#10b981",fkluby:"#06b6d4",fkjade:"#f97316",fkmember:"#a855f7",fkchamy:"#60a5fa",fkantony:"#a78bfa",fkaimee:"#34d399",fktrucia:"#fb923c",fkminty:"#e879f9",fkseren:"#facc15"};
 // Load persisted custom colors for hourly chart
 (function(){const s=JSON.parse(localStorage.getItem('FK_COL_CUSTOM')||'{}');FK_KEYS.forEach(k=>{if(s[k])FK_COL[k]=s[k];});})();
-const VIP_COL='#3b82f6',ONL_COL='#7c3aed';
+const VIP_COL='#06b6d4',ONL_COL='#a78bfa'; /* đồng bộ màu tab Phân Ca: cyan / tím nhạt */
 function fkGrpCol(fk){return FKVIP.includes(fk)?VIP_COL:ONL_COL;}
 
 function ha(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return `rgba(${r},${g},${b},${a})`;}
@@ -839,6 +842,12 @@ function roleOf(profile){
   const k=(profile.perms&&profile.perms._role)==='totruong'?'totruong':'nhanvien';
   return{key:k,label:ROLES[k].label,color:ROLES[k].color};
 }
+const LOGIN_AT_KEY='login_at_v1';
+const SESSION_MAX_MS=24*3600*1000; // phiên đăng nhập tối đa 24 giờ
+function sessionExpired(){
+  const at=Number(localStorage.getItem(LOGIN_AT_KEY)||0);
+  return !at||Date.now()-at>SESSION_MAX_MS;
+}
 const AUTH={
   emailOf(u){return u.trim().toLowerCase()+'@sanji.app';},
   async init(){
@@ -848,7 +857,17 @@ const AUTH={
     }
     try{
       const{data}=await SB.client().auth.getSession();
-      if(data&&data.session){await AUTH.postLogin(data.session.user);return;}
+      if(data&&data.session){
+        if(sessionExpired()){
+          // quá 24h -> buộc đăng nhập lại
+          await SB.client().auth.signOut();
+          localStorage.removeItem(LOGIN_AT_KEY);
+          document.getElementById('lg-err').textContent='Phiên đăng nhập đã hết hạn (24h) — vui lòng đăng nhập lại';
+          return;
+        }
+        await AUTH.postLogin(data.session.user);
+        return;
+      }
     }catch(e){console.error('AUTH.init',e);}
     // chưa đăng nhập -> overlay đang hiển thị sẵn
   },
@@ -866,6 +885,7 @@ const AUTH={
         err.textContent=/invalid/i.test(error.message)?'Sai tên đăng nhập hoặc mật khẩu':('Lỗi: '+error.message);
         return;
       }
+      localStorage.setItem(LOGIN_AT_KEY,String(Date.now()));
       await AUTH.postLogin(data.user);
     }catch(e){
       console.error('AUTH.login',e);
@@ -893,9 +913,17 @@ const AUTH={
   },
   async logout(){
     try{await SB.client().auth.signOut();}catch(e){}
+    localStorage.removeItem(LOGIN_AT_KEY);
     location.reload();
   }
 };
+// Kiểm tra định kỳ: đang dùng mà quá 24h kể từ lúc đăng nhập -> tự đăng xuất
+setInterval(function(){
+  if(CUR_PROFILE&&sessionExpired()){
+    alert('Phiên đăng nhập đã hết hạn (24 giờ) — hệ thống sẽ đăng xuất.');
+    AUTH.logout();
+  }
+},5*60*1000);
 function curPerms(){
   if(!CUR_PROFILE)return{};
   if(CUR_PROFILE.is_admin)return{data:true,ko:true,shift:true,rank:true,bc:true};
@@ -1380,14 +1408,22 @@ async function _saveKoAnCloud(){
   try{
     await SB.saveReport('anomaly',CUR_MONTH,KO_AN);
     setCloudStatus('Đã lưu bất thường tháng '+dispMonth(CUR_MONTH)+' ✓');
-    logAction('Chỉnh bất thường','Tháng '+dispMonth(CUR_MONTH));
+    const det=_anChanges.map(c=>(FK_NAMES[c.fk]||c.fk)+' · '+(c.cat==='mkt'?'Đại lý ngoài':'Cược lạm dụng')+' · ngày '+c.day+': '+c.from+' → '+c.to).join(' | ');
+    _anChanges=[];
+    if(det)logAction('Chỉnh bất thường','Tháng '+dispMonth(CUR_MONTH)+' · '+det.slice(0,600));
   }catch(e){console.error('_saveKoAnCloud',e);setCloudStatus('Lỗi lưu bất thường',true);}
 }
 
 function anGet(cat,fk,day){return (KO_AN[cat]&&KO_AN[cat][fk]&&KO_AN[cat][fk][day])||0;}
+let _anChanges=[]; // gom các thay đổi để ghi Lịch Sử chi tiết (ô nào, cũ -> mới)
 function anSet(cat,fk,day,val){
   if(typeof CUR_PROFILE!=='undefined'&&CUR_PROFILE&&typeof canEdit==='function'&&!canEdit('ko')){alert('Bạn chỉ có quyền XEM tab Hiệu Suất KO.');if(typeof rKoAnomaly==='function')rKoAnomaly();return;}
-  if(!KO_AN[cat])KO_AN[cat]={};if(!KO_AN[cat][fk])KO_AN[cat][fk]={};KO_AN[cat][fk][day]=Math.max(0,Number(val)||0);saveKoAn();
+  const from=anGet(cat,fk,day);
+  const to=Math.max(0,Number(val)||0);
+  if(from===to)return;
+  if(!KO_AN[cat])KO_AN[cat]={};if(!KO_AN[cat][fk])KO_AN[cat][fk]={};KO_AN[cat][fk][day]=to;
+  _anChanges.push({cat,fk,day,from,to});
+  saveKoAn();
 }
 function anTotal(cat,fk){const m=(KO_AN[cat]&&KO_AN[cat][fk])||{};return Object.values(m).reduce((s,v)=>s+(Number(v)||0),0);}
 function anAdd(cat,fk,day,delta){anSet(cat,fk,day,anGet(cat,fk,day)+delta);}
@@ -1830,7 +1866,9 @@ function rPerfDetail(fk,which){
   CH.koDpCh=new Chart(document.getElementById('koDpCh'),{type:'bar',data:{labels:dataObj.days,datasets:[{label:'Điểm theo ngày',data:scores,backgroundColor:ha(fkGrpCol(fk),.75),borderColor:fkGrpCol(fk),borderWidth:1,borderRadius:3}]},options:co(false)});
   panel.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
-function buildCombinedPerfTable(dataObj,isS){
+function buildCombinedPerfTable(dataObj,isS,src){
+  src=src||'don';
+  const canFix=isS&&typeof canEdit==='function'&&canEdit('ko'); // chế độ Điểm + quyền Sửa -> cho chỉnh tay
   const allD=Array.from({length:31},(_,i)=>i+1),actD=dataObj.days_in_month||[];
   const vipRanked=[...dataObj.fkvip].sort((a,b)=>dataObj.fk_data[b].total_score-dataObj.fk_data[a].total_score);
   const onlRanked=[...dataObj.fkonl].sort((a,b)=>dataObj.fk_data[b].total_score-dataObj.fk_data[a].total_score);
@@ -1843,7 +1881,15 @@ function buildCombinedPerfTable(dataObj,isS){
     list.forEach(fk=>{
       const fd=dataObj.fk_data[fk],tot=isS?fd.total_score:fd.total_count,rnk=rankMap[fk],bc=rnk===1?"cell-1":rnk===2?"cell-2":rnk===3?"cell-3":"";
       h+="<tr class='"+rowCls+"'><td class='sticky-col'>"+fd.name+"</td><td class='"+bc+"'>"+rnk+"</td><td class='cell-tot'>"+(tot>0?nn(tot):"-")+"</td>";
-      allD.forEach(d=>{const v=isS?fd.day_scores[d-1]:fd.day_counts[d-1];h+="<td class='"+(v===0?"cell-zero":v>=(isS?2000:800)?"cell-hi":"")+"'>"+(v===0?"-":nn(v))+"</td>";});
+      allD.forEach(d=>{
+        const v=isS?fd.day_scores[d-1]:fd.day_counts[d-1];
+        const cls=(v===0?"cell-zero":v>=(isS?2000:800)?"cell-hi":"");
+        if(canFix){
+          h+=`<td class="${cls} cell-edit" contenteditable="true" data-fk="${fk}" data-day="${d}" data-src="${src}" title="Bấm để chỉnh tay điểm" onblur="perfEdit(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${v===0?"":nn(v)}</td>`;
+        }else{
+          h+="<td class='"+cls+"'>"+(v===0?"-":nn(v))+"</td>";
+        }
+      });
       h+="</tr>";
     });
   }
@@ -1856,6 +1902,33 @@ function buildCombinedPerfTable(dataObj,isS){
   h+="</tr></tbody></table>";
   return h;
 }
+// Chỉnh tay điểm Duyệt Đơn / Khuyến Mãi theo ngày (khi hệ thống cập nhật sai) — lưu cloud + ghi Lịch Sử chi tiết
+function perfEdit(el){
+  const fk=el.dataset.fk,d=Number(el.dataset.day),src=el.dataset.src==='km'?'km':'don';
+  const ds=src==='km'?KMD:D;
+  if(!ds||!ds.fk_data[fk]){rKoDaily();return;}
+  const fd=ds.fk_data[fk];
+  const from=fd.day_scores[d-1]||0;
+  const to=Math.max(0,Number(String(el.textContent).replace(/[^\d]/g,''))||0);
+  if(to===from){rKoDaily();return;}
+  fd.day_scores[d-1]=to;
+  fd.total_score=fd.day_scores.reduce((a,b)=>a+(b||0),0);
+  if(Array.isArray(ds.day_scores))ds.day_scores[d-1]=Math.max(0,(ds.day_scores[d-1]||0)+(to-from));
+  savePerfEdit(src,fk,d,from,to);
+  rKoDaily();
+}
+async function savePerfEdit(src,fk,d,from,to){
+  if(!SB.ready()||!CUR_MONTH)return;
+  try{
+    setCloudStatus('Đang lưu chỉnh tay...');
+    await SB.saveReport(src,CUR_MONTH,src==='km'?KMD:D);
+    setCloudStatus('Đã lưu chỉnh tay ✓');
+    logAction('Chỉnh tay điểm '+(src==='km'?'Khuyến Mãi':'Duyệt Đơn'),(FK_NAMES[fk]||fk)+' · ngày '+d+'/'+dispMonth(CUR_MONTH)+': '+nn(from)+' → '+nn(to));
+  }catch(e){
+    console.error('savePerfEdit',e);
+    setCloudStatus('Lỗi lưu chỉnh tay',true);
+  }
+}
 function rKoDaily(){
   const isS=mView==="diem";
   document.getElementById("vipCount").textContent=D.fkvip.length+" người";
@@ -1864,7 +1937,7 @@ function rKoDaily(){
   const oRanked=[...D.fkonl].sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score);
   document.getElementById("perfVipGrid").innerHTML=vRanked.map((fk,i)=>fkGroupCardHtml(fk,i+1,isS,D)).join("");
   document.getElementById("perfOnlGrid").innerHTML=oRanked.map((fk,i)=>fkGroupCardHtml(fk,i+1,isS,D)).join("");
-  document.getElementById("perfCombinedTable").innerHTML=buildCombinedPerfTable(D,isS);
+  document.getElementById("perfCombinedTable").innerHTML=buildCombinedPerfTable(D,isS,'don');
 
   if(KMD){
     document.getElementById("kmEmptyState").style.display="none";
@@ -1878,7 +1951,7 @@ function rKoDaily(){
     const ko=[...KMD.fkonl].sort((a,b)=>KMD.fk_data[b].total_score-KMD.fk_data[a].total_score);
     document.getElementById("kmVipGrid").innerHTML=kv.map((fk,i)=>fkGroupCardHtml(fk,i+1,isS,KMD)).join("");
     document.getElementById("kmOnlGrid").innerHTML=ko.map((fk,i)=>fkGroupCardHtml(fk,i+1,isS,KMD)).join("");
-    document.getElementById("kmCombinedTable").innerHTML=buildCombinedPerfTable(KMD,isS);
+    document.getElementById("kmCombinedTable").innerHTML=buildCombinedPerfTable(KMD,isS,'km');
   }else{
     document.getElementById("kmEmptyState").style.display="block";
     document.getElementById("kmDataWrap").style.display="none";
