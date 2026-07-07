@@ -201,6 +201,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .fk-chip{border-radius:5px;padding:3px 8px;cursor:pointer;font-size:.65rem;font-weight:700;border:1px solid var(--border);transition:all .2s}
 .fk-chip.sang{border-color:var(--cy);color:var(--cy);background:rgba(6,182,212,.1)}
 .fk-chip.trung{border-color:#a78bfa;color:#a78bfa;background:rgba(167,139,250,.1)}
+.fk-chip.gay{border-color:#f59e0b;color:#f59e0b;background:rgba(245,158,11,.1)}
 .fk-chip.free{color:var(--mu)}
 .fk-chip:hover{border-color:var(--pu)}
 
@@ -500,18 +501,32 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     <div class="vt-btn active" onclick="sds('don',this)">Duyệt Đơn</div>
     <div class="vt-btn" onclick="sds('km',this)">Khuyến Mãi</div>
   </div>
-  <div class="view-toggle">
-    <div class="vt-btn active" onclick="ssv('hour',this)">Theo Giờ</div>
-    <div class="vt-btn" onclick="ssv('day',this)">Theo Ngày / Tháng</div>
-  </div>
-
   <div id="dataEmptyKm" style="display:none;font-size:.65rem;color:var(--mu);padding:18px;border:1px dashed var(--border2);border-radius:8px;text-align:center">
     Chưa có dữ liệu Khuyến Mãi — bấm <b style="color:#10b981">Upload Excel ▾ → Duyệt Khuyến Mãi</b> ở góc trên để tải lên.
   </div>
 
+  <!-- Giờ / Ngày / Tháng — gộp 1 view -->
   <div id="dataBody">
-    <div class="data-sub" id="data-day" style="display:none">
-      <div class="sec-hdr pu">Theo Ngày</div>
+    <div class="data-sub" id="data-hour">
+      <div class="sec-hdr pu">Theo Giờ (cả tháng)</div>
+      <div class="mtbl-wrap" style="margin-bottom:16px"><table class="htbl"><thead><tr><th class="col-g4">GMT−4</th><th class="col-g7">GMT+7</th><th class="col-g7">Điểm</th><th class="col-g7">Số đơn</th><th class="col-g4">Điểm GMT−4</th></tr></thead><tbody id="htblBody"></tbody></table></div>
+      <div class="stats-row" id="h_stats"></div>
+      <div class="g2">
+        <div class="chart-card"><div class="chart-title">Số đơn theo giờ (GMT+7)</div><div style="height:180px"><canvas id="h_cnt"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">TB điểm mỗi giờ / ngày (GMT+7) — giờ cao điểm của tháng</div><div style="height:180px"><canvas id="mavg"></canvas></div></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:16px">
+        <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span>Điểm theo giờ (GMT+7) — từng FK</span>
+          <button onclick="toggleFKColorPicker()" style="flex-shrink:0;font-size:.62rem;padding:3px 10px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);color:var(--pu2);border-radius:5px;cursor:pointer;font-weight:700">Tùy chỉnh màu</button>
+        </div>
+        <div id="fk-color-picker" style="display:none;flex-wrap:wrap;gap:6px;padding:8px 0 10px;border-bottom:1px solid var(--border);margin-bottom:8px"></div>
+        <div style="height:240px"><canvas id="h_stk"></canvas></div>
+      </div>
+    </div>
+
+    <div class="data-sub" id="data-day">
+      <div class="sec-hdr pu" style="margin-top:6px">Theo Ngày</div>
       <div id="dayBtns"></div>
       <div class="stats-row">
         <div class="stat-card pu"><div class="stat-lbl">Tổng điểm ngày</div><div class="stat-val pu" id="d_s">-</div><div class="stat-sub" id="d_ss">-</div></div>
@@ -540,20 +555,6 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       <div class="chart-card" style="margin-bottom:16px"><div class="chart-title">Điểm theo ngày</div><div style="height:200px"><canvas id="mdc"></canvas></div></div>
     </div>
 
-    <div class="data-sub" id="data-hour">
-      <div class="sec-hdr pu">Bảng giờ GMT−4 và GMT+7</div>
-      <div class="mtbl-wrap" style="margin-bottom:16px"><table class="htbl"><thead><tr><th class="col-g4">GMT−4</th><th class="col-g7">GMT+7</th><th class="col-g7">Điểm</th><th class="col-g7">Số đơn</th><th class="col-g4">Điểm GMT−4</th></tr></thead><tbody id="htblBody"></tbody></table></div>
-      <div class="stats-row" id="h_stats"></div>
-      <div class="chart-card" style="margin-bottom:14px"><div class="chart-title">Số đơn theo giờ (GMT+7)</div><div style="height:180px"><canvas id="h_cnt"></canvas></div></div>
-      <div class="chart-card">
-        <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <span>Điểm theo giờ (GMT+7) — từng FK</span>
-          <button onclick="toggleFKColorPicker()" style="flex-shrink:0;font-size:.62rem;padding:3px 10px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);color:var(--pu2);border-radius:5px;cursor:pointer;font-weight:700">Tùy chỉnh màu</button>
-        </div>
-        <div id="fk-color-picker" style="display:none;flex-wrap:wrap;gap:6px;padding:8px 0 10px;border-bottom:1px solid var(--border);margin-bottom:8px"></div>
-        <div style="height:240px"><canvas id="h_stk"></canvas></div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -645,11 +646,13 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       <span style="font-size:.67rem;color:var(--mu);font-weight:700">Giờ (GMT+7):</span>
       <div class="si-group"><div class="si-dot" style="background:var(--cy)"></div><label>Ca Sáng:</label><input type="number" id="sf" value="8" min="0" max="23">H →<input type="number" id="st" value="17" min="0" max="23">H</div>
       <div class="si-group"><div class="si-dot" style="background:#a78bfa"></div><label>Ca Trung:</label><input type="number" id="tf" value="22" min="0" max="23">H →<input type="number" id="tt" value="4" min="0" max="23">H<span style="font-size:.6rem;color:var(--mu)">(qua đêm)</span></div>
+      <div class="si-group"><div class="si-dot" style="background:#f59e0b"></div><label>Ca Gãy:</label><input type="number" id="g1f" value="10" min="0" max="23">H →<input type="number" id="g1t" value="14" min="0" max="23">H<span style="font-size:.6rem;color:var(--mu)">&amp;</span><input type="number" id="g2f" value="18" min="0" max="23">H →<input type="number" id="g2t" value="22" min="0" max="23">H</div>
       <button class="shift-update-btn" onclick="shUpdateHours()">Cập nhật</button>
     </div>
-    <div class="shift-cols">
+    <div class="shift-cols" style="grid-template-columns:1fr 1fr 1fr">
       <div class="shift-col"><div class="shift-col-hdr"><div class="si-dot" style="background:var(--cy)"></div><div style="font-size:.7rem;font-weight:700;color:var(--cy)">CA SÁNG</div></div><div style="font-size:.6rem;color:var(--mu);margin-bottom:7px" id="sh_sang_hrs"></div><div class="fk-chips" id="sh_sang_fks"></div></div>
       <div class="shift-col"><div class="shift-col-hdr"><div class="si-dot" style="background:#a78bfa"></div><div style="font-size:.7rem;font-weight:700;color:#a78bfa">CA TRUNG (ĐÊM)</div></div><div style="font-size:.6rem;color:var(--mu);margin-bottom:7px" id="sh_trung_hrs"></div><div class="fk-chips" id="sh_trung_fks"></div></div>
+      <div class="shift-col"><div class="shift-col-hdr"><div class="si-dot" style="background:#f59e0b"></div><div style="font-size:.7rem;font-weight:700;color:#f59e0b">CA GÃY (2 KHUNG)</div></div><div style="font-size:.6rem;color:var(--mu);margin-bottom:7px" id="sh_gay_hrs"></div><div class="fk-chips" id="sh_gay_fks"></div></div>
     </div>
     <div style="font-size:.63rem;color:var(--mu)">Chưa phân ca: <span id="sh_free" style="color:var(--tx)"></span></div>
   </div>
@@ -662,11 +665,12 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     <div class="stats-row" id="sh_stats"></div>
     <div class="g2">
       <div class="chart-card"><div class="chart-title">Số đơn mỗi ca theo giờ</div><div style="height:200px"><canvas id="sh_hrc"></canvas></div></div>
-      <div class="chart-card"><div class="chart-title">Tỷ lệ 2 ca</div><div id="sh_ratio" style="padding:6px 0"></div></div>
+      <div class="chart-card"><div class="chart-title">Tỷ lệ các ca</div><div id="sh_ratio" style="padding:6px 0"></div></div>
     </div>
-    <div class="g2">
+    <div class="g3">
       <div class="chart-card"><div class="chart-title" style="color:var(--cy)">Ca Sáng — Điểm FK</div><div style="height:175px"><canvas id="sh_sc"></canvas></div></div>
       <div class="chart-card"><div class="chart-title" style="color:#a78bfa">Ca Trung — Điểm FK</div><div style="height:175px"><canvas id="sh_tc"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title" style="color:#f59e0b">Ca Gãy — Điểm FK</div><div style="height:175px"><canvas id="sh_gc"></canvas></div></div>
     </div>
   </div>
   <div id="sh-km" style="display:none">
@@ -675,11 +679,12 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       <div class="stats-row" id="sh_km_stats"></div>
       <div class="g2">
         <div class="chart-card"><div class="chart-title">Số KM mỗi ca theo giờ</div><div style="height:200px"><canvas id="sh_km_hrc"></canvas></div></div>
-        <div class="chart-card"><div class="chart-title">Tỷ lệ 2 ca (KM)</div><div id="sh_km_ratio" style="padding:6px 0"></div></div>
+        <div class="chart-card"><div class="chart-title">Tỷ lệ các ca (KM)</div><div id="sh_km_ratio" style="padding:6px 0"></div></div>
       </div>
-      <div class="g2">
+      <div class="g3">
         <div class="chart-card"><div class="chart-title" style="color:var(--cy)">Ca Sáng — Đơn KM</div><div style="height:175px"><canvas id="sh_km_sc"></canvas></div></div>
         <div class="chart-card"><div class="chart-title" style="color:#a78bfa">Ca Trung — Đơn KM</div><div style="height:175px"><canvas id="sh_km_tc"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title" style="color:#f59e0b">Ca Gãy — Đơn KM</div><div style="height:175px"><canvas id="sh_km_gc"></canvas></div></div>
       </div>
     </div>
   </div>
@@ -1210,7 +1215,7 @@ function emptyDataset(mk){
 // Áp dữ liệu phân ca đã lưu (gán FK + khung giờ)
 function applyShiftData(sd){
   if(sd&&sd.assign)FK_KEYS.forEach(fk=>{shAssign[fk]=sd.assign[fk]||null;});
-  if(sd&&sd.hours)['sf','st','tf','tt'].forEach(k=>{if(sd.hours[k]!=null){const el=document.getElementById(k);if(el)el.value=sd.hours[k];}});
+  if(sd&&sd.hours)['sf','st','tf','tt','g1f','g1t','g2f','g2t'].forEach(k=>{if(sd.hours[k]!=null){const el=document.getElementById(k);if(el)el.value=sd.hours[k];}});
 }
 // Lưu phân ca lên cloud theo tháng đang xem (debounce để gom nhiều click thành 1 lần lưu)
 let _shiftTimer=null;
@@ -1221,7 +1226,8 @@ function saveShift(){
 async function _saveShiftNow(){
   if(!SB.ready()||!CUR_PROFILE||!CUR_MONTH||!_shiftReady)return;
   try{
-    const hours={sf:+document.getElementById('sf').value||8,st:+document.getElementById('st').value||17,tf:+document.getElementById('tf').value||22,tt:+document.getElementById('tt').value||4};
+    const hours={sf:+document.getElementById('sf').value||8,st:+document.getElementById('st').value||17,tf:+document.getElementById('tf').value||22,tt:+document.getElementById('tt').value||4,
+      g1f:+document.getElementById('g1f').value||10,g1t:+document.getElementById('g1t').value||14,g2f:+document.getElementById('g2f').value||18,g2t:+document.getElementById('g2t').value||22};
     await SB.saveReport('shift',CUR_MONTH,{assign:shAssign,hours});
     setCloudStatus('Đã lưu phân ca tháng '+dispMonth(CUR_MONTH)+' ✓');
     logAction('Chỉnh phân ca','Tháng '+dispMonth(CUR_MONTH));
@@ -1611,6 +1617,7 @@ function processFiles(files,idx,acc,target){
   reader.readAsArrayBuffer(file);
 }
 
+function m31x24(){return Array.from({length:31},()=>new Array(24).fill(0));}
 function initAccum(){
   const nd={
     day_scores:new Array(31).fill(0), day_counts:new Array(31).fill(0),
@@ -1619,7 +1626,8 @@ function initAccum(){
     fk_data:{}, days_in_month:[], month:"",
     _dayRaw:new Array(31).fill(0), _hr7Raw:new Array(24).fill(0), _hr4Raw:new Array(24).fill(0),
     _daySet:new Set(), _mSet:new Set(),
-    _day7Raw:new Array(31).fill(0), day_counts_d7:new Array(31).fill(0), _d7Set:new Set()
+    _day7Raw:new Array(31).fill(0), day_counts_d7:new Array(31).fill(0), _d7Set:new Set(),
+    _hbd7:m31x24(), cbd7:m31x24() // điểm & số đơn theo [ngày][giờ GMT+7] — cho view Theo Ngày
   };
   FK_KEYS.forEach(fk=>{
     nd.fk_data[fk]={
@@ -1629,7 +1637,8 @@ function initAccum(){
       hour_scores_gmt7:new Array(24).fill(0), hour_counts_gmt7:new Array(24).fill(0),
       hour_scores_gmt4:new Array(24).fill(0),
       _dayRaw:new Array(31).fill(0), _hr7Raw:new Array(24).fill(0), _hr4Raw:new Array(24).fill(0),
-      _day7Raw:new Array(31).fill(0)
+      _day7Raw:new Array(31).fill(0),
+      _hbd7:m31x24()
     };
   });
   return nd;
@@ -1642,7 +1651,7 @@ function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
   for(let i=start;i<end;i++){
     const row=aoa[i];
     if(!row||row.length<18)continue;
-    let pd=null,fk=null,sc=0,h4=0,h7=0,day=0;
+    let pd=null,fk=null,sc=0,h4=0,h7=0,day=0,hbdDay=0;
     if(target==="km"){
       // KM: cột B (idx 1) = Thời gian gửi GMT+8, cột R (idx 17) = Nhân viên xử lý
       if(row[1] instanceof Date){pd=row[1];}
@@ -1660,6 +1669,7 @@ function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
       fk=mfk(String(row[17]||""));
       if(!fk)continue;
       sc=1;
+      hbdDay=day_gmt7; // KM: view Theo Ngày dùng ngày GMT+7
       nd._day7Raw[day_gmt7-1]+=sc; nd.day_counts_d7[day_gmt7-1]++; nd._d7Set.add(day_gmt7);
       nd.fk_data[fk]._day7Raw[day_gmt7-1]+=sc;
     }else{
@@ -1676,7 +1686,10 @@ function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
       fk=mfk(note);
       if(!fk)continue;
       sc=gsc(colB,amt,status);
+      hbdDay=day; // DON: view Theo Ngày dùng ngày GMT-4 (đồng nhất day_scores)
     }
+    nd._hbd7[hbdDay-1][h7]+=sc; nd.cbd7[hbdDay-1][h7]++;
+    nd.fk_data[fk]._hbd7[hbdDay-1][h7]+=sc;
     nd.fk_data[fk]._dayRaw[day-1]+=sc; nd.fk_data[fk].day_counts[day-1]++;
     nd.fk_data[fk]._hr7Raw[h7]+=sc; nd.fk_data[fk].hour_counts_gmt7[h7]++;
     nd.fk_data[fk]._hr4Raw[h4]+=sc; nd.fk_data[fk].total_count++;
@@ -1701,11 +1714,13 @@ function mergeAccum(base,add){
   if(!base) return add;
   for(let i=0;i<31;i++){base._dayRaw[i]+=add._dayRaw[i];base.day_counts[i]+=add.day_counts[i];base._day7Raw[i]+=add._day7Raw[i];base.day_counts_d7[i]+=add.day_counts_d7[i];}
   for(let i=0;i<24;i++){base._hr7Raw[i]+=add._hr7Raw[i];base.hour_counts_gmt7[i]+=add.hour_counts_gmt7[i];base._hr4Raw[i]+=add._hr4Raw[i];base.hour_counts_gmt4[i]+=add.hour_counts_gmt4[i];}
+  for(let d=0;d<31;d++)for(let h=0;h<24;h++){base._hbd7[d][h]+=add._hbd7[d][h];base.cbd7[d][h]+=add.cbd7[d][h];}
   FK_KEYS.forEach(fk=>{
     const bf=base.fk_data[fk],af=add.fk_data[fk];
     bf.total_count+=af.total_count;
     for(let i=0;i<31;i++){bf._dayRaw[i]+=af._dayRaw[i];bf.day_counts[i]+=af.day_counts[i];bf._day7Raw[i]+=af._day7Raw[i];}
     for(let i=0;i<24;i++){bf._hr7Raw[i]+=af._hr7Raw[i];bf.hour_counts_gmt7[i]+=af.hour_counts_gmt7[i];bf._hr4Raw[i]+=af._hr4Raw[i];}
+    for(let d=0;d<31;d++)for(let h=0;h<24;h++)bf._hbd7[d][h]+=af._hbd7[d][h];
   });
   add._daySet.forEach(d=>base._daySet.add(d));
   add._mSet.forEach(m=>base._mSet.add(m));
@@ -1718,12 +1733,14 @@ function finalizeResult(nd,target){
   setTimeout(function(){
     for(let i=0;i<31;i++) nd.day_scores[i]=Math.ceil(nd._dayRaw[i]);
     for(let i=0;i<24;i++){nd.hour_scores_gmt7[i]=Math.ceil(nd._hr7Raw[i]);nd.hour_scores_gmt4[i]=Math.ceil(nd._hr4Raw[i]);}
+    nd.hbd7=nd._hbd7.map(r=>r.map(Math.ceil));delete nd._hbd7;
     FK_KEYS.forEach(fk=>{
       const fd=nd.fk_data[fk];
       fd.day_scores=fd._dayRaw.map(Math.ceil);
       fd.hour_scores_gmt7=fd._hr7Raw.map(Math.ceil);
       fd.hour_scores_gmt4=fd._hr4Raw.map(Math.ceil);
       fd.total_score=Math.ceil(fd._dayRaw.reduce((a,b)=>a+b,0));
+      fd.hbd7=fd._hbd7.map(r=>r.map(Math.ceil));delete fd._hbd7;
       delete fd._dayRaw;delete fd._hr7Raw;delete fd._hr4Raw;
       if(fd._day7Raw){fd.day_scores_d7=fd._day7Raw.map(Math.ceil);delete fd._day7Raw;}
     });
@@ -1765,17 +1782,21 @@ function smv(v,el){mView=v;el.parentElement.querySelectorAll(".vt-btn").forEach(
 function srk(g,el){rkGrp=g;selFK=null;document.getElementById("dp").classList.remove("show");document.getElementById("rkVipBtn").classList.remove("active");document.getElementById("rkOnlBtn").classList.remove("active");el.classList.add("active");rRank();}
 function skv(v,el){koView=v;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");document.querySelectorAll(".ko-view").forEach(p=>p.style.display="none");document.getElementById("ko-"+v).style.display="block";rKO();}
 function sac(c,el){anCat=c;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");rKoAnomaly();}
-let dataSrc="don",dataSubview="hour";
-function sds(src,el){dataSrc=src;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");rDataTab();}
-function ssv(v,el){dataSubview=v;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");document.querySelectorAll(".data-sub").forEach(p=>p.style.display="none");document.getElementById("data-"+v).style.display="block";rDataTab();}
+let dataSrc="don";
+function sds(src,el){dataSrc=src;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");selDay=null;rDataTab();}
 function curDataSet(){return dataSrc==="km"?KMD:D;}
 function rDataTab(){
   const ds=curDataSet();
   const empty=document.getElementById("dataEmptyKm"),body=document.getElementById("dataBody");
   if(dataSrc==="km"&&!ds){empty.style.display="block";body.style.display="none";return;}
   empty.style.display="none";body.style.display="block";
-  if(dataSubview==="day"){if(!selDay&&ds.days_in_month?.length)selDay=ds.days_in_month[0];bldDayBtns(ds);rDay(ds);rMonth(ds);}
-  if(dataSubview==="hour")rHour(ds);
+  // Giờ / Ngày / Tháng — render tất cả trong 1 view
+  rHour(ds);
+  const days=ds.days_in_month_d7||ds.days_in_month||[];
+  if(!selDay&&days.length)selDay=days[0];
+  bldDayBtns(ds);
+  rDay(ds);
+  rMonth(ds);
 }
 function rAll(){
   const act=document.querySelector(".pg.active")?.id;
@@ -1796,22 +1817,29 @@ function rDay(ds){
   const dayScores=ds.day_scores_d7||ds.day_scores;
   const dayCounts=ds.day_counts_d7||ds.day_counts;
   const ts=dayScores[d-1]||0,tc=dayCounts[d-1]||0;
-  const hs7=ds.hour_scores_gmt7,peakH=hs7.indexOf(Math.max(...hs7));
+  // Dữ liệu giờ THEO ĐÚNG NGÀY đã chọn (hbd7); file cũ chưa có -> tạm dùng tổng cả tháng
+  const perDay=!!(ds.hbd7&&ds.hbd7[d-1]);
+  const hs7=perDay?ds.hbd7[d-1]:ds.hour_scores_gmt7;
+  const hc7=perDay?ds.cbd7[d-1]:ds.hour_counts_gmt7;
+  const peakH=hs7.indexOf(Math.max(...hs7));
   document.getElementById("d_s").textContent=nn(ts);
   document.getElementById("d_ss").textContent="Ngày "+String(d).padStart(2,"0")+" / Tháng "+ds.month;
   document.getElementById("d_c").textContent=nn(tc);
   document.getElementById("d_ph").textContent=String(peakH).padStart(2,"0")+"H–"+String((peakH+1)%24).padStart(2,"0")+"H";
-  document.getElementById("d_ps").textContent=nn(ds.hour_counts_gmt7[peakH])+" đơn/h";
+  document.getElementById("d_ps").textContent=nn(hc7[peakH])+" đơn/h"+(perDay?" · ngày "+String(d).padStart(2,"0"):" (cả tháng — upload lại file để xem theo ngày)");
   const fkd={};FK_KEYS.forEach(fk=>{const fd=ds.fk_data[fk];fkd[fk]=(fd.day_scores_d7||fd.day_scores)[d-1]||0;});
   const vs=[...ds.fkvip].sort((a,b)=>fkd[b]-fkd[a]),os=[...ds.fkonl].sort((a,b)=>fkd[b]-fkd[a]);
   document.getElementById("d_tv").textContent=vs[0]?ds.fk_data[vs[0]].name:"-";document.getElementById("d_tvs").textContent=vs[0]?nn(fkd[vs[0]])+" điểm":"-";
   document.getElementById("d_to").textContent=os[0]?ds.fk_data[os[0]].name:"-";document.getElementById("d_tos").textContent=os[0]?nn(fkd[os[0]])+" điểm":"-";
-  const top3=hs7.map((s,i)=>({h:i,s,c:ds.hour_counts_gmt7[i]})).sort((a,b)=>b.s-a.s).slice(0,3);
+  const top3=hs7.map((s,i)=>({h:i,s,c:hc7[i]})).sort((a,b)=>b.s-a.s).slice(0,3);
   document.getElementById("dt3").innerHTML=top3.map((x,i)=>"<div class='top3-item'><div class='top3-rank rk"+(i+1)+"'>"+(i+1)+"</div><div class='top3-label'>"+String(x.h).padStart(2,"0")+"H – "+String((x.h+1)%24).padStart(2,"0")+"H</div><div><div class='top3-val'>"+nn(x.s)+"</div><div class='top3-sub'>"+nn(x.c)+" đơn</div></div></div>").join("");
-  const hs4=ds.hour_scores_gmt4,lbl=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
+  // GMT-4 của ngày: xoay mảng GMT+7 (lệch cố định 11 giờ)
+  const hs4=perDay?Array.from({length:24},(_,h)=>hs7[(h+11)%24]):ds.hour_scores_gmt4;
+  const lbl=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
   dch("dhc");CH.dhc=new Chart(document.getElementById("dhc"),{type:"line",data:{labels:lbl,datasets:[{label:"GMT−4",data:hs4,borderColor:"#94a3b8",backgroundColor:"rgba(148,163,184,.05)",fill:true,tension:.4,pointRadius:2,borderWidth:1.5,borderDash:[4,3]},{label:"GMT+7",data:hs7,borderColor:"#7c3aed",backgroundColor:"rgba(124,58,237,.1)",fill:true,tension:.4,pointRadius:hs7.map((_,i)=>i===peakH?6:2),pointBackgroundColor:hs7.map((_,i)=>i===peakH?"#f59e0b":"#7c3aed"),borderWidth:2}]},options:coL(false)});
-  dch("dvc");CH.dvc=new Chart(document.getElementById("dvc"),{type:"bar",data:{labels:lbl,datasets:ds.fkvip.filter(fk=>ds.fk_data[fk].total_score>0).map(fk=>({label:ds.fk_data[fk].name,data:ds.fk_data[fk].hour_scores_gmt7,backgroundColor:ha(FK_COL[fk],.7),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
-  dch("doc");CH.doc=new Chart(document.getElementById("doc"),{type:"bar",data:{labels:lbl,datasets:ds.fkonl.filter(fk=>ds.fk_data[fk].total_score>0).map(fk=>({label:ds.fk_data[fk].name,data:ds.fk_data[fk].hour_scores_gmt7,backgroundColor:ha(FK_COL[fk],.7),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
+  const fkHr=fk=>{const fd=ds.fk_data[fk];return(perDay&&fd.hbd7)?fd.hbd7[d-1]:fd.hour_scores_gmt7;};
+  dch("dvc");CH.dvc=new Chart(document.getElementById("dvc"),{type:"bar",data:{labels:lbl,datasets:ds.fkvip.filter(fk=>ds.fk_data[fk].total_score>0).map(fk=>({label:ds.fk_data[fk].name,data:fkHr(fk),backgroundColor:ha(FK_COL[fk],.7),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
+  dch("doc");CH.doc=new Chart(document.getElementById("doc"),{type:"bar",data:{labels:lbl,datasets:ds.fkonl.filter(fk=>ds.fk_data[fk].total_score>0).map(fk=>({label:ds.fk_data[fk].name,data:fkHr(fk),backgroundColor:ha(FK_COL[fk],.7),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
 }
 
 // ===== TAB: DỮ LIỆU — Theo Tháng =====
@@ -2157,9 +2185,12 @@ function toggleFK(fk,ca){
 function rShiftPanel(){
   const sf=parseInt(document.getElementById("sf").value)||8,st=parseInt(document.getElementById("st").value)||17;
   const tf=parseInt(document.getElementById("tf").value)||22,tt=parseInt(document.getElementById("tt").value)||4;
+  const g1f=parseInt(document.getElementById("g1f").value)||10,g1t=parseInt(document.getElementById("g1t").value)||14;
+  const g2f=parseInt(document.getElementById("g2f").value)||18,g2t=parseInt(document.getElementById("g2t").value)||22;
   document.getElementById("sh_sang_hrs").textContent=String(sf).padStart(2,"0")+"H – "+String(st).padStart(2,"0")+"H (GMT+7)";
   document.getElementById("sh_trung_hrs").textContent=String(tf).padStart(2,"0")+"H – "+String(tt).padStart(2,"0")+"H qua đêm";
-  ["sang","trung"].forEach(ca=>{
+  document.getElementById("sh_gay_hrs").textContent=String(g1f).padStart(2,"0")+"H – "+String(g1t).padStart(2,"0")+"H & "+String(g2f).padStart(2,"0")+"H – "+String(g2t).padStart(2,"0")+"H (GMT+7)";
+  ["sang","trung","gay"].forEach(ca=>{
     const el=document.getElementById("sh_"+ca+"_fks");
     const inCa=FK_KEYS.filter(fk=>shAssign[fk]===ca),free=FK_KEYS.filter(fk=>!shAssign[fk]);
     el.innerHTML=inCa.map(fk=>"<div class='fk-chip "+ca+"' onclick='toggleFK(\""+fk+"\",\""+ca+"\")'>"+(D.fk_data[fk]?.name||fk)+" ✖</div>").join("")+"<div style='font-size:.58rem;color:var(--mu);padding:3px 0;width:100%'>+ thêm:</div>"+free.map(fk=>"<div class='fk-chip free' onclick='toggleFK(\""+fk+"\",\""+ca+"\")'>"+(D.fk_data[fk]?.name||fk)+" +</div>").join("");
@@ -2169,47 +2200,59 @@ function rShiftPanel(){
 }
 function sshv(v,el){shView=v;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");document.getElementById("sh-don").style.display=v==="don"?"block":"none";document.getElementById("sh-km").style.display=v==="km"?"block":"none";rShift();}
 function rShift(){
-  const sFKs=FK_KEYS.filter(fk=>shAssign[fk]==="sang"),tFKs=FK_KEYS.filter(fk=>shAssign[fk]==="trung");
+  // 3 ca: Sáng (cyan) / Trung (tím nhạt) / Gãy (hổ phách) — dùng chung cho Duyệt Đơn & KM
+  const CAS=[
+    {key:'sang',label:'Ca Sáng',col:'#06b6d4',rgba:'rgba(6,182,212,.65)',cls:'cy'},
+    {key:'trung',label:'Ca Trung',col:'#a78bfa',rgba:'rgba(167,139,250,.65)',cls:'pu'},
+    {key:'gay',label:'Ca Gãy',col:'#f59e0b',rgba:'rgba(245,158,11,.65)',cls:'go'}
+  ];
   const lbl7=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
-  if(shView==="km"){
+  const isKm=shView==="km";
+  const ds=isKm?KMD:D;
+  if(isKm){
     const empty=document.getElementById("sh_km_empty"),data=document.getElementById("sh_km_data");
     if(!KMD){empty.style.display="block";data.style.display="none";return;}
     empty.style.display="none";data.style.display="block";
-    let sKmS=0,sKmC=0,tKmS=0,tKmC=0;
-    sFKs.forEach(fk=>{sKmS+=(KMD.fk_data[fk]?.total_score||0);sKmC+=(KMD.fk_data[fk]?.total_count||0);});
-    tFKs.forEach(fk=>{tKmS+=(KMD.fk_data[fk]?.total_score||0);tKmC+=(KMD.fk_data[fk]?.total_count||0);});
-    const ktot=sKmS+tKmS,kctot=sKmC+tKmC;
-    const ksp=ktot?((sKmS/ktot)*100).toFixed(1):0,ktp=ktot?((tKmS/ktot)*100).toFixed(1):0;
-    const kscp=kctot?((sKmC/kctot)*100).toFixed(1):0,ktcp=kctot?((tKmC/kctot)*100).toFixed(1):0;
-    document.getElementById("sh_km_stats").innerHTML="<div class='stat-card cy'><div class='stat-lbl'>Ca Sáng KM</div><div class='stat-val' style='color:var(--cy)'>"+nn(sKmS)+"</div><div class='stat-sub'>"+nn(sKmC)+" đơn · "+ksp+"%</div></div><div class='stat-card pu'><div class='stat-lbl'>Ca Trung KM</div><div class='stat-val' style='color:#a78bfa'>"+nn(tKmS)+"</div><div class='stat-sub'>"+nn(tKmC)+" đơn · "+ktp+"%</div></div><div class='stat-card go'><div class='stat-lbl'>Chênh điểm</div><div class='stat-val go'>"+nn(Math.abs(sKmS-tKmS))+"</div><div class='stat-sub'>"+(sKmS>=tKmS?"Ca Sáng":"Ca Trung")+" dẫn</div></div><div class='stat-card pk'><div class='stat-lbl'>Chênh đơn</div><div class='stat-val pk'>"+nn(Math.abs(sKmC-tKmC))+"</div><div class='stat-sub'>"+kscp+"% vs "+ktcp+"%</div></div>";
-    document.getElementById("sh_km_ratio").innerHTML="<div style='font-size:.68rem;color:var(--mu);margin-bottom:5px'>Tỷ lệ <b style='color:var(--cy)'>Ca Sáng</b> vs <b style='color:#a78bfa'>Ca Trung</b></div><div style='font-size:.65rem;color:var(--mu);margin-bottom:3px'>Điểm:</div><div class='ratio-bar'><div class='ratio-seg' style='width:"+ksp+"%;background:var(--cy)'>"+ksp+"%</div><div class='ratio-seg' style='width:"+ktp+"%;background:#a78bfa'>"+ktp+"%</div></div><div class='ratio-labels'><span style='color:var(--cy)'>Sáng "+nn(sKmS)+"</span><span style='color:#a78bfa'>Trung "+nn(tKmS)+"</span></div><div style='font-size:.65rem;color:var(--mu);margin:8px 0 3px'>Số đơn:</div><div class='ratio-bar'><div class='ratio-seg' style='width:"+kscp+"%;background:var(--cy)'>"+kscp+"%</div><div class='ratio-seg' style='width:"+ktcp+"%;background:#a78bfa'>"+ktcp+"%</div></div><div class='ratio-labels'><span style='color:var(--cy)'>Sáng "+nn(sKmC)+"</span><span style='color:#a78bfa'>Trung "+nn(tKmC)+"</span></div><div style='margin-top:9px;font-size:.63rem;color:var(--mu)'>Ca Sáng: <b style='color:var(--cy)'>"+sFKs.map(f=>KMD.fk_data[f]?.name||f).join(", ")+"</b></div><div style='font-size:.63rem;color:var(--mu)'>Ca Trung: <b style='color:#a78bfa'>"+tFKs.map(f=>KMD.fk_data[f]?.name||f).join(", ")+"</b></div>";
-    dch("sh_km_hrc");const kmDs=[];
-    if(sFKs.length)kmDs.push({label:"Ca Sáng",data:Array.from({length:24},(_,h)=>sFKs.reduce((s,fk)=>s+(KMD.fk_data[fk]?.hour_counts_gmt7[h]||0),0)),backgroundColor:"rgba(6,182,212,.65)",borderColor:"#06b6d4",borderWidth:1,borderRadius:3});
-    if(tFKs.length)kmDs.push({label:"Ca Trung",data:Array.from({length:24},(_,h)=>tFKs.reduce((s,fk)=>s+(KMD.fk_data[fk]?.hour_counts_gmt7[h]||0),0)),backgroundColor:"rgba(167,139,250,.65)",borderColor:"#a78bfa",borderWidth:1,borderRadius:3});
-    if(kmDs.length)CH.sh_km_hrc=new Chart(document.getElementById("sh_km_hrc"),{type:"bar",data:{labels:lbl7,datasets:kmDs},options:coL(false)});
-    dch("sh_km_sc");if(sFKs.length)CH.sh_km_sc=new Chart(document.getElementById("sh_km_sc"),{type:"bar",data:{labels:sFKs.map(f=>KMD.fk_data[f]?.name||f),datasets:[{label:"Đơn",data:sFKs.map(f=>KMD.fk_data[f]?.total_count||0),backgroundColor:sFKs.map(f=>ha(FK_COL[f],.8)),borderColor:sFKs.map(f=>FK_COL[f]),borderWidth:1,borderRadius:4}]},options:co(false)});
-    dch("sh_km_tc");if(tFKs.length)CH.sh_km_tc=new Chart(document.getElementById("sh_km_tc"),{type:"bar",data:{labels:tFKs.map(f=>KMD.fk_data[f]?.name||f),datasets:[{label:"Đơn",data:tFKs.map(f=>KMD.fk_data[f]?.total_count||0),backgroundColor:tFKs.map(f=>ha(FK_COL[f],.8)),borderColor:tFKs.map(f=>FK_COL[f]),borderWidth:1,borderRadius:4}]},options:co(false)});
-    return;
   }
-  // DON view
-  let sS=0,sC=0,tS=0,tC=0;
-  sFKs.forEach(fk=>{sS+=D.fk_data[fk].total_score;sC+=D.fk_data[fk].total_count;});
-  tFKs.forEach(fk=>{tS+=D.fk_data[fk].total_score;tC+=D.fk_data[fk].total_count;});
-  const tot=sS+tS,ctot=sC+tC,sp=tot?((sS/tot)*100).toFixed(1):0,tp=tot?((tS/tot)*100).toFixed(1):0;
-  const scp=ctot?((sC/ctot)*100).toFixed(1):0,tcp=ctot?((tC/ctot)*100).toFixed(1):0;
-  document.getElementById("sh_stats").innerHTML="<div class='stat-card cy'><div class='stat-lbl'>Ca Sáng</div><div class='stat-val' style='color:var(--cy)'>"+nn(sS)+"</div><div class='stat-sub'>"+nn(sC)+" đơn · "+sp+"%</div></div><div class='stat-card pu'><div class='stat-lbl'>Ca Trung</div><div class='stat-val' style='color:#a78bfa'>"+nn(tS)+"</div><div class='stat-sub'>"+nn(tC)+" đơn · "+tp+"%</div></div><div class='stat-card go'><div class='stat-lbl'>Chênh điểm</div><div class='stat-val go'>"+nn(Math.abs(sS-tS))+"</div><div class='stat-sub'>"+(sS>=tS?"Ca Sáng":"Ca Trung")+" dẫn</div></div><div class='stat-card pk'><div class='stat-lbl'>Chênh đơn</div><div class='stat-val pk'>"+nn(Math.abs(sC-tC))+"</div><div class='stat-sub'>"+scp+"% vs "+tcp+"%</div></div>";
-  document.getElementById("sh_ratio").innerHTML="<div style='font-size:.68rem;color:var(--mu);margin-bottom:5px'>Tỷ lệ <b style='color:var(--cy)'>Ca Sáng</b> vs <b style='color:#a78bfa'>Ca Trung</b></div><div style='font-size:.65rem;color:var(--mu);margin-bottom:3px'>Điểm:</div><div class='ratio-bar'><div class='ratio-seg' style='width:"+sp+"%;background:var(--cy)'>"+sp+"%</div><div class='ratio-seg' style='width:"+tp+"%;background:#a78bfa'>"+tp+"%</div></div><div class='ratio-labels'><span style='color:var(--cy)'>Sáng "+nn(sS)+"</span><span style='color:#a78bfa'>Trung "+nn(tS)+"</span></div><div style='font-size:.65rem;color:var(--mu);margin:8px 0 3px'>Số đơn:</div><div class='ratio-bar'><div class='ratio-seg' style='width:"+scp+"%;background:var(--cy)'>"+scp+"%</div><div class='ratio-seg' style='width:"+tcp+"%;background:#a78bfa'>"+tcp+"%</div></div><div class='ratio-labels'><span style='color:var(--cy)'>Sáng "+nn(sC)+"</span><span style='color:#a78bfa'>Trung "+nn(tC)+"</span></div><div style='margin-top:9px;font-size:.63rem;color:var(--mu)'>Ca Sáng: <b style='color:var(--cy)'>"+sFKs.map(f=>D.fk_data[f]?.name||f).join(", ")+"</b></div><div style='font-size:.63rem;color:var(--mu)'>Ca Trung: <b style='color:#a78bfa'>"+tFKs.map(f=>D.fk_data[f]?.name||f).join(", ")+"</b></div>";
-  dch("sh_hrc");const shDs=[];
-  if(sFKs.length)shDs.push({label:"Ca Sáng",data:Array.from({length:24},(_,h)=>sFKs.reduce((s,fk)=>s+(D.fk_data[fk].hour_counts_gmt7[h]||0),0)),backgroundColor:"rgba(6,182,212,.65)",borderColor:"#06b6d4",borderWidth:1,borderRadius:3});
-  if(tFKs.length)shDs.push({label:"Ca Trung",data:Array.from({length:24},(_,h)=>tFKs.reduce((s,fk)=>s+(D.fk_data[fk].hour_counts_gmt7[h]||0),0)),backgroundColor:"rgba(167,139,250,.65)",borderColor:"#a78bfa",borderWidth:1,borderRadius:3});
-  if(shDs.length)CH.sh_hrc=new Chart(document.getElementById("sh_hrc"),{type:"bar",data:{labels:lbl7,datasets:shDs},options:coL(false)});
-  dch("sh_sc");if(sFKs.length)CH.sh_sc=new Chart(document.getElementById("sh_sc"),{type:"bar",data:{labels:sFKs.map(f=>D.fk_data[f]?.name||f),datasets:[{label:"Điểm",data:sFKs.map(f=>D.fk_data[f].total_score),backgroundColor:sFKs.map(f=>ha(FK_COL[f],.8)),borderColor:sFKs.map(f=>FK_COL[f]),borderWidth:1,borderRadius:4}]},options:co(false)});
-  dch("sh_tc");if(tFKs.length)CH.sh_tc=new Chart(document.getElementById("sh_tc"),{type:"bar",data:{labels:tFKs.map(f=>D.fk_data[f]?.name||f),datasets:[{label:"Điểm",data:tFKs.map(f=>D.fk_data[f].total_score),backgroundColor:tFKs.map(f=>ha(FK_COL[f],.8)),borderColor:tFKs.map(f=>FK_COL[f]),borderWidth:1,borderRadius:4}]},options:co(false)});
+  const rows=CAS.map(c=>{
+    const fks=FK_KEYS.filter(fk=>shAssign[fk]===c.key);
+    const S=fks.reduce((s,fk)=>s+(ds.fk_data[fk]?.total_score||0),0);
+    const C=fks.reduce((s,fk)=>s+(ds.fk_data[fk]?.total_count||0),0);
+    return Object.assign({},c,{fks,S,C});
+  });
+  const tot=rows.reduce((s,r)=>s+r.S,0),ctot=rows.reduce((s,r)=>s+r.C,0);
+  rows.forEach(r=>{r.sp=tot?((r.S/tot)*100).toFixed(1):0;r.cp=ctot?((r.C/ctot)*100).toFixed(1):0;});
+  const lead=rows.reduce((b,r)=>r.S>b.S?r:b,rows[0]);
+  document.getElementById(isKm?"sh_km_stats":"sh_stats").innerHTML=
+    rows.map(r=>`<div class='stat-card ${r.cls}'><div class='stat-lbl'>${r.label}${isKm?' KM':''}</div><div class='stat-val' style='color:${r.col}'>${nn(r.S)}</div><div class='stat-sub'>${nn(r.C)} đơn · ${r.sp}%</div></div>`).join('')
+    +`<div class='stat-card pk'><div class='stat-lbl'>Ca dẫn đầu</div><div class='stat-val pk'>${lead.S>0?lead.label:'-'}</div><div class='stat-sub'>${lead.S>0?nn(lead.S)+' điểm':'-'}</div></div>`;
+  const seg=key=>rows.filter(r=>Number(r[key])>0).map(r=>`<div class='ratio-seg' style='width:${r[key]}%;background:${r.col}'>${r[key]}%</div>`).join('');
+  document.getElementById(isKm?"sh_km_ratio":"sh_ratio").innerHTML=
+    `<div style='font-size:.68rem;color:var(--mu);margin-bottom:5px'>Tỷ lệ ${rows.map(r=>`<b style='color:${r.col}'>${r.label}</b>`).join(' vs ')}</div>`
+    +`<div style='font-size:.65rem;color:var(--mu);margin-bottom:3px'>Điểm:</div><div class='ratio-bar'>${seg('sp')}</div>`
+    +`<div class='ratio-labels'>${rows.map(r=>`<span style='color:${r.col}'>${r.label.replace('Ca ','')} ${nn(r.S)}</span>`).join('')}</div>`
+    +`<div style='font-size:.65rem;color:var(--mu);margin:8px 0 3px'>Số đơn:</div><div class='ratio-bar'>${seg('cp')}</div>`
+    +`<div class='ratio-labels'>${rows.map(r=>`<span style='color:${r.col}'>${r.label.replace('Ca ','')} ${nn(r.C)}</span>`).join('')}</div>`
+    +rows.map(r=>`<div style='margin-top:6px;font-size:.63rem;color:var(--mu)'>${r.label}: <b style='color:${r.col}'>${r.fks.map(f=>ds.fk_data[f]?.name||f).join(', ')||'(chưa gán)'}</b></div>`).join('');
+  const hrcId=isKm?"sh_km_hrc":"sh_hrc";
+  dch(hrcId);
+  const hrDs=rows.filter(r=>r.fks.length).map(r=>({label:r.label,data:Array.from({length:24},(_,h)=>r.fks.reduce((s,fk)=>s+(ds.fk_data[fk]?.hour_counts_gmt7[h]||0),0)),backgroundColor:r.rgba,borderColor:r.col,borderWidth:1,borderRadius:3}));
+  if(hrDs.length)CH[hrcId]=new Chart(document.getElementById(hrcId),{type:"bar",data:{labels:lbl7,datasets:hrDs},options:coL(false)});
+  const chIds=isKm?{sang:"sh_km_sc",trung:"sh_km_tc",gay:"sh_km_gc"}:{sang:"sh_sc",trung:"sh_tc",gay:"sh_gc"};
+  rows.forEach(r=>{
+    const id=chIds[r.key];
+    dch(id);
+    if(!r.fks.length)return;
+    const vals=r.fks.map(f=>isKm?(ds.fk_data[f]?.total_count||0):(ds.fk_data[f]?.total_score||0));
+    CH[id]=new Chart(document.getElementById(id),{type:"bar",data:{labels:r.fks.map(f=>ds.fk_data[f]?.name||f),datasets:[{label:isKm?"Đơn":"Điểm",data:vals,backgroundColor:r.fks.map(f=>ha(FK_COL[f],.8)),borderColor:r.fks.map(f=>FK_COL[f]),borderWidth:1,borderRadius:4}]},options:co(false)});
+  });
 }
 
 // ===== TAB: XẾP HẠNG =====
 function rRank(){
-  document.getElementById("rkpl").textContent="Tháng "+D.month;
+  // Tháng hiện tại: ẩn tên vinh danh từ ngày 1-25 (BXH còn biến động), hiện từ ngày 26; tháng cũ luôn hiện
+  const hideNames=(CUR_MONTH===curMonthKey())&&(new Date().getDate()<=25);
+  document.getElementById("rkpl").innerHTML="Tháng "+D.month+(hideNames?" <span style='color:var(--go);font-size:.85em'>— tên vinh danh sẽ hiển thị từ ngày 26 hàng tháng</span>":"");
   const IMG='https://media.88new11.com/public/new88/site-tong/8d45f036-33ce-42e4-86c7-6b4174a6e109.png';
   function mkTrophyRow(fkList,cid){
     // Đồng bộ logic BXH của bảng Tổng Quan: Tổng (đơn + KM), loại Học Việc/Nghỉ Việc/Về Phép/C.Bộ Phận
@@ -2226,8 +2269,8 @@ function rRank(){
     const ov=slots.map(x=>{
       const fd=D.fk_data[x.fk];
       const stroke="-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff,0 0 10px "+x.nc;
-      // Đứng top nhưng không được điểm CỘNG (do hạng xử lý bất thường thấp) -> ẩn tên khỏi bục
-      const label=(combinedTotal(x.fk)>0&&(cong[x.fk]||0)>0)?fd.name:"";
+      // Ẩn tên khi: (1) ngày 1-25 tháng hiện tại, (2) không có điểm CỘNG (hạng xử lý bất thường thấp)
+      const label=(!hideNames&&combinedTotal(x.fk)>0&&(cong[x.fk]||0)>0)?fd.name:"";
       return "<div style=\"position:absolute;left:"+x.l+";top:"+x.t+";transform:translate(-50%,-50%);text-align:center\"><div style=\"color:"+x.nc+";font-weight:900;font-size:"+x.fs+";text-shadow:"+stroke+";letter-spacing:1px;white-space:nowrap\">"+label+"</div></div>";
     }).join('');
     document.getElementById(cid).innerHTML="<div style=\"position:relative;border-radius:12px;overflow:hidden\"><img src=\""+IMG+"\" style=\"width:100%;display:block\" loading=\"lazy\">"+ov+"</div>";
@@ -2264,6 +2307,11 @@ function rHour(ds){
   CH.h_cnt=new Chart(document.getElementById("h_cnt"),{type:"bar",data:{labels:lbl,datasets:[{label:"Đơn",data:hc7,backgroundColor:hc7.map((_,i)=>i===pc?"rgba(245,158,11,.8)":"rgba(124,58,237,.5)"),borderColor:hc7.map((_,i)=>i===pc?"#f59e0b":"#7c3aed"),borderWidth:1,borderRadius:4}]},options:co(false)});
   dch("h_stk");const aFK=FK_KEYS.filter(fk=>ds.fk_data[fk]?.total_score>0);
   CH.h_stk=new Chart(document.getElementById("h_stk"),{type:"bar",data:{labels:lbl,datasets:aFK.map(fk=>({label:ds.fk_data[fk].name,data:ds.fk_data[fk].hour_scores_gmt7,backgroundColor:ha(FK_COL[fk],.8),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
+  // TB điểm mỗi giờ / ngày (GMT+7): tổng điểm giờ chia số ngày có dữ liệu -> giờ cao điểm trung bình của tháng
+  const nDays=Math.max((ds.days_in_month_d7||ds.days_in_month||[]).length,1);
+  const avg=hs7.map(v=>Math.round(v/nDays));
+  const pa=avg.indexOf(Math.max(...avg));
+  dch("mavg");CH.mavg=new Chart(document.getElementById("mavg"),{type:"bar",data:{labels:lbl,datasets:[{label:"TB điểm/giờ/ngày",data:avg,backgroundColor:avg.map((_,i)=>i===pa?"rgba(245,158,11,.85)":"rgba(6,182,212,.55)"),borderColor:avg.map((_,i)=>i===pa?"#f59e0b":"#06b6d4"),borderWidth:1,borderRadius:4}]},options:co(false)});
 }
 
 function toggleFKColorPicker(){
@@ -2280,13 +2328,7 @@ function updateFKColor(fk,hex){
   FK_COL[fk]=hex;
   const s=JSON.parse(localStorage.getItem('FK_COL_CUSTOM')||'{}');
   s[fk]=hex;localStorage.setItem('FK_COL_CUSTOM',JSON.stringify(s));
-  const ds=curDataSet();if(!ds)return;
-  const lbl=Array.from({length:24},(_,h)=>String(h).padStart(2,'0')+'H');
-  ['h_stk','dvc','doc'].forEach(id=>{if(CH[id]){CH[id].destroy();delete CH[id];}});
-  dch('h_stk');const aFK=FK_KEYS.filter(f=>ds.fk_data[f]?.total_score>0);
-  CH.h_stk=new Chart(document.getElementById('h_stk'),{type:'bar',data:{labels:lbl,datasets:aFK.map(f=>({label:ds.fk_data[f].name,data:ds.fk_data[f].hour_scores_gmt7,backgroundColor:ha(FK_COL[f],.8),borderColor:FK_COL[f],borderWidth:1}))},options:coL(true)});
-  dch('dvc');CH.dvc=new Chart(document.getElementById('dvc'),{type:'bar',data:{labels:lbl,datasets:ds.fkvip.filter(f=>ds.fk_data[f].total_score>0).map(f=>({label:ds.fk_data[f].name,data:ds.fk_data[f].hour_scores_gmt7,backgroundColor:ha(FK_COL[f],.7),borderColor:FK_COL[f],borderWidth:1}))},options:coL(true)});
-  dch('doc');CH.doc=new Chart(document.getElementById('doc'),{type:'bar',data:{labels:lbl,datasets:ds.fkonl.filter(f=>ds.fk_data[f].total_score>0).map(f=>({label:ds.fk_data[f].name,data:ds.fk_data[f].hour_scores_gmt7,backgroundColor:ha(FK_COL[f],.7),borderColor:FK_COL[f],borderWidth:1}))},options:coL(true)});
+  rDataTab(); // vẽ lại toàn bộ chart với màu mới (giữ đúng ngày đang chọn)
 }
 
 rAll();
