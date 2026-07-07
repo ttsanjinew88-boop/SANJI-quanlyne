@@ -554,6 +554,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     <div class="vt-btn active" onclick="skv('overview',this)">Tổng Quan</div>
     <div class="vt-btn" onclick="skv('daily',this)">Duyệt Đơn</div>
     <div class="vt-btn" onclick="skv('anomaly',this)">Bất Thường</div>
+    <div class="vt-btn" onclick="skv('limit',this)">Đề Xuất Hạn Mức Duyệt</div>
   </div>
 
   <!-- VIEW: TỔNG QUAN -->
@@ -566,6 +567,37 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     <div class="sec-hdr" style="color:var(--onl-c);margin-top:22px">FK ONLINE <span class="cnt-badge" id="ovOnlCount">0 người</span></div>
     <div class="mtbl-wrap" style="margin-bottom:8px"><table class="mtbl ko-ov-tbl" id="ovOnlTbl"></table></div>
     <div class="ko-ov-foot" id="ovOnlFoot"></div>
+
+    <!-- Hạn mức duyệt đơn + tiêu chí thưởng phạt + quy tắc điểm -->
+    <div class="g2" style="margin-top:22px">
+      <div class="chart-card">
+        <div class="chart-title" style="color:var(--pu2)">Hạn mức duyệt đơn — Phê duyệt PCQ <span style="font-size:.56rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">(chỉnh trong view Đề Xuất Hạn Mức Duyệt)</span></div>
+        <div class="mtbl-wrap"><table class="mtbl" id="ovLimitTbl"></table></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title" style="color:var(--go)">Tiêu chí cộng thưởng, phạt</div>
+        <table class="mtbl" style="width:100%;margin-bottom:12px">
+          <thead><tr><th style="text-align:left;color:var(--gr)">Tiêu chí thưởng</th><th style="color:var(--gr)">Điểm thưởng</th><th style="text-align:left;color:var(--re)">Tiêu chí phạt</th><th style="color:var(--re)">Điểm phạt</th></tr></thead>
+          <tbody>
+            <tr><td style="text-align:left">Hạng 1 hiệu suất</td><td style="color:var(--gr);font-weight:800">+15</td><td style="text-align:left">TB ngày thấp nhất nhóm (≥15% dưới TB)</td><td style="color:var(--re);font-weight:800">−10</td></tr>
+            <tr><td style="text-align:left">Hạng 2 hiệu suất</td><td style="color:var(--gr);font-weight:800">+10</td><td style="text-align:left">TB ngày thấp thứ 2 (≥8% dưới TB)</td><td style="color:var(--re);font-weight:800">−5</td></tr>
+            <tr><td style="text-align:left">Hạng 3 hiệu suất</td><td style="color:var(--gr);font-weight:800">+5</td><td style="text-align:left" colspan="2"><span style="color:var(--mu)">Miễn phạt nếu hạng xử lý bất thường Top 3</span></td></tr>
+          </tbody>
+        </table>
+        <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:8px 12px;font-size:.62rem;color:var(--go);margin-bottom:14px">
+          Thưởng hiệu suất yêu cầu hạng xử lý bất thường (kiểm tra khách) <b>Top 4 trở lên</b> · Năng suất phải đi đôi với chất lượng — năng suất tốt nhưng chất lượng không đảm bảo thì cũng như không.
+        </div>
+        <div class="chart-title" style="color:var(--pu2)">Qui tắc tính hiệu suất duyệt đơn</div>
+        <table class="mtbl" style="width:100%">
+          <tbody>
+            <tr><td style="text-align:left">Đơn lần 1: 50 – 500</td><td style="color:var(--pu2);font-weight:800">2 điểm</td><td style="text-align:left">Đơn rút tiền thành công (lần thứ, &lt; 100.000)</td><td style="color:var(--pu2);font-weight:800">1 điểm</td></tr>
+            <tr><td style="text-align:left">Đơn lần 1: 501 – 4.999</td><td style="color:var(--pu2);font-weight:800">3 điểm</td><td style="text-align:left">Đơn rút tiền ≥ 100.000</td><td style="color:var(--pu2);font-weight:800">1.5 điểm</td></tr>
+            <tr><td style="text-align:left">Đơn lần 1: 5.000 – 49.999</td><td style="color:var(--pu2);font-weight:800">4 điểm</td><td style="text-align:left">Đơn khuyến mãi thành công + từ chối</td><td style="color:var(--pu2);font-weight:800">1 điểm</td></tr>
+            <tr><td style="text-align:left">Đơn lần 1: 50.000 – 500.000</td><td style="color:var(--pu2);font-weight:800">5 điểm</td><td style="text-align:left"><span style="color:var(--mu)">Đơn trả lại</span></td><td style="color:var(--pu2);font-weight:800">1 điểm</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- VIEW: DUYỆT ĐƠN THEO NGÀY -->
@@ -623,6 +655,17 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     <div class="sec-hdr" style="color:var(--onl-c);font-size:.58rem">FKONL <span class="cnt-badge" id="mktOnlCount">0 người</span></div>
     <div class="mtbl-wrap" id="mktOnlTable"></div>
   </div>
+
+  <!-- VIEW: ĐỀ XUẤT HẠN MỨC DUYỆT -->
+  <div class="ko-view" id="ko-limit" style="display:none">
+    <div class="g3">
+      <div class="chart-card"><div class="chart-title" style="color:var(--pu2)">1. Hiệu suất Duyệt Đơn (điểm tháng)</div><div style="height:190px"><canvas id="lim_don"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title" style="color:var(--gr)">2. Hiệu suất Khuyến Mãi (điểm tháng)</div><div style="height:190px"><canvas id="lim_km"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title" style="color:var(--go)">3. Hiệu suất xử lý Bất Thường (lượt tháng)</div><div style="height:190px"><canvas id="lim_bt"></canvas></div></div>
+    </div>
+    <div class="sec-hdr pu">Bảng đề xuất hạn mức duyệt <span style="font-size:.58rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— % so với người cao nhất trong nhóm · FKVIP tính TB 2 tiêu chí (Đơn + Bất thường) · FKONL tính TB 3 tiêu chí</span></div>
+    <div class="mtbl-wrap"><table class="mtbl" id="limTbl"></table></div>
+  </div>
 </div>
 
 <!-- ============ TAB: PHÂN CA ============ -->
@@ -650,6 +693,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
   <div class="view-toggle" style="margin-bottom:14px">
     <div class="vt-btn active" onclick="sshv('don',this)">Duyệt Đơn</div>
     <div class="vt-btn" onclick="sshv('km',this)">Duyệt Khuyến Mãi</div>
+    <div class="vt-btn" onclick="sshv('work',this)">Công Việc Mỗi Ngày</div>
   </div>
   <div id="sh-don">
     <div class="stats-row" id="sh_stats"></div>
@@ -676,6 +720,21 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
         <div class="chart-card"><div class="chart-title" style="color:#a78bfa">Ca Trung — Đơn KM</div><div style="height:175px"><canvas id="sh_km_tc"></canvas></div></div>
         <div class="chart-card"><div class="chart-title" style="color:#f59e0b">Ca Gãy — Đơn KM</div><div style="height:175px"><canvas id="sh_km_gc"></canvas></div></div>
       </div>
+    </div>
+  </div>
+
+  <!-- CÔNG VIỆC MỖI NGÀY: lưới FK x ngày, phân theo 3 ca, lưu cloud theo tháng -->
+  <div id="sh-work" style="display:none">
+    <div class="chart-card" style="margin-bottom:14px">
+      <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <span>Công việc hằng ngày FK — <span id="wk_month" style="color:var(--pu2)"></span></span>
+        <span id="wk_chips" style="display:flex;gap:6px;flex-wrap:wrap;text-transform:none;letter-spacing:0"></span>
+      </div>
+      <div class="mtbl-wrap"><table class="mtbl" id="wkTbl"></table></div>
+    </div>
+    <div class="g2">
+      <div class="chart-card"><div class="chart-title">Số ngày công việc — thống kê công bằng</div><div class="mtbl-wrap"><table class="mtbl" id="wkSum"></table></div></div>
+      <div class="chart-card"><div class="chart-title">Chú thích công việc</div><div id="wkLegend" style="padding:4px 0"></div></div>
     </div>
   </div>
 </div>
@@ -1234,7 +1293,9 @@ async function bootData(){
   CUR_MONTH=mk;
   try{
     setCloudStatus('Đang tải dữ liệu tháng '+dispMonth(mk)+'...');
-    const[don,km,shift,an]=await Promise.all([SB.loadReport('don',mk),SB.loadReport('km',mk),SB.loadReport('shift',mk),SB.loadReport('anomaly',mk)]);
+    const[don,km,shift,an,wk,lm]=await Promise.all([SB.loadReport('don',mk),SB.loadReport('km',mk),SB.loadReport('shift',mk),SB.loadReport('anomaly',mk),SB.loadReport('work',mk),SB.loadReport('limits',mk)]);
+    WORK=wk||{};
+    LIMITS=lm||{};
     D=don||emptyDataset(mk);
     KMD=km||null;
     if(shift)applyShiftData(shift);
@@ -1358,8 +1419,10 @@ async function loadHistMonth(m){
   document.getElementById("histDdMenu").classList.remove("show");
   try{
     setCloudStatus("Đang tải tháng "+dispMonth(m)+"...");
-    const[don,km,shift,an]=await Promise.all([SB.loadReport("don",m),SB.loadReport("km",m),SB.loadReport("shift",m),SB.loadReport("anomaly",m)]);
+    const[don,km,shift,an,wk,lm]=await Promise.all([SB.loadReport("don",m),SB.loadReport("km",m),SB.loadReport("shift",m),SB.loadReport("anomaly",m),SB.loadReport("work",m),SB.loadReport("limits",m)]);
     CUR_MONTH=m;
+    WORK=wk||{};
+    LIMITS=lm||{};
     D=don||emptyDataset(m);
     KMD=km||null;
     if(shift)applyShiftData(shift);
@@ -2082,6 +2145,16 @@ function rKoOverview(){
   document.getElementById("ovOnlTbl").innerHTML=buildOvTable(D.fkonl);
   document.getElementById("ovVipFoot").innerHTML=ovFootHtml(D.fkvip);
   document.getElementById("ovOnlFoot").innerHTML=ovFootHtml(D.fkonl);
+  // Bảng hạn mức duyệt đơn (dữ liệu nhập ở view Đề Xuất Hạn Mức Duyệt)
+  const lt=document.getElementById('ovLimitTbl');
+  if(lt){
+    const rows=FK_KEYS.filter(fk=>LIMITS[fk]&&(LIMITS[fk].limit||LIMITS[fk].pcq));
+    lt.innerHTML='<thead><tr><th style="text-align:left">NHÂN VIÊN</th><th>Nhóm</th><th>Hạn mức duyệt đơn</th><th>Phê duyệt PCQ</th></tr></thead><tbody>'+
+      (rows.length?rows.map(fk=>{
+        const lm=LIMITS[fk];
+        return `<tr><td style="text-align:left;font-weight:700">${FK_NAMES[fk]}</td><td><span style="color:${fkGrpCol(fk)};font-weight:700">${FKVIP.includes(fk)?'FKVIP':'FKONL'}</span></td><td style="color:var(--go);font-weight:800">${lm.limit||'—'}</td><td style="color:${lm.pcq==='Duyệt'?'#10b981':lm.pcq==='Từ chối'?'#ef4444':'var(--mu)'};font-weight:700">${lm.pcq||'—'}</td></tr>`;
+      }).join(''):'<tr><td colspan="4" style="color:var(--mu);padding:14px">Chưa có hạn mức nào — nhập trong view Đề Xuất Hạn Mức Duyệt</td></tr>')+'</tbody>';
+  }
 }
 
 // ===== TAB: BẤT THƯỜNG THEO NGÀY (2 bảng song song: Abuse + MKT) =====
@@ -2169,7 +2242,85 @@ function rKoAnomaly(){
 function rKO(){
   if(koView==="overview")rKoOverview();
   else if(koView==="daily")rKoDaily();
+  else if(koView==="limit")rKoLimit();
   else rKoAnomaly();
+}
+
+// ===== VIEW: ĐỀ XUẤT HẠN MỨC DUYỆT (lưu cloud theo tháng) =====
+let LIMITS={}; // {fk:{limit:'20.000.000đ', pcq:'Duyệt'}}
+function rKoLimit(){
+  const tbl=document.getElementById('limTbl');
+  if(!tbl)return;
+  const names=fk=>FK_NAMES[fk]||fk;
+  const donV=fk=>D.fk_data[fk]?.total_score||0;
+  const kmV=fk=>KMD?(KMD.fk_data[fk]?.total_score||0):0;
+  const btV=fk=>anCombined(fk);
+  // 3 chart cột: đơn / KM / bất thường (màu theo nhóm VIP cyan - ONL tím)
+  const mk=(id,valFn)=>{
+    dch(id);
+    const fks=FK_KEYS.filter(fk=>valFn(fk)>0);
+    if(!fks.length)return;
+    CH[id]=new Chart(document.getElementById(id),{type:'bar',data:{labels:fks.map(names),datasets:[{label:'Giá trị',data:fks.map(valFn),backgroundColor:fks.map(fk=>ha(fkGrpCol(fk),.75)),borderColor:fks.map(fk=>fkGrpCol(fk)),borderWidth:1,borderRadius:4}]},options:co(false)});
+  };
+  mk('lim_don',donV);mk('lim_km',kmV);mk('lim_bt',btV);
+  // Bảng %: so với max trong nhóm; VIP = TB(đơn, BT); ONL = TB(đơn, KM, BT)
+  const canFix=CUR_PROFILE?canEdit('ko'):false;
+  const pct=(v,max)=>max>0?Math.round(v/max*100):0;
+  const chip=(p,col)=>`<span style="background:${ha(col,.16)};color:${col};border-radius:9px;padding:1px 9px;font-size:.62rem;font-weight:800">${p}%</span>`;
+  let h=`<thead><tr><th>STT</th><th>BỘ PHẬN</th><th style="text-align:left">TÊN NHÂN VIÊN</th><th>Hiệu suất đơn</th><th>%</th><th>Hiệu suất KM</th><th>%</th><th>Hiệu suất bất thường</th><th>%</th><th>Tổng đánh giá</th><th>Hạn mức đang duyệt</th><th>Phê duyệt PCQ</th></tr></thead><tbody>`;
+  let stt=1;
+  [{label:'FKVIP',list:D.fkvip,col:'#06b6d4',useKm:false},{label:'FKONL',list:D.fkonl,col:'#a78bfa',useKm:true}].forEach(g=>{
+    const maxDon=Math.max(...g.list.map(donV),0);
+    const maxKm=Math.max(...g.list.map(kmV),0);
+    const maxBt=Math.max(...g.list.map(btV),0);
+    g.list.forEach((fk,i)=>{
+      const pd=pct(donV(fk),maxDon),pk=pct(kmV(fk),maxKm),pb=pct(btV(fk),maxBt);
+      const total=g.useKm?Math.round((pd+pk+pb)/3):Math.round((pd+pb)/2);
+      const lm=LIMITS[fk]||{};
+      const limitCell=canFix
+        ?`<input type="text" value="${(lm.limit||'').replace(/"/g,'&quot;')}" placeholder="VD: 20.000.000đ" onchange="limSet('${fk}','limit',this.value)" style="background:var(--card2);border:1px solid var(--border2);border-radius:6px;color:var(--go);font-weight:700;font-size:.66rem;padding:4px 8px;width:120px;text-align:center;outline:none">`
+        :`<span style="color:var(--go);font-weight:700">${lm.limit||'—'}</span>`;
+      const pcqCell=canFix
+        ?`<select onchange="limSet('${fk}','pcq',this.value)" style="background:var(--card2);border:1px solid var(--border2);border-radius:6px;color:${lm.pcq==='Duyệt'?'#10b981':lm.pcq==='Từ chối'?'#ef4444':'var(--mu)'};font-weight:700;font-size:.66rem;padding:4px 6px;cursor:pointer;outline:none">
+            <option value="" ${!lm.pcq?'selected':''} style="background:#131830">—</option>
+            <option value="Duyệt" ${lm.pcq==='Duyệt'?'selected':''} style="background:#131830">Duyệt</option>
+            <option value="Từ chối" ${lm.pcq==='Từ chối'?'selected':''} style="background:#131830">Từ chối</option>
+          </select>`
+        :`<span style="color:${lm.pcq==='Duyệt'?'#10b981':lm.pcq==='Từ chối'?'#ef4444':'var(--mu)'};font-weight:700">${lm.pcq||'—'}</span>`;
+      h+=`<tr>`+
+        `<td class="stt">${stt++}</td>`+
+        (i===0?`<td rowspan="${g.list.length}" style="color:${g.col};font-weight:800;vertical-align:middle">${g.label}</td>`:'')+
+        `<td style="text-align:left;font-weight:700;padding-left:9px">${names(fk)}</td>`+
+        `<td>${nn(donV(fk))}</td><td>${chip(pd,'#3b82f6')}</td>`+
+        `<td>${kmV(fk)?nn(kmV(fk)):'-'}</td><td>${g.useKm?chip(pk,'#ec4899'):'<span style="color:var(--mu)">—</span>'}</td>`+
+        `<td>${btV(fk)?nn(btV(fk)):'-'}</td><td>${chip(pb,'#f59e0b')}</td>`+
+        `<td><span style="background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(59,130,246,.25));color:var(--pu2);border-radius:9px;padding:2px 11px;font-size:.68rem;font-weight:900">${total}%</span></td>`+
+        `<td>${limitCell}</td><td>${pcqCell}</td></tr>`;
+    });
+  });
+  h+='</tbody>';
+  tbl.innerHTML=h;
+}
+let _limTimer=null,_limChanges=[];
+function limSet(fk,field,val){
+  if(!canEdit('ko')){alert('Bạn chỉ có quyền XEM.');rKoLimit();return;}
+  if(!LIMITS[fk])LIMITS[fk]={};
+  const old=LIMITS[fk][field]||'';
+  if(old===val)return;
+  LIMITS[fk][field]=val;
+  _limChanges.push((FK_NAMES[fk]||fk)+' · '+(field==='limit'?'hạn mức':'PCQ')+': '+(old||'—')+' → '+(val||'—'));
+  clearTimeout(_limTimer);
+  _limTimer=setTimeout(_saveLimits,1200);
+}
+async function _saveLimits(){
+  if(!SB.ready()||!CUR_MONTH)return;
+  try{
+    await SB.saveReport('limits',CUR_MONTH,LIMITS);
+    setCloudStatus('Đã lưu hạn mức duyệt ✓');
+    const det=_limChanges.join(' | ');_limChanges=[];
+    if(det)logAction('Hạn mức duyệt','Tháng '+dispMonth(CUR_MONTH)+' · '+det.slice(0,600));
+    if(koView==='overview')rKoOverview();
+  }catch(e){console.error('_saveLimits',e);setCloudStatus('Lỗi lưu hạn mức',true);}
 }
 
 // ===== TAB: PHÂN CA =====
@@ -2193,7 +2344,106 @@ function rShiftPanel(){
   document.getElementById("sh_free").textContent=FK_KEYS.filter(fk=>!shAssign[fk]).map(fk=>D.fk_data[fk]?.name||fk).join(", ")||"(không có)";
   rShift();
 }
-function sshv(v,el){shView=v;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");document.getElementById("sh-don").style.display=v==="don"?"block":"none";document.getElementById("sh-km").style.display=v==="km"?"block":"none";rShift();}
+function sshv(v,el){
+  shView=v;
+  el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));
+  el.classList.add("active");
+  document.getElementById("sh-don").style.display=v==="don"?"block":"none";
+  document.getElementById("sh-km").style.display=v==="km"?"block":"none";
+  document.getElementById("sh-work").style.display=v==="work"?"block":"none";
+  if(v==="work")rWork();else rShift();
+}
+
+// ===== CÔNG VIỆC MỖI NGÀY (lưu cloud theo tháng) =====
+let WORK={}; // {fk:{ngày:'DD'|'KM'|'HT'|'OFF'}}
+const WK_CODES={
+  DD:{full:'Duyệt đơn',col:'#10b981'},
+  KM:{full:'Kiểm tra nhóm và duyệt khuyến mãi',col:'#f59e0b'},
+  HT:{full:'Hỗ trợ hoặc làm công việc cấp trên giao',col:'#3b82f6'},
+  OFF:{full:'Nghỉ / không trực',col:'#ef4444'}
+};
+function daysInViewMonth(){const p=(CUR_MONTH||curMonthKey()).split('-');return new Date(+p[0],+p[1],0).getDate();}
+function rWork(){
+  const tbl=document.getElementById('wkTbl');
+  if(!tbl)return;
+  const nD=daysInViewMonth();
+  const canFix=CUR_PROFILE?canEdit('shift'):false;
+  const groups=[
+    {key:'sang',label:'CA SÁNG',col:'#06b6d4'},
+    {key:'gay',label:'CA GÃY',col:'#f59e0b'},
+    {key:'trung',label:'CA TRUNG',col:'#a78bfa'},
+    {key:null,label:'CHƯA PHÂN CA',col:'#64748b'}
+  ];
+  document.getElementById('wk_month').textContent='Tháng '+dispMonth(CUR_MONTH||curMonthKey());
+  document.getElementById('wk_chips').innerHTML=Object.entries(WK_CODES).map(([k,c])=>`<span style="background:${ha(c.col,.18)};color:${c.col};border:1px solid ${c.col};border-radius:10px;padding:1px 9px;font-size:.6rem;font-weight:800">${k}</span>`).join('');
+  let h='<thead><tr><th class="sticky-col">CA</th><th>NHÂN VIÊN</th>';
+  for(let d=1;d<=nD;d++)h+='<th>'+d+'</th>';
+  h+='</tr></thead><tbody>';
+  groups.forEach(g=>{
+    const fks=FK_KEYS.filter(fk=>(shAssign[fk]||null)===g.key);
+    if(!fks.length)return;
+    fks.forEach((fk,i)=>{
+      h+='<tr>';
+      if(i===0)h+=`<td class="sticky-col" rowspan="${fks.length}" style="color:${g.col};font-weight:800;vertical-align:middle;text-align:center">${g.label}</td>`;
+      h+=`<td style="font-weight:700;text-align:left;padding-left:9px">${FK_NAMES[fk]}</td>`;
+      for(let d=1;d<=nD;d++){
+        const v=(WORK[fk]||{})[d]||'';
+        const c=WK_CODES[v];
+        if(canFix){
+          h+=`<td style="padding:2px 1px"><select onchange="wkSet('${fk}',${d},this.value)" style="background:${c?ha(c.col,.22):'var(--card2)'};color:${c?c.col:'var(--mu)'};border:1px solid ${c?c.col:'var(--border)'};border-radius:5px;font-size:.58rem;font-weight:800;padding:2px 0;cursor:pointer;outline:none">`+
+            `<option value="" ${!v?'selected':''} style="background:#131830">–</option>`+
+            Object.keys(WK_CODES).map(k=>`<option value="${k}" ${v===k?'selected':''} style="background:#131830">${k}</option>`).join('')+
+          `</select></td>`;
+        }else{
+          h+=`<td>${c?`<span style="background:${ha(c.col,.18)};color:${c.col};border-radius:8px;padding:1px 6px;font-size:.56rem;font-weight:800">${v}</span>`:'<span style="color:var(--mu)">–</span>'}</td>`;
+        }
+      }
+      h+='</tr>';
+    });
+  });
+  h+='</tbody>';
+  tbl.innerHTML=h;
+  // Bảng thống kê công bằng: đếm số ngày mỗi loại công việc
+  let s='<thead><tr><th style="text-align:left">NHÂN VIÊN</th><th style="color:#f59e0b">KM</th><th style="color:#10b981">DD</th><th style="color:#3b82f6">HT</th><th style="color:#ef4444">OFF</th><th>Tổng ngày làm</th></tr></thead><tbody>';
+  FK_KEYS.forEach(fk=>{
+    const m=WORK[fk]||{};
+    const cnt={KM:0,DD:0,HT:0,OFF:0};
+    Object.values(m).forEach(v=>{if(cnt[v]!==undefined)cnt[v]++;});
+    const total=cnt.KM+cnt.DD+cnt.HT;
+    if(!total&&!cnt.OFF)return;
+    s+=`<tr><td style="text-align:left;font-weight:700">${FK_NAMES[fk]}</td>`+
+      `<td style="color:#f59e0b;font-weight:800">${cnt.KM||'-'}</td>`+
+      `<td style="color:#10b981;font-weight:800">${cnt.DD||'-'}</td>`+
+      `<td style="color:#3b82f6;font-weight:800">${cnt.HT||'-'}</td>`+
+      `<td style="color:#ef4444;font-weight:800">${cnt.OFF||'-'}</td>`+
+      `<td style="font-weight:800;color:var(--pu2)">${total||'-'}</td></tr>`;
+  });
+  s+='</tbody>';
+  document.getElementById('wkSum').innerHTML=s;
+  document.getElementById('wkLegend').innerHTML=Object.entries(WK_CODES).map(([k,c])=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px"><span style="background:${ha(c.col,.18)};color:${c.col};border:1px solid ${c.col};border-radius:10px;padding:3px 14px;font-size:.66rem;font-weight:800;min-width:48px;text-align:center">${k}</span><span style="font-size:.72rem;color:var(--mu2)">${c.full}</span></div>`).join('')
+    +'<div style="font-size:.62rem;color:var(--mu);margin-top:6px">Ghi chú: ghi nhận lại vấn đề trên ca cần lưu ý vào tab Lịch Sử (mọi thay đổi ở lưới này đều được ghi log chi tiết).</div>';
+}
+let _wkTimer=null,_wkChanges=[];
+function wkSet(fk,d,v){
+  if(!canEdit('shift')){alert('Bạn chỉ có quyền XEM.');rWork();return;}
+  const old=(WORK[fk]||{})[d]||'';
+  if(old===v)return;
+  if(!WORK[fk])WORK[fk]={};
+  if(v)WORK[fk][d]=v;else delete WORK[fk][d];
+  _wkChanges.push(FK_NAMES[fk]+' ngày '+d+': '+(old||'–')+' → '+(v||'–'));
+  clearTimeout(_wkTimer);
+  _wkTimer=setTimeout(_saveWork,1200);
+  rWork();
+}
+async function _saveWork(){
+  if(!SB.ready()||!CUR_MONTH)return;
+  try{
+    await SB.saveReport('work',CUR_MONTH,WORK);
+    setCloudStatus('Đã lưu công việc ngày tháng '+dispMonth(CUR_MONTH)+' ✓');
+    const det=_wkChanges.join(' | ');_wkChanges=[];
+    if(det)logAction('Công việc mỗi ngày','Tháng '+dispMonth(CUR_MONTH)+' · '+det.slice(0,600));
+  }catch(e){console.error('_saveWork',e);setCloudStatus('Lỗi lưu công việc ngày',true);}
+}
 function rShift(){
   // 3 ca: Sáng (cyan) / Trung (tím nhạt) / Gãy (hổ phách) — dùng chung cho Duyệt Đơn & KM
   const CAS=[
