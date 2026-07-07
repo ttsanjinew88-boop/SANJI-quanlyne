@@ -505,28 +505,10 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     Chưa có dữ liệu Khuyến Mãi — bấm <b style="color:#10b981">Upload Excel ▾ → Duyệt Khuyến Mãi</b> ở góc trên để tải lên.
   </div>
 
-  <!-- Giờ / Ngày / Tháng — gộp 1 view -->
+  <!-- Ngày / Tháng — gộp 1 view -->
   <div id="dataBody">
-    <div class="data-sub" id="data-hour">
-      <div class="sec-hdr pu">Theo Giờ (cả tháng)</div>
-      <div class="mtbl-wrap" style="margin-bottom:16px"><table class="htbl"><thead><tr><th class="col-g4">GMT−4</th><th class="col-g7">GMT+7</th><th class="col-g7">Điểm</th><th class="col-g7">Số đơn</th><th class="col-g4">Điểm GMT−4</th></tr></thead><tbody id="htblBody"></tbody></table></div>
-      <div class="stats-row" id="h_stats"></div>
-      <div class="g2">
-        <div class="chart-card"><div class="chart-title">Số đơn theo giờ (GMT+7)</div><div style="height:180px"><canvas id="h_cnt"></canvas></div></div>
-        <div class="chart-card"><div class="chart-title">TB điểm mỗi giờ / ngày (GMT+7) — giờ cao điểm của tháng</div><div style="height:180px"><canvas id="mavg"></canvas></div></div>
-      </div>
-      <div class="chart-card" style="margin-bottom:16px">
-        <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <span>Điểm theo giờ (GMT+7) — từng FK</span>
-          <button onclick="toggleFKColorPicker()" style="flex-shrink:0;font-size:.62rem;padding:3px 10px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);color:var(--pu2);border-radius:5px;cursor:pointer;font-weight:700">Tùy chỉnh màu</button>
-        </div>
-        <div id="fk-color-picker" style="display:none;flex-wrap:wrap;gap:6px;padding:8px 0 10px;border-bottom:1px solid var(--border);margin-bottom:8px"></div>
-        <div style="height:240px"><canvas id="h_stk"></canvas></div>
-      </div>
-    </div>
-
     <div class="data-sub" id="data-day">
-      <div class="sec-hdr pu" style="margin-top:6px">Theo Ngày</div>
+      <div class="sec-hdr pu">Theo Ngày</div>
       <div id="dayBtns"></div>
       <div class="stats-row">
         <div class="stat-card pu"><div class="stat-lbl">Tổng điểm ngày</div><div class="stat-val pu" id="d_s">-</div><div class="stat-sub" id="d_ss">-</div></div>
@@ -538,6 +520,13 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       <div class="g21">
         <div class="chart-card"><div class="chart-title">Điểm theo giờ — GMT−4 và GMT+7</div><div style="height:230px"><canvas id="dhc"></canvas></div></div>
         <div class="chart-card"><div class="chart-title">Top 3 giờ (GMT+7)</div><div class="top3-list" id="dt3"></div></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:12px;padding:10px 16px">
+        <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:0">
+          <span>Màu đại diện từng FK (2 chart bên dưới)</span>
+          <button onclick="toggleFKColorPicker()" style="flex-shrink:0;font-size:.62rem;padding:3px 10px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);color:var(--pu2);border-radius:5px;cursor:pointer;font-weight:700">Tùy chỉnh màu</button>
+        </div>
+        <div id="fk-color-picker" style="display:none;flex-wrap:wrap;gap:6px;padding:10px 0 2px"></div>
       </div>
       <div class="g2">
         <div class="chart-card"><div class="chart-title" style="color:var(--vip-c)">FKVIP theo giờ</div><div style="height:200px"><canvas id="dvc"></canvas></div></div>
@@ -553,6 +542,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
         <div class="stat-card pk"><div class="stat-lbl">FK dẫn đầu ONL</div><div class="stat-val pk" id="m_to">-</div><div class="stat-sub" id="m_tos">-</div></div>
       </div>
       <div class="chart-card" style="margin-bottom:16px"><div class="chart-title">Điểm theo ngày</div><div style="height:200px"><canvas id="mdc"></canvas></div></div>
+      <div class="chart-card" style="margin-bottom:16px"><div class="chart-title">TB thời gian cao điểm trong tháng (GMT+7) — điểm trung bình mỗi giờ / ngày</div><div style="height:200px"><canvas id="mavg"></canvas></div></div>
     </div>
 
   </div>
@@ -1790,8 +1780,7 @@ function rDataTab(){
   const empty=document.getElementById("dataEmptyKm"),body=document.getElementById("dataBody");
   if(dataSrc==="km"&&!ds){empty.style.display="block";body.style.display="none";return;}
   empty.style.display="none";body.style.display="block";
-  // Giờ / Ngày / Tháng — render tất cả trong 1 view
-  rHour(ds);
+  // Ngày / Tháng — render trong 1 view
   const days=ds.days_in_month_d7||ds.days_in_month||[];
   if(!selDay&&days.length)selDay=days[0];
   bldDayBtns(ds);
@@ -1858,6 +1847,12 @@ function rMonth(ds){
   document.getElementById("m_tv").textContent=vs[0]?ds.fk_data[vs[0]].name:"-";document.getElementById("m_tvs").textContent=vs[0]?nn(ds.fk_data[vs[0]].total_score)+" điểm":"-";
   document.getElementById("m_to").textContent=os[0]?ds.fk_data[os[0]].name:"-";document.getElementById("m_tos").textContent=os[0]?nn(ds.fk_data[os[0]].total_score)+" điểm":"-";
   dch("mdc");CH.mdc=new Chart(document.getElementById("mdc"),{type:"bar",data:{labels:actD.map(d=>""+d),datasets:[{label:"Điểm",data:actD.map(d=>dayScores[d-1]),backgroundColor:actD.map(d=>d===pd?"rgba(245,158,11,.85)":"rgba(124,58,237,.55)"),borderColor:actD.map(d=>d===pd?"#f59e0b":"#7c3aed"),borderWidth:1,borderRadius:4}]},options:co(false)});
+  // TB thời gian cao điểm trong tháng (GMT+7): tổng điểm từng giờ chia số ngày -> cột vàng = giờ cao điểm TB
+  const nDays=Math.max(actD.length,1);
+  const hlbl=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
+  const avg=ds.hour_scores_gmt7.map(v=>Math.round(v/nDays));
+  const pa=avg.indexOf(Math.max(...avg));
+  dch("mavg");CH.mavg=new Chart(document.getElementById("mavg"),{type:"bar",data:{labels:hlbl,datasets:[{label:"TB điểm/giờ/ngày",data:avg,backgroundColor:avg.map((_,i)=>i===pa?"rgba(245,158,11,.85)":"rgba(6,182,212,.55)"),borderColor:avg.map((_,i)=>i===pa?"#f59e0b":"#06b6d4"),borderWidth:1,borderRadius:4}]},options:co(false)});
 }
 
 // ===== TAB: HIỆU SUẤT DUYỆT ĐƠN (FKVIP / FKONL gộp 1 bảng, xếp hạng riêng biệt) =====
@@ -2290,28 +2285,6 @@ function rDC(fk){
   if(dCh)dCh.destroy();
   const col=FK_COL[fk]||"#7c3aed",actD=(D.days_in_month||[]).filter(d=>D.day_scores[d-1]>0);
   dCh=new Chart(document.getElementById("dp_ch"),{type:"bar",data:{labels:actD.map(d=>""+d),datasets:[{label:"Điểm",data:actD.map(d=>fd.day_scores[d-1]),backgroundColor:ha(col,.7),borderColor:col,borderWidth:1,borderRadius:4}]},options:co(false)});
-}
-
-// ===== TAB: THEO GIỜ =====
-function rHour(ds){
-  ds=ds||curDataSet();if(!ds)return;
-  const hs7=ds.hour_scores_gmt7,hs4=ds.hour_scores_gmt4,hc7=ds.hour_counts_gmt7;
-  const peak7=hs7.indexOf(Math.max(...hs7)),peak4=hs4.indexOf(Math.max(...hs4));
-  let rows="";
-  for(let h4=0;h4<24;h4++){const h7=(h4+GMT_OFFSET)%24,s4=hs4[h4]||0,s7=hs7[h7]||0,c7=hc7[h7]||0;if(!s4&&!s7&&!c7)continue;const pk7=h7===peak7,pk4=h4===peak4;rows+="<tr><td class='"+(pk4?"peak":"")+"'>"+String(h4).padStart(2,"0")+"H"+(pk4?" ⭐":"")+"</td><td class='"+(pk7?"peak":"")+"'>"+String(h7).padStart(2,"0")+"H"+(pk7?" ⭐":"")+"</td><td class='"+(pk7?"peak":s7>20000?"hi":s7>10000?"md":"")+"'>"+(s7?nn(s7):"-")+"</td><td>"+(c7?nn(c7):"-")+"</td><td style='color:#64748b'>"+(s4?nn(s4):"-")+"</td></tr>";}
-  document.getElementById("htblBody").innerHTML=rows;
-  const top5=hs7.map((s,i)=>({h:i,s,c:hc7[i]})).sort((a,b)=>b.s-a.s).slice(0,5);
-  document.getElementById("h_stats").innerHTML=top5.map((x,i)=>"<div class='stat-card "+(i===0?"go":i===1?"pu":"bl")+"'><div class='stat-lbl'>Top "+(i+1)+"</div><div class='stat-val "+(i===0?"go":i===1?"pu":"bl")+"'>"+String(x.h).padStart(2,"0")+"H</div><div class='stat-sub'>"+nn(x.s)+" điểm · "+nn(x.c)+" đơn</div></div>").join("");
-  const lbl=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
-  dch("h_cnt");const pc=ds.hour_counts_gmt7.indexOf(Math.max(...ds.hour_counts_gmt7));
-  CH.h_cnt=new Chart(document.getElementById("h_cnt"),{type:"bar",data:{labels:lbl,datasets:[{label:"Đơn",data:hc7,backgroundColor:hc7.map((_,i)=>i===pc?"rgba(245,158,11,.8)":"rgba(124,58,237,.5)"),borderColor:hc7.map((_,i)=>i===pc?"#f59e0b":"#7c3aed"),borderWidth:1,borderRadius:4}]},options:co(false)});
-  dch("h_stk");const aFK=FK_KEYS.filter(fk=>ds.fk_data[fk]?.total_score>0);
-  CH.h_stk=new Chart(document.getElementById("h_stk"),{type:"bar",data:{labels:lbl,datasets:aFK.map(fk=>({label:ds.fk_data[fk].name,data:ds.fk_data[fk].hour_scores_gmt7,backgroundColor:ha(FK_COL[fk],.8),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
-  // TB điểm mỗi giờ / ngày (GMT+7): tổng điểm giờ chia số ngày có dữ liệu -> giờ cao điểm trung bình của tháng
-  const nDays=Math.max((ds.days_in_month_d7||ds.days_in_month||[]).length,1);
-  const avg=hs7.map(v=>Math.round(v/nDays));
-  const pa=avg.indexOf(Math.max(...avg));
-  dch("mavg");CH.mavg=new Chart(document.getElementById("mavg"),{type:"bar",data:{labels:lbl,datasets:[{label:"TB điểm/giờ/ngày",data:avg,backgroundColor:avg.map((_,i)=>i===pa?"rgba(245,158,11,.85)":"rgba(6,182,212,.55)"),borderColor:avg.map((_,i)=>i===pa?"#f59e0b":"#06b6d4"),borderWidth:1,borderRadius:4}]},options:co(false)});
 }
 
 function toggleFKColorPicker(){
