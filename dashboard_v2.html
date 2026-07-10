@@ -554,7 +554,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     <div class="vt-btn active" onclick="skv('overview',this)">Tổng Quan</div>
     <div class="vt-btn" onclick="skv('daily',this)">Duyệt Đơn</div>
     <div class="vt-btn" onclick="skv('anomaly',this)">Bất Thường</div>
-    <div class="vt-btn" onclick="skv('limit',this)">Đề Xuất Hạn Mức Duyệt</div>
+    <div class="vt-btn" id="koLimitBtn" onclick="skv('limit',this)">Đề Xuất Hạn Mức Duyệt</div>
   </div>
 
   <!-- VIEW: TỔNG QUAN -->
@@ -663,7 +663,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       <div class="chart-card"><div class="chart-title" style="color:var(--gr)">2. Hiệu suất Khuyến Mãi (điểm tháng)</div><div style="height:190px"><canvas id="lim_km"></canvas></div></div>
       <div class="chart-card"><div class="chart-title" style="color:var(--go)">3. Hiệu suất xử lý Bất Thường (lượt tháng)</div><div style="height:190px"><canvas id="lim_bt"></canvas></div></div>
     </div>
-    <div class="sec-hdr pu">Bảng đề xuất hạn mức duyệt <span style="font-size:.58rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— % so với người cao nhất trong nhóm · FKVIP tính TB 2 tiêu chí (Đơn + Bất thường) · FKONL tính TB 3 tiêu chí</span></div>
+    <div class="sec-hdr pu">Bảng đề xuất hạn mức duyệt <span style="font-size:.58rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— % so với người cao nhất trong nhóm · Tổng đánh giá = trung bình 3 tiêu chí (Đơn + KM + Bất thường)</span></div>
     <div class="mtbl-wrap"><table class="mtbl" id="limTbl"></table></div>
   </div>
 </div>
@@ -978,6 +978,22 @@ setInterval(function(){
     AUTH.logout();
   }
 },5*60*1000);
+// Auto-sync 60s: nút Xác Nhận Telegram cộng điểm thẳng lên cloud -> kéo về máy đang mở, khỏi F5
+setInterval(async function(){
+  if(!CUR_PROFILE||!SB.ready()||!CUR_MONTH||document.hidden||_anDirty)return;
+  try{
+    const an=await SB.loadReport('anomaly',CUR_MONTH);
+    const fresh=(an&&an.abuse)?an:{abuse:{},mkt:{}};
+    if(_anDirty)return; // vừa có chỉnh tay trong lúc chờ mạng -> bỏ lượt sync này
+    if(JSON.stringify(fresh)!==JSON.stringify(KO_AN)){
+      KO_AN=fresh;
+      setCloudStatus('Đã đồng bộ điểm bất thường mới từ Telegram ✓');
+      const act=document.querySelector('.pg.active')?.id;
+      if(act==='pg-ko')rKO();
+      if(act==='pg-rank')rRank();
+    }
+  }catch(e){}
+},60*1000);
 function curPerms(){
   if(!CUR_PROFILE)return{};
   if(CUR_PROFILE.is_admin)return{data:true,ko:true,shift:true,rank:true,bc:true};
@@ -1001,6 +1017,9 @@ function applyPerms(){
   // Tab Nghi Ngờ trong BC tool: chỉ ADMIN
   const tsus=document.getElementById('bcTabSuspect');
   if(tsus)tsus.style.display=p.is_admin?'':'none';
+  // View Đề Xuất Hạn Mức Duyệt: chỉ quyền SỬA tab Hiệu Suất KO mới thấy
+  const klb=document.getElementById('koLimitBtn');
+  if(klb)klb.style.display=canEdit('ko')?'':'none';
   const chip=document.getElementById('userChip');
   document.getElementById('userChipName').textContent=(p.username||'').toUpperCase()+' · '+roleOf(p).label;
   chip.style.display='flex';
@@ -1457,8 +1476,9 @@ const KO_AN_KEY="fk_ko_anomaly_grid_v1"; // chỉ còn dùng để di trú dữ 
 const AN_CATS={abuse:"Cược bất thường — Lạm dụng",mkt:"Đại lý ngoài — MKT bất thường"};
 function loadKoAnLegacy(){try{const d=JSON.parse(localStorage.getItem(KO_AN_KEY));return d&&d.abuse?d:{abuse:{},mkt:{}};}catch(e){return {abuse:{},mkt:{}};}}
 let KO_AN={abuse:{},mkt:{}};
-let _anTimer=null;
+let _anTimer=null,_anDirty=false;
 function saveKoAn(){
+  _anDirty=true; // đang có thay đổi cục bộ chưa lưu -> tạm dừng auto-sync để không bị ghi đè
   clearTimeout(_anTimer);
   _anTimer=setTimeout(_saveKoAnCloud,1200);
 }
@@ -1466,6 +1486,7 @@ async function _saveKoAnCloud(){
   if(!SB.ready()||!CUR_PROFILE||!CUR_MONTH)return;
   try{
     await SB.saveReport('anomaly',CUR_MONTH,KO_AN);
+    _anDirty=false;
     setCloudStatus('Đã lưu bất thường tháng '+dispMonth(CUR_MONTH)+' ✓');
     const det=_anChanges.map(c=>(FK_NAMES[c.fk]||c.fk)+' · '+(c.cat==='mkt'?'Đại lý ngoài':'Cược lạm dụng')+' · ngày '+c.day+': '+c.from+' → '+c.to).join(' | ');
     _anChanges=[];
@@ -2251,6 +2272,7 @@ let LIMITS={}; // {fk:{limit:'20.000.000đ', pcq:'Duyệt'}}
 function rKoLimit(){
   const tbl=document.getElementById('limTbl');
   if(!tbl)return;
+  if(CUR_PROFILE&&!canEdit('ko')){tbl.innerHTML='<tbody><tr><td style="padding:16px;color:var(--mu)">Chỉ tài khoản có quyền SỬA tab Hiệu Suất KO mới xem được mục này.</td></tr></tbody>';return;}
   const names=fk=>FK_NAMES[fk]||fk;
   const donV=fk=>D.fk_data[fk]?.total_score||0;
   const kmV=fk=>KMD?(KMD.fk_data[fk]?.total_score||0):0;
@@ -2266,16 +2288,17 @@ function rKoLimit(){
   // Bảng %: so với max trong nhóm; VIP = TB(đơn, BT); ONL = TB(đơn, KM, BT)
   const canFix=CUR_PROFILE?canEdit('ko'):false;
   const pct=(v,max)=>max>0?Math.round(v/max*100):0;
-  const chip=(p,col)=>`<span style="background:${ha(col,.16)};color:${col};border-radius:9px;padding:1px 9px;font-size:.62rem;font-weight:800">${p}%</span>`;
-  let h=`<thead><tr><th>STT</th><th>BỘ PHẬN</th><th style="text-align:left">TÊN NHÂN VIÊN</th><th>Hiệu suất đơn</th><th>%</th><th>Hiệu suất KM</th><th>%</th><th>Hiệu suất bất thường</th><th>%</th><th>Tổng đánh giá</th><th>Hạn mức đang duyệt</th><th>Phê duyệt PCQ</th></tr></thead><tbody>`;
+  // Ô % dạng thanh bar màu (giống Excel): thanh dài theo %, 3 màu 3 tiêu chí
+  const chip=(p,col)=>`<td style="min-width:74px;padding:4px 6px"><div style="position:relative;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:4px;height:17px;overflow:hidden"><div style="position:absolute;left:0;top:0;bottom:0;width:${p}%;background:linear-gradient(90deg,${ha(col,.7)},${ha(col,.45)})"></div><span style="position:relative;display:block;text-align:center;font-size:.6rem;font-weight:800;color:var(--tx);line-height:16px">${p}%</span></div></td>`;
+  let h=`<thead><tr><th>STT</th><th>BỘ PHẬN</th><th style="text-align:left">TÊN NHÂN VIÊN</th><th>Hiệu suất đơn</th><th style="color:#3b82f6">%</th><th>Hiệu suất KM</th><th style="color:#ec4899">%</th><th>Hiệu suất bất thường</th><th style="color:#f59e0b">%</th><th>Tổng đánh giá</th><th>Hạn mức đang duyệt</th><th>Phê duyệt PCQ</th></tr></thead><tbody>`;
   let stt=1;
-  [{label:'FKVIP',list:D.fkvip,col:'#06b6d4',useKm:false},{label:'FKONL',list:D.fkonl,col:'#a78bfa',useKm:true}].forEach(g=>{
+  [{label:'FKVIP',list:D.fkvip,col:'#06b6d4'},{label:'FKONL',list:D.fkonl,col:'#a78bfa'}].forEach(g=>{
     const maxDon=Math.max(...g.list.map(donV),0);
     const maxKm=Math.max(...g.list.map(kmV),0);
     const maxBt=Math.max(...g.list.map(btV),0);
     g.list.forEach((fk,i)=>{
       const pd=pct(donV(fk),maxDon),pk=pct(kmV(fk),maxKm),pb=pct(btV(fk),maxBt);
-      const total=g.useKm?Math.round((pd+pk+pb)/3):Math.round((pd+pb)/2);
+      const total=Math.round((pd+pk+pb)/3); // cả 2 nhóm: TB 3 tiêu chí
       const lm=LIMITS[fk]||{};
       const limitCell=canFix
         ?`<input type="text" value="${(lm.limit||'').replace(/"/g,'&quot;')}" placeholder="VD: 20.000.000đ" onchange="limSet('${fk}','limit',this.value)" style="background:var(--card2);border:1px solid var(--border2);border-radius:6px;color:var(--go);font-weight:700;font-size:.66rem;padding:4px 8px;width:120px;text-align:center;outline:none">`
@@ -2291,9 +2314,9 @@ function rKoLimit(){
         `<td class="stt">${stt++}</td>`+
         (i===0?`<td rowspan="${g.list.length}" style="color:${g.col};font-weight:800;vertical-align:middle">${g.label}</td>`:'')+
         `<td style="text-align:left;font-weight:700;padding-left:9px">${names(fk)}</td>`+
-        `<td>${nn(donV(fk))}</td><td>${chip(pd,'#3b82f6')}</td>`+
-        `<td>${kmV(fk)?nn(kmV(fk)):'-'}</td><td>${g.useKm?chip(pk,'#ec4899'):'<span style="color:var(--mu)">—</span>'}</td>`+
-        `<td>${btV(fk)?nn(btV(fk)):'-'}</td><td>${chip(pb,'#f59e0b')}</td>`+
+        `<td>${nn(donV(fk))}</td>${chip(pd,'#3b82f6')}`+
+        `<td>${kmV(fk)?nn(kmV(fk)):'-'}</td>${chip(pk,'#ec4899')}`+
+        `<td>${btV(fk)?nn(btV(fk)):'-'}</td>${chip(pb,'#f59e0b')}`+
         `<td><span style="background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(59,130,246,.25));color:var(--pu2);border-radius:9px;padding:2px 11px;font-size:.68rem;font-weight:900">${total}%</span></td>`+
         `<td>${limitCell}</td><td>${pcqCell}</td></tr>`;
     });
@@ -2342,7 +2365,7 @@ function rShiftPanel(){
     el.innerHTML=inCa.map(fk=>"<div class='fk-chip "+ca+"' onclick='toggleFK(\""+fk+"\",\""+ca+"\")'>"+(D.fk_data[fk]?.name||fk)+" ✖</div>").join("")+"<div style='font-size:.58rem;color:var(--mu);padding:3px 0;width:100%'>+ thêm:</div>"+free.map(fk=>"<div class='fk-chip free' onclick='toggleFK(\""+fk+"\",\""+ca+"\")'>"+(D.fk_data[fk]?.name||fk)+" +</div>").join("");
   });
   document.getElementById("sh_free").textContent=FK_KEYS.filter(fk=>!shAssign[fk]).map(fk=>D.fk_data[fk]?.name||fk).join(", ")||"(không có)";
-  rShift();
+  if(shView==="work")rWork();else rShift(); // đổi phân ca -> lưới Công Việc Mỗi Ngày xếp lại ca ngay lập tức
 }
 function sshv(v,el){
   shView=v;
@@ -2391,8 +2414,8 @@ function rWork(){
         const c=WK_CODES[v];
         if(canFix){
           h+=`<td style="padding:2px 1px"><select onchange="wkSet('${fk}',${d},this.value)" style="background:${c?ha(c.col,.22):'var(--card2)'};color:${c?c.col:'var(--mu)'};border:1px solid ${c?c.col:'var(--border)'};border-radius:5px;font-size:.58rem;font-weight:800;padding:2px 0;cursor:pointer;outline:none">`+
-            `<option value="" ${!v?'selected':''} style="background:#131830">–</option>`+
-            Object.keys(WK_CODES).map(k=>`<option value="${k}" ${v===k?'selected':''} style="background:#131830">${k}</option>`).join('')+
+            `<option value="" ${!v?'selected':''} style="background:#131830;color:#64748b">–</option>`+
+            Object.keys(WK_CODES).map(k=>`<option value="${k}" ${v===k?'selected':''} style="background:${ha(WK_CODES[k].col,.25)};color:${WK_CODES[k].col};font-weight:800">${k}</option>`).join('')+
           `</select></td>`;
         }else{
           h+=`<td>${c?`<span style="background:${ha(c.col,.18)};color:${c.col};border-radius:8px;padding:1px 6px;font-size:.56rem;font-weight:800">${v}</span>`:'<span style="color:var(--mu)">–</span>'}</td>`;
