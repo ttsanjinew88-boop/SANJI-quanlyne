@@ -202,6 +202,11 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .fk-chip.sang{border-color:var(--cy);color:var(--cy);background:rgba(6,182,212,.1)}
 .fk-chip.trung{border-color:#a78bfa;color:#a78bfa;background:rgba(167,139,250,.1)}
 .fk-chip.gay{border-color:#f59e0b;color:#f59e0b;background:rgba(245,158,11,.1)}
+/* Nền phân biệt 3 ca trong lưới Công Việc Mỗi Ngày (galaxy nhạt) */
+.wk-sang td{background:rgba(59,130,246,.10)!important}
+.wk-gay td{background:rgba(239,68,68,.08)!important}
+.wk-trung td{background:rgba(124,58,237,.10)!important}
+.wk-none td{background:rgba(100,116,139,.06)!important}
 .fk-chip.free{color:var(--mu)}
 .fk-chip:hover{border-color:var(--pu)}
 
@@ -523,10 +528,10 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
   <div id="dataBody">
     <!-- THỐNG KÊ KHUYẾN MÃI: chỉ hiện khi đang xem nguồn Khuyến Mãi -->
     <div class="data-sub" id="data-kmstat" style="display:none">
-      <div class="sec-hdr" style="color:#10b981">Thống Kê Khuyến Mãi</div>
+      <div class="sec-hdr" style="color:#10b981">Thống Kê Khuyến Mãi <span style="font-size:.56rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— chia ngày theo GMT−4</span></div>
       <div class="chart-card" style="margin-bottom:16px">
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:14px" id="kmstatCards"></div>
-        <div id="kmstatChWrap" style="height:215px"><canvas id="kmstatCh"></canvas></div>
+        <div class="mtbl-wrap" id="kmstatTblWrap"><table class="mtbl" id="kmstatTbl"></table></div>
         <div id="kmstatNote" style="display:none;font-size:.68rem;color:var(--mu);padding:14px;text-align:center">Dữ liệu KM này được lưu trước khi có tính năng thống kê — <b style="color:#10b981">upload lại file Khuyến Mãi</b> để xem đầy đủ.</div>
       </div>
     </div>
@@ -761,8 +766,47 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       <div class="mtbl-wrap"><table class="mtbl" id="wkTbl"></table></div>
     </div>
     <div class="g2">
-      <div class="chart-card"><div class="chart-title">Số ngày công việc — thống kê công bằng</div><div class="mtbl-wrap"><table class="mtbl" id="wkSum"></table></div></div>
-      <div class="chart-card"><div class="chart-title">Chú thích công việc</div><div id="wkLegend" style="padding:4px 0"></div></div>
+      <div class="chart-card">
+        <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+          <span>Số ngày công việc — thống kê công bằng</span>
+          <button onclick="wkOffOpen()" style="font-size:.62rem;padding:4px 12px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:#f87171;border-radius:5px;cursor:pointer;font-weight:700">Báo cáo OFF / Chuyển ngày</button>
+        </div>
+        <div class="mtbl-wrap"><table class="mtbl" id="wkSum"></table></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Chú thích công việc</div>
+        <div id="wkLegend" style="padding:4px 0"></div>
+        <div class="chart-title" style="margin-top:14px;color:#f87171">Báo cáo OFF / chuyển ngày gần đây</div>
+        <div id="wkReports" style="font-size:.66rem;color:var(--mu2)"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: BÁO CÁO OFF ĐỘT XUẤT / CHUYỂN NGÀY OFF -->
+<div id="wkOffModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9998;align-items:center;justify-content:center">
+  <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:22px;width:min(460px,95vw);box-shadow:0 16px 48px rgba(0,0,0,.6)">
+    <div style="font-size:.85rem;font-weight:800;color:#f87171;margin-bottom:12px">Báo cáo OFF đột xuất / Chuyển ngày OFF</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <select class="adm-inp" id="wkOffFk" style="width:100%"></select>
+      <select class="adm-inp" id="wkOffType" style="width:100%" onchange="wkOffTypeChange()">
+        <option value="half">OFF đột xuất 0.5 ngày (không đổi bảng phân công, chỉ trừ Tổng ngày làm)</option>
+        <option value="full">OFF đột xuất 1 ngày (cập nhật bảng + tự cân bằng lại từ ngày đó)</option>
+        <option value="move">Chuyển ngày OFF (đổi ngày OFF sang ngày khác + tự cân bằng)</option>
+      </select>
+      <div style="display:flex;gap:10px;align-items:center">
+        <label style="font-size:.68rem;color:var(--mu2);min-width:110px" id="wkOffDayLbl">Ngày OFF:</label>
+        <select class="adm-inp" id="wkOffDay" style="flex:1"></select>
+      </div>
+      <div style="display:none;gap:10px;align-items:center" id="wkOffToRow">
+        <label style="font-size:.68rem;color:var(--mu2);min-width:110px">Chuyển OFF sang ngày:</label>
+        <select class="adm-inp" id="wkOffTo" style="flex:1"></select>
+      </div>
+    </div>
+    <div id="wkOffMsg" style="font-size:.68rem;min-height:16px;margin:10px 0;font-weight:600"></div>
+    <div style="display:flex;gap:10px">
+      <button class="upload-btn" onclick="wkOffConfirm()">Xác nhận báo cáo</button>
+      <button onclick="document.getElementById('wkOffModal').style.display='none'" style="padding:8px 18px;background:transparent;border:1px solid var(--border2);color:var(--mu2);border-radius:8px;cursor:pointer;font-size:.72rem;font-weight:700">Đóng</button>
     </div>
   </div>
 </div>
@@ -1902,14 +1946,14 @@ function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
       // GMT+7 display tracking (pd4 + 11h = GMT+7)
       const pd7=new Date(pd.getTime()-3600000);
       const day_gmt7=pd7.getDate();
-      // Thống kê KM (đếm MỌI dòng, kể cả không nhận diện được FK):
+      // Thống kê KM (đếm MỌI dòng, kể cả không nhận diện được FK) — chia ngày theo GMT-4 (độc lập với KM Theo Ngày):
       // cột Q (idx 16) Lý do từ chối: có chữ = từ chối, trống = thành công; cột L (idx 11) Điểm thưởng
       const rejTxt=String(row[16]||"").trim();
-      if(rejTxt){nd.kmstat.rej[day_gmt7-1]++;}
+      if(rejTxt){nd.kmstat.rej[day-1]++;}
       else{
-        nd.kmstat.ok[day_gmt7-1]++;
+        nd.kmstat.ok[day-1]++;
         const reward=typeof row[11]==="number"?row[11]:(parseFloat(String(row[11]||"").replace(/[^0-9.\-]/g,""))||0);
-        nd.kmstat.reward[day_gmt7-1]+=reward;
+        nd.kmstat.reward[day-1]+=reward;
       }
       fk=mfk(String(row[17]||""));
       if(!fk)continue;
@@ -2052,12 +2096,11 @@ function rKmStat(ds){
   box.style.display='block';
   const cards=document.getElementById('kmstatCards');
   const note=document.getElementById('kmstatNote');
-  const wrap=document.getElementById('kmstatChWrap');
+  const wrap=document.getElementById('kmstatTblWrap');
   if(!ds.kmstat){
     cards.innerHTML='';
     wrap.style.display='none';
     note.style.display='block';
-    dch('kmstatCh');
     return;
   }
   note.style.display='none';wrap.style.display='block';
@@ -2066,18 +2109,20 @@ function rKmStat(ds){
   const rate=(ok+rej)?Math.round(ok/(ok+rej)*100):0;
   cards.innerHTML=
     `<div class='stat-card gr'><div class='stat-lbl'>KM thành công</div><div class='stat-val gr'>${nn(ok)}</div><div class='stat-sub'>đơn được duyệt (cột Lý do từ chối trống)</div></div>`+
-    `<div class='stat-card' style='--c:#ef4444'><div class='stat-lbl'>KM từ chối</div><div class='stat-val' style='color:#ef4444'>${nn(rej)}</div><div class='stat-sub'>đơn bị từ chối (có lý do)</div></div>`+
+    `<div class='stat-card pk'><div class='stat-lbl'>KM từ chối</div><div class='stat-val' style='color:#ef4444'>${nn(rej)}</div><div class='stat-sub'>đơn bị từ chối (có lý do)</div></div>`+
     `<div class='stat-card bl'><div class='stat-lbl'>Tỷ lệ thành công</div><div class='stat-val bl'>${rate}%</div><div class='stat-sub'>${nn(ok)} / ${nn(ok+rej)} đơn</div></div>`+
     `<div class='stat-card go'><div class='stat-lbl'>Tiền thưởng đã phát</div><div class='stat-val go'>${nn(Math.round(rw))}</div><div class='stat-sub'>tổng cột Điểm thưởng của đơn thành công</div></div>`;
-  const actD=ds.days_in_month_d7||ds.days_in_month||[];
-  const opts=coL(false);
-  opts.scales.y1={position:'right',grid:{display:false},ticks:{color:'#f0b429',font:{size:9}}};
-  dch('kmstatCh');
-  CH.kmstatCh=new Chart(document.getElementById('kmstatCh'),{type:'bar',data:{labels:actD.map(d=>''+d),datasets:[
-    {label:'Thành công',data:actD.map(d=>st.ok[d-1]),backgroundColor:'rgba(16,185,129,.65)',borderColor:'#10b981',borderWidth:1,borderRadius:3},
-    {label:'Từ chối',data:actD.map(d=>st.rej[d-1]),backgroundColor:'rgba(239,68,68,.6)',borderColor:'#ef4444',borderWidth:1,borderRadius:3},
-    {label:'Tiền thưởng (trục phải)',type:'line',data:actD.map(d=>Math.round(st.reward[d-1])),borderColor:'#f0b429',backgroundColor:'rgba(240,180,41,.1)',yAxisID:'y1',tension:.35,pointRadius:2,borderWidth:2}
-  ]},options:opts});
+  // Bảng số theo ngày GMT-4: ngày nào có đơn thì hiện
+  const days=[];
+  for(let d=1;d<=31;d++)if(st.ok[d-1]||st.rej[d-1])days.push(d);
+  const tbl=document.getElementById('kmstatTbl');
+  if(!days.length){tbl.innerHTML='<tbody><tr><td style="padding:12px;color:var(--mu)">Chưa có dữ liệu ngày nào.</td></tr></tbody>';return;}
+  tbl.innerHTML='<thead><tr><th>Ngày (GMT−4)</th><th style="color:#10b981">Thành công</th><th style="color:#ef4444">Từ chối</th><th>Tổng đơn</th><th>Tỷ lệ TC</th><th style="color:var(--go)">Tiền thưởng đã phát</th></tr></thead><tbody>'+
+    days.map(d=>{
+      const o=st.ok[d-1],j=st.rej[d-1],t=o+j;
+      return `<tr><td style="font-weight:800">${d}</td><td style="color:#10b981;font-weight:700">${nn(o)}</td><td style="color:#ef4444;font-weight:700">${j?nn(j):'-'}</td><td>${nn(t)}</td><td>${t?Math.round(o/t*100):0}%</td><td style="color:var(--go);font-weight:800">${nn(Math.round(st.reward[d-1]))}</td></tr>`;
+    }).join('')+
+    `<tr class="total-row"><td style="font-weight:900">TỔNG</td><td style="font-weight:900;color:#10b981">${nn(ok)}</td><td style="font-weight:900;color:#ef4444">${nn(rej)}</td><td style="font-weight:900">${nn(ok+rej)}</td><td style="font-weight:900">${rate}%</td><td style="font-weight:900;color:var(--go)">${nn(Math.round(rw))}</td></tr></tbody>`;
 }
 function rAll(){
   const act=document.querySelector(".pg.active")?.id;
@@ -2317,7 +2362,8 @@ function buildOvTable(fkList){
     const ov=ovGet(fk);
     const isExcl=EXCL.includes(ov.khac);
     const ctot=combinedTotal(fk);
-    const wd=ov.wd!=null?ov.wd:ovWorkDays(fk);
+    // Ngày làm việc: điền tay (ưu tiên) > Tổng ngày làm từ lưới Công Việc Mỗi Ngày > suy từ ngày có điểm
+    const wd=ov.wd!=null?ov.wd:(typeof wkTotalDays==='function'&&wkTotalDays(fk)>0?wkTotalDays(fk):ovWorkDays(fk));
     const avg=wd?Math.round(ctot/wd):0;
     const pct=isExcl?"-":Math.round(ctot/grpTotal*1000)/10+"%";
     const barPct=Math.round(ctot/maxTotal*100);
@@ -2614,7 +2660,7 @@ function rWork(){
     const fks=FK_KEYS.filter(fk=>(shAssign[fk]||null)===g.key);
     if(!fks.length)return;
     fks.forEach((fk,i)=>{
-      h+='<tr>';
+      h+=`<tr class="wk-${g.key||'none'}">`;
       if(i===0)h+=`<td class="sticky-col" rowspan="${fks.length}" style="color:${g.col};font-weight:800;vertical-align:middle;text-align:center">${g.label}</td>`;
       h+=`<td style="font-weight:700;text-align:left;padding-left:9px">${FK_NAMES[fk]}</td>`;
       for(let d=1;d<=nD;d++){
@@ -2639,46 +2685,63 @@ function rWork(){
   FK_KEYS.forEach(fk=>{
     const m=WORK[fk]||{};
     const cnt={KM:0,DD:0,HT:0,OFF:0};
-    Object.values(m).forEach(v=>{if(cnt[v]!==undefined)cnt[v]++;});
-    const total=cnt.KM+cnt.DD+cnt.HT;
-    if(!total&&!cnt.OFF)return;
+    Object.keys(m).forEach(d=>{const v=m[d];if(cnt[v]!==undefined)cnt[v]++;});
+    const half=wkHalfCount(fk);
+    const total=wkTotalDays(fk);
+    if(!total&&!cnt.OFF&&!half)return;
     s+=`<tr><td style="text-align:left;font-weight:700">${FK_NAMES[fk]}</td>`+
       `<td style="color:#f59e0b;font-weight:800">${cnt.KM||'-'}</td>`+
       `<td style="color:#10b981;font-weight:800">${cnt.DD||'-'}</td>`+
       `<td style="color:#3b82f6;font-weight:800">${cnt.HT||'-'}</td>`+
-      `<td style="color:#ef4444;font-weight:800">${cnt.OFF||'-'}</td>`+
+      `<td style="color:#ef4444;font-weight:800">${cnt.OFF||'-'}${half?`<span style="font-size:.55rem;color:var(--mu)"> +${half}×0.5</span>`:''}</td>`+
       `<td style="font-weight:800;color:var(--pu2)">${total||'-'}</td></tr>`;
   });
   s+='</tbody>';
   document.getElementById('wkSum').innerHTML=s;
   document.getElementById('wkLegend').innerHTML=Object.entries(WK_CODES).map(([k,c])=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px"><span style="background:${ha(c.col,.18)};color:${c.col};border:1px solid ${c.col};border-radius:10px;padding:3px 14px;font-size:.66rem;font-weight:800;min-width:48px;text-align:center">${k}</span><span style="font-size:.72rem;color:var(--mu2)">${c.full}</span></div>`).join('')
-    +'<div style="font-size:.62rem;color:var(--mu);margin-top:6px">Ghi chú: ghi nhận lại vấn đề trên ca cần lưu ý vào tab Lịch Sử (mọi thay đổi ở lưới này đều được ghi log chi tiết).</div>';
+    +'<div style="font-size:.62rem;color:var(--mu);margin-top:6px">Tổng ngày làm = KM + DD + HT − 0.5 × số lần OFF nửa ngày · Tổng này tự cập nhật vào cột "Ngày làm việc" ở Tổng Quan.</div>';
+  // Bảng báo cáo OFF / chuyển ngày gần đây
+  const reps=(WORK._reports||[]).slice(-10).reverse();
+  const repEl=document.getElementById('wkReports');
+  if(repEl)repEl.innerHTML=reps.length?reps.map(r=>{
+    const t=new Date(r.at).toLocaleString('vi-VN',{timeZone:'Asia/Bangkok',hour12:false,day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const what=r.type==='half'?`OFF đột xuất <b style="color:#f87171">0.5 ngày</b> (ngày ${r.day})`:r.type==='full'?`OFF đột xuất <b style="color:#f87171">1 ngày</b> (ngày ${r.day})`:`Chuyển OFF <b style="color:var(--go)">ngày ${r.day} → ${r.to}</b>`;
+    return `<div style="padding:5px 0;border-bottom:1px solid rgba(30,37,69,.5)"><b style="color:var(--tx)">${FK_NAMES[r.fk]||r.fk}</b> · ${what} · <span style="color:var(--mu)">${t} · bởi ${(r.by||'').toUpperCase()}</span></div>`;
+  }).join(''):'<div style="color:var(--mu);padding:5px 0">Chưa có báo cáo nào trong tháng.</div>';
 }
 // ===== TỰ ĐỘNG PHÂN CÔNG: chia đều DD/KM/HT theo từng ca, giữ nguyên OFF =====
 // Luật: mỗi ngày mỗi ca 1 KM + 1 HT (nếu đủ người), còn lại DD; ngẫu nhiên nhưng cân bằng;
 //       Thứ 2: mỗi nhân viên tối đa 1 lần KM trong tháng
-function wkAutoAssign(){
-  if(!canEdit('shift')){alert('Bạn chỉ có quyền XEM.');return;}
+// Lõi phân công tự động từ ngày startDay đến cuối tháng.
+// Ưu tiên cân bằng: KM và DD đều nhất có thể trước, sau đó tới HT.
+// Giữ nguyên OFF; ngày trước startDay giữ nguyên và được đếm vào bộ đếm cân bằng.
+function wkAssignCore(startDay){
   const nD=daysInViewMonth();
-  if(!confirm('TỰ ĐỘNG PHÂN CÔNG tháng '+dispMonth(CUR_MONTH||curMonthKey())+'?\n\n— Giữ nguyên các ô OFF đã điền\n— Các ô còn lại chia đều: mỗi ngày mỗi ca 1 KM + 1 HT, còn lại DD\n— Thứ 2: mỗi người tối đa 1 lần KM/tháng\n\nPhân công cũ (không phải OFF) sẽ bị GHI ĐÈ.'))return;
   const parts=(CUR_MONTH||curMonthKey()).split('-');
   const y=+parts[0],mo=+parts[1];
   const isMon=d=>new Date(y,mo-1,d).getDay()===1;
-  const kmCount={},htCount={},kmMon={};
-  FK_KEYS.forEach(fk=>{kmCount[fk]=0;htCount[fk]=0;kmMon[fk]=0;});
-  // xóa phân công cũ, giữ OFF
+  const kmCount={},htCount={},ddCount={},kmMon={};
+  FK_KEYS.forEach(fk=>{kmCount[fk]=0;htCount[fk]=0;ddCount[fk]=0;kmMon[fk]=0;});
   FK_KEYS.forEach(fk=>{
     const m2=WORK[fk]||{};
-    Object.keys(m2).forEach(d=>{if(m2[d]!=='OFF')delete m2[d];});
+    // đếm các ngày đã chốt trước startDay để cân bằng tiếp nối
+    for(let d=1;d<startDay;d++){
+      const v=m2[d];
+      if(v==='KM'){kmCount[fk]++;if(isMon(d))kmMon[fk]++;}
+      else if(v==='HT')htCount[fk]++;
+      else if(v==='DD')ddCount[fk]++;
+    }
+    // xóa phân công từ startDay trở đi, giữ OFF
+    for(let d=startDay;d<=nD;d++){if(m2[d]&&m2[d]!=='OFF')delete m2[d];}
   });
   ['sang','gay','trung'].forEach(ca=>{
     const members=FK_KEYS.filter(fk=>shAssign[fk]===ca);
     if(!members.length)return;
-    for(let d=1;d<=nD;d++){
+    for(let d=startDay;d<=nD;d++){
       const avail=members.filter(fk=>((WORK[fk]||{})[d])!=='OFF');
       if(!avail.length)continue;
       const mon=isMon(d);
-      // KM: người ít KM nhất; thứ 2 loại người đã có KM-thứ-2 (không ai đủ điều kiện -> ngày đó ca này không có KM)
+      // KM (ưu tiên 1): người ít KM nhất; thứ 2 loại người đã có KM-thứ-2
       const kmPool=avail.filter(fk=>!mon||kmMon[fk]<1);
       let kmPick=null;
       if(kmPool.length){
@@ -2686,27 +2749,109 @@ function wkAutoAssign(){
         const cands=kmPool.filter(fk=>kmCount[fk]===min);
         kmPick=cands[Math.floor(Math.random()*cands.length)];
       }
-      // HT: người ít HT nhất, khác người làm KM
+      // HT (ưu tiên 3): người ít HT nhất; hòa nhau -> ưu tiên người đang NHIỀU DD (để DD đều lại)
       let htPick=null;
       const htPool=avail.filter(fk=>fk!==kmPick);
       if(htPool.length){
         const min=Math.min(...htPool.map(fk=>htCount[fk]));
-        const cands=htPool.filter(fk=>htCount[fk]===min);
+        let cands=htPool.filter(fk=>htCount[fk]===min);
+        const maxDd=Math.max(...cands.map(fk=>ddCount[fk]));
+        cands=cands.filter(fk=>ddCount[fk]===maxDd);
         htPick=cands[Math.floor(Math.random()*cands.length)];
       }
       avail.forEach(fk=>{
         if(!WORK[fk])WORK[fk]={};
         if(fk===kmPick){WORK[fk][d]='KM';kmCount[fk]++;if(mon)kmMon[fk]++;}
         else if(fk===htPick){WORK[fk][d]='HT';htCount[fk]++;}
-        else WORK[fk][d]='DD';
+        else{WORK[fk][d]='DD';ddCount[fk]++;}
       });
     }
   });
+}
+function wkAutoAssign(){
+  if(!canEdit('shift')){alert('Bạn chỉ có quyền XEM.');return;}
+  if(!confirm('TỰ ĐỘNG PHÂN CÔNG tháng '+dispMonth(CUR_MONTH||curMonthKey())+'?\n\n— Giữ nguyên các ô OFF đã điền\n— Mỗi ngày mỗi ca: 1 KM + 1 HT, còn lại DD — ưu tiên chia đều KM và DD trước, HT sau\n— Thứ 2: mỗi người tối đa 1 lần KM/tháng\n\nPhân công cũ (không phải OFF) sẽ bị GHI ĐÈ.'))return;
+  wkAssignCore(1);
   _wkChanges.push('Tự Động Phân Công toàn tháng');
   clearTimeout(_wkTimer);
   _wkTimer=setTimeout(_saveWork,800);
   rWork();
   setCloudStatus('Đã tự động phân công tháng '+dispMonth(CUR_MONTH)+' ✓');
+}
+// Cân bằng lại từ 1 ngày (sau báo cáo OFF/chuyển ngày) — chỉ khi lưới đã có phân công
+function wkRebalanceFrom(startDay){
+  const hasPlan=FK_KEYS.some(fk=>Object.values(WORK[fk]||{}).some(v=>v&&v!=='OFF'));
+  if(hasPlan)wkAssignCore(startDay);
+}
+// Tổng ngày làm của 1 FK trong tháng = KM+DD+HT − 0.5 × số báo cáo OFF nửa ngày
+function wkHalfCount(fk){return ((WORK&&WORK._reports)||[]).filter(r=>r.fk===fk&&r.type==='half').length;}
+function wkTotalDays(fk){
+  const m2=(WORK&&WORK[fk])||{};
+  let t=0;
+  Object.keys(m2).forEach(d=>{const v=m2[d];if(v==='KM'||v==='DD'||v==='HT')t++;});
+  return t?t-wkHalfCount(fk)*0.5:0;
+}
+// ===== BÁO CÁO OFF ĐỘT XUẤT / CHUYỂN NGÀY OFF =====
+// Quyền XEM tab Phân Ca vẫn dùng được chức năng này (mục đích: nhân viên tự báo)
+function wkOffOpen(){
+  if(!CUR_PROFILE||!canView('shift')){alert('Bạn cần quyền xem tab Phân Ca.');return;}
+  const nD=daysInViewMonth();
+  document.getElementById('wkOffFk').innerHTML='<option value="">-- Chọn nhân viên --</option>'+FK_KEYS.map(fk=>`<option value="${fk}">${FK_NAMES[fk]}</option>`).join('');
+  const dayOpts='<option value="">-- Chọn ngày --</option>'+Array.from({length:nD},(_,i)=>`<option value="${i+1}">Ngày ${i+1}</option>`).join('');
+  document.getElementById('wkOffDay').innerHTML=dayOpts;
+  document.getElementById('wkOffTo').innerHTML=dayOpts;
+  document.getElementById('wkOffType').value='half';
+  wkOffTypeChange();
+  document.getElementById('wkOffMsg').textContent='';
+  document.getElementById('wkOffModal').style.display='flex';
+}
+function wkOffTypeChange(){
+  const t=document.getElementById('wkOffType').value;
+  document.getElementById('wkOffToRow').style.display=t==='move'?'flex':'none';
+  document.getElementById('wkOffDayLbl').textContent=t==='move'?'Ngày đang OFF:':'Ngày OFF:';
+}
+async function wkOffConfirm(){
+  const msg=document.getElementById('wkOffMsg');
+  const fk=document.getElementById('wkOffFk').value;
+  const type=document.getElementById('wkOffType').value;
+  const d=Number(document.getElementById('wkOffDay').value);
+  const to=Number(document.getElementById('wkOffTo').value);
+  msg.style.color='var(--re)';
+  if(!fk){msg.textContent='Chưa chọn nhân viên';return;}
+  if(!d){msg.textContent='Chưa chọn ngày';return;}
+  if(type==='move'){
+    if(!to){msg.textContent='Chưa chọn ngày chuyển tới';return;}
+    if(to===d){msg.textContent='Ngày chuyển tới phải khác ngày đang OFF';return;}
+    if(((WORK[fk]||{})[d])!=='OFF'){msg.textContent=FK_NAMES[fk]+' không OFF vào ngày '+d+' — kiểm tra lại';return;}
+    if(((WORK[fk]||{})[to])==='OFF'){msg.textContent='Ngày '+to+' đã là ngày OFF sẵn';return;}
+  }
+  const by=(CUR_PROFILE.username||'').toUpperCase();
+  if(!WORK._reports)WORK._reports=[];
+  const rec={fk,type,day:d,at:new Date().toISOString(),by:CUR_PROFILE.username};
+  if(type==='half'){
+    WORK._reports.push(rec);
+    logAction('Báo cáo OFF đột xuất','0.5 ngày · '+FK_NAMES[fk]+' · ngày '+d+'/'+dispMonth(CUR_MONTH)+' · bởi '+by+' (không đổi bảng phân công, trừ 0.5 vào Tổng ngày làm)');
+  }else if(type==='full'){
+    if(!WORK[fk])WORK[fk]={};
+    WORK[fk][d]='OFF';
+    WORK._reports.push(rec);
+    wkRebalanceFrom(d);
+    logAction('Báo cáo OFF đột xuất','1 ngày · '+FK_NAMES[fk]+' · ngày '+d+'/'+dispMonth(CUR_MONTH)+' · bởi '+by+' · đã tự cân bằng phân công từ ngày '+d);
+  }else{
+    rec.to=to;
+    delete WORK[fk][d];
+    if(!WORK[fk])WORK[fk]={};
+    WORK[fk][to]='OFF';
+    WORK._reports.push(rec);
+    const from=Math.min(d,to);
+    wkRebalanceFrom(from);
+    logAction('Chuyển ngày OFF',FK_NAMES[fk]+' · từ ngày '+d+' sang ngày '+to+'/'+dispMonth(CUR_MONTH)+' · bởi '+by+' · đã tự cân bằng từ ngày '+from);
+  }
+  clearTimeout(_wkTimer);
+  _wkTimer=setTimeout(_saveWork,600);
+  rWork();
+  document.getElementById('wkOffModal').style.display='none';
+  setCloudStatus('Đã ghi nhận báo cáo OFF ✓');
 }
 
 // ===== DÁN TỪ EXCEL (phân công / điểm duyệt đơn / điểm KM) =====
@@ -3110,7 +3255,7 @@ rAll();
       <span class="bc-bt-lbl">Đính kèm file / hình ảnh (tuỳ chọn):</span>
       <label class="bc-cu-file-label" id="bc-cu-drop"
         ondragover="BC.onCuDrag(event,true)" ondragleave="BC.onCuDrag(event,false)" ondrop="BC.onCuDrop(event)">
-        <input type="file" id="bc-cu-file" accept="image/*,.xlsx,.xls,.pdf,.zip,.rar,.doc,.docx" onchange="BC.onCuFile(this)">
+        <input type="file" id="bc-cu-file" multiple accept="image/*,.xlsx,.xls,.pdf,.zip,.rar,.doc,.docx" onchange="BC.onCuFile(this)">
         <div class="bc-cu-dz-icon">↑</div>
         <div class="bc-cu-dz-main">Kéo thả file / hình ảnh vào đây</div>
         <div class="bc-cu-dz-sub">hoặc dán ảnh bằng <kbd style="background:#e5e7eb;border-radius:3px;padding:1px 5px;font-size:10px;font-family:inherit">Ctrl+V</kbd>&nbsp;·&nbsp;hoặc bấm để chọn file</div>
@@ -3790,32 +3935,49 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
   },
 
   // ---- Báo cáo cược bất thường ----
-  _selCuFk:null, _cuFile:null, _cuPaste:null,
+  _selCuFk:null, _cuFiles:[], _cuPaste:null,
 
-  _cuSetFile(f){
+  /* Hỗ trợ NHIỀU file/ảnh cùng lúc: chọn, kéo thả, dán nhiều lần đều gom vào danh sách */
+  _cuAddFile(f){
     if(!f)return;
-    BC._cuFile=f;
+    BC._cuFiles.push(f);
+    BC._cuRenderFiles();
+  },
+  _cuRemoveFile(i){
+    BC._cuFiles.splice(i,1);
+    BC._cuRenderFiles();
+  },
+  _cuRenderFiles(){
     const dz=document.getElementById('bc-cu-drop');
     const nm=document.getElementById('bc-cu-fname');
-    const size=f.size>1024*1024?(f.size/1024/1024).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB';
-    nm.textContent=`${f.name||'paste.png'} (${size})`;
-    dz.classList.add('bc-cu-has-file');
-    /* hide default text, show only filename */
     const icon=dz.querySelector('.bc-cu-dz-icon');
     const main=dz.querySelector('.bc-cu-dz-main');
     const sub=dz.querySelector('.bc-cu-dz-sub');
+    if(!BC._cuFiles.length){
+      nm.innerHTML='';
+      dz.classList.remove('bc-cu-has-file');
+      if(icon){icon.style.display='';icon.textContent='↑';}
+      if(main){main.style.display='';main.textContent='Kéo thả file / hình ảnh vào đây';}
+      if(sub)sub.style.display='';
+      return;
+    }
+    dz.classList.add('bc-cu-has-file');
     if(icon)icon.style.display='none';
-    if(main)main.textContent='Đã chọn file';
+    if(main)main.textContent='Đã chọn '+BC._cuFiles.length+' file (thêm tiếp được)';
     if(sub)sub.style.display='none';
+    nm.innerHTML=BC._cuFiles.map((f,i)=>{
+      const size=f.size>1024*1024?(f.size/1024/1024).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB';
+      return `<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:3px"><span>${(f.name||'paste.png')} (${size})</span><b style="color:#ef4444;cursor:pointer" onclick="event.preventDefault();event.stopPropagation();BC._cuRemoveFile(${i})">✕</b></div>`;
+    }).join('');
   },
 
   openCuModal(){
     if(CUR_PROFILE&&!canEdit('bc')){alert('Bạn chỉ có quyền XEM, không được gửi báo cáo.');return;}
-    BC._selCuFk=null;BC._cuFile=null;
+    BC._selCuFk=null;BC._cuFiles=[];
     document.querySelectorAll('.bc-cu-chip').forEach(c=>c.classList.remove('sel'));
     document.getElementById('bc-cu-content').value='';
     document.getElementById('bc-cu-file').value='';
-    document.getElementById('bc-cu-fname').textContent='';
+    document.getElementById('bc-cu-fname').innerHTML='';
     const _dz=document.getElementById('bc-cu-drop');
     _dz.classList.remove('bc-cu-has-file');
     const _dzIcon=_dz.querySelector('.bc-cu-dz-icon');
@@ -3836,7 +3998,7 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
         if(it.type.startsWith('image/')){
           const f=it.getAsFile();
           if(f){
-            BC._cuSetFile(new File([f],`paste_${Date.now()}.png`,{type:f.type}));
+            BC._cuAddFile(new File([f],`paste_${Date.now()}.png`,{type:f.type}));
             e.preventDefault();
             e.stopPropagation();
           }
@@ -3857,21 +4019,20 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
     document.querySelectorAll('.bc-cu-chip').forEach(c=>c.classList.toggle('sel',c.textContent===fk));
   },
 
-  onCuFile(inp){if(inp.files[0])BC._cuSetFile(inp.files[0]);},
+  onCuFile(inp){Array.from(inp.files||[]).forEach(f=>BC._cuAddFile(f));inp.value='';},
 
   onCuDrag(e,on){e.preventDefault();document.getElementById('bc-cu-drop').classList.toggle('drag',on);},
 
   onCuDrop(e){
     e.preventDefault();
     document.getElementById('bc-cu-drop').classList.remove('drag');
-    const f=e.dataTransfer?.files[0];
-    if(f)BC._cuSetFile(f);
+    Array.from(e.dataTransfer?.files||[]).forEach(f=>BC._cuAddFile(f));
   },
 
   async sendCuocBatThuong(){
     if(!BC._selCuFk){alert('Vui lòng chọn nhân viên phụ trách (FK)!');return;}
     const content=document.getElementById('bc-cu-content').value.trim();
-    const file=BC._cuFile;
+    const files=BC._cuFiles.slice();
     const status=document.getElementById('bc-cu-status');
     const btn=document.getElementById('bc-cu-send-btn');
     btn.disabled=true;
@@ -3896,17 +4057,22 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
         {text:'✅ Xác Nhận',callback_data:`cf|${fkKey}|${isoDate}|a|1|${rid}`},
         {text:'❌ Hủy Bỏ',callback_data:`dm|${fkKey}|${isoDate}|${rid}`}
       ]]};
-      let msgId=null;
-      if(file){
-        const isImg=file.type.startsWith('image/');
-        const fd=new FormData();
-        fd.append('chat_id',G2);
-        fd.append('caption',txt);
-        fd.append(isImg?'photo':'document',file,file.name);
-        const r=await fetch(`${BOT}/${isImg?'sendPhoto':'sendDocument'}`,{method:'POST',body:fd});
-        const res=await r.json();
-        if(res.ok)msgId=res.result.message_id;
-        else throw new Error(res.description||'Lỗi gửi file');
+      /* Nhiều file: gửi lần lượt — caption ở file ĐẦU, nút Xác Nhận gắn vào tin CUỐI */
+      let lastMsgId=null;
+      if(files.length){
+        for(let i=0;i<files.length;i++){
+          const f=files[i];
+          const isImg=(f.type||'').startsWith('image/');
+          const fd=new FormData();
+          fd.append('chat_id',G2);
+          if(i===0)fd.append('caption',txt+(files.length>1?`\n📎 ${files.length} file đính kèm`:''));
+          fd.append(isImg?'photo':'document',f,f.name||('file_'+(i+1)));
+          status.textContent='Đang gửi file '+(i+1)+'/'+files.length+'...';
+          const r=await fetch(`${BOT}/${isImg?'sendPhoto':'sendDocument'}`,{method:'POST',body:fd});
+          const res=await r.json();
+          if(!res.ok)throw new Error(res.description||('Lỗi gửi file '+(i+1)));
+          lastMsgId=res.result.message_id;
+        }
       }else{
         /* Không có file → gửi text với inline keyboard thẳng */
         const r=await fetch(`${BOT}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},
@@ -3914,10 +4080,10 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
         const res=await r.json();
         if(!res.ok)throw new Error(res.description||'Lỗi gửi tin');
       }
-      /* Gắn keyboard bằng editMessageReplyMarkup (chỉ khi có file) */
-      if(msgId){
+      /* Gắn keyboard vào tin cuối cùng */
+      if(lastMsgId){
         await fetch(`${BOT}/editMessageReplyMarkup`,{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({chat_id:G2,message_id:msgId,reply_markup:rm})});
+          body:JSON.stringify({chat_id:G2,message_id:lastMsgId,reply_markup:rm})});
       }
       status.style.color='#22c55e';status.textContent='Đã gửi thành công vào 2 nhóm!';
       setTimeout(()=>BC.closeCuModal(),1800);
