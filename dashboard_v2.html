@@ -202,11 +202,11 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .fk-chip.sang{border-color:var(--cy);color:var(--cy);background:rgba(6,182,212,.1)}
 .fk-chip.trung{border-color:#a78bfa;color:#a78bfa;background:rgba(167,139,250,.1)}
 .fk-chip.gay{border-color:#f59e0b;color:#f59e0b;background:rgba(245,158,11,.1)}
-/* Nền phân biệt 3 ca trong lưới Công Việc Mỗi Ngày (galaxy nhạt) */
-.wk-sang td{background:rgba(59,130,246,.10)!important}
-.wk-gay td{background:rgba(239,68,68,.08)!important}
-.wk-trung td{background:rgba(124,58,237,.10)!important}
-.wk-none td{background:rgba(100,116,139,.06)!important}
+/* Nền phân biệt 3 ca trong lưới Công Việc Mỗi Ngày (galaxy) */
+.wk-sang td{background:rgba(59,130,246,.22)!important}
+.wk-gay td{background:rgba(239,68,68,.18)!important}
+.wk-trung td{background:rgba(124,58,237,.22)!important}
+.wk-none td{background:rgba(100,116,139,.12)!important}
 .fk-chip.free{color:var(--mu)}
 .fk-chip:hover{border-color:var(--pu)}
 
@@ -531,6 +531,9 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       <div class="sec-hdr" style="color:#10b981">Thống Kê Khuyến Mãi <span style="font-size:.56rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— chia ngày theo GMT−4</span></div>
       <div class="chart-card" style="margin-bottom:16px">
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:14px" id="kmstatCards"></div>
+        <div class="chart-title" id="kmstatPromoHdr" style="color:var(--cy)">Theo từng khuyến mãi</div>
+        <div class="mtbl-wrap" style="margin-bottom:16px"><table class="mtbl" id="kmstatPromoTbl"></table></div>
+        <div class="chart-title">Theo ngày (GMT−4)</div>
         <div class="mtbl-wrap" id="kmstatTblWrap"><table class="mtbl" id="kmstatTbl"></table></div>
         <div id="kmstatNote" style="display:none;font-size:.68rem;color:var(--mu);padding:14px;text-align:center">Dữ liệu KM này được lưu trước khi có tính năng thống kê — <b style="color:#10b981">upload lại file Khuyến Mãi</b> để xem đầy đủ.</div>
       </div>
@@ -1674,7 +1677,10 @@ function loadKoOv(){try{return JSON.parse(localStorage.getItem(KO_OV_KEY))||{};}
 function saveKoOv(){localStorage.setItem(KO_OV_KEY,JSON.stringify(KO_OV));}
 let KO_OV=loadKoOv();
 function ovGet(fk){return {cong:0,tru:0,khac:"",note:"",wd:null,...(KO_OV[fk]||{})};}
-function ovSet(fk,field,val){if(!KO_OV[fk])KO_OV[fk]={cong:0,tru:0,khac:"",note:"",wd:null};KO_OV[fk][field]=val;saveKoOv();}
+function ovSet(fk,field,val){
+  if(typeof CUR_PROFILE!=='undefined'&&CUR_PROFILE&&typeof canEdit==='function'&&!canEdit('ko')){alert('Bạn chỉ có quyền XEM tab Hiệu Suất KO.');return;}
+  if(!KO_OV[fk])KO_OV[fk]={cong:0,tru:0,khac:"",note:"",wd:null};KO_OV[fk][field]=val;saveKoOv();
+}
 
 // ===== KO: BẢNG BẤT THƯỜNG THEO NGÀY (2 danh mục) — lưu CLOUD theo tháng =====
 const KO_AN_KEY="fk_ko_anomaly_grid_v1"; // chỉ còn dùng để di trú dữ liệu cũ 1 lần
@@ -1907,7 +1913,7 @@ function initAccum(){
     _daySet:new Set(), _mSet:new Set(),
     _day7Raw:new Array(31).fill(0), day_counts_d7:new Array(31).fill(0), _d7Set:new Set(),
     _hbd7:m31x24(), cbd7:m31x24(), // điểm & số đơn theo [ngày][giờ GMT+7] — cho view Theo Ngày
-    kmstat:{ok:new Array(31).fill(0),rej:new Array(31).fill(0),reward:new Array(31).fill(0)} // KM: thành công/từ chối/tiền thưởng theo ngày
+    kmstat:{ok:new Array(31).fill(0),rej:new Array(31).fill(0),reward:new Array(31).fill(0),promos:{}} // KM: thành công/từ chối/tiền thưởng theo ngày + theo từng mã KM
   };
   FK_KEYS.forEach(fk=>{
     nd.fk_data[fk]={
@@ -1949,11 +1955,14 @@ function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
       // Thống kê KM (đếm MỌI dòng, kể cả không nhận diện được FK) — chia ngày theo GMT-4 (độc lập với KM Theo Ngày):
       // cột Q (idx 16) Lý do từ chối: có chữ = từ chối, trống = thành công; cột L (idx 11) Điểm thưởng
       const rejTxt=String(row[16]||"").trim();
-      if(rejTxt){nd.kmstat.rej[day-1]++;}
+      const promoName=String(row[14]||"").trim()||"(không mã)"; // cột O: Mã khuyến mãi — tách riêng NV1/NV2...
+      if(!nd.kmstat.promos[promoName])nd.kmstat.promos[promoName]={ok:0,rej:0,reward:0};
+      const P=nd.kmstat.promos[promoName];
+      if(rejTxt){nd.kmstat.rej[day-1]++;P.rej++;}
       else{
-        nd.kmstat.ok[day-1]++;
+        nd.kmstat.ok[day-1]++;P.ok++;
         const reward=typeof row[11]==="number"?row[11]:(parseFloat(String(row[11]||"").replace(/[^0-9.\-]/g,""))||0);
-        nd.kmstat.reward[day-1]+=reward;
+        nd.kmstat.reward[day-1]+=reward;P.reward+=reward;
       }
       fk=mfk(String(row[17]||""));
       if(!fk)continue;
@@ -2004,7 +2013,16 @@ function mergeAccum(base,add){
   for(let i=0;i<31;i++){base._dayRaw[i]+=add._dayRaw[i];base.day_counts[i]+=add.day_counts[i];base._day7Raw[i]+=add._day7Raw[i];base.day_counts_d7[i]+=add.day_counts_d7[i];}
   for(let i=0;i<24;i++){base._hr7Raw[i]+=add._hr7Raw[i];base.hour_counts_gmt7[i]+=add.hour_counts_gmt7[i];base._hr4Raw[i]+=add._hr4Raw[i];base.hour_counts_gmt4[i]+=add.hour_counts_gmt4[i];}
   for(let d=0;d<31;d++)for(let h=0;h<24;h++){base._hbd7[d][h]+=add._hbd7[d][h];base.cbd7[d][h]+=add.cbd7[d][h];}
-  if(base.kmstat&&add.kmstat)for(let i=0;i<31;i++){base.kmstat.ok[i]+=add.kmstat.ok[i];base.kmstat.rej[i]+=add.kmstat.rej[i];base.kmstat.reward[i]+=add.kmstat.reward[i];}
+  if(base.kmstat&&add.kmstat){
+    for(let i=0;i<31;i++){base.kmstat.ok[i]+=add.kmstat.ok[i];base.kmstat.rej[i]+=add.kmstat.rej[i];base.kmstat.reward[i]+=add.kmstat.reward[i];}
+    if(add.kmstat.promos){
+      if(!base.kmstat.promos)base.kmstat.promos={};
+      Object.entries(add.kmstat.promos).forEach(([nm,p])=>{
+        if(!base.kmstat.promos[nm])base.kmstat.promos[nm]={ok:0,rej:0,reward:0};
+        base.kmstat.promos[nm].ok+=p.ok;base.kmstat.promos[nm].rej+=p.rej;base.kmstat.promos[nm].reward+=p.reward;
+      });
+    }
+  }
   FK_KEYS.forEach(fk=>{
     const bf=base.fk_data[fk],af=add.fk_data[fk];
     bf.total_count+=af.total_count;
@@ -2101,6 +2119,8 @@ function rKmStat(ds){
     cards.innerHTML='';
     wrap.style.display='none';
     note.style.display='block';
+    document.getElementById('kmstatPromoTbl').innerHTML='';
+    document.getElementById('kmstatPromoHdr').style.display='none';
     return;
   }
   note.style.display='none';wrap.style.display='block';
@@ -2112,6 +2132,17 @@ function rKmStat(ds){
     `<div class='stat-card pk'><div class='stat-lbl'>KM từ chối</div><div class='stat-val' style='color:#ef4444'>${nn(rej)}</div><div class='stat-sub'>đơn bị từ chối (có lý do)</div></div>`+
     `<div class='stat-card bl'><div class='stat-lbl'>Tỷ lệ thành công</div><div class='stat-val bl'>${rate}%</div><div class='stat-sub'>${nn(ok)} / ${nn(ok+rej)} đơn</div></div>`+
     `<div class='stat-card go'><div class='stat-lbl'>Tiền thưởng đã phát</div><div class='stat-val go'>${nn(Math.round(rw))}</div><div class='stat-sub'>tổng cột Điểm thưởng của đơn thành công</div></div>`;
+  // Bảng theo TỪNG MÃ KHUYẾN MÃI (NEW88_150_NV1 / NV2... tách riêng)
+  const promos=Object.entries(st.promos||{}).sort((a,b)=>(b[1].ok+b[1].rej)-(a[1].ok+a[1].rej));
+  const promoHtml=promos.length
+    ?'<thead><tr><th style="text-align:left">Mã khuyến mãi</th><th style="color:#10b981">Thành công</th><th style="color:#ef4444">Từ chối</th><th>Tổng đơn</th><th>Tỷ lệ TC</th><th style="color:var(--go)">Tiền thưởng đã phát</th></tr></thead><tbody>'+
+      promos.map(([nm,p])=>{
+        const t=p.ok+p.rej;
+        return `<tr><td style="text-align:left;font-weight:800;color:var(--cy)">${nm}</td><td style="color:#10b981;font-weight:700">${nn(p.ok)}</td><td style="color:#ef4444;font-weight:700">${p.rej?nn(p.rej):'-'}</td><td>${nn(t)}</td><td>${t?Math.round(p.ok/t*100):0}%</td><td style="color:var(--go);font-weight:800">${nn(Math.round(p.reward))}</td></tr>`;
+      }).join('')+'</tbody>'
+    :'';
+  document.getElementById('kmstatPromoTbl').innerHTML=promoHtml;
+  document.getElementById('kmstatPromoHdr').style.display=promos.length?'':'none';
   // Bảng số theo ngày GMT-4: ngày nào có đơn thì hiện
   const days=[];
   for(let d=1;d<=31;d++)if(st.ok[d-1]||st.rej[d-1])days.push(d);
@@ -2376,17 +2407,28 @@ function buildOvTable(fkList){
     const truDisp=isExcl?"-":truVal>0?`<span style="color:#ef4444;font-weight:800">-${truVal}</span>`:`<span style="color:var(--mu)">-</span>`;
     const khacOpts=KHAC_OPTS.map(o=>`<option value="${o}"${ov.khac===o?" selected":""}>${o||"—"}</option>`).join("");
     const rowStyle=isExcl?"opacity:.55":"";
+    // Quyền SỬA tab KO mới chỉnh được Ngày làm việc / Khác / Ghi chú — quyền xem chỉ đọc
+    const canFixOv=CUR_PROFILE?canEdit('ko'):false;
+    const wdCell=canFixOv
+      ?`<td class="cell-edit" contenteditable="true" data-fk="${fk}" data-f="wd" onblur="onOvBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" style="text-align:center">${wd}</td>`
+      :`<td style="text-align:center">${wd}</td>`;
+    const khacCell=canFixOv
+      ?`<td style="padding:2px 4px"><select data-fk="${fk}" onchange="onKhacChange(this)" style="background:var(--card2);border:1px solid var(--border);color:var(--tx);padding:2px 4px;border-radius:4px;font-size:.62rem;width:100%">${khacOpts}</select></td>`
+      :`<td style="text-align:center">${ov.khac||'—'}</td>`;
+    const noteCell=canFixOv
+      ?`<td class="cell-edit" contenteditable="true" data-fk="${fk}" data-f="note" onblur="onOvBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" style="text-align:left">${ov.note||""}</td>`
+      :`<td style="text-align:left">${ov.note||""}</td>`;
     h+=`<tr style="${rowStyle}">
       <td class="sticky-col"><b>${fd.name}</b>${isExcl?`<span style="font-size:.55rem;background:rgba(239,68,68,.15);color:#ef4444;border-radius:4px;padding:1px 5px;margin-left:5px">${ov.khac}</span>`:""}</td>
       <td class="${bc}">${rnk}</td>
       <td class="bar-cell"><div class="bar-fill" style="width:${barPct}%;background:${col}"></div><span class="bar-text">${nn(ctot)}</span></td>
-      <td class="cell-edit" contenteditable="true" data-fk="${fk}" data-f="wd" onblur="onOvBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" style="text-align:center">${wd}</td>
+      ${wdCell}
       <td>${nn(avg)}</td>
       <td>${pct}</td>
       <td style="text-align:center">${congDisp}</td>
       <td style="text-align:center">${truDisp}</td>
-      <td style="padding:2px 4px"><select data-fk="${fk}" onchange="onKhacChange(this)" style="background:var(--card2);border:1px solid var(--border);color:var(--tx);padding:2px 4px;border-radius:4px;font-size:.62rem;width:100%">${khacOpts}</select></td>
-      <td class="cell-edit" contenteditable="true" data-fk="${fk}" data-f="note" onblur="onOvBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" style="text-align:left">${ov.note||""}</td>
+      ${khacCell}
+      ${noteCell}
     </tr>`;
   });
   h+="</tbody>";
@@ -2693,7 +2735,7 @@ function rWork(){
       `<td style="color:#f59e0b;font-weight:800">${cnt.KM||'-'}</td>`+
       `<td style="color:#10b981;font-weight:800">${cnt.DD||'-'}</td>`+
       `<td style="color:#3b82f6;font-weight:800">${cnt.HT||'-'}</td>`+
-      `<td style="color:#ef4444;font-weight:800">${cnt.OFF||'-'}${half?`<span style="font-size:.55rem;color:var(--mu)"> +${half}×0.5</span>`:''}</td>`+
+      `<td style="color:#ef4444;font-weight:800">${(cnt.OFF+half*0.5)||'-'}</td>`+
       `<td style="font-weight:800;color:var(--pu2)">${total||'-'}</td></tr>`;
   });
   s+='</tbody>';
