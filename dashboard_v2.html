@@ -427,6 +427,20 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 </head>
 <body>
 
+<!-- PASTE MODAL: dán dữ liệu copy từ Excel (phân công / điểm) -->
+<div id="pasteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9998;align-items:center;justify-content:center">
+  <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:22px;width:min(780px,95vw);max-height:85vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.6)">
+    <div style="font-size:.85rem;font-weight:800;color:var(--pu2);margin-bottom:8px" id="pasteTitle"></div>
+    <div style="font-size:.65rem;color:var(--mu2);margin-bottom:10px;line-height:1.8" id="pasteHint"></div>
+    <textarea id="pasteArea" style="width:100%;height:220px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--tx);font-size:.68rem;font-family:monospace;padding:10px;outline:none;box-sizing:border-box" placeholder="Dán dữ liệu copy từ Excel vào đây (Ctrl+V)"></textarea>
+    <div id="pasteMsg" style="font-size:.68rem;min-height:16px;margin:8px 0;font-weight:600"></div>
+    <div style="display:flex;gap:10px">
+      <button class="upload-btn" onclick="applyPaste()">Áp dụng</button>
+      <button onclick="closePasteModal()" style="padding:8px 18px;background:transparent;border:1px solid var(--border2);color:var(--mu2);border-radius:8px;cursor:pointer;font-size:.72rem;font-weight:700">Đóng</button>
+    </div>
+  </div>
+</div>
+
 <!-- LOGIN OVERLAY -->
 <div id="loginOverlay">
   <div class="login-box">
@@ -507,6 +521,16 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 
   <!-- Ngày / Tháng — gộp 1 view -->
   <div id="dataBody">
+    <!-- THỐNG KÊ KHUYẾN MÃI: chỉ hiện khi đang xem nguồn Khuyến Mãi -->
+    <div class="data-sub" id="data-kmstat" style="display:none">
+      <div class="sec-hdr" style="color:#10b981">Thống Kê Khuyến Mãi</div>
+      <div class="chart-card" style="margin-bottom:16px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:14px" id="kmstatCards"></div>
+        <div id="kmstatChWrap" style="height:215px"><canvas id="kmstatCh"></canvas></div>
+        <div id="kmstatNote" style="display:none;font-size:.68rem;color:var(--mu);padding:14px;text-align:center">Dữ liệu KM này được lưu trước khi có tính năng thống kê — <b style="color:#10b981">upload lại file Khuyến Mãi</b> để xem đầy đủ.</div>
+      </div>
+    </div>
+
     <div class="data-sub" id="data-day">
       <div class="sec-hdr pu">Theo Ngày</div>
       <div id="dayBtns"></div>
@@ -607,14 +631,14 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       <div class="vt-btn" onclick="smv('don',this)">Số đơn</div>
     </div>
 
-    <div class="sec-hdr" style="color:var(--pu2)">Hiệu Suất Duyệt Đơn</div>
+    <div class="sec-hdr" style="color:var(--pu2)">Hiệu Suất Duyệt Đơn <button onclick="openPasteModal('don')" style="font-size:.58rem;padding:2px 10px;background:rgba(6,182,212,.15);border:1px solid rgba(6,182,212,.35);color:var(--cy);border-radius:5px;cursor:pointer;font-weight:700;text-transform:none;letter-spacing:0">Dán từ Excel</button></div>
     <div class="sec-hdr" style="color:var(--vip-c)">FKVIP <span class="cnt-badge" id="vipCount">0 người</span></div>
     <div class="fk-grid" id="perfVipGrid" style="margin-bottom:12px"></div>
     <div class="sec-hdr" style="color:var(--onl-c)">FKONL <span class="cnt-badge" id="onlCount">0 người</span></div>
     <div class="fk-grid" id="perfOnlGrid" style="margin-bottom:12px"></div>
     <div class="mtbl-wrap" id="perfCombinedTable" style="margin-bottom:26px"></div>
 
-    <div class="sec-hdr" style="color:#10b981">Hiệu Suất Duyệt Khuyến Mãi <span class="cnt-badge" id="kmStatusBadge" style="background:rgba(239,68,68,.15);color:#ef4444">Chưa có dữ liệu</span></div>
+    <div class="sec-hdr" style="color:#10b981">Hiệu Suất Duyệt Khuyến Mãi <span class="cnt-badge" id="kmStatusBadge" style="background:rgba(239,68,68,.15);color:#ef4444">Chưa có dữ liệu</span> <button onclick="openPasteModal('km')" style="font-size:.58rem;padding:2px 10px;background:rgba(6,182,212,.15);border:1px solid rgba(6,182,212,.35);color:var(--cy);border-radius:5px;cursor:pointer;font-weight:700;text-transform:none;letter-spacing:0">Dán từ Excel</button></div>
     <div id="kmEmptyState" style="font-size:.65rem;color:var(--mu);padding:14px;border:1px dashed var(--border2);border-radius:8px;text-align:center">
       Chưa có dữ liệu khuyến mãi tháng này — bấm <label for="fhKM" style="color:#10b981;font-weight:700;cursor:pointer;text-decoration:underline">Upload Excel Khuyến Mãi</label> ở góc trên để tải lên.
     </div>
@@ -728,7 +752,11 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     <div class="chart-card" style="margin-bottom:14px">
       <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
         <span>Công việc hằng ngày FK — <span id="wk_month" style="color:var(--pu2)"></span></span>
-        <span id="wk_chips" style="display:flex;gap:6px;flex-wrap:wrap;text-transform:none;letter-spacing:0"></span>
+        <span style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span id="wk_chips" style="display:flex;gap:6px;flex-wrap:wrap;text-transform:none;letter-spacing:0"></span>
+          <button onclick="openPasteModal('work')" style="font-size:.62rem;padding:4px 12px;background:rgba(6,182,212,.15);border:1px solid rgba(6,182,212,.35);color:var(--cy);border-radius:5px;cursor:pointer;font-weight:700">Dán từ Excel</button>
+          <button onclick="wkAutoAssign()" style="font-size:.62rem;padding:4px 12px;background:linear-gradient(135deg,var(--pu),var(--bl));border:none;color:#fff;border-radius:5px;cursor:pointer;font-weight:800;box-shadow:0 2px 10px rgba(124,58,237,.35)">Tự Động Phân Công</button>
+        </span>
       </div>
       <div class="mtbl-wrap"><table class="mtbl" id="wkTbl"></table></div>
     </div>
@@ -795,6 +823,15 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     </div>
     <div style="font-size:.62rem;color:var(--mu);margin-top:8px">Xóa vĩnh viễn trên cloud: Duyệt Đơn · Khuyến Mãi · Phân Ca · Bất Thường · Báo cáo đại lý của tháng đã chọn. File Excel gốc trong Storage được GIỮ LẠI để khôi phục khi cần (upload lại là xong).</div>
     <div id="admDelMsg" style="font-size:.7rem;margin-top:8px;min-height:14px;font-weight:600"></div>
+  </div>
+  <div class="chart-card" id="admIpCard" style="margin-top:16px;border:1px solid rgba(6,182,212,.35)">
+    <div class="chart-title" style="color:var(--cy)">White IP — chỉ IP trong danh sách mới đăng nhập được</div>
+    <div style="font-size:.65rem;color:var(--mu2);margin-bottom:10px">IP hiện tại của bạn: <b id="admMyIp" style="color:var(--gr)">đang kiểm tra...</b> · Danh sách TRỐNG = White IP đang TẮT (ai cũng đăng nhập được) · <span style="color:var(--go)">Hãy thêm IP của chính bạn TRƯỚC TIÊN để không tự khóa mình.</span></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+      <input class="adm-inp" id="admIpInput" placeholder="VD: 37.157.216.185">
+      <button class="upload-btn" onclick="admAddIp()">Thêm IP</button>
+    </div>
+    <div id="admIpList" style="display:flex;gap:8px;flex-wrap:wrap"></div>
   </div>
 </div>
 
@@ -902,11 +939,46 @@ function sessionExpired(){
   const at=Number(localStorage.getItem(LOGIN_AT_KEY)||0);
   return !at||Date.now()-at>SESSION_MAX_MS;
 }
+// ===== WHITE IP: chỉ IP trong danh sách mới được đăng nhập =====
+let CUR_IP=null;
+async function fetchMyIP(){
+  if(CUR_IP)return CUR_IP;
+  try{
+    const r=await fetch('https://api.ipify.org?format=json');
+    const j=await r.json();
+    CUR_IP=j.ip||null;
+  }catch(e){CUR_IP=null;}
+  return CUR_IP;
+}
+// Danh sách trống = chưa bật White IP; lỗi mạng khi kiểm tra = cho qua (tránh tự khóa toàn hệ thống)
+async function ipAllowed(){
+  try{
+    const{data,error}=await SB.client().rpc('get_whiteip');
+    if(error)return true;
+    const list=Array.isArray(data)?data:[];
+    if(!list.length)return true;
+    const ip=await fetchMyIP();
+    if(!ip)return true;
+    return list.includes(ip);
+  }catch(e){return true;}
+}
+function showIpBlocked(){
+  const box=document.querySelector('.login-box');
+  if(box)box.innerHTML=`<div class="login-logo" style="background:linear-gradient(135deg,#dc2626,#7f1d1d)">✕</div>
+    <div class="login-title" style="color:#f87171">IP KHÔNG ĐƯỢC PHÉP</div>
+    <div class="login-sub" style="line-height:1.7">Thiết bị của bạn (IP: <b style="color:var(--tx)">${CUR_IP||'không xác định'}</b>)<br>không nằm trong danh sách White IP.<br>Liên hệ ADMIN để được thêm IP này.</div>`;
+  document.getElementById('loginOverlay').style.display='flex';
+}
 const AUTH={
   emailOf(u){return u.trim().toLowerCase()+'@sanji.app';},
   async init(){
     if(!SB.ready()){
       document.getElementById('lg-err').textContent='Chưa cấu hình cloud (SB_URL/SB_KEY)';
+      return;
+    }
+    if(!(await ipAllowed())){
+      try{await SB.client().auth.signOut();}catch(e){}
+      showIpBlocked();
       return;
     }
     try{
@@ -934,11 +1006,32 @@ const AUTH={
     if(!SB.ready()){err.textContent='Chưa cấu hình cloud';return;}
     btn.disabled=true;btn.textContent='Đang đăng nhập...';
     try{
+      if(!(await ipAllowed())){showIpBlocked();return;}
+      // tài khoản đang bị khóa?
+      try{
+        const{data:locked}=await SB.client().rpc('is_locked',{uname:u.toLowerCase()});
+        if(locked===true){
+          err.textContent='Tài khoản đã bị KHÓA (đăng nhập sai quá 5 lần hoặc bị khóa thủ công) — liên hệ ADMIN/Tổ Trưởng để mở khóa';
+          return;
+        }
+      }catch(e){}
       const{data,error}=await SB.client().auth.signInWithPassword({email:AUTH.emailOf(u),password:p});
       if(error){
-        err.textContent=/invalid/i.test(error.message)?'Sai tên đăng nhập hoặc mật khẩu':('Lỗi: '+error.message);
+        if(/invalid/i.test(error.message)){
+          // đếm số lần sai — quá 5 lần server tự khóa
+          let msg='Sai tên đăng nhập hoặc mật khẩu';
+          try{
+            const{data:lf}=await SB.client().rpc('login_fail',{uname:u.toLowerCase()});
+            if(lf&&lf.locked)msg='Sai quá 5 lần — tài khoản đã bị KHÓA. Liên hệ ADMIN/Tổ Trưởng để mở khóa.';
+            else if(lf&&lf.fails)msg='Sai tên đăng nhập hoặc mật khẩu — còn '+(5-lf.fails)+' lần thử trước khi bị khóa';
+          }catch(e){}
+          err.textContent=msg;
+        }else{
+          err.textContent='Lỗi: '+error.message;
+        }
         return;
       }
+      try{await SB.client().rpc('login_ok',{uname:u.toLowerCase()});}catch(e){}
       localStorage.setItem(LOGIN_AT_KEY,String(Date.now()));
       await AUTH.postLogin(data.user);
     }catch(e){
@@ -1044,6 +1137,8 @@ function rAdminPanel(){
   if(createCard)createCard.closest('.chart-card').style.display=isAdmin?'':'none';
   const delCard=document.getElementById('admDeleteCard');
   if(delCard){delCard.style.display=isAdmin?'':'none';if(isAdmin)admFillDelMonths();}
+  const ipCard=document.getElementById('admIpCard');
+  if(ipCard){ipCard.style.display=isAdmin?'':'none';if(isAdmin)admLoadIps();}
   const pf=document.getElementById('au-perms');
   if(isAdmin&&!pf.dataset.built){
     pf.innerHTML=PERM_TABS.map(t=>
@@ -1071,8 +1166,14 @@ async function admLoadUsers(){
   try{
     const{data,error}=await SB.client().from('profiles').select('*').order('created_at');
     if(error)throw error;
+    // trạng thái khóa + số lần sai của từng tài khoản
+    const lockMap={};
+    try{
+      const{data:sec}=await SB.client().from('login_security').select('*');
+      (sec||[]).forEach(x=>{lockMap[x.username]={locked:x.locked,fails:x.fails};});
+    }catch(e){}
     const headPerms=isAdmin?PERM_TABS.map(t=>`<th class="tc">${t.label}</th>`).join(''):'';
-    list.innerHTML=`<table class="adm-tbl"><thead><tr><th>Tài khoản</th><th class="tc">Cấp bậc</th>${headPerms}${isAdmin?'<th class="tc">Admin</th>':''}<th class="tc">Mật khẩu</th></tr></thead><tbody>`+
+    list.innerHTML=`<table class="adm-tbl"><thead><tr><th>Tài khoản</th><th class="tc">Cấp bậc</th>${headPerms}${isAdmin?'<th class="tc">Admin</th>':''}<th class="tc">Khóa TK</th><th class="tc">Mật khẩu</th></tr></thead><tbody>`+
       data.map(u=>{
         const perms=u.perms||{};
         const isSelf=u.user_id===CUR_PROFILE.user_id;
@@ -1100,8 +1201,15 @@ async function admLoadUsers(){
                 </select>`}</td>`).join('')
           :'';
         const adminCell=isAdmin?`<td class="tc"><input type="checkbox" ${u.is_admin?'checked':''} ${isSelf?'disabled':''} onchange="admSetAdmin('${u.user_id}',this.checked,this)"></td>`:'';
+        // Khóa TK: admin khóa được mọi người (trừ mình); Tổ Trưởng chỉ khóa Nhân viên
+        const lk=lockMap[u.username]||{locked:false,fails:0};
+        const canLock=(isAdmin&&!isSelf)||(!isAdmin&&role.key==='nhanvien'&&!u.is_admin);
+        const lockCell=canLock
+          ?`<button onclick="admToggleLock('${(u.username||'').replace(/'/g,'')}',${lk.locked?'false':'true'})" style="padding:3px 10px;border-radius:5px;cursor:pointer;font-size:.62rem;font-weight:700;${lk.locked?'background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.35);color:#10b981':'background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:#f87171'}">${lk.locked?'Mở khóa':'Khóa'}</button>`
+            +(lk.locked?'<div style="font-size:.55rem;color:#f87171;margin-top:2px;font-weight:800">ĐANG KHÓA</div>':(lk.fails?`<div style="font-size:.55rem;color:var(--mu);margin-top:2px">sai ${lk.fails} lần</div>`:''))
+          :(lk.locked?'<span style="color:#f87171;font-size:.6rem;font-weight:800">KHÓA</span>':'<span style="color:var(--mu)">—</span>');
         return `<tr><td style="font-weight:700;color:var(--tx)">${(u.username||'').toUpperCase()}${isSelf?' <span style="color:var(--pu2);font-size:.6rem">(bạn)</span>':''}</td>`+
-          `<td class="tc">${roleCell}</td>${permCells}${adminCell}<td class="tc">${pwCell}</td></tr>`;
+          `<td class="tc">${roleCell}</td>${permCells}${adminCell}<td class="tc">${lockCell}</td><td class="tc">${pwCell}</td></tr>`;
       }).join('')+'</tbody></table>';
   }catch(e){
     console.error('admLoadUsers',e);
@@ -1153,6 +1261,59 @@ async function selfChangePw(){
     console.error('selfChangePw',e);
     alert('Lỗi: '+(e.message||e));
   }
+}
+// ===== WHITE IP (chỉ ADMIN quản lý) =====
+let WHITE_LIST=[];
+async function admLoadIps(){
+  try{
+    const{data}=await SB.client().rpc('get_whiteip');
+    WHITE_LIST=Array.isArray(data)?data:[];
+  }catch(e){WHITE_LIST=[];}
+  fetchMyIP().then(ip=>{const el=document.getElementById('admMyIp');if(el)el.textContent=ip||'không xác định';});
+  const el=document.getElementById('admIpList');
+  if(!el)return;
+  el.innerHTML=WHITE_LIST.length
+    ?WHITE_LIST.map(ip=>`<span style="background:rgba(6,182,212,.12);border:1px solid rgba(6,182,212,.35);color:var(--cy);border-radius:14px;padding:4px 12px;font-size:.68rem;font-weight:700;display:flex;align-items:center;gap:7px">${ip}<b style="cursor:pointer;color:#f87171" title="Xóa IP" onclick="admDelIp('${ip}')">✕</b></span>`).join('')
+    :'<span style="color:var(--mu);font-size:.68rem">Danh sách trống — White IP đang TẮT</span>';
+}
+async function admAddIp(){
+  if(!CUR_PROFILE||!CUR_PROFILE.is_admin)return;
+  const inp=document.getElementById('admIpInput');
+  const ip=inp.value.trim();
+  if(!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)){alert('IP không hợp lệ (định dạng: x.x.x.x)');return;}
+  if(WHITE_LIST.includes(ip)){alert('IP đã có trong danh sách');return;}
+  const my=await fetchMyIP();
+  if(!WHITE_LIST.length&&my&&ip!==my){
+    if(!confirm('CẢNH BÁO TỰ KHÓA!\n\nBạn sắp BẬT White IP nhưng IP đầu tiên ('+ip+') KHÁC IP hiện tại của bạn ('+my+').\n\nĐăng xuất xong bạn sẽ KHÔNG đăng nhập lại được!\n\nVẫn tiếp tục?'))return;
+  }
+  try{
+    WHITE_LIST.push(ip);
+    await SB.saveReport('whiteip','all',{list:WHITE_LIST});
+    logAction('White IP','Thêm '+ip);
+    inp.value='';
+    admLoadIps();
+  }catch(e){alert('Lỗi lưu White IP: '+(e.message||e));}
+}
+async function admDelIp(ip){
+  if(!CUR_PROFILE||!CUR_PROFILE.is_admin)return;
+  const my=await fetchMyIP();
+  if(ip===my&&!confirm('Đây là IP HIỆN TẠI của bạn — xóa xong bạn có thể bị khóa khỏi hệ thống!\n\nVẫn xóa?'))return;
+  try{
+    WHITE_LIST=WHITE_LIST.filter(x=>x!==ip);
+    await SB.saveReport('whiteip','all',{list:WHITE_LIST});
+    logAction('White IP','Xóa '+ip);
+    admLoadIps();
+  }catch(e){alert('Lỗi lưu White IP: '+(e.message||e));}
+}
+// Khóa / mở khóa tài khoản (ADMIN + Tổ Trưởng; server kiểm tra quyền lần nữa)
+async function admToggleLock(uname,val){
+  if(!confirm((val?'KHÓA':'MỞ KHÓA')+' tài khoản '+uname.toUpperCase()+'?'))return;
+  try{
+    const{error}=await SB.client().rpc('set_lock',{uname,val});
+    if(error)throw error;
+    logAction(val?'Khóa tài khoản':'Mở khóa tài khoản',uname.toUpperCase());
+    admLoadUsers();
+  }catch(e){alert('Lỗi: '+(e.message||e));}
 }
 // Xóa toàn bộ dữ liệu cloud của 1 tháng (chỉ ADMIN, xác nhận 2 lớp)
 async function admFillDelMonths(){
@@ -1701,7 +1862,8 @@ function initAccum(){
     _dayRaw:new Array(31).fill(0), _hr7Raw:new Array(24).fill(0), _hr4Raw:new Array(24).fill(0),
     _daySet:new Set(), _mSet:new Set(),
     _day7Raw:new Array(31).fill(0), day_counts_d7:new Array(31).fill(0), _d7Set:new Set(),
-    _hbd7:m31x24(), cbd7:m31x24() // điểm & số đơn theo [ngày][giờ GMT+7] — cho view Theo Ngày
+    _hbd7:m31x24(), cbd7:m31x24(), // điểm & số đơn theo [ngày][giờ GMT+7] — cho view Theo Ngày
+    kmstat:{ok:new Array(31).fill(0),rej:new Array(31).fill(0),reward:new Array(31).fill(0)} // KM: thành công/từ chối/tiền thưởng theo ngày
   };
   FK_KEYS.forEach(fk=>{
     nd.fk_data[fk]={
@@ -1740,6 +1902,15 @@ function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
       // GMT+7 display tracking (pd4 + 11h = GMT+7)
       const pd7=new Date(pd.getTime()-3600000);
       const day_gmt7=pd7.getDate();
+      // Thống kê KM (đếm MỌI dòng, kể cả không nhận diện được FK):
+      // cột Q (idx 16) Lý do từ chối: có chữ = từ chối, trống = thành công; cột L (idx 11) Điểm thưởng
+      const rejTxt=String(row[16]||"").trim();
+      if(rejTxt){nd.kmstat.rej[day_gmt7-1]++;}
+      else{
+        nd.kmstat.ok[day_gmt7-1]++;
+        const reward=typeof row[11]==="number"?row[11]:(parseFloat(String(row[11]||"").replace(/[^0-9.\-]/g,""))||0);
+        nd.kmstat.reward[day_gmt7-1]+=reward;
+      }
       fk=mfk(String(row[17]||""));
       if(!fk)continue;
       sc=1;
@@ -1789,6 +1960,7 @@ function mergeAccum(base,add){
   for(let i=0;i<31;i++){base._dayRaw[i]+=add._dayRaw[i];base.day_counts[i]+=add.day_counts[i];base._day7Raw[i]+=add._day7Raw[i];base.day_counts_d7[i]+=add.day_counts_d7[i];}
   for(let i=0;i<24;i++){base._hr7Raw[i]+=add._hr7Raw[i];base.hour_counts_gmt7[i]+=add.hour_counts_gmt7[i];base._hr4Raw[i]+=add._hr4Raw[i];base.hour_counts_gmt4[i]+=add.hour_counts_gmt4[i];}
   for(let d=0;d<31;d++)for(let h=0;h<24;h++){base._hbd7[d][h]+=add._hbd7[d][h];base.cbd7[d][h]+=add.cbd7[d][h];}
+  if(base.kmstat&&add.kmstat)for(let i=0;i<31;i++){base.kmstat.ok[i]+=add.kmstat.ok[i];base.kmstat.rej[i]+=add.kmstat.rej[i];base.kmstat.reward[i]+=add.kmstat.reward[i];}
   FK_KEYS.forEach(fk=>{
     const bf=base.fk_data[fk],af=add.fk_data[fk];
     bf.total_count+=af.total_count;
@@ -1870,6 +2042,42 @@ function rDataTab(){
   bldDayBtns(ds);
   rDay(ds);
   rMonth(ds);
+  rKmStat(ds);
+}
+// ===== THỐNG KÊ KHUYẾN MÃI (thành công / từ chối / tiền thưởng đã phát) =====
+function rKmStat(ds){
+  const box=document.getElementById('data-kmstat');
+  if(!box)return;
+  if(dataSrc!=='km'||!ds){box.style.display='none';return;}
+  box.style.display='block';
+  const cards=document.getElementById('kmstatCards');
+  const note=document.getElementById('kmstatNote');
+  const wrap=document.getElementById('kmstatChWrap');
+  if(!ds.kmstat){
+    cards.innerHTML='';
+    wrap.style.display='none';
+    note.style.display='block';
+    dch('kmstatCh');
+    return;
+  }
+  note.style.display='none';wrap.style.display='block';
+  const st=ds.kmstat;
+  const ok=st.ok.reduce((a,b)=>a+b,0),rej=st.rej.reduce((a,b)=>a+b,0),rw=st.reward.reduce((a,b)=>a+b,0);
+  const rate=(ok+rej)?Math.round(ok/(ok+rej)*100):0;
+  cards.innerHTML=
+    `<div class='stat-card gr'><div class='stat-lbl'>KM thành công</div><div class='stat-val gr'>${nn(ok)}</div><div class='stat-sub'>đơn được duyệt (cột Lý do từ chối trống)</div></div>`+
+    `<div class='stat-card' style='--c:#ef4444'><div class='stat-lbl'>KM từ chối</div><div class='stat-val' style='color:#ef4444'>${nn(rej)}</div><div class='stat-sub'>đơn bị từ chối (có lý do)</div></div>`+
+    `<div class='stat-card bl'><div class='stat-lbl'>Tỷ lệ thành công</div><div class='stat-val bl'>${rate}%</div><div class='stat-sub'>${nn(ok)} / ${nn(ok+rej)} đơn</div></div>`+
+    `<div class='stat-card go'><div class='stat-lbl'>Tiền thưởng đã phát</div><div class='stat-val go'>${nn(Math.round(rw))}</div><div class='stat-sub'>tổng cột Điểm thưởng của đơn thành công</div></div>`;
+  const actD=ds.days_in_month_d7||ds.days_in_month||[];
+  const opts=coL(false);
+  opts.scales.y1={position:'right',grid:{display:false},ticks:{color:'#f0b429',font:{size:9}}};
+  dch('kmstatCh');
+  CH.kmstatCh=new Chart(document.getElementById('kmstatCh'),{type:'bar',data:{labels:actD.map(d=>''+d),datasets:[
+    {label:'Thành công',data:actD.map(d=>st.ok[d-1]),backgroundColor:'rgba(16,185,129,.65)',borderColor:'#10b981',borderWidth:1,borderRadius:3},
+    {label:'Từ chối',data:actD.map(d=>st.rej[d-1]),backgroundColor:'rgba(239,68,68,.6)',borderColor:'#ef4444',borderWidth:1,borderRadius:3},
+    {label:'Tiền thưởng (trục phải)',type:'line',data:actD.map(d=>Math.round(st.reward[d-1])),borderColor:'#f0b429',backgroundColor:'rgba(240,180,41,.1)',yAxisID:'y1',tension:.35,pointRadius:2,borderWidth:2}
+  ]},options:opts});
 }
 function rAll(){
   const act=document.querySelector(".pg.active")?.id;
@@ -2446,6 +2654,139 @@ function rWork(){
   document.getElementById('wkLegend').innerHTML=Object.entries(WK_CODES).map(([k,c])=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px"><span style="background:${ha(c.col,.18)};color:${c.col};border:1px solid ${c.col};border-radius:10px;padding:3px 14px;font-size:.66rem;font-weight:800;min-width:48px;text-align:center">${k}</span><span style="font-size:.72rem;color:var(--mu2)">${c.full}</span></div>`).join('')
     +'<div style="font-size:.62rem;color:var(--mu);margin-top:6px">Ghi chú: ghi nhận lại vấn đề trên ca cần lưu ý vào tab Lịch Sử (mọi thay đổi ở lưới này đều được ghi log chi tiết).</div>';
 }
+// ===== TỰ ĐỘNG PHÂN CÔNG: chia đều DD/KM/HT theo từng ca, giữ nguyên OFF =====
+// Luật: mỗi ngày mỗi ca 1 KM + 1 HT (nếu đủ người), còn lại DD; ngẫu nhiên nhưng cân bằng;
+//       Thứ 2: mỗi nhân viên tối đa 1 lần KM trong tháng
+function wkAutoAssign(){
+  if(!canEdit('shift')){alert('Bạn chỉ có quyền XEM.');return;}
+  const nD=daysInViewMonth();
+  if(!confirm('TỰ ĐỘNG PHÂN CÔNG tháng '+dispMonth(CUR_MONTH||curMonthKey())+'?\n\n— Giữ nguyên các ô OFF đã điền\n— Các ô còn lại chia đều: mỗi ngày mỗi ca 1 KM + 1 HT, còn lại DD\n— Thứ 2: mỗi người tối đa 1 lần KM/tháng\n\nPhân công cũ (không phải OFF) sẽ bị GHI ĐÈ.'))return;
+  const parts=(CUR_MONTH||curMonthKey()).split('-');
+  const y=+parts[0],mo=+parts[1];
+  const isMon=d=>new Date(y,mo-1,d).getDay()===1;
+  const kmCount={},htCount={},kmMon={};
+  FK_KEYS.forEach(fk=>{kmCount[fk]=0;htCount[fk]=0;kmMon[fk]=0;});
+  // xóa phân công cũ, giữ OFF
+  FK_KEYS.forEach(fk=>{
+    const m2=WORK[fk]||{};
+    Object.keys(m2).forEach(d=>{if(m2[d]!=='OFF')delete m2[d];});
+  });
+  ['sang','gay','trung'].forEach(ca=>{
+    const members=FK_KEYS.filter(fk=>shAssign[fk]===ca);
+    if(!members.length)return;
+    for(let d=1;d<=nD;d++){
+      const avail=members.filter(fk=>((WORK[fk]||{})[d])!=='OFF');
+      if(!avail.length)continue;
+      const mon=isMon(d);
+      // KM: người ít KM nhất; thứ 2 loại người đã có KM-thứ-2 (không ai đủ điều kiện -> ngày đó ca này không có KM)
+      const kmPool=avail.filter(fk=>!mon||kmMon[fk]<1);
+      let kmPick=null;
+      if(kmPool.length){
+        const min=Math.min(...kmPool.map(fk=>kmCount[fk]));
+        const cands=kmPool.filter(fk=>kmCount[fk]===min);
+        kmPick=cands[Math.floor(Math.random()*cands.length)];
+      }
+      // HT: người ít HT nhất, khác người làm KM
+      let htPick=null;
+      const htPool=avail.filter(fk=>fk!==kmPick);
+      if(htPool.length){
+        const min=Math.min(...htPool.map(fk=>htCount[fk]));
+        const cands=htPool.filter(fk=>htCount[fk]===min);
+        htPick=cands[Math.floor(Math.random()*cands.length)];
+      }
+      avail.forEach(fk=>{
+        if(!WORK[fk])WORK[fk]={};
+        if(fk===kmPick){WORK[fk][d]='KM';kmCount[fk]++;if(mon)kmMon[fk]++;}
+        else if(fk===htPick){WORK[fk][d]='HT';htCount[fk]++;}
+        else WORK[fk][d]='DD';
+      });
+    }
+  });
+  _wkChanges.push('Tự Động Phân Công toàn tháng');
+  clearTimeout(_wkTimer);
+  _wkTimer=setTimeout(_saveWork,800);
+  rWork();
+  setCloudStatus('Đã tự động phân công tháng '+dispMonth(CUR_MONTH)+' ✓');
+}
+
+// ===== DÁN TỪ EXCEL (phân công / điểm duyệt đơn / điểm KM) =====
+let _pasteMode='work';
+const NAME2FK={};FK_KEYS.forEach(fk=>{NAME2FK[FK_NAMES[fk].toUpperCase()]=fk;});
+function openPasteModal(mode){
+  if(!canEdit(mode==='work'?'shift':'ko')){alert('Bạn chỉ có quyền XEM.');return;}
+  if(mode==='km'&&!KMD){alert('Chưa có dữ liệu Khuyến Mãi tháng này — upload file KM trước.');return;}
+  _pasteMode=mode;
+  document.getElementById('pasteTitle').textContent=mode==='work'?'Dán phân công từ Excel — Công Việc Mỗi Ngày':'Dán điểm từ Excel — '+(mode==='km'?'Khuyến Mãi':'Duyệt Đơn');
+  document.getElementById('pasteHint').innerHTML=
+    'Copy vùng dữ liệu trong Excel (bôi đen → Ctrl+C) rồi dán vào ô bên dưới (Ctrl+V).<br>'+
+    'Mỗi dòng: <b style="color:var(--tx)">TÊN NHÂN VIÊN</b> (GEON, DANTE, LUBY...) rồi tới giá trị của <b>ngày 1, 2, 3...</b> mỗi cột 1 ngày — cột CA đứng trước tên cũng nhận được.<br>'+
+    (mode==='work'
+      ?'Giá trị hợp lệ: <b style="color:#10b981">DD</b> · <b style="color:#f59e0b">KM</b> · <b style="color:#3b82f6">HT</b> · <b style="color:#ef4444">OFF</b> — ô trống giữ nguyên giá trị cũ. Mẹo: chỉ dán các ô OFF rồi bấm Tự Động Phân Công.'
+      :'Giá trị là SỐ ĐIỂM từng ngày — ô trống giữ nguyên giá trị cũ.');
+  document.getElementById('pasteArea').value='';
+  document.getElementById('pasteMsg').textContent='';
+  document.getElementById('pasteModal').style.display='flex';
+}
+function closePasteModal(){document.getElementById('pasteModal').style.display='none';}
+function applyPaste(){
+  const raw=document.getElementById('pasteArea').value;
+  const msg=document.getElementById('pasteMsg');
+  const lines=raw.split(/\r?\n/).filter(l=>l.trim());
+  const nD=daysInViewMonth();
+  let applied=0;const skipped=[];
+  lines.forEach(line=>{
+    const cells=line.split('\t');
+    // tên nhân viên có thể ở cột 1-3 (cho phép cột CA/STT đứng trước)
+    let nameIdx=-1,fk=null;
+    for(let i=0;i<Math.min(cells.length,3);i++){
+      const cand=NAME2FK[String(cells[i]).trim().toUpperCase()];
+      if(cand){nameIdx=i;fk=cand;break;}
+    }
+    if(!fk){skipped.push(String(cells[0]).trim()||'(trống)');return;}
+    for(let d=1;d<=nD;d++){
+      const v=String(cells[nameIdx+d]??'').trim().toUpperCase();
+      if(!v)continue;
+      if(_pasteMode==='work'){
+        if(!WK_CODES[v])continue;
+        if(!WORK[fk])WORK[fk]={};
+        WORK[fk][d]=v;applied++;
+      }else{
+        const num=Number(v.replace(/[^\d]/g,''));
+        if(isNaN(num)||v.replace(/[^\d]/g,'')==='')continue;
+        const ds=_pasteMode==='km'?KMD:D;
+        if(!ds||!ds.fk_data[fk])continue;
+        ds.fk_data[fk].day_scores[d-1]=num;applied++;
+      }
+    }
+  });
+  if(!applied){
+    msg.style.color='var(--re)';
+    msg.textContent='Không áp dụng được ô nào'+(skipped.length?' — dòng không nhận diện tên: '+skipped.slice(0,5).join(', '):'');
+    return;
+  }
+  if(_pasteMode==='work'){
+    _wkChanges.push('Dán từ Excel: '+applied+' ô');
+    clearTimeout(_wkTimer);_wkTimer=setTimeout(_saveWork,800);
+    rWork();
+  }else{
+    const ds=_pasteMode==='km'?KMD:D;
+    FK_KEYS.forEach(fk=>{const fd=ds.fk_data[fk];if(fd)fd.total_score=fd.day_scores.reduce((a,b)=>a+(b||0),0);});
+    if(Array.isArray(ds.day_scores))for(let d=0;d<31;d++)ds.day_scores[d]=FK_KEYS.reduce((s,fk)=>s+((ds.fk_data[fk]?.day_scores[d])||0),0);
+    savePasteScores(_pasteMode,applied);
+    rKoDaily();
+  }
+  msg.style.color='var(--gr)';
+  msg.textContent='Đã áp dụng '+applied+' ô ✓'+(skipped.length?' · bỏ qua dòng: '+skipped.slice(0,5).join(', '):'');
+}
+async function savePasteScores(src,n){
+  if(!SB.ready()||!CUR_MONTH)return;
+  try{
+    await SB.saveReport(src,CUR_MONTH,src==='km'?KMD:D);
+    setCloudStatus('Đã lưu điểm dán từ Excel ✓');
+    logAction('Dán điểm từ Excel',(src==='km'?'Khuyến Mãi':'Duyệt Đơn')+' · tháng '+dispMonth(CUR_MONTH)+' · '+n+' ô');
+  }catch(e){console.error('savePasteScores',e);setCloudStatus('Lỗi lưu điểm dán',true);}
+}
+
 let _wkTimer=null,_wkChanges=[];
 function wkSet(fk,d,v){
   if(!canEdit('shift')){alert('Bạn chỉ có quyền XEM.');rWork();return;}
