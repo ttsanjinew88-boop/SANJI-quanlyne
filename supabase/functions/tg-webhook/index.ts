@@ -42,9 +42,98 @@ async function tg(method: string, body: unknown) {
   }
 }
 
+const CORS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-headers": "authorization, content-type, x-client-info, apikey",
+  "access-control-allow-methods": "POST, OPTIONS",
+};
+const G1 = "-5266235608";      // nhóm 1: chỉ nhận text
+const G2 = "-1002508451381";   // nhóm 2: nhận file + inline keyboard
+const anon = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
+
+async function sendReport(req: Request): Promise<Response> {
+  // Xác thực người gửi: phải là user đã đăng nhập (Authorization: Bearer <access_token>)
+  const auth = req.headers.get("authorization") || "";
+  const jwt = auth.replace(/^Bearer\s+/i, "");
+  if (!jwt) return new Response(JSON.stringify({ ok: false, description: "Chưa đăng nhập" }), { status: 401, headers: CORS });
+  const { data: uinfo, error: uerr } = await anon.auth.getUser(jwt);
+  if (uerr || !uinfo?.user) return new Response(JSON.stringify({ ok: false, description: "Phiên không hợp lệ" }), { status: 401, headers: CORS });
+  // Kiểm tra quyền SỬA tab Báo cáo đại lý (bc)
+  const { data: prof } = await sb.from("profiles").select("is_admin, perms, username").eq("user_id", uinfo.user.id).maybeSingle();
+  const canBc = prof && (prof.is_admin || (prof.perms && prof.perms.bc === "edit"));
+  if (!canBc) return new Response(JSON.stringify({ ok: false, description: "Không có quyền gửi báo cáo" }), { status: 403, headers: CORS });
+
+  const form = await req.formData();
+  const meta = JSON.parse(String(form.get("meta") || "{}"));
+  const mode = meta.mode === "dai_ly" ? "dai_ly" : "cuoc";
+  const fk = String(meta.fk || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (!/^fk[a-z0-9]+$/.test(fk)) return new Response(JSON.stringify({ ok: false, description: "FK không hợp lệ" }), { status: 400, headers: CORS });
+  const content = String(meta.content || "").slice(0, 900);
+  const agent = String(meta.agent || "").slice(0, 120);
+
+  // rid + điểm do SERVER quyết định — frontend KHÔNG thể giả mạo điểm cộng
+  const rid = Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, "0"), mm = String(now.getMonth() + 1).padStart(2, "0"), yy = now.getFullYear();
+  const isoDate = `${yy}-${mm}-${dd}`;
+  const dateStr = `${dd}/${mm}/${yy} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+  const cnt = mode === "dai_ly" ? 3 : 1;
+  const cat = mode === "dai_ly" ? "m" : "a";
+  const rm = mode === "dai_ly"
+    ? { inline_keyboard: [[{ text: "✅ Xác Nhận", callback_data: `cf|${fk}|${isoDate}|m|3|${rid}` }, { text: "👁 Theo Dõi Thêm", callback_data: `wt|${fk}|${isoDate}|${rid}` }]] }
+    : { inline_keyboard: [[{ text: "✅ Xác Nhận", callback_data: `cf|${fk}|${isoDate}|a|1|${rid}` }, { text: "❌ Hủy Bỏ", callback_data: `dm|${fk}|${isoDate}|${rid}` }]] };
+  const fkName = (NAMES[fk] || fk.replace(/^fk/, "").toUpperCase());
+  const head = mode === "dai_ly" ? "🚨 BÁO CÁO ĐẠI LÝ BẤT THƯỜNG" : "🎰 BÁO CÁO CƯỢC BẤT THƯỜNG";
+  const txt = `${head}\n📅 ${dateStr}\n👤 FK: ${fkName}` + (agent ? `\n🏢 Đại lý: ${agent}` : "") + `\n📋 ${content || "(không có nội dung)"}`;
+
+  const files: File[] = [];
+  for (const [k, v] of form.entries()) if (k.startsWith("file") && v instanceof File) files.push(v);
+
+  try {
+    // cược bất thường: gửi text vào nhóm 1
+    if (mode === "cuoc") {
+      await tg("sendMessage", { chat_id: G1, text: txt });
+    }
+    let lastMsgId: number | null = null;
+    if (files.length) {
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        const isImg = (f.type || "").startsWith("image/");
+        const fd = new FormData();
+        fd.append("chat_id", G2);
+        if (i === 0) fd.append("caption", txt + (files.length > 1 ? `\n📎 ${files.length} file đính kèm` : ""));
+        fd.append(isImg ? "photo" : "document", f, f.name || `file_${i + 1}`);
+        const r = await fetch(`${TG}/${isImg ? "sendPhoto" : "sendDocument"}`, { method: "POST", body: fd });
+        const res = await r.json();
+        if (!res.ok) throw new Error(res.description || "Lỗi gửi file");
+        lastMsgId = res.result.message_id;
+      }
+    } else {
+      const res = await tg("sendMessage", { chat_id: G2, text: txt, reply_markup: rm });
+      if (!res?.ok) throw new Error(res?.description || "Lỗi gửi tin");
+    }
+    if (lastMsgId) {
+      await tg("editMessageReplyMarkup", { chat_id: G2, message_id: lastMsgId, reply_markup: rm });
+    }
+    // ghi log gửi báo cáo
+    await sb.from("audit_log").insert({
+      user_id: uinfo.user.id, username: prof.username,
+      action: mode === "dai_ly" ? "Gửi báo cáo đại lý bất thường" : "Gửi báo cáo cược bất thường",
+      detail: `${fkName}` + (agent ? ` · ${agent}` : "") + ` · ${files.length} file`,
+    });
+    return new Response(JSON.stringify({ ok: true }), { headers: CORS });
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, description: String((e as any)?.message || e) }), { headers: CORS });
+  }
+}
+
 Deno.serve(async (req) => {
-  // Chỉ nhận request thật từ Telegram (kèm secret token)
-  if (SECRET && req.headers.get("x-telegram-bot-api-secret-token") !== SECRET) {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  // Frontend gửi báo cáo (có Authorization Bearer, không có secret của Telegram)
+  const hasTgSecret = SECRET && req.headers.get("x-telegram-bot-api-secret-token") === SECRET;
+  if (!hasTgSecret) {
+    if (req.headers.get("authorization")) return await sendReport(req);
     return new Response("forbidden", { status: 403 });
   }
   let update: any = null;

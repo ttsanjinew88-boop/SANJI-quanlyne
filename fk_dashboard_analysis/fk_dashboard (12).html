@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Dashboard Hiệu Suất Duyệt Đơn</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0d0f1a;--card:#131728;--card2:#1a1f35;--bd:#1e2540;--or:#ff6b35;--go:#f0b429;--bl:#3b82f6;--gr:#10b981;--pu:#8b5cf6;--tx:#e2e8f0;--mu:#64748b;--vip:#f0b429;--onl:#3b82f6;--sa:#06b6d4;--tr:#a78bfa;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+.hdr{background:linear-gradient(135deg,#ff6b35,#c4290a);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;box-shadow:0 4px 20px rgba(255,107,53,.35)}
+.ht{font-size:.95rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.hs{font-size:.65rem;color:rgba(255,255,255,.7);margin-top:1px}
+.hr2{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.hbadge{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:5px;padding:3px 8px;font-size:.62rem;font-weight:700;color:rgba(255,255,255,.85)}
+.hdate{background:rgba(0,0,0,.25);border-radius:7px;padding:4px 11px;font-size:.75rem;font-weight:700;min-width:130px;text-align:center}
+.ubtn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:7px;padding:5px 12px;font-size:.7rem;font-weight:700;cursor:pointer}
+.ubtn:hover{background:rgba(255,255,255,.25)}
+input#fh{display:none}
+
+/* Progress overlay */
+#progOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;align-items:center;justify-content:center}
+#progOverlay.show{display:flex}
+.prog-box{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:28px 36px;width:400px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.prog-title{font-size:1rem;font-weight:800;margin-bottom:6px}
+.prog-file{font-size:.7rem;color:var(--mu);margin-bottom:18px;word-break:break-all}
+.prog-bar-bg{background:#0a0c17;border-radius:20px;height:12px;overflow:hidden;margin-bottom:12px}
+.prog-bar-fill{height:100%;background:linear-gradient(90deg,var(--or),var(--go));border-radius:20px;width:0%;transition:width .2s ease}
+.prog-pct{font-size:2rem;font-weight:900;color:var(--or);line-height:1;margin-bottom:6px}
+.prog-rows{font-size:.72rem;color:var(--mu)}
+.prog-step{font-size:.68rem;color:var(--go);margin-top:8px;font-weight:600}
+
+.tabs{display:flex;background:#0a0c17;border-bottom:1px solid var(--bd);overflow-x:auto}
+.tab{padding:10px 17px;font-size:.72rem;font-weight:600;cursor:pointer;color:var(--mu);letter-spacing:.05em;text-transform:uppercase;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap}
+.tab:hover{color:var(--tx)}.tab.active{color:var(--or);border-bottom-color:var(--or)}
+.pg{display:none;padding:16px 20px}.pg.active{display:block}
+.sr{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:9px;margin-bottom:15px}
+.sc{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;position:relative;overflow:hidden}
+.sc::before{content:"";position:absolute;top:0;left:0;right:0;height:3px}
+.sc.or::before{background:var(--or)}.sc.go::before{background:var(--go)}.sc.bl::before{background:var(--bl)}.sc.gr::before{background:var(--gr)}.sc.pu::before{background:var(--pu)}.sc.sa::before{background:var(--sa)}.sc.tr::before{background:var(--tr)}
+.sl{font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--mu);margin-bottom:3px}
+.sv{font-size:1.3rem;font-weight:800;line-height:1}
+.sv.or{color:var(--or)}.sv.go{color:var(--go)}.sv.bl{color:var(--bl)}.sv.gr{color:var(--gr)}.sv.pu{color:var(--pu)}.sv.sa{color:var(--sa)}.sv.tr{color:var(--tr)}
+.ss{font-size:.63rem;color:var(--mu);margin-top:3px}
+.sec{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--or);display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sec::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--bd),transparent)}
+.cg2{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:15px}
+.cg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:15px}
+@media(max-width:860px){.cg2,.cg{grid-template-columns:1fr}}
+.cc{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px}
+.ct{font-size:.67rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mu);margin-bottom:10px}
+.t3l{display:flex;flex-direction:column;gap:5px}
+.t3i{display:flex;align-items:center;gap:8px;background:var(--card2);border-radius:6px;padding:7px 10px}
+.t3r{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.68rem;flex-shrink:0}
+.r1{background:var(--go);color:#111}.r2{background:#94a3b8;color:#111}.r3{background:#cd7f32;color:#fff}
+.t3h{font-size:.76rem;font-weight:700;flex:1}.t3s{font-size:.72rem;font-weight:800;color:var(--go)}.t3c{font-size:.6rem;color:var(--mu)}
+.rktabs{display:flex;gap:5px;margin-bottom:10px}
+.rktab{padding:4px 13px;border-radius:16px;font-size:.67rem;font-weight:700;cursor:pointer;border:1.5px solid var(--bd);color:var(--mu);transition:all .2s}
+.rktab.vip.active{background:rgba(240,180,41,.15);border-color:var(--vip);color:var(--vip)}
+.rktab.onl.active{background:rgba(59,130,246,.15);border-color:var(--onl);color:var(--onl)}
+.rktab:not(.active):hover{color:var(--tx)}
+.rkg{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
+.rkc{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:11px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:border-color .2s}
+.rkc:hover{border-color:var(--or)}.rkc.sel{border-color:var(--or);background:var(--card2)}
+.rknum{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.85rem;flex-shrink:0}
+.n1{background:var(--go);color:#111}.n2{background:#94a3b8;color:#111}.n3{background:#cd7f32;color:#fff}.no{background:var(--card2);color:var(--mu);font-size:.7rem}
+.rki{flex:1}.rknm{font-weight:800;font-size:.85rem}.rknm.vip{color:var(--vip)}.rknm.onl{color:var(--onl)}
+.rkmt{font-size:.62rem;color:var(--mu);margin-top:1px}
+.rksv{font-size:1rem;font-weight:800;color:var(--or)}.rksl{font-size:.56rem;color:var(--mu)}
+.dp{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:13px;margin-top:12px;display:none}
+.dp.vis{display:block}
+.dph{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.dpn{font-size:.9rem;font-weight:800}
+.dpb{font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:16px}
+.bvip{background:rgba(240,180,41,.2);color:var(--vip);border:1px solid var(--vip)}
+.bonl{background:rgba(59,130,246,.2);color:var(--onl);border:1px solid var(--onl)}
+.dps{display:flex;gap:12px;font-size:.67rem;color:var(--mu);margin-left:auto}.dps b{color:var(--tx)}
+.mwrap{overflow-x:auto;margin-bottom:15px}
+.mtbl{border-collapse:collapse;font-size:.66rem;white-space:nowrap}
+.mtbl th{background:#1a1f35;color:var(--go);padding:5px 7px;text-align:center;border:1px solid var(--bd);font-size:.6rem;font-weight:700;text-transform:uppercase;position:sticky;top:0;z-index:2}
+.mtbl th.sl2{position:sticky;left:0;z-index:3;background:#1a1f35}
+.mtbl td{padding:4px 7px;border:1px solid #141826;text-align:center}
+.mtbl tr:nth-child(even) td{background:#0f1220}.mtbl tr:nth-child(odd) td{background:#0d0f1a}
+.mtbl tr:hover td{background:#1a2035!important}
+td.sl2{position:sticky;left:0;background:#0f1220!important;z-index:1;text-align:left;font-weight:700;padding-left:9px}
+td.nv{color:var(--vip)}td.no2{color:var(--onl)}
+td.nz{color:#252d44}td.nh{color:#4ade80;font-weight:700}td.tot{font-weight:800;color:var(--or)}
+td.bx1{color:#FFD700;font-weight:900}td.bx2{color:#C0C0C0;font-weight:800}td.bx3{color:#CD7F32;font-weight:700}
+.tngr td{background:#1a1f35!important;color:var(--go)!important;font-weight:800;border-top:2px solid var(--go)}
+.tngr td.sl2{background:#1a1f35!important;color:var(--go)!important}
+.vtg{display:flex;gap:5px;margin-bottom:10px}
+.vt{padding:3px 11px;border-radius:5px;font-size:.67rem;font-weight:700;cursor:pointer;border:1px solid var(--bd);color:var(--mu)}
+.vt.active{background:var(--or);color:#111;border-color:var(--or)}
+.daybtn{background:var(--card);color:var(--mu);border:1px solid var(--bd);border-radius:5px;padding:3px 8px;font-size:.67rem;font-weight:700;cursor:pointer}
+.daybtn:hover{border-color:var(--or)}.daybtn.active{background:var(--or);color:#111;border-color:var(--or)}
+.shift-panel{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:14px}
+.hr-row{display:flex;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.hr-grp{display:flex;align-items:center;gap:5px;font-size:.67rem}
+.hr-grp label{color:var(--mu)}
+.hr-grp input[type=number]{background:var(--card2);border:1px solid var(--bd);color:var(--tx);padding:3px 6px;border-radius:4px;font-size:.67rem;width:48px;text-align:center}
+.sh-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.sh-col{background:var(--card2);border-radius:8px;padding:11px}
+.sh-col-hdr{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.sh-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.fkcbs{display:flex;flex-wrap:wrap;gap:4px}
+.fkcb{background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:3px 7px;cursor:pointer;font-size:.67rem;font-weight:700}
+.fkcb.sang{border-color:var(--sa);color:var(--sa);background:rgba(6,182,212,.1)}
+.fkcb.trung{border-color:var(--tr);color:var(--tr);background:rgba(167,139,250,.1)}
+.fkcb.free{color:var(--mu)}.fkcb:hover{border-color:var(--or)}
+.ratio-bar{height:18px;border-radius:9px;overflow:hidden;display:flex;margin:6px 0 3px}
+.ratio-seg{display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:800;color:#fff;transition:width .4s}
+.ratio-lbl{display:flex;justify-content:space-between;font-size:.6rem;color:var(--mu)}
+.htbl-wrap{overflow-x:auto;margin-bottom:14px}
+.htbl{border-collapse:collapse;font-size:.68rem;width:100%}
+.htbl th{background:#1a1f35;padding:6px 10px;text-align:center;border:1px solid var(--bd);font-size:.62rem;font-weight:700;text-transform:uppercase}
+.htbl th.g4{color:#94a3b8}.htbl th.g7{color:var(--go)}
+.htbl td{padding:5px 10px;border:1px solid #141826;text-align:center;color:var(--mu)}
+.htbl tr:hover td{background:#1a2035!important}
+.htbl td.pk{color:var(--go)!important;font-weight:800}.htbl td.hi{color:var(--or);font-weight:700}.htbl td.md{color:var(--tx)}
+.htbl td.g4c{color:#64748b;font-weight:600}.htbl td.g7c{color:var(--go);font-weight:700}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- Progress Overlay -->
+<div id="progOverlay">
+  <div class="prog-box">
+    <div class="prog-title">&#9889; Đang xử lý file Excel...</div>
+    <div class="prog-file" id="progFile"></div>
+    <div class="prog-bar-bg"><div class="prog-bar-fill" id="progFill"></div></div>
+    <div class="prog-pct" id="progPct">0%</div>
+    <div class="prog-rows" id="progRows">Chuẩn bị...</div>
+    <div class="prog-step" id="progStep"></div>
+  </div>
+</div>
+
+<div class="hdr">
+  <div>
+    <div class="ht">&#128202; Dashboard Hi&#7879;u Su&#7845;t Duy&#7879;t &#272;&#417;n</div>
+    <div class="hs">NEW88 &middot; Ph&acirc;n t&iacute;ch ng&agrave;y / gi&#7901; / ca / x&#7871;p h&#7841;ng FK</div>
+  </div>
+  <div class="hr2">
+    <div class="hbadge">GMT&#8722;4 / GMT+7</div>
+    <div id="hDate" class="hdate">Th&aacute;ng 06/2026</div>
+    <label for="fh" class="ubtn">&#128193; Upload Excel</label>
+    <input type="file" id="fh" accept=".xlsx,.xls" multiple>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="sw('day',this)">&#128200; Ng&agrave;y</div>
+  <div class="tab" onclick="sw('month',this)">&#128197; Th&aacute;ng</div>
+  <div class="tab" onclick="sw('shift',this)">&#9197; Ph&acirc;n Ca</div>
+  <div class="tab" onclick="sw('rank',this)">&#127942; X&#7871;p H&#7841;ng</div>
+  <div class="tab" onclick="sw('hour',this)">&#9201; Theo Gi&#7901;</div>
+</div>
+
+<div class="pg active" id="pg-day">
+  <div style="display:flex;gap:6px;align-items:center;margin-bottom:11px;flex-wrap:wrap">
+    <span style="font-size:.67rem;color:var(--mu)">Ch&#7885;n ng&agrave;y:</span>
+    <div id="dayBtns" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+  </div>
+  <div class="sr">
+    <div class="sc or"><div class="sl">T&#7893;ng &#273;i&#7875;m ng&agrave;y</div><div class="sv or" id="d_s">-</div><div class="ss" id="d_ss">-</div></div>
+    <div class="sc go"><div class="sl">T&#7893;ng &#273;&#417;n ng&agrave;y</div><div class="sv go" id="d_c">-</div><div class="ss">&#273;&#417;n x&#7917; l&yacute;</div></div>
+    <div class="sc bl"><div class="sl">Gi&#7901; cao &#273;i&#7875;m (GMT+7)</div><div class="sv bl" id="d_ph">-</div><div class="ss" id="d_ps">-</div></div>
+    <div class="sc gr"><div class="sl">FK d&#7851;n VIP</div><div class="sv gr" id="d_tv">-</div><div class="ss" id="d_tvs">-</div></div>
+    <div class="sc pu"><div class="sl">FK d&#7851;n ONL</div><div class="sv pu" id="d_to">-</div><div class="ss" id="d_tos">-</div></div>
+  </div>
+  <div class="cg2">
+    <div class="cc"><div class="ct">&#272;i&#7875;m theo gi&#7901; &mdash; GMT&#8722;4 v&agrave; GMT+7</div><div style="height:225px"><canvas id="dhc"></canvas></div></div>
+    <div class="cc"><div class="ct">&#11088; Top 3 gi&#7901; (GMT+7)</div><div class="t3l" id="dt3"></div></div>
+  </div>
+  <div class="cg">
+    <div class="cc"><div class="ct">&#127941; FKVIP theo gi&#7901;</div><div style="height:195px"><canvas id="dvc"></canvas></div></div>
+    <div class="cc"><div class="ct">&#127919; FKONL theo gi&#7901;</div><div style="height:195px"><canvas id="doc"></canvas></div></div>
+  </div>
+</div>
+
+<div class="pg" id="pg-month">
+  <div class="sr">
+    <div class="sc or"><div class="sl">T&#7893;ng &#273;i&#7875;m th&aacute;ng</div><div class="sv or" id="m_s">-</div><div class="ss" id="m_p">-</div></div>
+    <div class="sc go"><div class="sl">T&#7893;ng &#273;&#417;n</div><div class="sv go" id="m_c">-</div><div class="ss">&#273;&#417;n trong th&aacute;ng</div></div>
+    <div class="sc bl"><div class="sl">Ng&agrave;y cao &#273;i&#7875;m</div><div class="sv bl" id="m_pd">-</div><div class="ss" id="m_pds">-</div></div>
+    <div class="sc gr"><div class="sl">FK d&#7851;n VIP</div><div class="sv gr" id="m_tv">-</div><div class="ss" id="m_tvs">-</div></div>
+    <div class="sc pu"><div class="sl">FK d&#7851;n ONL</div><div class="sv pu" id="m_to">-</div><div class="ss" id="m_tos">-</div></div>
+  </div>
+  <div class="cc" style="margin-bottom:14px"><div class="ct">&#272;i&#7875;m theo ng&agrave;y</div><div style="height:195px"><canvas id="mdc"></canvas></div></div>
+  <div class="sec">B&#7843;ng hi&#7879;u su&#7845;t c&#7843; th&aacute;ng</div>
+  <div class="vtg"><div class="vt active" onclick="smv('diem',this)">&#272;i&#7875;m</div><div class="vt" onclick="smv('don',this)">S&#7889; &#273;&#417;n</div></div>
+  <div class="mwrap" id="mtwrap"></div>
+</div>
+
+<div class="pg" id="pg-shift">
+  <div class="shift-panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:.78rem;font-weight:800">&#9881;&#65039; Ph&acirc;n ca</div>
+      <div style="font-size:.63rem;color:var(--mu)">Click &#273;&#7875; g&aacute;n / b&#7887; g&aacute;n FK</div>
+    </div>
+    <div class="hr-row">
+      <span style="font-size:.67rem;color:var(--mu);font-weight:700">Gi&#7901; (GMT+7):</span>
+      <div class="hr-grp"><div style="width:9px;height:9px;border-radius:50%;background:var(--sa)"></div><label>Ca S&aacute;ng:</label><input type="number" id="sf" value="8" min="0" max="23">H &rarr;<input type="number" id="st" value="17" min="0" max="23">H</div>
+      <div class="hr-grp"><div style="width:9px;height:9px;border-radius:50%;background:var(--tr)"></div><label>Ca Trung:</label><input type="number" id="tf" value="22" min="0" max="23">H &rarr;<input type="number" id="tt" value="4" min="0" max="23">H<span style="font-size:.6rem;color:var(--mu)">(qua &#273;&#234;m)</span></div>
+      <button onclick="rShiftPanel()" style="background:var(--or);color:#111;border:none;padding:4px 12px;border-radius:5px;font-weight:700;font-size:.68rem;cursor:pointer">C&#7853;p nh&#7853;t</button>
+    </div>
+    <div class="sh-cols">
+      <div class="sh-col"><div class="sh-col-hdr"><div class="sh-dot" style="background:var(--sa)"></div><div style="font-size:.7rem;font-weight:700;color:var(--sa)">CA S&Aacute;NG</div></div><div style="font-size:.6rem;color:var(--mu);margin-bottom:7px" id="sh_sang_hrs"></div><div class="fkcbs" id="sh_sang_fks"></div></div>
+      <div class="sh-col"><div class="sh-col-hdr"><div class="sh-dot" style="background:var(--tr)"></div><div style="font-size:.7rem;font-weight:700;color:var(--tr)">CA TRUNG (&#272;&Ecirc;M)</div></div><div style="font-size:.6rem;color:var(--mu);margin-bottom:7px" id="sh_trung_hrs"></div><div class="fkcbs" id="sh_trung_fks"></div></div>
+    </div>
+    <div style="font-size:.63rem;color:var(--mu)">Ch&#432;a ph&acirc;n ca: <span id="sh_free" style="color:var(--tx)"></span></div>
+  </div>
+  <div class="sec">K&#7871;t qu&#7843;</div>
+  <div class="sr" id="sh_stats"></div>
+  <div class="cg">
+    <div class="cc"><div class="ct">S&#7889; &#273;&#417;n m&#7895;i ca theo gi&#7901;</div><div style="height:200px"><canvas id="sh_hrc"></canvas></div></div>
+    <div class="cc"><div class="ct">T&#7927; l&#7879; 2 ca</div><div id="sh_ratio" style="padding:6px 0"></div></div>
+  </div>
+  <div class="cg">
+    <div class="cc"><div class="ct" style="color:var(--sa)">Ca S&aacute;ng &mdash; &#272;i&#7875;m FK</div><div style="height:175px"><canvas id="sh_sc"></canvas></div></div>
+    <div class="cc"><div class="ct" style="color:var(--tr)">Ca Trung &mdash; &#272;i&#7875;m FK</div><div style="height:175px"><canvas id="sh_tc"></canvas></div></div>
+  </div>
+</div>
+
+<div class="pg" id="pg-rank">
+  <div class="sec">X&#7871;p h&#7841;ng &mdash; <span id="rkpl" style="color:var(--tx);text-transform:none;letter-spacing:0;font-size:.9em"></span></div>
+  <div class="rktabs"><div class="rktab vip active" onclick="srk('vip',this)">&#127941; FKVIP</div><div class="rktab onl" onclick="srk('onl',this)">&#127919; FKONL</div></div>
+  <div class="rkg" id="rkg"></div>
+  <div class="dp" id="dp">
+    <div class="dph"><div class="dpn" id="dpn">-</div><div class="dpb" id="dpb">-</div><div class="dps"><span>&#272;i&#7875;m: <b id="dp_sc">-</b></span><span>&#272;&#417;n: <b id="dp_ct">-</b></span></div></div>
+    <div style="height:155px"><canvas id="dp_ch"></canvas></div>
+  </div>
+</div>
+
+<div class="pg" id="pg-hour">
+  <div class="sec">B&#7843;ng gi&#7901; GMT&#8722;4 v&agrave; GMT+7</div>
+  <div class="htbl-wrap"><table class="htbl"><thead><tr><th class="g4">GMT&#8722;4</th><th class="g7">GMT+7</th><th class="g7">&#272;i&#7875;m</th><th class="g7">S&#7889; &#273;&#417;n</th><th class="g4">&#272;i&#7875;m GMT&#8722;4</th></tr></thead><tbody id="htblBody"></tbody></table></div>
+  <div class="sr" id="h_stats"></div>
+  <div class="cc" style="margin-bottom:12px"><div class="ct">S&#7889; &#273;&#417;n theo gi&#7901; (GMT+7)</div><div style="height:175px"><canvas id="h_cnt"></canvas></div></div>
+  <div class="cc"><div class="ct">&#272;i&#7875;m theo gi&#7901; (GMT+7) &mdash; t&#7915;ng FK</div><div style="height:240px"><canvas id="h_stk"></canvas></div></div>
+</div>
+
+<script>
+const MD = {"month": "6/2026", "days": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31], "days_in_month": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], "hour_labels_gmt7": ["00H", "01H", "02H", "03H", "04H", "05H", "06H", "07H", "08H", "09H", "10H", "11H", "12H", "13H", "14H", "15H", "16H", "17H", "18H", "19H", "20H", "21H", "22H", "23H"], "hour_labels_gmt4": ["00H", "01H", "02H", "03H", "04H", "05H", "06H", "07H", "08H", "09H", "10H", "11H", "12H", "13H", "14H", "15H", "16H", "17H", "18H", "19H", "20H", "21H", "22H", "23H"], "day_scores": [13900, 14983, 15116, 14952, 14730, 12691, 11526, 12119, 13479, 15055, 15512, 14959, 13851, 13493, 16080, 15936, 15636, 16881, 16065, 14964, 14876, 15396, 15187, 0, 0, 0, 0, 0, 0, 0, 0], "day_counts": [7708, 8227, 8211, 7947, 8027, 6983, 6274, 6633, 7207, 8275, 8418, 8470, 7710, 7577, 8871, 8828, 8726, 9184, 8729, 8235, 8308, 8421, 8224, 0, 0, 0, 0, 0, 0, 0, 0], "hour_scores_gmt7": [12680, 9913, 7184, 4962, 219, 0, 0, 0, 10207, 15554, 20239, 21552, 20908, 22661, 24141, 23677, 23407, 20928, 17936, 16166, 15895, 16664, 16986, 15510], "hour_counts_gmt7": [7081, 5676, 4324, 3054, 165, 0, 0, 0, 6916, 8678, 10956, 11608, 11292, 12262, 12792, 12339, 12212, 11070, 9694, 9026, 8941, 9137, 9406, 8564], "hour_scores_gmt4": [21552, 20908, 22661, 24141, 23677, 23407, 20928, 17936, 16166, 15895, 16664, 16986, 15510, 12680, 9913, 7184, 4962, 219, 0, 0, 0, 10207, 15554, 20239], "hour_counts_gmt4": [11608, 11292, 12262, 12792, 12339, 12212, 11070, 9694, 9026, 8941, 9137, 9406, 8564, 7081, 5676, 4324, 3054, 165, 0, 0, 0, 6916, 8678, 10956], "fk_data": {"fkjade": {"name": "JADE", "group": "vip", "total_score": 31094, "total_count": 17173, "day_scores": [2196, 2568, 1781, 495, 2182, 1867, 871, 358, 1327, 493, 1761, 560, 1529, 501, 2028, 750, 2712, 2624, 1963, 575, 1245, 0, 708, 0, 0, 0, 0, 0, 0, 0, 0], "day_counts": [1209, 1401, 935, 284, 1182, 1007, 453, 212, 713, 293, 960, 346, 877, 309, 1141, 463, 1545, 1405, 1024, 330, 664, 0, 420, 0, 0, 0, 0, 0, 0, 0, 0], "hour_scores_gmt7": [0, 0, 0, 0, 0, 0, 0, 0, 1755, 2246, 3049, 3189, 3406, 2720, 3668, 3909, 3890, 3251, 7, 0, 0, 0, 0, 0], "hour_counts_gmt7": [0, 0, 0, 0, 0, 0, 0, 0, 1227, 1277, 1674, 1773, 1886, 1480, 1966, 2067, 2071, 1747, 5, 0, 0, 0, 0, 0], "hour_scores_gmt4": [3189, 3406, 2720, 3668, 3909, 3890, 3251, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1755, 2246, 3049]}, "fkcarbon": {"name": "CARBON", "group": "vip", "total_score": 19050, "total_count": 10402, "day_scores": [1031, 0, 653, 966, 680, 406, 375, 833, 1056, 0, 696, 639, 947, 369, 1718, 1000, 1115, 0, 849, 1661, 1327, 1083, 1646, 0, 0, 0, 0, 0, 0, 0, 0], "day_counts": [601, 0, 370, 499, 361, 211, 183, 499, 549, 0, 350, 354, 545, 215, 949, 538, 607, 0, 469, 908, 740, 579, 875, 0, 0, 0, 0, 0, 0, 0, 0], "hour_scores_gmt7": [1736, 1632, 853, 351, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 270, 2768, 2372, 1982, 2383, 2719, 1971], "hour_counts_gmt7": [941, 941, 499, 208, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 136, 1470, 1307, 1070, 1273, 1487, 1061], "hour_scores_gmt4": [0, 0, 0, 0, 0, 0, 270, 2768, 2372, 1982, 2383, 2719, 1971, 1736, 1632, 853, 351, 10, 0, 0, 0, 0, 0, 0]}, "fkmember": {"name": "MEMBER", "group": "vip", "total_score": 33448, "total_count": 18515, "day_scores": [2212, 2419, 1068, 2260, 1810, 1, 312, 1597, 1750, 2354, 786, 1868, 1741, 1691, 298, 549, 2054, 2340, 611, 1903, 2098, 1726, 0, 0, 0, 0, 0, 0, 0, 0, 0], "day_counts": [1218, 1285, 588, 1224, 959, 1, 177, 879, 978, 1261, 454, 1106, 986, 926, 151, 352, 1203, 1237, 383, 1046, 1166, 935, 0, 0, 0, 0, 0, 0, 0, 0, 0], "hour_scores_gmt7": [0, 0, 0, 0, 0, 0, 0, 0, 1504, 1985, 3156, 3687, 3529, 3742, 3490, 3655, 4202, 4489, 5, 0, 0, 0, 0, 0], "hour_counts_gmt7": [0, 0, 0, 0, 0, 0, 0, 0, 1100, 1148, 1762, 2059, 1941, 2106, 1877, 1943, 2190, 2384, 5, 0, 0, 0, 0, 0], "hour_scores_gmt4": [3687, 3529, 3742, 3490, 3655, 4202, 4489, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1504, 1985, 3156]}, "fkangel": {"name": "ANGEL", "group": "vip", "total_score": 33632, "total_count": 17996, "day_scores": [1879, 97, 528, 2123, 111, 842, 1780, 1630, 1351, 833, 2541, 2104, 120, 454, 3194, 2719, 2262, 803, 2172, 687, 1981, 549, 2872, 0, 0, 0, 0, 0, 0, 0, 0], "day_counts": [1033, 52, 296, 1112, 62, 465, 913, 853, 685, 433, 1343, 1123, 76, 281, 1750, 1478, 1191, 447, 1100, 380, 1081, 314, 1528, 0, 0, 0, 0, 0, 0, 0, 0], "hour_scores_gmt7": [0, 0, 0, 0, 0, 0, 0, 0, 1712, 2733, 3215, 3847, 4080, 4453, 4546, 4425, 3080, 1536, 2, 0, 0, 0, 0, 0], "hour_counts_gmt7": [0, 0, 0, 0, 0, 0, 0, 0, 1125, 1516, 1692, 1971, 2202, 2383, 2386, 2311, 1608, 800, 2, 0, 0, 0, 0, 0], "hour_scores_gmt4": [3847, 4080, 4453, 4546, 4425, 3080, 1536, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1712, 2733, 3215]}, "fkgeon": {"name": "GEON", "group": "vip", "total_score": 22130, "total_count": 13100, "day_scores": [0, 1284, 1684, 1619, 820, 1240, 689, 0, 686, 1316, 1032, 405, 1366, 1422, 1148, 0, 1828, 174, 844, 563, 1496, 1521, 993, 0, 0, 0, 0, 0, 0, 0, 0], "day_counts": [0, 776, 1008, 909, 478, 726, 398, 0, 403, 821, 609, 239, 869, 849, 683, 0, 1062, 106, 517, 333, 899, 858, 557, 0, 0, 0, 0, 0, 0, 0, 0], "hour_scores_gmt7": [2529, 2497, 1092, 781, 59, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 188, 2169, 1919, 2563, 2629, 3038, 2663], "hour_counts_gmt7": [1484, 1478, 698, 520, 44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 104, 1221, 1125, 1523, 1542, 1791, 1570], "hour_scores_gmt4": [0, 0, 0, 0, 0, 0, 188, 2169, 1919, 2563, 2629, 3038, 2663, 2529, 2497, 1092, 781, 59, 0, 0, 0, 0, 0, 0]}, "fkdante": {"name": "DANTE", "group": "vip", "total_score": 21516, "total_count": 12520, "day_scores": [1009, 1183, 0, 920, 957, 755, 1066, 582, 1568, 909, 960, 1307, 372, 0, 1772, 1649, 0, 1760, 0, 1507, 0, 1695, 1545, 0, 0, 0, 0, 0, 0, 0, 0], "day_counts": [618, 716, 0, 496, 561, 463, 616, 370, 833, 510, 551, 794, 220, 0, 1042, 941, 0, 1018, 0, 912, 0, 980, 879, 0, 0, 0, 0, 0, 0, 0, 0], "hour_scores_gmt7": [1955, 1447, 1269, 873, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 183, 3121, 2597, 2248, 2571, 2628, 2583], "hour_counts_gmt7": [1105, 819, 797, 565, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 93, 1751, 1539, 1319, 1477, 1527, 1493], "hour_scores_gmt4": [0, 0, 0, 0, 0, 0, 183, 3121, 2597, 2248, 2571, 2628, 2583, 1955, 1447, 1269, 873, 40, 0, 0, 0, 0, 0, 0]}, "fkpiu": {"name": "PIU", "group": "vip", "total_score": 36591, "total_count": 20218, "day_scores": [362, 647, 2637, 1700, 1418, 1905, 1690, 1306, 492, 2782, 1024, 1872, 1071, 1693, 727, 2167, 758, 2765, 2396, 2302, 760, 2307, 1810, 0, 0, 0, 0, 0, 0, 0, 0], "day_counts": [207, 374, 1468, 886, 775, 1023, 908, 700, 290, 1503, 564, 975, 650, 934, 435, 1181, 445, 1493, 1289, 1259, 491, 1338, 1030, 0, 0, 0, 0, 0, 0, 0, 0], "hour_scores_gmt7": [0, 0, 0, 0, 0, 0, 0, 0, 1863, 2495, 3065, 3654, 2895, 4386, 4944, 4381, 4471, 4326, 106, 0, 0, 0, 0, 0], "hour_counts_gmt7": [0, 0, 0, 0, 0, 0, 0, 0, 1323, 1442, 1699, 1992, 1618, 2422, 2636, 2302, 2377, 2348, 59, 0, 0, 0, 0, 0], "hour_scores_gmt4": [3654, 2895, 4386, 4944, 4381, 4471, 4326, 106, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1863, 2495, 3065]}, "fkchamy": {"name": "CHAMY", "group": "onl", "total_score": 15407, "total_count": 7839, "day_scores": [102, 549, 947, 777, 1102, 223, 428, 1099, 626, 213, 344, 612, 1233, 475, 1279, 79, 214, 470, 1086, 383, 1134, 761, 1271, 0, 0, 0, 0, 0, 0, 0, 0], "day_counts": [53, 269, 497, 390, 554, 107, 216, 535, 301, 111, 171, 318, 622, 245, 656, 38, 107, 244, 532, 211, 595, 409, 658, 0, 0, 0, 0, 0, 0, 0, 0], "hour_scores_gmt7": [0, 0, 0, 0, 0, 0, 0, 0, 962, 1907, 2103, 1358, 1798, 1347, 1516, 1470, 1872, 1069, 5, 0, 0, 0, 0, 0], "hour_counts_gmt7": [0, 0, 0, 0, 0, 0, 0, 0, 541, 991, 1073, 681, 903, 673, 753, 735, 928, 558, 3, 0, 0, 0, 0, 0], "hour_scores_gmt4": [1358, 1798, 1347, 1516, 1470, 1872, 1069, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 962, 1907, 2103]}, "fkluby": {"name": "LUBY", "group": "onl", "total_score": 24595, "total_count": 13558, "day_scores": [594, 782, 1436, 963, 1729, 687, 1112, 185, 1528, 475, 2019, 1663, 872, 1797, 675, 1958, 250, 253, 676, 1651, 919, 1894, 477, 0, 0, 0, 0, 0, 0, 0, 0], "day_counts": [330, 429, 767, 515, 909, 389, 612, 123, 840, 283, 1095, 903, 515, 986, 394, 1067, 142, 157, 380, 907, 557, 1003, 255, 0, 0, 0, 0, 0, 0, 0, 0], "hour_scores_gmt7": [0, 0, 0, 0, 0, 0, 0, 0, 1230, 1758, 2480, 2850, 2333, 2721, 2916, 2715, 2883, 2650, 59, 0, 0, 0, 0, 0], "hour_counts_gmt7": [0, 0, 0, 0, 0, 0, 0, 0, 875, 1003, 1408, 1564, 1254, 1499, 1596, 1404, 1517, 1407, 31, 0, 0, 0, 0, 0], "hour_scores_gmt4": [2850, 2333, 2721, 2916, 2715, 2883, 2650, 59, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1230, 1758, 2480]}, "fkaimee": {"name": "AIMEE", "group": "onl", "total_score": 19698, "total_count": 11145, "day_scores": [1427, 1335, 0, 1358, 1611, 0, 0, 0, 691, 1157, 1698, 1487, 0, 1250, 0, 1573, 1390, 1183, 1511, 0, 0, 1211, 816, 0, 0, 0, 0, 0, 0, 0, 0], "day_counts": [802, 746, 0, 704, 887, 0, 0, 0, 379, 667, 979, 913, 0, 769, 0, 891, 774, 673, 861, 0, 0, 645, 455, 0, 0, 0, 0, 0, 0, 0, 0], "hour_scores_gmt7": [1532, 1176, 1250, 1024, 46, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23, 2789, 2543, 2488, 2492, 2210, 2125], "hour_counts_gmt7": [864, 677, 759, 652, 36, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 1506, 1431, 1431, 1373, 1217, 1187], "hour_scores_gmt4": [0, 0, 0, 0, 0, 0, 23, 2789, 2543, 2488, 2492, 2210, 2125, 1532, 1176, 1250, 1024, 46, 0, 0, 0, 0, 0, 0]}, "fkantony": {"name": "ANTONY", "group": "onl", "total_score": 10903, "total_count": 4974, "day_scores": [579, 650, 977, 0, 0, 0, 4, 809, 0, 962, 835, 0, 1236, 604, 266, 0, 0, 754, 592, 863, 0, 725, 1047, 0, 0, 0, 0, 0, 0, 0, 0], "day_counts": [252, 295, 447, 0, 0, 0, 2, 351, 0, 409, 355, 0, 549, 268, 125, 0, 0, 363, 284, 421, 0, 343, 510, 0, 0, 0, 0, 0, 0, 0, 0], "hour_scores_gmt7": [1003, 604, 602, 573, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 40, 1421, 1550, 1317, 1313, 1190, 1281], "hour_counts_gmt7": [477, 276, 285, 259, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 18, 635, 697, 599, 593, 541, 589], "hour_scores_gmt4": [0, 0, 0, 0, 0, 0, 40, 1421, 1550, 1317, 1313, 1190, 1281, 1003, 604, 602, 573, 9, 0, 0, 0, 0, 0, 0]}, "fktrucia": {"name": "TRUCIA", "group": "onl", "total_score": 21353, "total_count": 12361, "day_scores": [21, 1394, 1539, 0, 1574, 1854, 2043, 1881, 59, 2376, 0, 1660, 29, 1446, 0, 225, 24, 1861, 1534, 0, 1819, 0, 14, 0, 0, 0, 0, 0, 0, 0, 0], "day_counts": [10, 840, 863, 0, 910, 1093, 1177, 1100, 30, 1382, 0, 977, 16, 879, 0, 129, 13, 1034, 899, 0, 1001, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0], "hour_scores_gmt7": [2243, 1313, 1108, 840, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 2624, 2452, 2722, 2657, 2636, 2640], "hour_counts_gmt7": [1302, 795, 727, 539, 27, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36, 1493, 1439, 1591, 1471, 1479, 1462], "hour_scores_gmt4": [0, 0, 0, 0, 0, 0, 76, 2624, 2452, 2722, 2657, 2636, 2640, 2243, 1313, 1108, 840, 42, 0, 0, 0, 0, 0, 0]}, "fkminty": {"name": "MINTY", "group": "onl", "total_score": 12238, "total_count": 6281, "day_scores": [205, 933, 314, 662, 269, 917, 47, 295, 326, 925, 187, 56, 583, 1085, 278, 1153, 375, 1134, 540, 1182, 35, 308, 429, 0, 0, 0, 0, 0, 0, 0, 0], "day_counts": [109, 462, 149, 340, 141, 432, 21, 132, 173, 470, 99, 31, 312, 544, 149, 609, 206, 603, 281, 601, 18, 158, 241, 0, 0, 0, 0, 0, 0, 0, 0], "hour_scores_gmt7": [0, 0, 0, 0, 0, 0, 0, 0, 311, 1002, 1488, 1160, 1319, 1512, 1359, 1563, 1315, 1190, 19, 0, 0, 0, 0, 0], "hour_counts_gmt7": [0, 0, 0, 0, 0, 0, 0, 0, 189, 521, 756, 609, 680, 781, 704, 770, 663, 598, 10, 0, 0, 0, 0, 0], "hour_scores_gmt4": [1160, 1319, 1512, 1359, 1563, 1315, 1190, 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 311, 1002, 1488]}, "fkbrenna": {"name": "BRENNA", "group": "onl", "total_score": 15643, "total_count": 8224, "day_scores": [1246, 1143, 34, 26, 469, 1143, 147, 221, 448, 262, 135, 729, 1297, 708, 1505, 533, 1241, 42, 114, 394, 639, 1607, 1560, 0, 0, 0, 0, 0, 0, 0, 0], "day_counts": [686, 582, 16, 16, 248, 592, 79, 109, 225, 132, 81, 391, 680, 372, 773, 307, 660, 22, 56, 198, 337, 854, 808, 0, 0, 0, 0, 0, 0, 0, 0], "hour_scores_gmt7": [0, 0, 0, 0, 0, 0, 0, 0, 870, 1428, 1684, 1808, 1549, 1781, 1702, 1559, 1695, 1560, 7, 0, 0, 0, 0, 0], "hour_counts_gmt7": [0, 0, 0, 0, 0, 0, 0, 0, 536, 780, 892, 959, 808, 918, 874, 807, 858, 787, 5, 0, 0, 0, 0, 0], "hour_scores_gmt4": [1808, 1549, 1781, 1702, 1559, 1695, 1560, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 870, 1428, 1684]}, "fkseren": {"name": "SEREN", "group": "onl", "total_score": 20126, "total_count": 10887, "day_scores": [1038, 0, 1519, 1085, 0, 852, 963, 1325, 1572, 0, 1497, 0, 1457, 0, 1194, 1583, 1415, 720, 1178, 1293, 1425, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0], "day_counts": [580, 0, 807, 572, 0, 474, 519, 770, 808, 0, 807, 0, 793, 0, 623, 834, 771, 382, 654, 729, 759, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0], "hour_scores_gmt7": [1683, 1244, 1010, 520, 13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 78, 2835, 2734, 2576, 2620, 2565, 2248], "hour_counts_gmt7": [908, 690, 559, 311, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42, 1498, 1488, 1408, 1408, 1364, 1202], "hour_scores_gmt4": [0, 0, 0, 0, 0, 0, 78, 2835, 2734, 2576, 2620, 2565, 2248, 1683, 1244, 1010, 520, 13, 0, 0, 0, 0, 0, 0]}}, "fkvip": ["fkjade", "fkcarbon", "fkmember", "fkangel", "fkgeon", "fkdante", "fkpiu"], "fkonl": ["fkchamy", "fkluby", "fkaimee", "fkantony", "fktrucia", "fkminty", "fkbrenna", "fkseren"]};
+const GMT_OFFSET = 11;
+const FK_SEARCH = {fkjade:"fkjade",fkcarbon:"fkcarbon",fkmember:"fkmember",fkangel:"fkangel",fkgeon:"fkgeon",fkdante:"fkdante",fkpiu:"fkpiu",fkchamy:"chamy",fkluby:"fkluby",fkaimee:"aimee",fkantony:"antony",fktrucia:"trucia",fkminty:"minty",fkbrenna:"brenna",fkseren:"seren"};
+const FK_KEYS = Object.keys(FK_SEARCH);
+const FK_NAMES = {fkjade:"JADE",fkcarbon:"CARBON",fkmember:"MEMBER",fkangel:"ANGEL",fkgeon:"GEON",fkdante:"DANTE",fkpiu:"PIU",fkchamy:"CHAMY",fkluby:"LUBY",fkaimee:"AIMEE",fkantony:"ANTONY",fktrucia:"TRUCIA",fkminty:"MINTY",fkbrenna:"BRENNA",fkseren:"SEREN"};
+const FKVIP=["fkjade","fkcarbon","fkmember","fkangel","fkgeon","fkdante","fkpiu"];
+const FKONL=["fkchamy","fkluby","fkaimee","fkantony","fktrucia","fkminty","fkbrenna","fkseren"];
+const FK_COL={fkangel:"#f0b429",fkpiu:"#ff6b35",fkcarbon:"#3b82f6",fkbrenna:"#ec4899",fkdante:"#8b5cf6",fkgeon:"#10b981",fkluby:"#06b6d4",fkjade:"#f97316",fkmember:"#a855f7",fkchamy:"#60a5fa",fkantony:"#a78bfa",fkaimee:"#34d399",fktrucia:"#fb923c",fkminty:"#e879f9",fkseren:"#facc15"};
+
+function ha(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return `rgba(${r},${g},${b},${a})`;}
+function nn(v){return(v||0).toLocaleString("vi-VN");}
+function dch(id){if(CH[id]){CH[id].destroy();delete CH[id];}}
+function hrs(f,t){const a=[];if(f<=t){for(let h=f;h<=t;h++)a.push(h);}else{for(let h=f;h<24;h++)a.push(h);for(let h=0;h<=t;h++)a.push(h);}return a;}
+function co(s){return{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:s,grid:{color:"rgba(255,255,255,.04)"},ticks:{color:"#64748b",font:{size:9}},border:{color:"#1e2540"}},y:{stacked:s,grid:{color:"rgba(255,255,255,.06)"},ticks:{color:"#64748b",font:{size:9}},border:{color:"#1e2540"}}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#1a1f35",titleColor:"#e2e8f0",bodyColor:"#94a3b8",borderColor:"#2d3748",borderWidth:1}}};}
+function coL(s){const o=co(s);o.plugins.legend={display:true,labels:{color:"#94a3b8",font:{size:9},boxWidth:9}};return o;}
+
+let D=MD,CH={},dCh=null,selDay=null,rkGrp="vip",mView="diem",selFK=null;
+let shAssign={};
+FK_KEYS.forEach(fk=>shAssign[fk]=null);
+["fkangel","fkpiu","fkcarbon","fkdante","fkgeon"].forEach(fk=>shAssign[fk]="sang");
+["fkjade","fkmember"].forEach(fk=>shAssign[fk]="trung");
+
+// ===== PROGRESS UI =====
+function showProg(fileName){
+  document.getElementById("progFile").textContent=fileName;
+  document.getElementById("progFill").style.width="0%";
+  document.getElementById("progPct").textContent="0%";
+  document.getElementById("progRows").textContent="Chuẩn bị...";
+  document.getElementById("progStep").textContent="";
+  document.getElementById("progOverlay").classList.add("show");
+}
+function setProg(pct,rows,step){
+  document.getElementById("progFill").style.width=pct+"%";
+  document.getElementById("progPct").textContent=pct+"%";
+  if(rows) document.getElementById("progRows").textContent=rows;
+  if(step) document.getElementById("progStep").textContent=step;
+}
+function hideProg(){document.getElementById("progOverlay").classList.remove("show");}
+
+// ===== SCORE FUNCTION =====
+function gsc(b,a,s){
+  // b: 'phải'=lần đầu, null/''/undefined=lần thứ
+  const bs=String(b||"").trim();
+  const ip=bs==="ph\u1ea3i";
+  const lt=!bs;
+  let v=0;
+  const st=String(s||"").trim();
+  if(st==="\u0110\u00e3 r\u00fat ti\u1ec1n"){
+    // Lần đầu: range bonus
+    if(ip){if(a>=50&&a<=500)v+=2;else if(a>=501&&a<=4999)v+=3;else if(a>=5000&&a<=49999)v+=4;else if(a>=50000&&a<=500000)v+=5;}
+    // Lần thứ <100k: +1
+    else if(lt&&a<100000){v+=1;}
+    // Tất cả >=100k (kể cả lần đầu): +1.5
+    if(a>=100000){v+=1.5;}
+  }else if(st==="\u0110\u00e3 tr\u1ea3 l\u1ea1i"){
+    v+=1;
+  }
+  return v;
+}
+function mfk(note){const n=note.toLowerCase();for(const fk of FK_KEYS)if(n.includes(FK_SEARCH[fk]))return fk;return null;}
+
+// ===== FILE UPLOAD — chunk-based streaming =====
+document.getElementById("fh").addEventListener("change",function(e){
+  const files=Array.from(e.target.files);
+  if(!files.length)return;
+  e.target.value="";
+  processFiles(files,0,null);
+});
+
+function processFiles(files,idx,acc){
+  if(idx>=files.length){
+    // All done — finalize
+    finalizeResult(acc);
+    return;
+  }
+  const file=files[idx];
+  showProg(files.map(f=>f.name).join(", "));
+  setProg(0,"Đang đọc file "+(idx+1)+"/"+files.length+"...","");
+
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    setProg(5,"Đang parse Excel...","");
+    // Use setTimeout to let UI update before heavy work
+    setTimeout(function(){
+      try{
+        const wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array",cellDates:true});
+        const wsName=wb.SheetNames.find(s=>s.toUpperCase()==="XUAT")||wb.SheetNames[0];
+        const ws=wb.Sheets[wsName];
+        setProg(15,"Đang chuyển đổi dữ liệu...","");
+        setTimeout(function(){
+          const aoa=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:""});
+          const nd=initAccum();
+          processChunks(aoa,1,nd,files,idx,acc);
+        },30);
+      }catch(err){
+        hideProg();
+        alert("Lỗi đọc file: "+err.message);
+      }
+    },50);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function initAccum(){
+  const nd={
+    day_scores:new Array(31).fill(0), day_counts:new Array(31).fill(0),
+    hour_scores_gmt7:new Array(24).fill(0), hour_counts_gmt7:new Array(24).fill(0),
+    hour_scores_gmt4:new Array(24).fill(0), hour_counts_gmt4:new Array(24).fill(0),
+    fk_data:{}, days_in_month:[], month:"",
+    _dayRaw:new Array(31).fill(0), _hr7Raw:new Array(24).fill(0), _hr4Raw:new Array(24).fill(0),
+    _daySet:new Set(), _mSet:new Set()
+  };
+  FK_KEYS.forEach(fk=>{
+    nd.fk_data[fk]={
+      name:FK_NAMES[fk], group:FKVIP.includes(fk)?"vip":"onl",
+      total_score:0, total_count:0,
+      day_scores:new Array(31).fill(0), day_counts:new Array(31).fill(0),
+      hour_scores_gmt7:new Array(24).fill(0), hour_counts_gmt7:new Array(24).fill(0),
+      hour_scores_gmt4:new Array(24).fill(0),
+      _dayRaw:new Array(31).fill(0), _hr7Raw:new Array(24).fill(0), _hr4Raw:new Array(24).fill(0)
+    };
+  });
+  return nd;
+}
+
+function processChunks(aoa,start,nd,files,fileIdx,prevAcc){
+  const CHUNK=10000;
+  const total=aoa.length;
+  const end=Math.min(start+CHUNK,total);
+
+  for(let i=start;i<end;i++){
+    const row=aoa[i];
+    if(!row||row.length<18)continue;
+    const note=String(row[20]||""),status=String(row[17]||"").trim(),colB=row[1];
+    const amt=typeof row[15]==="number"?row[15]:(parseFloat(String(row[15]||"").replace(/[^0-9.\-]/g,""))||0);
+    // Robust date: JS Date, Excel serial number, or string
+    let pd=null;
+    if(row[19] instanceof Date){pd=row[19];}
+    else if(typeof row[19]==="number"&&row[19]>40000){pd=new Date((row[19]-25569)*86400000);}
+    else if(row[19]){try{pd=new Date(String(row[19]));}catch(e){}}
+    if(!pd||isNaN(pd.getTime()))continue;
+    const h4=pd.getHours(),h7=(h4+GMT_OFFSET)%24,day=pd.getDate();
+    nd._daySet.add(day);
+    nd._mSet.add((pd.getMonth()+1)+"/"+pd.getFullYear());
+    const fk=mfk(note);
+    if(!fk)continue;
+    const sc=gsc(colB,amt,status);
+
+    nd.fk_data[fk]._dayRaw[day-1]+=sc; nd.fk_data[fk].day_counts[day-1]++;
+    nd.fk_data[fk]._hr7Raw[h7]+=sc; nd.fk_data[fk].hour_counts_gmt7[h7]++;
+    nd.fk_data[fk]._hr4Raw[h4]+=sc; nd.fk_data[fk].total_count++;
+    nd._dayRaw[day-1]+=sc; nd.day_counts[day-1]++;
+    nd._hr7Raw[h7]+=sc; nd.hour_counts_gmt7[h7]++;
+    nd._hr4Raw[h4]+=sc; nd.hour_counts_gmt4[h4]++;
+  }
+
+  const pct=15+Math.floor((end/total)*80);
+  const fileBase=fileIdx/files.length*100;
+  const fileShare=100/files.length;
+  const totalPct=Math.round(fileBase+pct*fileShare/100);
+  setProg(Math.min(99,totalPct),
+    "Đã xử lý "+end.toLocaleString()+" / "+total.toLocaleString()+" dòng",
+    "File "+(fileIdx+1)+" / "+files.length);
+
+  if(end<total){
+    setTimeout(()=>processChunks(aoa,end,nd,files,fileIdx,prevAcc),0);
+  }else{
+    // File done — merge with previous accumulator
+    const merged=mergeAccum(prevAcc,nd);
+    // Process next file
+    processFiles(files,fileIdx+1,merged);
+  }
+}
+
+function mergeAccum(base,add){
+  if(!base) return add;
+  for(let i=0;i<31;i++){base._dayRaw[i]+=add._dayRaw[i];base.day_counts[i]+=add.day_counts[i];}
+  for(let i=0;i<24;i++){base._hr7Raw[i]+=add._hr7Raw[i];base.hour_counts_gmt7[i]+=add.hour_counts_gmt7[i];base._hr4Raw[i]+=add._hr4Raw[i];base.hour_counts_gmt4[i]+=add.hour_counts_gmt4[i];}
+  FK_KEYS.forEach(fk=>{
+    const bf=base.fk_data[fk],af=add.fk_data[fk];
+    bf.total_count+=af.total_count;
+    for(let i=0;i<31;i++){bf._dayRaw[i]+=af._dayRaw[i];bf.day_counts[i]+=af.day_counts[i];}
+    for(let i=0;i<24;i++){bf._hr7Raw[i]+=af._hr7Raw[i];bf.hour_counts_gmt7[i]+=af.hour_counts_gmt7[i];bf._hr4Raw[i]+=af._hr4Raw[i];}
+  });
+  add._daySet.forEach(d=>base._daySet.add(d));
+  add._mSet.forEach(m=>base._mSet.add(m));
+  return base;
+}
+
+function finalizeResult(nd){
+  setProg(100,"Hoàn tất!","Đang cập nhật giao diện...");
+  setTimeout(function(){
+    // Apply ceil to all raw scores
+    for(let i=0;i<31;i++) nd.day_scores[i]=Math.ceil(nd._dayRaw[i]);
+    for(let i=0;i<24;i++){nd.hour_scores_gmt7[i]=Math.ceil(nd._hr7Raw[i]);nd.hour_scores_gmt4[i]=Math.ceil(nd._hr4Raw[i]);}
+    FK_KEYS.forEach(fk=>{
+      const fd=nd.fk_data[fk];
+      fd.day_scores=fd._dayRaw.map(Math.ceil);
+      fd.hour_scores_gmt7=fd._hr7Raw.map(Math.ceil);
+      fd.hour_scores_gmt4=fd._hr4Raw.map(Math.ceil);
+      fd.total_score=Math.ceil(fd._dayRaw.reduce((a,b)=>a+b,0));
+      delete fd._dayRaw;delete fd._hr7Raw;delete fd._hr4Raw;
+    });
+    delete nd._dayRaw;delete nd._hr7Raw;delete nd._hr4Raw;
+    nd.days_in_month=[...nd._daySet].sort((a,b)=>a-b);
+    delete nd._daySet;
+    const months=[...nd._mSet].sort();
+    nd.month=months[months.length-1]||"";
+    delete nd._mSet;
+    nd.days=Array.from({length:31},(_,i)=>i+1);
+    nd.hour_labels_gmt7=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
+    nd.hour_labels_gmt4=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
+    nd.fkvip=FKVIP; nd.fkonl=FKONL;
+    D=nd;
+    document.getElementById("hDate").textContent="Tháng "+nd.month;
+    hideProg();
+    rAll();
+  },50);
+}
+
+// ===== NAVIGATION =====
+function sw(pg,el){document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));document.querySelectorAll(".pg").forEach(p=>p.classList.remove("active"));el.classList.add("active");document.getElementById("pg-"+pg).classList.add("active");rAll();}
+function smv(v,el){mView=v;document.querySelectorAll(".vt").forEach(t=>t.classList.remove("active"));el.classList.add("active");rMT();}
+function srk(g,el){rkGrp=g;selFK=null;document.getElementById("dp").classList.remove("vis");document.querySelectorAll(".rktab").forEach(t=>t.classList.remove("active"));el.classList.add("active");rRank();}
+function rAll(){const act=document.querySelector(".pg.active")?.id;bldDayBtns();if(act==="pg-day"){if(!selDay&&D.days_in_month?.length)selDay=D.days_in_month[0];rDay();}if(act==="pg-month")rMonth();if(act==="pg-shift")rShiftPanel();if(act==="pg-rank")rRank();if(act==="pg-hour")rHour();}
+function bldDayBtns(){document.getElementById("dayBtns").innerHTML=(D.days_in_month||[]).map(d=>"<button class='daybtn"+(selDay===d?" active":"")+"' onclick='sDy("+d+",this)'>"+String(d).padStart(2,"0")+"</button>").join("");}
+function sDy(d,el){selDay=d;document.querySelectorAll(".daybtn").forEach(b=>b.classList.remove("active"));el.classList.add("active");rDay();}
+
+function rDay(){
+  const d=selDay;if(!d)return;
+  const ts=D.day_scores[d-1]||0,tc=D.day_counts[d-1]||0;
+  const hs7=D.hour_scores_gmt7,peakH=hs7.indexOf(Math.max(...hs7));
+  document.getElementById("d_s").textContent=nn(ts);
+  document.getElementById("d_ss").textContent="Ngày "+String(d).padStart(2,"0")+" / Tháng "+D.month;
+  document.getElementById("d_c").textContent=nn(tc);
+  document.getElementById("d_ph").textContent=String(peakH).padStart(2,"0")+"H\u2013"+String((peakH+1)%24).padStart(2,"0")+"H";
+  document.getElementById("d_ps").textContent=nn(D.hour_counts_gmt7[peakH])+" đơn/h";
+  const fkd={};FK_KEYS.forEach(fk=>fkd[fk]=D.fk_data[fk].day_scores[d-1]||0);
+  const vs=[...D.fkvip].sort((a,b)=>fkd[b]-fkd[a]),os=[...D.fkonl].sort((a,b)=>fkd[b]-fkd[a]);
+  document.getElementById("d_tv").textContent=vs[0]?D.fk_data[vs[0]].name:"-";document.getElementById("d_tvs").textContent=vs[0]?nn(fkd[vs[0]])+" điểm":"-";
+  document.getElementById("d_to").textContent=os[0]?D.fk_data[os[0]].name:"-";document.getElementById("d_tos").textContent=os[0]?nn(fkd[os[0]])+" điểm":"-";
+  const top3=hs7.map((s,i)=>({h:i,s,c:D.hour_counts_gmt7[i]})).sort((a,b)=>b.s-a.s).slice(0,3);
+  document.getElementById("dt3").innerHTML=top3.map((x,i)=>"<div class='t3i'><div class='t3r r"+(i+1)+"'>"+(i+1)+"</div><div class='t3h'>"+String(x.h).padStart(2,"0")+"H \u2013 "+String((x.h+1)%24).padStart(2,"0")+"H</div><div><div class='t3s'>"+nn(x.s)+"</div><div class='t3c'>"+nn(x.c)+" đơn</div></div></div>").join("");
+  const hs4=D.hour_scores_gmt4,lbl=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
+  dch("dhc");CH.dhc=new Chart(document.getElementById("dhc"),{type:"line",data:{labels:lbl,datasets:[{label:"GMT\u22124",data:hs4,borderColor:"#94a3b8",backgroundColor:"rgba(148,163,184,.05)",fill:true,tension:.4,pointRadius:2,borderWidth:1.5,borderDash:[4,3]},{label:"GMT+7",data:hs7,borderColor:"#ff6b35",backgroundColor:"rgba(255,107,53,.08)",fill:true,tension:.4,pointRadius:hs7.map((_,i)=>i===peakH?6:2),pointBackgroundColor:hs7.map((_,i)=>i===peakH?"#f0b429":"#ff6b35"),borderWidth:2}]},options:coL(false)});
+  dch("dvc");CH.dvc=new Chart(document.getElementById("dvc"),{type:"bar",data:{labels:lbl,datasets:D.fkvip.filter(fk=>D.fk_data[fk].total_score>0).map(fk=>({label:D.fk_data[fk].name,data:D.fk_data[fk].hour_scores_gmt7,backgroundColor:ha(FK_COL[fk],.7),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
+  dch("doc");CH.doc=new Chart(document.getElementById("doc"),{type:"bar",data:{labels:lbl,datasets:D.fkonl.filter(fk=>D.fk_data[fk].total_score>0).map(fk=>({label:D.fk_data[fk].name,data:D.fk_data[fk].hour_scores_gmt7,backgroundColor:ha(FK_COL[fk],.7),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
+}
+
+function rMonth(){
+  const actD=D.days_in_month||[];
+  const ts=D.day_scores.reduce((a,b)=>a+b,0),tc=D.day_counts.reduce((a,b)=>a+b,0);
+  const pd=actD.length?actD.reduce((b,d)=>D.day_scores[d-1]>D.day_scores[b-1]?d:b,actD[0]):1;
+  const vs=[...D.fkvip].filter(fk=>D.fk_data[fk].total_score>0).sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score);
+  const os=[...D.fkonl].filter(fk=>D.fk_data[fk].total_score>0).sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score);
+  document.getElementById("m_s").textContent=nn(ts);document.getElementById("m_p").textContent="Tháng "+D.month;
+  document.getElementById("m_c").textContent=nn(tc);
+  document.getElementById("m_pd").textContent="Ngày "+pd;document.getElementById("m_pds").textContent=nn(D.day_scores[pd-1])+" điểm · "+nn(D.day_counts[pd-1])+" đơn";
+  document.getElementById("m_tv").textContent=vs[0]?D.fk_data[vs[0]].name:"-";document.getElementById("m_tvs").textContent=vs[0]?nn(D.fk_data[vs[0]].total_score)+" điểm":"-";
+  document.getElementById("m_to").textContent=os[0]?D.fk_data[os[0]].name:"-";document.getElementById("m_tos").textContent=os[0]?nn(D.fk_data[os[0]].total_score)+" điểm":"-";
+  dch("mdc");CH.mdc=new Chart(document.getElementById("mdc"),{type:"bar",data:{labels:actD.map(d=>""+d),datasets:[{label:"Điểm",data:actD.map(d=>D.day_scores[d-1]),backgroundColor:actD.map(d=>d===pd?"rgba(240,180,41,.85)":"rgba(255,107,53,.55)"),borderColor:actD.map(d=>d===pd?"#f0b429":"#ff6b35"),borderWidth:1,borderRadius:4}]},options:co(false)});
+  rMT();
+}
+function rMT(){
+  const isS=mView==="diem",allD=Array.from({length:31},(_,i)=>i+1),actD=D.days_in_month||[];
+  const allFK=[...D.fkvip,...D.fkonl],ranked=[...allFK].sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score);
+  const rm={};ranked.forEach((fk,i)=>{rm[fk]=D.fk_data[fk].total_score>0?i+1:"-";});
+  let h="<table class='mtbl'><thead><tr><th class='sl2'>TÊN NHÂN VIÊN</th><th>BXH</th><th>Tổng</th>";
+  allD.forEach(d=>{h+="<th style='"+(actD.includes(d)?"":"color:#334155")+"'>"+d+"</th>";});
+  h+="</tr></thead><tbody>";
+  allFK.forEach(fk=>{
+    const fd=D.fk_data[fk],tot=isS?fd.total_score:fd.total_count,rnk=rm[fk],bc=rnk===1?"bx1":rnk===2?"bx2":rnk===3?"bx3":"";
+    h+="<tr><td class='sl2 "+(fd.group==="vip"?"nv":"no2")+"'>"+fd.name+"</td><td class='"+bc+"'>"+rnk+"</td><td class='tot'>"+(tot>0?nn(tot):"-")+"</td>";
+    allD.forEach(d=>{const v=isS?fd.day_scores[d-1]:fd.day_counts[d-1];h+="<td class='"+(v===0?"nz":v>=(isS?2000:800)?"nh":"")+"'>"+(v===0?"-":nn(v))+"</td>";});
+    h+="</tr>";
+  });
+  // TỔNG = sum of each FK's ceiled scores (consistent with individual rows)
+  const allFK2=[...D.fkvip,...D.fkonl];
+  const tg=isS?allFK2.reduce((s,fk)=>s+D.fk_data[fk].total_score,0):allFK2.reduce((s,fk)=>s+D.fk_data[fk].total_count,0);
+  h+="<tr class='tngr'><td class='sl2'>TỔNG</td><td>-</td><td>"+nn(tg)+"</td>";
+  allD.forEach(d=>{const v=isS?allFK2.reduce((s,fk)=>s+D.fk_data[fk].day_scores[d-1],0):allFK2.reduce((s,fk)=>s+D.fk_data[fk].day_counts[d-1],0);h+="<td>"+(v>0?nn(v):"-")+"</td>";});
+  h+="</tr></tbody></table>";
+  document.getElementById("mtwrap").innerHTML=h;
+}
+
+function toggleFK(fk,ca){shAssign[fk]=shAssign[fk]===ca?null:ca;rShiftPanel();}
+function rShiftPanel(){
+  const sf=parseInt(document.getElementById("sf").value)||8,st=parseInt(document.getElementById("st").value)||17;
+  const tf=parseInt(document.getElementById("tf").value)||22,tt=parseInt(document.getElementById("tt").value)||4;
+  document.getElementById("sh_sang_hrs").textContent=String(sf).padStart(2,"0")+"H \u2013 "+String(st).padStart(2,"0")+"H (GMT+7)";
+  document.getElementById("sh_trung_hrs").textContent=String(tf).padStart(2,"0")+"H \u2013 "+String(tt).padStart(2,"0")+"H qua đêm";
+  ["sang","trung"].forEach(ca=>{
+    const el=document.getElementById("sh_"+ca+"_fks");
+    const inCa=FK_KEYS.filter(fk=>shAssign[fk]===ca),free=FK_KEYS.filter(fk=>!shAssign[fk]);
+    el.innerHTML=inCa.map(fk=>"<div class='fkcb "+ca+"' onclick='toggleFK(\""+fk+"\",\""+ca+"\")'>"+(D.fk_data[fk]?.name||fk)+" \u2716</div>").join("")+"<div style='font-size:.58rem;color:var(--mu);padding:3px 0;width:100%'>+ thêm:</div>"+free.map(fk=>"<div class='fkcb free' onclick='toggleFK(\""+fk+"\",\""+ca+"\")'>"+(D.fk_data[fk]?.name||fk)+" +</div>").join("");
+  });
+  document.getElementById("sh_free").textContent=FK_KEYS.filter(fk=>!shAssign[fk]).map(fk=>D.fk_data[fk]?.name||fk).join(", ")||"(không có)";
+  rShift();
+}
+function rShift(){
+  const sf=parseInt(document.getElementById("sf").value)||8,st=parseInt(document.getElementById("st").value)||17;
+  const tf=parseInt(document.getElementById("tf").value)||22,tt=parseInt(document.getElementById("tt").value)||4;
+  const sHrs=hrs(sf,st),tHrs=hrs(tf,tt);
+  const sFKs=FK_KEYS.filter(fk=>shAssign[fk]==="sang"),tFKs=FK_KEYS.filter(fk=>shAssign[fk]==="trung");
+  let sS=0,sC=0,tS=0,tC=0;
+  sFKs.forEach(fk=>{sS+=D.fk_data[fk].total_score;sC+=D.fk_data[fk].total_count;});
+  tFKs.forEach(fk=>{tS+=D.fk_data[fk].total_score;tC+=D.fk_data[fk].total_count;});
+  const tot=sS+tS,ctot=sC+tC,sp=tot?((sS/tot)*100).toFixed(1):0,tp=tot?((tS/tot)*100).toFixed(1):0;
+  const scp=ctot?((sC/ctot)*100).toFixed(1):0,tcp=ctot?((tC/ctot)*100).toFixed(1):0;
+  document.getElementById("sh_stats").innerHTML="<div class='sc sa'><div class='sl'>Ca Sáng</div><div class='sv sa'>"+nn(sS)+"</div><div class='ss'>"+nn(sC)+" đơn &middot; "+sp+"%</div></div><div class='sc tr'><div class='sl'>Ca Trung</div><div class='sv tr'>"+nn(tS)+"</div><div class='ss'>"+nn(tC)+" đơn &middot; "+tp+"%</div></div><div class='sc or'><div class='sl'>Chênh điểm</div><div class='sv or'>"+nn(Math.abs(sS-tS))+"</div><div class='ss'>"+(sS>=tS?"Ca Sáng":"Ca Trung")+" dẫn</div></div><div class='sc go'><div class='sl'>Chênh đơn</div><div class='sv go'>"+nn(Math.abs(sC-tC))+"</div><div class='ss'>"+scp+"% vs "+tcp+"%</div></div>";
+  document.getElementById("sh_ratio").innerHTML="<div style='font-size:.68rem;color:var(--mu);margin-bottom:5px'>Tỷ lệ <b style='color:var(--sa)'>Ca Sáng</b> vs <b style='color:var(--tr)'>Ca Trung</b></div><div style='font-size:.65rem;color:var(--mu);margin-bottom:3px'>Điểm:</div><div class='ratio-bar'><div class='ratio-seg' style='width:"+sp+"%;background:var(--sa)'>"+sp+"%</div><div class='ratio-seg' style='width:"+tp+"%;background:var(--tr)'>"+tp+"%</div></div><div class='ratio-lbl'><span style='color:var(--sa)'>Sáng "+nn(sS)+"</span><span style='color:var(--tr)'>Trung "+nn(tS)+"</span></div><div style='font-size:.65rem;color:var(--mu);margin:8px 0 3px'>Số đơn:</div><div class='ratio-bar'><div class='ratio-seg' style='width:"+scp+"%;background:var(--sa)'>"+scp+"%</div><div class='ratio-seg' style='width:"+tcp+"%;background:var(--tr)'>"+tcp+"%</div></div><div class='ratio-lbl'><span style='color:var(--sa)'>Sáng "+nn(sC)+"</span><span style='color:var(--tr)'>Trung "+nn(tC)+"</span></div><div style='margin-top:9px;font-size:.63rem;color:var(--mu)'>Ca Sáng: <b style='color:var(--sa)'>"+sFKs.map(f=>D.fk_data[f]?.name||f).join(", ")+"</b></div><div style='font-size:.63rem;color:var(--mu)'>Ca Trung: <b style='color:var(--tr)'>"+tFKs.map(f=>D.fk_data[f]?.name||f).join(", ")+"</b></div>";
+  const lbl7=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
+  dch("sh_hrc");const shDs=[];
+  // Chart shows ALL 24h for each ca's FKs (total count per hour regardless of shift hours)
+  if(sFKs.length)shDs.push({label:"Ca Sáng",data:Array.from({length:24},(_,h)=>sFKs.reduce((s,fk)=>s+(D.fk_data[fk].hour_counts_gmt7[h]||0),0)),backgroundColor:"rgba(6,182,212,.65)",borderColor:"#06b6d4",borderWidth:1,borderRadius:3});
+  if(tFKs.length)shDs.push({label:"Ca Trung",data:Array.from({length:24},(_,h)=>tFKs.reduce((s,fk)=>s+(D.fk_data[fk].hour_counts_gmt7[h]||0),0)),backgroundColor:"rgba(167,139,250,.65)",borderColor:"#a78bfa",borderWidth:1,borderRadius:3});
+  if(shDs.length)CH.sh_hrc=new Chart(document.getElementById("sh_hrc"),{type:"bar",data:{labels:lbl7,datasets:shDs},options:coL(false)});
+  dch("sh_sc");if(sFKs.length)CH.sh_sc=new Chart(document.getElementById("sh_sc"),{type:"bar",data:{labels:sFKs.map(f=>D.fk_data[f]?.name||f),datasets:[{label:"Điểm",data:sFKs.map(f=>D.fk_data[f].total_score),backgroundColor:sFKs.map(f=>ha(FK_COL[f],.8)),borderColor:sFKs.map(f=>FK_COL[f]),borderWidth:1,borderRadius:4}]},options:co(false)});
+  dch("sh_tc");if(tFKs.length)CH.sh_tc=new Chart(document.getElementById("sh_tc"),{type:"bar",data:{labels:tFKs.map(f=>D.fk_data[f]?.name||f),datasets:[{label:"Điểm",data:tFKs.map(f=>D.fk_data[f].total_score),backgroundColor:tFKs.map(f=>ha(FK_COL[f],.8)),borderColor:tFKs.map(f=>FK_COL[f]),borderWidth:1,borderRadius:4}]},options:co(false)});
+}
+
+function rRank(){
+  document.getElementById("rkpl").textContent="Tháng "+D.month;
+  const fkList=rkGrp==="vip"?D.fkvip:D.fkonl,sorted=[...fkList].sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score);
+  document.getElementById("rkg").innerHTML=sorted.map((fk,i)=>{const fd=D.fk_data[fk],nc=i===0?"n1":i===1?"n2":i===2?"n3":"no";return "<div class='rkc"+(selFK===fk?" sel":"")+"' onclick='sFk(\""+fk+"\")'><div class='rknum "+nc+"'>"+(fd.total_score>0?i+1:"-")+"</div><div class='rki'><div class='rknm "+rkGrp+"'>"+fd.name+"</div><div class='rkmt'>"+nn(fd.total_count)+" đơn</div></div><div style='text-align:right'><div class='rksv'>"+(fd.total_score>0?nn(fd.total_score):"-")+"</div><div class='rksl'>điểm</div></div></div>";}).join("");
+  if(selFK)rDC(selFK);
+}
+function sFk(fk){selFK=fk;rRank();}
+function rDC(fk){
+  const fd=D.fk_data[fk];if(!fd)return;
+  document.getElementById("dp").classList.add("vis");
+  document.getElementById("dpn").textContent=fd.name;
+  document.getElementById("dpb").className="dpb b"+fd.group;
+  document.getElementById("dpb").textContent=fd.group==="vip"?"FKVIP":"FKONL";
+  document.getElementById("dp_sc").textContent=nn(fd.total_score);
+  document.getElementById("dp_ct").textContent=nn(fd.total_count);
+  if(dCh)dCh.destroy();
+  const col=FK_COL[fk]||"#ff6b35",actD=(D.days_in_month||[]).filter(d=>D.day_scores[d-1]>0);
+  dCh=new Chart(document.getElementById("dp_ch"),{type:"bar",data:{labels:actD.map(d=>""+d),datasets:[{label:"Điểm",data:actD.map(d=>fd.day_scores[d-1]),backgroundColor:ha(col,.7),borderColor:col,borderWidth:1,borderRadius:4}]},options:co(false)});
+}
+
+function rHour(){
+  const hs7=D.hour_scores_gmt7,hs4=D.hour_scores_gmt4,hc7=D.hour_counts_gmt7;
+  const peak7=hs7.indexOf(Math.max(...hs7)),peak4=hs4.indexOf(Math.max(...hs4));
+  let rows="";
+  for(let h4=0;h4<24;h4++){const h7=(h4+GMT_OFFSET)%24,s4=hs4[h4]||0,s7=hs7[h7]||0,c7=hc7[h7]||0;if(!s4&&!s7&&!c7)continue;const pk7=h7===peak7,pk4=h4===peak4;rows+="<tr><td class='g4c"+(pk4?" pk":"")+"'>"+String(h4).padStart(2,"0")+"H"+(pk4?" \u2b50":"")+"</td><td class='g7c"+(pk7?" pk":"")+"'>"+String(h7).padStart(2,"0")+"H"+(pk7?" \u2b50":"")+"</td><td class='"+(pk7?"pk":s7>20000?"hi":s7>10000?"md":"")+"'>"+(s7?nn(s7):"-")+"</td><td>"+(c7?nn(c7):"-")+"</td><td style='color:#64748b'>"+(s4?nn(s4):"-")+"</td></tr>";}
+  document.getElementById("htblBody").innerHTML=rows;
+  const top5=hs7.map((s,i)=>({h:i,s,c:hc7[i]})).sort((a,b)=>b.s-a.s).slice(0,5);
+  document.getElementById("h_stats").innerHTML=top5.map((x,i)=>"<div class='sc "+(i===0?"or":i===1?"go":"bl")+"'><div class='sl'>Top "+(i+1)+"</div><div class='sv "+(i===0?"or":i===1?"go":"bl")+"'>"+String(x.h).padStart(2,"0")+"H</div><div class='ss'>"+nn(x.s)+" điểm &middot; "+nn(x.c)+" đơn</div></div>").join("");
+  const lbl=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
+  dch("h_cnt");const pc=D.hour_counts_gmt7.indexOf(Math.max(...D.hour_counts_gmt7));
+  CH.h_cnt=new Chart(document.getElementById("h_cnt"),{type:"bar",data:{labels:lbl,datasets:[{label:"Đơn",data:hc7,backgroundColor:hc7.map((_,i)=>i===pc?"rgba(240,180,41,.8)":"rgba(59,130,246,.45)"),borderColor:hc7.map((_,i)=>i===pc?"#f0b429":"#3b82f6"),borderWidth:1,borderRadius:4}]},options:co(false)});
+  dch("h_stk");const aFK=FK_KEYS.filter(fk=>D.fk_data[fk]?.total_score>0);
+  CH.h_stk=new Chart(document.getElementById("h_stk"),{type:"bar",data:{labels:lbl,datasets:aFK.map(fk=>({label:D.fk_data[fk].name,data:D.fk_data[fk].hour_scores_gmt7,backgroundColor:ha(FK_COL[fk],.8),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
+}
+
+rAll();
+</script>
+</body>
+</html>

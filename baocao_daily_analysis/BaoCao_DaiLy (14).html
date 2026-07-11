@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Báo Cáo Tổng Hợp Đại Lý</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:12px;background:#f0e8df;color:#333}
+.page-wrap{width:100%;background:#fff;min-height:100vh}
+
+/* TOP BAR */
+.topbar{background:#6B1A00;color:white;padding:12px 24px;display:flex;align-items:center;gap:12px}
+.topbar-title{font-size:15px;font-weight:bold;letter-spacing:.5px}
+.topbar-sub{font-size:11px;color:#ffcc99;margin-left:auto}
+
+/* UPLOAD ZONE */
+.upload-section{background:#fffaf7;border-bottom:2px solid #e8d5c4;padding:16px 24px}
+.upload-title{font-weight:bold;color:#CC4400;font-size:13px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.upload-grid{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+.drop-zone{border:2px dashed #CC4400;border-radius:10px;padding:16px 20px;text-align:center;cursor:pointer;transition:all .2s;background:#fff8f4;width:220px;flex:0 0 220px}
+.drop-zone:hover,.drop-zone.dragover{background:#ffeedf;border-color:#a83000}
+.drop-zone input{display:none}
+.drop-zone .dz-icon{font-size:24px;margin-bottom:4px}
+.drop-zone .dz-label{font-size:11px;color:#888;margin-top:3px}
+.drop-zone .dz-name{font-size:11px;font-weight:bold;color:#CC4400;margin-top:4px;word-break:break-all}
+.drop-zone.loaded{border-color:#22c55e;background:#f0fff4}
+.drop-zone.loaded .dz-icon{color:#22c55e}
+.upload-actions{display:flex;flex-direction:column;gap:8px;justify-content:center}
+.btn-process{padding:10px 22px;background:#CC4400;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;white-space:nowrap}
+.btn-process:hover{background:#a83000}
+.btn-process:disabled{background:#ccc;cursor:not-allowed}
+.btn-reset{padding:7px 16px;background:white;color:#CC4400;border:2px solid #CC4400;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold}
+.btn-reset:hover{background:#fff8f4}
+.upload-log{background:#1a1a1a;color:#00ff88;font-family:monospace;font-size:11px;padding:10px 12px;border-radius:6px;max-height:90px;overflow-y:auto;min-width:260px;flex:1;white-space:pre-wrap;line-height:1.5}
+.upload-log.hidden{display:none}
+.file-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.file-tag{background:#ffeedf;border:1px solid #ffcc99;color:#CC4400;padding:3px 9px;border-radius:12px;font-size:10px;display:flex;align-items:center;gap:4px}
+.file-tag .rm{cursor:pointer;color:#999}
+.file-tag .rm:hover{color:#cc0000}
+.progress-bar{height:4px;background:#f0e8e0;border-radius:2px;overflow:hidden;margin-top:8px;display:none}
+.progress-fill{height:100%;background:#CC4400;transition:width .3s;width:0}
+
+/* TABS */
+.tabs{display:flex;background:#8B2500}
+.tab{padding:11px 22px;color:#ffcc99;cursor:pointer;font-weight:bold;font-size:12px;border-right:1px solid #a83000;transition:background .2s;white-space:nowrap}
+.tab:hover{background:#a83000}
+.tab.active{background:#CC4400;color:#fff;border-bottom:3px solid #ffaa00}
+.data-source-badge{font-size:10px;background:#ffaa00;color:#6B1A00;padding:2px 7px;border-radius:8px;margin-left:8px;font-weight:bold}
+
+/* PANELS */
+.panel{display:none;padding:16px 24px}
+.panel.active{display:block}
+
+/* CARDS */
+.cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;justify-content:flex-start}
+.card{background:#fff;border-radius:10px;padding:12px 18px;min-width:140px;max-width:200px;box-shadow:0 2px 8px rgba(0,0,0,.09);border-top:3px solid #CC4400;flex:1;text-align:center}
+.card-label{color:#888;font-size:10px;margin-bottom:3px;text-align:center}
+.card-value{font-size:20px;font-weight:bold;color:#CC4400;text-align:center}
+
+/* TABLE */
+.tbl-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.tbl-toolbar input{padding:6px 11px;border:1px solid #ddd;border-radius:4px;width:240px;font-size:11px}
+.badge{background:#CC4400;color:white;padding:3px 9px;border-radius:10px;font-size:10px}
+.export-btn{padding:6px 14px;background:#16a34a;color:white;border:none;border-radius:5px;cursor:pointer;font-size:11px;font-weight:bold;margin-left:auto}
+.export-btn:hover{background:#15803d}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.07)}
+thead tr{background:#CC4400;color:white}
+thead th{padding:9px 8px;text-align:center;font-size:11px;white-space:nowrap;position:sticky;top:0;z-index:2;font-weight:bold}
+tbody tr{border-bottom:1px solid #f0e8e0;height:36px}
+tbody tr:nth-child(even){background:#fdf8f5}
+tbody tr:hover{background:#fff0e6}
+tbody td{padding:7px 8px;font-size:11px;vertical-align:middle}
+.tc{text-align:center}.tr{text-align:right}.tl{text-align:left}
+.stt{color:#bbb;font-size:10px}
+.b-dat{background:#22c55e;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
+.b-chua{background:#ef4444;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
+.b-moi{background:#3b82f6;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
+.b-cu{background:#9ca3af;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
+.b-dt{background:#8b5cf6;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
+.b-mt{background:#6b7280;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
+.pos{color:#16a34a;font-weight:bold}.neg{color:#dc2626;font-weight:bold}
+.view-btn{padding:2px 9px;background:#CC4400;color:white;border:none;border-radius:4px;cursor:pointer;font-size:10px}
+.view-btn:hover{background:#a83000}
+.ell{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* AGENT DETAIL */
+.agent-sel-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.agent-sel-bar select{padding:7px 12px;border:2px solid #CC4400;border-radius:6px;font-size:12px;font-weight:bold;color:#CC4400;min-width:240px;cursor:pointer}
+.info-bar{background:#fff3eb;border:1px solid #ffcc99;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+.info-item .lbl{font-size:10px;color:#888}.info-item .val{font-size:14px;font-weight:bold;color:#CC4400}
+
+/* PAGINATION */
+.pg{display:flex;gap:3px;margin-top:8px;align-items:center;justify-content:flex-end}
+.pg-btn{padding:3px 8px;border:1px solid #ddd;border-radius:3px;cursor:pointer;font-size:10px;background:white}
+.pg-btn.on{background:#CC4400;color:white;border-color:#CC4400}
+.pg-btn:hover:not(.on){background:#f5ece6}
+.pg-info{font-size:10px;color:#777;margin:0 5px}
+
+/* PANEL HEADER */
+.ph{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.ph-title{font-size:15px;font-weight:bold;color:#CC4400}
+.ph-sub{font-size:10px;color:#999}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:40px;color:#aaa;font-size:13px}
+
+/* LOADING OVERLAY */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center}
+.overlay.show{display:flex}
+.overlay-box{background:white;border-radius:12px;padding:28px 36px;text-align:center}
+.overlay-spinner{width:40px;height:40px;border:4px solid #f0e8e0;border-top-color:#CC4400;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.overlay-msg{font-size:13px;color:#CC4400;font-weight:bold}
+.dz-hint{font-size:10px;color:#CC4400;margin-top:6px;opacity:.7}
+@media(max-width:768px){.upload-grid{justify-content:center}.drop-zone{flex:1 1 160px}}
+</style>
+</head>
+<body>
+
+<div class="page-wrap"><div class="overlay" id="overlay">
+  <div class="overlay-box">
+    <div class="overlay-spinner"></div>
+    <div class="overlay-msg" id="overlay-msg">Đang xử lý dữ liệu...</div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-title">📊 BÁO CÁO TỔNG HỢP ĐẠI LÝ</div>
+  <div class="topbar-sub">Điều kiện: Nạp ≥ 1,000 · Cược ≥ 3,000 · Đại lý ≥ 3 KH hợp lệ</div>
+</div>
+
+<!-- UPLOAD SECTION -->
+<div class="upload-section">
+  <div class="upload-title">📁 Tải file dữ liệu mới <span style="font-size:10px;color:#999;font-weight:normal">(hỗ trợ gộp nhiều file cùng loại · kéo thả hoặc bấm chọn)</span></div>
+  <div class="upload-grid">
+    <!-- Zone 1: Thành viên -->
+    <div class="drop-zone" id="dz1" onclick="document.getElementById('f1').click()" ondragover="onDrag(event,'dz1')" ondragleave="offDrag('dz1')" ondrop="onDrop(event,'f1_files','dz1','ft1')">
+      <input type="file" id="f1" multiple accept=".xlsx" onchange="addFiles(this,'f1_files','dz1','ft1')">
+      <div class="dz-icon">👤</div>
+      <div style="font-weight:bold;font-size:12px">Xuất dữ liệu thành viên</div>
+      <div class="dz-label">Ngân hàng · STK · IP · Link đăng ký</div>
+      <div class="dz-hint">Kéo thả hoặc bấm chọn</div>
+      <div class="file-tags" id="ft1"></div>
+    </div>
+
+    <!-- Zone 2: Báo cáo thành viên -->
+    <div class="drop-zone" id="dz2" onclick="document.getElementById('f2').click()" ondragover="onDrag(event,'dz2')" ondragleave="offDrag('dz2')" ondrop="onDrop(event,'f2_files','dz2','ft2')">
+      <input type="file" id="f2" multiple accept=".xlsx" onchange="addFiles(this,'f2_files','dz2','ft2')">
+      <div class="dz-icon">📋</div>
+      <div style="font-weight:bold;font-size:12px">Báo cáo thành viên</div>
+      <div class="dz-label">Nạp · Rút · Cược hợp lệ · Cấp bậc</div>
+      <div class="dz-hint">Kéo thả hoặc bấm chọn</div>
+      <div class="file-tags" id="ft2"></div>
+    </div>
+
+    <!-- Zone 3: Nhà cung cấp -->
+    <div class="drop-zone" id="dz3" onclick="document.getElementById('f3').click()" ondragover="onDrag(event,'dz3')" ondragleave="offDrag('dz3')" ondrop="onDrop(event,'f3_files','dz3','ft3')">
+      <input type="file" id="f3" multiple accept=".xlsx" onchange="addFiles(this,'f3_files','dz3','ft3')">
+      <div class="dz-icon">🎮</div>
+      <div style="font-weight:bold;font-size:12px">Báo cáo nhà cung cấp</div>
+      <div class="dz-label">Sảnh trò chơi · Cược per game</div>
+      <div class="dz-hint">Kéo thả hoặc bấm chọn</div>
+      <div class="file-tags" id="ft3"></div>
+    </div>
+
+    <div class="upload-actions">
+      <button class="btn-process" id="btn-process" onclick="processFiles()" disabled>⚡ Tính toán</button>
+      <button class="btn-reset" onclick="resetToDefault()">↺ Dữ liệu gốc</button>
+      <div class="progress-bar" id="prog-bar"><div class="progress-fill" id="prog-fill"></div></div>
+    </div>
+
+    <div class="upload-log hidden" id="upload-log"></div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="showPanel('summary')">📊 TỔNG HỢP <span class="data-source-badge" id="ds-badge" style="background:#9ca3af">TRỐNG</span></div>
+  <div class="tab" onclick="showPanel('agents')">📋 DANH SÁCH ĐẠI LÝ</div>
+  <div class="tab" onclick="showPanel('detail')">🔍 KIỂM TRA ĐẠI LÝ</div>
+</div>
+
+<!-- PANEL 1 -->
+<div class="panel active" id="panel-summary">
+  <div class="ph">
+    <div>
+      <div class="ph-title">Tổng Hợp Toàn Bộ</div>
+      <div class="ph-sub">Chỉ tính thành viên đủ điều kiện (nạp ≥ 1,000 & cược ≥ 3,000) · Đại lý cần ≥ 3 KH hợp lệ</div>
+    </div>
+  </div>
+  <div class="cards" id="summary-cards"></div>
+  <div class="tbl-toolbar">
+    <input type="text" id="s-all" placeholder="Tìm ID, Họ tên, Đại lý, Ngân hàng..." oninput="filterAll()">
+    <span class="badge" id="cnt-all"></span>
+    <button class="export-btn" onclick="exportCSV('all')">⬇ Xuất CSV</button>
+  </div>
+  <div class="tbl-wrap">
+    <table><thead><tr>
+      <th>STT</th><th>Đại lý</th><th>ID</th><th>Cấp bậc</th><th>Họ tên</th>
+      <th>Khách</th><th>Chỉ tiêu</th><th>Lần nạp</th><th>Tiền nạp</th>
+      <th>Lần rút</th><th>Tiền rút</th><th>Âm/Dương</th><th>Cược HL</th>
+      <th>Ngân hàng</th><th>Chi nhánh</th><th>STK</th><th>IP</th>
+      <th>LINK ĐK</th><th>LINK ĐN</th><th>Thiết bị</th><th>GAME</th>
+    </tr></thead>
+    <tbody id="body-all"></tbody></table>
+  </div>
+  <div class="pg" id="pg-all"></div>
+</div>
+
+<!-- PANEL 2 -->
+<div class="panel" id="panel-agents">
+  <div class="ph">
+    <div><div class="ph-title">Danh Sách Đại Lý Đủ Điều Kiện</div><div class="ph-sub">Đại lý có ≥ 3 KH hợp lệ</div></div>
+    <button class="export-btn" onclick="exportCSV('agents')">⬇ Xuất CSV</button>
+  </div>
+  <div class="tbl-toolbar">
+    <input type="text" id="s-agents" placeholder="Tìm tên đại lý..." oninput="filterAgents()">
+    <span class="badge" id="cnt-agents"></span>
+  </div>
+  <div class="tbl-wrap">
+    <table><thead><tr>
+      <th>STT</th><th>Tên đại lý</th><th>Tổng TV</th><th>KH hợp lệ</th>
+      <th>KH mới</th><th>KH cũ</th><th>Tổng nạp</th><th>Tổng rút</th>
+      <th>Âm/Dương</th><th>Cược HL</th><th></th>
+    </tr></thead>
+    <tbody id="body-agents"></tbody></table>
+  </div>
+  <div class="pg" id="pg-agents"></div>
+</div>
+
+<!-- PANEL 3 -->
+<div class="panel" id="panel-detail">
+  <div class="ph"><div class="ph-title">Kiểm Tra Theo Đại Lý</div></div>
+  <div class="agent-sel-bar">
+    <select id="agent-select" onchange="loadAgent()"><option value="">-- Chọn đại lý --</option></select>
+    <button class="export-btn" onclick="exportCSV('detail')">⬇ Xuất CSV đại lý này</button>
+  </div>
+  <div class="info-bar" id="info-bar" style="display:none"></div>
+  <div class="tbl-wrap">
+    <table><thead><tr>
+      <th>STT</th><th>ID</th><th>Cấp bậc</th><th>Họ tên</th>
+      <th>Khách</th><th>Chỉ tiêu</th><th>Lần nạp</th><th>Tiền nạp</th>
+      <th>Lần rút</th><th>Tiền rút</th><th>Âm/Dương</th><th>Cược HL</th>
+      <th>Ngân hàng</th><th>Chi nhánh</th><th>STK</th><th>IP</th>
+      <th>LINK ĐK</th><th>LINK ĐN</th><th>Thiết bị</th><th>GAME</th>
+    </tr></thead>
+    <tbody id="body-detail"></tbody></table>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════
+// EMBEDDED DEFAULT DATA
+// ════════════════════════════════
+const DEFAULT_DATA = {"rows":[],"agents":[],"qualified_count":0,"total_rows":0,"max_month":""}
+
+let ROWS = DEFAULT_DATA.rows;
+let AGENTS = DEFAULT_DATA.agents;
+let MAX_MONTH = DEFAULT_DATA.max_month;
+let isCustomData = false;
+
+// File storage (multiple files per slot)
+const fileStore = {f1_files:[], f2_files:[], f3_files:[]};
+
+const PS = 100;
+let filtAll=[...ROWS], filtAgents=[...AGENTS], pgAll=1, pgAgents=1;
+
+// ════════════════════════════════
+// UPLOAD HANDLERS
+// ════════════════════════════════
+function onDrag(e,id){e.preventDefault();e.stopPropagation();document.getElementById(id).classList.add('dragover')}
+function offDrag(id){document.getElementById(id).classList.remove('dragover')}
+// Chặn trình duyệt tải file khi thả ngoài drop zone
+document.addEventListener('dragover',e=>{if(!e.target.closest('.drop-zone'))e.preventDefault();});
+document.addEventListener('drop',e=>{if(!e.target.closest('.drop-zone')){e.preventDefault();e.stopPropagation();}});
+
+function onDrop(e,store,dzId,ftId){
+  e.preventDefault();
+  e.stopPropagation();
+  offDrag(dzId);
+  const files = Array.from(e.dataTransfer.files).filter(f=>f.name.endsWith('.xlsx'));
+  if(!files.length){log('⚠ Chỉ chấp nhận file .xlsx');return;}
+  files.forEach(f=>addFileToStore(f,store,ftId));
+  checkBtn();
+}
+
+function addFiles(input,store,dzId,ftId){
+  Array.from(input.files).forEach(f=>addFileToStore(f,store,ftId));
+  document.getElementById(dzId).classList.add('loaded');
+  checkBtn();
+  input.value='';
+}
+
+function addFileToStore(file,store,ftId){
+  if(fileStore[store].find(f=>f.name===file.name&&f.size===file.size)){log('⚠ File giống hệt đã có: '+file.name);return;}
+  fileStore[store].push(file);
+  const tag=document.createElement('div');
+  tag.className='file-tag';
+  tag.id='tag_'+store+'_'+fileStore[store].length;
+  tag.innerHTML=`📄 ${file.name.substring(0,22)}${file.name.length>22?'...':''} <span class="rm" onclick="removeFile('${store}',${fileStore[store].length-1},'${ftId}')">✕</span>`;
+  document.getElementById(ftId).appendChild(tag);
+  log('✅ Đã thêm: '+file.name);
+}
+
+function removeFile(store,idx,ftId){
+  fileStore[store].splice(idx,1);
+  renderFileTags(store,ftId);
+  checkBtn();
+}
+
+function renderFileTags(store,ftId){
+  const el=document.getElementById(ftId);
+  el.innerHTML='';
+  fileStore[store].forEach((f,i)=>{
+    const tag=document.createElement('div');tag.className='file-tag';
+    tag.innerHTML=`📄 ${f.name.substring(0,22)} <span class="rm" onclick="removeFile('${store}',${i},'${ftId}')">✕</span>`;
+    el.appendChild(tag);
+  });
+}
+
+function checkBtn(){
+  const has2=fileStore.f2_files.length>0;
+  document.getElementById('btn-process').disabled=!has2;
+}
+
+function log(msg){
+  const el=document.getElementById('upload-log');
+  el.classList.remove('hidden');
+  el.textContent+=msg+'\n';
+  el.scrollTop=el.scrollHeight;
+}
+
+function setProgress(pct){
+  const bar=document.getElementById('prog-bar');
+  bar.style.display='block';
+  document.getElementById('prog-fill').style.width=pct+'%';
+  if(pct>=100)setTimeout(()=>{bar.style.display='none'},800);
+}
+
+// ════════════════════════════════
+// READ XLSX FILES
+// ════════════════════════════════
+function readXlsx(file){
+  return new Promise((res,rej)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      try{
+        const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+        res(rows);
+      }catch(err){rej(err);}
+    };
+    reader.onerror=rej;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+async function readAllFiles(storeKey){
+  const files=fileStore[storeKey];
+  if(!files.length)return[];
+  const all=[];
+  for(const f of files){
+    log(`  📖 Đọc: ${f.name}`);
+    const rows=await readXlsx(f);
+    all.push(...rows);
+  }
+  return all;
+}
+
+// ════════════════════════════════
+// DETECT FILE TYPE & PROCESS
+// ════════════════════════════════
+function detectFileType(rows){
+  if(!rows.length)return null;
+  const keys=Object.keys(rows[0]).join(',');
+  if(keys.includes('số tài khoản')||keys.includes('Ngân hàng_1'))return 'member_info';
+  if(keys.includes('Sảnh trò chơi'))return 'game';
+  if(keys.includes('Bên nhượng quyền')&&keys.includes('Tổng số tiền gửi'))return 'report';
+  return null;
+}
+
+async function processFiles(){
+  showOverlay('Đang đọc file...');
+  setProgress(5);
+  log('\n🔄 Bắt đầu xử lý...');
+  
+  try{
+    // Gom tất cả file từ 3 ô, loại trùng hoàn toàn (cùng tên + cùng size)
+    const seen=new Set();
+    const allFiles=[...fileStore.f1_files,...fileStore.f2_files,...fileStore.f3_files]
+      .filter(f=>{const k=f.name+'|'+f.size;if(seen.has(k))return false;seen.add(k);return true;});
+    if(!allFiles.length){hideOverlay();log('❌ Chưa có file nào!');return;}
+    log(`  📦 ${allFiles.length} file`);
+
+    // Đọc & tự động nhận diện loại file theo nội dung
+    let df1=[],df2=[],df3=[];
+    for(const file of allFiles){
+      log(`  📖 ${file.name}`);
+      const rows=await readXlsx(file);
+      if(!rows.length){log(`  ⚠ File rỗng`);continue;}
+      const cols=Object.keys(rows[0]);
+      const n=cols.length;
+      // File game (Nhà cung cấp): có cột Sảnh - đặc trưng nhất, check trước
+      if(cols.some(c=>c.includes('nh')&&c.includes('tr')&&c.includes('ch'))||cols.some(c=>c.includes('ảnh'))){
+        df3.push(...rows);log(`  ✅ [Game] ${rows.length} dòng`);
+      }
+      // File thành viên (Xuất dữ liệu): col[0] = 'số tài khoản', tối đa 9-10 cột
+      else if(n<=10&&(cols[0].includes('kho')||cols[0].includes('account')||cols[0].toLowerCase().includes('tai'))){
+        df1.push(...rows);log(`  ✅ [Thành viên] ${rows.length} dòng`);
+      }
+      // File báo cáo thành viên: nhiều cột, có 'gửi tiền'
+      else if(n>=10||cols.some(c=>c.includes('gửi')||c.includes('nhuợng'))){
+        df2.push(...rows);log(`  ✅ [Báo cáo] ${rows.length} dòng`);
+      }
+      else{
+        log(`  ❓ Không nhận diện: ${cols.slice(0,3).join(' | ')}`);
+        // Fallback theo số cột
+        if(n<=10)df1.push(...rows); else df2.push(...rows);
+      }
+    }
+    setProgress(40);
+    log(`  TV=${df1.length} BáoCáo=${df2.length} Game=${df3.length}`);
+    if(!df2.length){hideOverlay();log('❌ Không tìm thấy file Báo cáo thành viên!');return;}
+
+    overlayMsg('Đang tính toán...');
+    setProgress(55);
+
+    // ── Process df2 (Báo cáo thành viên) ──
+    const memMap={};
+    df2.forEach(row=>{
+      const agent=row['Bên nhượng quyền']||'';
+      const user=row['Thành viên']||'';
+      if(!agent||!user)return;
+      const key=agent+'|||'+user;
+      if(!memMap[key])memMap[key]={
+        dai_ly:agent,id:user,
+        cap_bac:row['cấp thành viên']||'',
+        lan_nap:0,tien_nap:0,lan_rut:0,tien_rut:0,cuoc_hop_le:0
+      };
+      const m=memMap[key];
+      m.lan_nap+=Number(row['Số lần gửi tiền'])||0;
+      m.tien_nap+=Number(row['Tổng số tiền gửi'])||0;
+      m.lan_rut+=Number(row['Số lần rút tiền'])||0;
+      m.tien_rut+=Number(row['Số tiền rút'])||0;
+      m.cuoc_hop_le+=Number(row['Tổng số tiền đặt cược hợp lệ'])||0;
+    });
+
+    // ── Process df1 (user info) ──
+    const infoMap={};
+    df1.forEach(row=>{
+      const u=row['số tài khoản']||'';
+      if(!u)return;
+      const linkDn=String(row['URL nguồn-Đăng nhập']||'');
+      const path=linkDn.split('://').pop();
+      const thiet_bi=path.startsWith('m.')?'Điện thoại':'Máy tính';
+      // Date for new/old customer
+      let regDate=null;
+      const dval=row['Thời gian gửi tiền thực tế đầu tiên'];
+      if(dval instanceof Date)regDate=dval;
+      else if(typeof dval==='number')regDate=new Date(Math.round((dval-25569)*86400*1000));
+      else if(typeof dval==='string'&&dval)regDate=new Date(dval);
+      infoMap[u]={
+        ho_ten:row['tên thật']||'',
+        ip:row['IP đăng nhập lần cuối']||'',
+        link_dk:row['Đăng ký URL nguồn']||'',
+        link_dn:linkDn,
+        ngan_hang:row['Ngân hàng_1']||'',
+        chi_nhanh:row['Ngân hàng_1 - Quận']||'',
+        stk:String(row['Ngân hàng_1 - Tài khoản']||''),
+        thiet_bi,regDate
+      };
+    });
+
+    // ── Determine max month from df1 for new/old ──
+    let maxTs=0;
+    Object.values(infoMap).forEach(m=>{if(m.regDate&&m.regDate.getTime()>maxTs)maxTs=m.regDate.getTime();});
+    const maxDate=maxTs?new Date(maxTs):new Date();
+    const maxM=maxDate.getFullYear()+'-'+(String(maxDate.getMonth()+1).padStart(2,'0'));
+    log(`  📅 Tháng hiện tại trong dữ liệu: ${maxM}`);
+
+    // ── Process df3 (games) ──
+    const gameMap={};
+    df3.forEach(row=>{
+      const agent=row['Bên nhượng quyền']||'';
+      const user=row['Thành viên']||'';
+      const game=row['Sảnh trò chơi']||'';
+      const bet=Number(row['Tổng số tiền đặt cược'])||0;
+      if(!agent||!user||!game)return;
+      const key=agent+'|||'+user;
+      if(!gameMap[key])gameMap[key]={};
+      gameMap[key][game]=(gameMap[key][game]||0)+bet;
+    });
+    const gameTop2={};
+    Object.keys(gameMap).forEach(k=>{
+      const sorted=Object.entries(gameMap[k]).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]);
+      gameTop2[k]=sorted.join(' / ');
+    });
+
+    setProgress(75);
+
+    // ── Build member rows ──
+    const members=Object.values(memMap);
+    members.forEach(m=>{
+      m.am_duong=m.tien_nap-m.tien_rut;
+      m.hop_le=m.tien_nap>=1000&&m.cuoc_hop_le>=3000;
+      m.chi_tieu=m.hop_le?'Đạt':'Chưa đạt';
+      const info=infoMap[m.id]||{};
+      m.ho_ten=info.ho_ten||'';
+      m.ip=info.ip||'';
+      m.link_dk=info.link_dk||'';
+      m.link_dn=info.link_dn||'';
+      m.ngan_hang=info.ngan_hang||'';
+      m.chi_nhanh=info.chi_nhanh||'';
+      m.stk=info.stk||'';
+      m.thiet_bi=info.thiet_bi||'Máy tính';
+      // new/old
+      const rd=info.regDate;
+      if(rd){
+        const rm=rd.getFullYear()+'-'+(String(rd.getMonth()+1).padStart(2,'0'));
+        m.khach=rm===maxM?'Mới':'Cũ';
+      } else {m.khach='Cũ';}
+      const gkey=m.dai_ly+'|||'+m.id;
+      m.game=gameTop2[gkey]||'';
+    });
+
+    // ── Count valid per agent ──
+    const agentValid={};
+    members.forEach(m=>{
+      if(!agentValid[m.dai_ly])agentValid[m.dai_ly]=0;
+      if(m.hop_le)agentValid[m.dai_ly]++;
+    });
+    const qualifiedAgents=new Set(Object.keys(agentValid).filter(a=>agentValid[a]>=3));
+    log(`  ✅ Đại lý đủ điều kiện: ${qualifiedAgents.size}`);
+
+    // ── Output rows ──
+    const newRows=members
+      .filter(m=>m.hop_le&&qualifiedAgents.has(m.dai_ly))
+      .sort((a,b)=>a.dai_ly.localeCompare(b.dai_ly)||b.tien_nap-a.tien_nap);
+    
+    // ── Agent summary ──
+    const agentSummary={};
+    members.filter(m=>qualifiedAgents.has(m.dai_ly)).forEach(m=>{
+      if(!agentSummary[m.dai_ly])agentSummary[m.dai_ly]={
+        dai_ly:m.dai_ly,tong_thanh_vien:0,khach_hop_le:0,
+        tong_nap:0,tong_rut:0,am_duong:0,cuoc_hop_le:0,khach_moi:0,khach_cu:0
+      };
+      const a=agentSummary[m.dai_ly];
+      a.tong_thanh_vien++;
+      if(m.hop_le)a.khach_hop_le++;
+      a.tong_nap+=m.tien_nap;a.tong_rut+=m.tien_rut;
+      a.am_duong+=m.am_duong;a.cuoc_hop_le+=m.cuoc_hop_le;
+      if(m.khach==='Mới')a.khach_moi++;else a.khach_cu++;
+    });
+    const newAgents=Object.values(agentSummary).sort((a,b)=>a.dai_ly.localeCompare(b.dai_ly));
+
+    setProgress(90);
+
+    // ── Apply ──
+    ROWS=newRows;
+    AGENTS=newAgents;
+    MAX_MONTH=maxM;
+    isCustomData=true;
+    filtAll=[...ROWS];filtAgents=[...AGENTS];pgAll=1;pgAgents=1;
+
+    log(`  📊 Tổng KH hợp lệ: ${newRows.length}`);
+    log('✅ Xong!');
+    setProgress(100);
+    document.getElementById('ds-badge').textContent='MỚI';
+    document.getElementById('ds-badge').style.background='#22c55e';
+    document.getElementById('ds-badge').style.color='white';
+
+    hideOverlay();
+    rebuildAll();
+
+  } catch(err){
+    hideOverlay();
+    log('❌ Lỗi: '+err.message);
+    console.error(err);
+  }
+}
+
+function resetToDefault(){
+  ROWS=[...DEFAULT_DATA.rows];
+  AGENTS=[...DEFAULT_DATA.agents];
+  MAX_MONTH=DEFAULT_DATA.max_month;
+  isCustomData=false;
+  filtAll=[...ROWS];filtAgents=[...AGENTS];pgAll=1;pgAgents=1;
+  // Clear file stores
+  ['f1_files','f2_files','f3_files'].forEach(k=>fileStore[k]=[]);
+  ['ft1','ft2','ft3'].forEach(id=>document.getElementById(id).innerHTML='');
+  ['dz1','dz2','dz3'].forEach(id=>document.getElementById(id).classList.remove('loaded'));
+  document.getElementById('upload-log').textContent='';
+  document.getElementById('upload-log').classList.add('hidden');
+  document.getElementById('btn-process').disabled=true;
+  document.getElementById('ds-badge').textContent='TRỐNG';
+  document.getElementById('ds-badge').style.background='#ffaa00';
+  document.getElementById('ds-badge').style.color='#6B1A00';
+  rebuildAll();
+  log('↺ Đã xóa. Vui lòng upload file mới để tính toán.');
+}
+
+// ════════════════════════════════
+// RENDER
+// ════════════════════════════════
+function fmt(n){if(n===null||n===undefined||n==='')return'';return Number(n).toLocaleString('vi-VN');}
+function ad(n){
+  if(n<0)return`<span class="pos">+${fmt(Math.abs(n))}</span>`;
+  if(n>0)return`<span class="neg">-${fmt(n)}</span>`;
+  return`<span style="color:#888">0</span>`;
+}
+function rowHtml(r,i){
+  const tb=r.thiet_bi==='Điện thoại'?'<span class="b-dt">📱 ĐT</span>':'<span class="b-mt">💻 MT</span>';
+  const kh=r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>';
+  const ct=r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-chua">Chưa</span>';
+  return `<tr>
+    <td class="tc stt">${i}</td><td><b>${r.dai_ly}</b></td><td>${r.id}</td>
+    <td class="ell" title="${r.cap_bac}">${r.cap_bac}</td><td>${r.ho_ten}</td>
+    <td class="tc">${kh}</td><td class="tc">${ct}</td>
+    <td class="tc">${r.lan_nap}</td><td class="tc">${fmt(r.tien_nap)}</td>
+    <td class="tc">${r.lan_rut}</td><td class="tc">${fmt(r.tien_rut)}</td>
+    <td class="tc">${ad(r.am_duong)}</td><td class="tc">${fmt(r.cuoc_hop_le)}</td>
+    <td>${r.ngan_hang}</td><td>${r.chi_nhanh}</td><td>${r.stk}</td>
+    <td style="font-size:10px">${r.ip}</td>
+    <td class="ell tc" title="${r.link_dk}" style="font-size:10px">${r.link_dk}</td>
+    <td class="ell tc" title="${r.link_dn}" style="font-size:10px">${r.link_dn}</td>
+    <td class="tc">${tb}</td><td title="${r.game}">${r.game}</td>
+  </tr>`;
+}
+
+function renderAll(){
+  const s=(pgAll-1)*PS,e=s+PS;
+  document.getElementById('body-all').innerHTML=filtAll.slice(s,e).map((r,i)=>rowHtml(r,s+i+1)).join('');
+  document.getElementById('cnt-all').textContent=filtAll.length+' kết quả';
+  renderPg('pg-all',filtAll.length,pgAll,p=>{pgAll=p;renderAll();});
+}
+function filterAll(){
+  const q=document.getElementById('s-all').value.toLowerCase();
+  filtAll=q?ROWS.filter(r=>r.id.toLowerCase().includes(q)||r.ho_ten.toLowerCase().includes(q)||r.dai_ly.toLowerCase().includes(q)||(r.ngan_hang||'').toLowerCase().includes(q)):[...ROWS];
+  pgAll=1;renderAll();
+}
+
+function renderAgents(){
+  const s=(pgAgents-1)*PS,e=s+PS;
+  document.getElementById('body-agents').innerHTML=filtAgents.slice(s,e).map((a,i)=>{
+    const ad2=a.am_duong<0?`<span class='pos'>+${fmt(Math.abs(a.am_duong))}</span>`:`<span class='neg'>-${fmt(a.am_duong)}</span>`;
+    return `<tr>
+      <td class="tc stt">${s+i+1}</td><td><b>${a.dai_ly}</b></td>
+      <td class="tc">${a.tong_thanh_vien}</td><td class="tc"><b style="color:#CC4400">${a.khach_hop_le}</b></td>
+      <td class="tc"><span class="b-moi">${a.khach_moi}</span></td>
+      <td class="tc"><span class="b-cu">${a.khach_cu}</span></td>
+      <td class="tc">${fmt(a.tong_nap)}</td><td class="tc">${fmt(a.tong_rut)}</td>
+      <td class="tc">${ad2}</td><td class="tc">${fmt(Math.round(a.cuoc_hop_le))}</td>
+      <td class="tc"><button class="view-btn" onclick="goAgent('${a.dai_ly}')">Xem</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('cnt-agents').textContent=filtAgents.length+' đại lý';
+  renderPg('pg-agents',filtAgents.length,pgAgents,p=>{pgAgents=p;renderAgents();});
+}
+function filterAgents(){
+  const q=document.getElementById('s-agents').value.toLowerCase();
+  filtAgents=q?AGENTS.filter(a=>a.dai_ly.toLowerCase().includes(q)):[...AGENTS];
+  pgAgents=1;renderAgents();
+}
+
+function loadAgent(){
+  const name=document.getElementById('agent-select').value;
+  const ib=document.getElementById('info-bar');
+  if(!name){document.getElementById('body-detail').innerHTML='<tr><td colspan="20" class="empty">Chọn đại lý để xem chi tiết</td></tr>';ib.style.display='none';return;}
+  const rows=ROWS.filter(r=>r.dai_ly===name);
+  const info=AGENTS.find(a=>a.dai_ly===name)||{};
+  ib.style.display='flex';
+  ib.innerHTML=[
+    ['Tổng TV',info.tong_thanh_vien],['KH hợp lệ',`<span style="color:#CC4400;font-weight:bold">${info.khach_hop_le}</span>`],
+    ['KH mới',`<span style="color:#3b82f6;font-weight:bold">${info.khach_moi}</span>`],['KH cũ',info.khach_cu],
+    ['Tổng nạp',fmt(info.tong_nap)],['Tổng rút',fmt(info.tong_rut)],
+    ['Âm/Dương',`<span style="color:${info.am_duong<0?'#16a34a':'#dc2626'};font-weight:bold">${info.am_duong<0?'+'+fmt(Math.abs(info.am_duong)):'-'+fmt(info.am_duong)}</span>`],
+    ['Cược HL',fmt(Math.round(info.cuoc_hop_le))]
+  ].map(([l,v])=>`<div class="info-item"><div class="lbl">${l}</div><div class="val">${v}</div></div>`).join('');
+  document.getElementById('body-detail').innerHTML=rows.map((r,i)=>{
+    const tb=r.thiet_bi==='Điện thoại'?'<span class="b-dt">📱 ĐT</span>':'<span class="b-mt">💻 MT</span>';
+    const kh=r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>';
+    const ct=r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-chua">Chưa</span>';
+    return `<tr>
+      <td class="tc stt">${i+1}</td><td>${r.id}</td>
+      <td class="ell" title="${r.cap_bac}">${r.cap_bac}</td><td>${r.ho_ten}</td>
+      <td class="tc">${kh}</td><td class="tc">${ct}</td>
+      <td class="tc">${r.lan_nap}</td><td class="tc">${fmt(r.tien_nap)}</td>
+      <td class="tc">${r.lan_rut}</td><td class="tc">${fmt(r.tien_rut)}</td>
+      <td class="tc">${ad(r.am_duong)}</td><td class="tc">${fmt(r.cuoc_hop_le)}</td>
+      <td>${r.ngan_hang}</td><td>${r.chi_nhanh}</td><td>${r.stk}</td>
+      <td style="font-size:10px">${r.ip}</td>
+      <td class="ell" title="${r.link_dk}" style="font-size:10px">${r.link_dk}</td>
+      <td class="ell" title="${r.link_dn}" style="font-size:10px">${r.link_dn}</td>
+      <td class="tc">${tb}</td><td title="${r.game}">${r.game}</td>
+    </tr>`;
+  }).join('');
+}
+function goAgent(name){
+  document.getElementById('agent-select').value=name;
+  loadAgent();showPanel('detail');
+}
+
+function initCards(){
+  const tn=ROWS.reduce((s,r)=>s+r.tien_nap,0);
+  const tr=ROWS.reduce((s,r)=>s+r.tien_rut,0);
+  const tc=ROWS.reduce((s,r)=>s+r.cuoc_hop_le,0);
+  const moi=ROWS.filter(r=>r.khach==='Mới').length;
+  document.getElementById('summary-cards').innerHTML=`
+    <div class="card"><div class="card-label">Đại lý đủ điều kiện</div><div class="card-value">${AGENTS.length}</div></div>
+    <div class="card"><div class="card-label">Tổng KH hợp lệ</div><div class="card-value">${ROWS.length}</div></div>
+    <div class="card"><div class="card-label">KH mới (${MAX_MONTH})</div><div class="card-value" style="color:#3b82f6">${moi}</div></div>
+    <div class="card"><div class="card-label">KH cũ</div><div class="card-value" style="color:#6b7280">${ROWS.length-moi}</div></div>
+    <div class="card"><div class="card-label">Tổng tiền nạp</div><div class="card-value">${fmt(tn)}</div></div>
+    <div class="card"><div class="card-label">Tổng tiền rút</div><div class="card-value">${fmt(tr)}</div></div>
+    <div class="card"><div class="card-label">Âm/Dương</div><div class="card-value" style="color:${tn-tr>=0?'#16a34a':'#dc2626'}">${fmt(tn-tr)}</div></div>
+    <div class="card"><div class="card-label">Tổng cược HL</div><div class="card-value">${fmt(Math.round(tc))}</div></div>`;
+}
+
+function rebuildAll(){
+  initCards();
+  renderAll();
+  renderAgents();
+  const sel=document.getElementById('agent-select');
+  sel.innerHTML='<option value="">-- Chọn đại lý --</option>';
+  AGENTS.forEach(a=>{
+    const o=document.createElement('option');
+    o.value=a.dai_ly;o.textContent=`${a.dai_ly} (${a.khach_hop_le} KH hợp lệ)`;
+    sel.appendChild(o);
+  });
+  document.getElementById('body-detail').innerHTML='<tr><td colspan="20" class="empty">Chọn đại lý để xem chi tiết</td></tr>';
+  document.getElementById('info-bar').style.display='none';
+}
+
+// ════════════════════════════════
+// PAGINATION
+// ════════════════════════════════
+function renderPg(id,total,cur,onClick){
+  const pages=Math.ceil(total/PS);
+  if(pages<=1){document.getElementById(id).innerHTML='';return;}
+  let h=`<span class="pg-info">Trang ${cur}/${pages}</span>`;
+  if(cur>1)h+=`<button class="pg-btn" onclick="(${onClick})(${cur-1})">‹</button>`;
+  for(let p=Math.max(1,cur-2);p<=Math.min(pages,cur+2);p++)
+    h+=`<button class="pg-btn ${p===cur?'on':''}" onclick="(${onClick})(${p})">${p}</button>`;
+  if(cur<pages)h+=`<button class="pg-btn" onclick="(${onClick})(${cur+1})">›</button>`;
+  document.getElementById(id).innerHTML=h;
+}
+
+// ════════════════════════════════
+// TABS & OVERLAY
+// ════════════════════════════════
+function showPanel(n){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+n).classList.add('active');
+  document.querySelectorAll('.tab')[{summary:0,agents:1,detail:2}[n]].classList.add('active');
+}
+function showOverlay(msg){document.getElementById('overlay').classList.add('show');overlayMsg(msg);}
+function hideOverlay(){document.getElementById('overlay').classList.remove('show');}
+function overlayMsg(m){document.getElementById('overlay-msg').textContent=m;}
+
+// ════════════════════════════════
+// EXPORT CSV
+// ════════════════════════════════
+function exportCSV(type){
+  let data,headers,filename;
+  const H=['Đại lý','ID','Cấp bậc','Họ tên','Khách','Chỉ tiêu','Lần nạp','Tiền nạp','Lần rút','Tiền rút','Âm/Dương','Cược HL','Ngân hàng','Chi nhánh','STK','IP','LINK ĐK','LINK ĐN','Thiết bị','GAME'];
+  const toRow=r=>[r.dai_ly,r.id,r.cap_bac,r.ho_ten,r.khach,r.chi_tieu,r.lan_nap,r.tien_nap,r.lan_rut,r.tien_rut,r.am_duong,r.cuoc_hop_le,r.ngan_hang,r.chi_nhanh,r.stk,r.ip,r.link_dk,r.link_dn,r.thiet_bi,r.game];
+  if(type==='agents'){
+    headers=['Đại lý','Tổng TV','KH hợp lệ','KH mới','KH cũ','Tổng nạp','Tổng rút','Âm/Dương','Cược HL'];
+    data=filtAgents.map(a=>[a.dai_ly,a.tong_thanh_vien,a.khach_hop_le,a.khach_moi,a.khach_cu,a.tong_nap,a.tong_rut,a.am_duong,a.cuoc_hop_le]);
+    filename='danh_sach_dai_ly.csv';
+  }else if(type==='detail'){
+    const name=document.getElementById('agent-select').value;
+    if(!name){alert('Vui lòng chọn đại lý!');return;}
+    headers=H;data=ROWS.filter(r=>r.dai_ly===name).map(toRow);filename=`dai_ly_${name}.csv`;
+  }else{
+    headers=H;data=filtAll.map(toRow);filename='tong_hop_thanh_vien.csv';
+  }
+  const bom='\uFEFF';
+  const csv=bom+[headers,...data].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=filename;a.click();
+}
+
+// ════ INIT ════
+window.onload=()=>rebuildAll();
+</script>
+</div></body>
+</html>

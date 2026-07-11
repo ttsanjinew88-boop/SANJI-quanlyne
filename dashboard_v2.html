@@ -866,6 +866,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     <div class="chart-title" style="color:#f87171">Xóa dữ liệu theo tháng — NGUY HIỂM</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <select class="adm-inp" id="admDelMonth" style="cursor:pointer"><option value="">-- Chọn tháng --</option></select>
+      <button onclick="admExportMonth()" style="padding:8px 18px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:#10b981;border-radius:7px;font-weight:800;cursor:pointer;font-size:.72rem">Tải sao lưu JSON</button>
       <button onclick="admDeleteMonth()" style="padding:8px 18px;background:#dc2626;color:#fff;border:none;border-radius:7px;font-weight:800;cursor:pointer;font-size:.72rem">Xóa toàn bộ tháng này</button>
     </div>
     <div style="font-size:.62rem;color:var(--mu);margin-top:8px">Xóa vĩnh viễn trên cloud: Duyệt Đơn · Khuyến Mãi · Phân Ca · Bất Thường · Báo cáo đại lý của tháng đã chọn. File Excel gốc trong Storage được GIỮ LẠI để khôi phục khi cần (upload lại là xong).</div>
@@ -884,8 +885,17 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 
 
 <script>
-// ===== EMBEDDED DATA (replace via Upload Excel) =====
-const MD = {"month":"6/2026","days":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31],"days_in_month":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23],"hour_labels_gmt7":["00H","01H","02H","03H","04H","05H","06H","07H","08H","09H","10H","11H","12H","13H","14H","15H","16H","17H","18H","19H","20H","21H","22H","23H"],"hour_labels_gmt4":["00H","01H","02H","03H","04H","05H","06H","07H","08H","09H","10H","11H","12H","13H","14H","15H","16H","17H","18H","19H","20H","21H","22H","23H"],"day_scores":[13900,14983,15116,14952,14730,12691,11526,12119,13479,15055,15512,14959,13851,13493,16080,15936,15636,16881,16065,14964,14876,15396,15187,0,0,0,0,0,0,0,0],"day_counts":[7708,8227,8211,7947,8027,6983,6274,6633,7207,8275,8418,8470,7710,7577,8871,8828,8726,9184,8729,8235,8308,8421,8224,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[12680,9913,7184,4962,219,0,0,0,10207,15554,20239,21552,20908,22661,24141,23677,23407,20928,17936,16166,15895,16664,16986,15510],"hour_counts_gmt7":[7081,5676,4324,3054,165,0,0,0,6916,8678,10956,11608,11292,12262,12792,12339,12212,11070,9694,9026,8941,9137,9406,8564],"hour_scores_gmt4":[21552,20908,22661,24141,23677,23407,20928,17936,16166,15895,16664,16986,15510,12680,9913,7184,4962,219,0,0,0,10207,15554,20239],"hour_counts_gmt4":[11608,11292,12262,12792,12339,12212,11070,9694,9026,8941,9137,9406,8564,7081,5676,4324,3054,165,0,0,0,6916,8678,10956],"fk_data":{"fkjade":{"name":"JADE","group":"vip","total_score":31094,"total_count":17173,"day_scores":[2196,2568,1781,495,2182,1867,871,358,1327,493,1761,560,1529,501,2028,750,2712,2624,1963,575,1245,0,708,0,0,0,0,0,0,0,0],"day_counts":[1209,1401,935,284,1182,1007,453,212,713,293,960,346,877,309,1141,463,1545,1405,1024,330,664,0,420,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[0,0,0,0,0,0,0,0,1755,2246,3049,3189,3406,2720,3668,3909,3890,3251,7,0,0,0,0,0],"hour_counts_gmt7":[0,0,0,0,0,0,0,0,1227,1277,1674,1773,1886,1480,1966,2067,2071,1747,5,0,0,0,0,0]},"fkcarbon":{"name":"CARBON","group":"vip","total_score":19050,"total_count":10402,"day_scores":[1031,0,653,966,680,406,375,833,1056,0,696,639,947,369,1718,1000,1115,0,849,1661,1327,1083,1646,0,0,0,0,0,0,0,0],"day_counts":[601,0,370,499,361,211,183,499,549,0,350,354,545,215,949,538,607,0,469,908,740,579,875,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[1736,1632,853,351,10,0,0,0,0,0,0,0,0,0,0,0,0,270,2768,2372,1982,2383,2719,1971],"hour_counts_gmt7":[941,941,499,208,9,0,0,0,0,0,0,0,0,0,0,0,0,136,1470,1307,1070,1273,1487,1061]},"fkmember":{"name":"MEMBER","group":"vip","total_score":33448,"total_count":18515,"day_scores":[2212,2419,1068,2260,1810,1,312,1597,1750,2354,786,1868,1741,1691,298,549,2054,2340,611,1903,2098,1726,0,0,0,0,0,0,0,0,0],"day_counts":[1218,1285,588,1224,959,1,177,879,978,1261,454,1106,986,926,151,352,1203,1237,383,1046,1166,935,0,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[0,0,0,0,0,0,0,0,1504,1985,3156,3687,3529,3742,3490,3655,4202,4489,5,0,0,0,0,0],"hour_counts_gmt7":[0,0,0,0,0,0,0,0,1100,1148,1762,2059,1941,2106,1877,1943,2190,2384,5,0,0,0,0,0]},"fkangel":{"name":"ANGEL","group":"vip","total_score":33632,"total_count":17996,"day_scores":[1879,97,528,2123,111,842,1780,1630,1351,833,2541,2104,120,454,3194,2719,2262,803,2172,687,1981,549,2872,0,0,0,0,0,0,0,0],"day_counts":[1033,52,296,1112,62,465,913,853,685,433,1343,1123,76,281,1750,1478,1191,447,1100,380,1081,314,1528,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[0,0,0,0,0,0,0,0,1712,2733,3215,3847,4080,4453,4546,4425,3080,1536,2,0,0,0,0,0],"hour_counts_gmt7":[0,0,0,0,0,0,0,0,1125,1516,1692,1971,2202,2383,2386,2311,1608,800,2,0,0,0,0,0]},"fkgeon":{"name":"GEON","group":"vip","total_score":22130,"total_count":13100,"day_scores":[0,1284,1684,1619,820,1240,689,0,686,1316,1032,405,1366,1422,1148,0,1828,174,844,563,1496,1521,993,0,0,0,0,0,0,0,0],"day_counts":[0,776,1008,909,478,726,398,0,403,821,609,239,869,849,683,0,1062,106,517,333,899,858,557,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[2529,2497,1092,781,59,0,0,0,0,0,0,0,0,0,0,0,0,188,2169,1919,2563,2629,3038,2663],"hour_counts_gmt7":[1484,1478,698,520,44,0,0,0,0,0,0,0,0,0,0,0,0,104,1221,1125,1523,1542,1791,1570]},"fkdante":{"name":"DANTE","group":"vip","total_score":21516,"total_count":12520,"day_scores":[1009,1183,0,920,957,755,1066,582,1568,909,960,1307,372,0,1772,1649,0,1760,0,1507,0,1695,1545,0,0,0,0,0,0,0,0],"day_counts":[618,716,0,496,561,463,616,370,833,510,551,794,220,0,1042,941,0,1018,0,912,0,980,879,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[1955,1447,1269,873,40,0,0,0,0,0,0,0,0,0,0,0,0,183,3121,2597,2248,2571,2628,2583],"hour_counts_gmt7":[1105,819,797,565,35,0,0,0,0,0,0,0,0,0,0,0,0,93,1751,1539,1319,1477,1527,1493]},"fkpiu":{"name":"PIU","group":"vip","total_score":36591,"total_count":20218,"day_scores":[362,647,2637,1700,1418,1905,1690,1306,492,2782,1024,1872,1071,1693,727,2167,758,2765,2396,2302,760,2307,1810,0,0,0,0,0,0,0,0],"day_counts":[207,374,1468,886,775,1023,908,700,290,1503,564,975,650,934,435,1181,445,1493,1289,1259,491,1338,1030,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[0,0,0,0,0,0,0,0,1863,2495,3065,3654,2895,4386,4944,4381,4471,4326,106,0,0,0,0,0],"hour_counts_gmt7":[0,0,0,0,0,0,0,0,1323,1442,1699,1992,1618,2422,2636,2302,2377,2348,59,0,0,0,0,0]},"fkchamy":{"name":"CHAMY","group":"onl","total_score":15407,"total_count":7839,"day_scores":[102,549,947,777,1102,223,428,1099,626,213,344,612,1233,475,1279,79,214,470,1086,383,1134,761,1271,0,0,0,0,0,0,0,0],"day_counts":[53,269,497,390,554,107,216,535,301,111,171,318,622,245,656,38,107,244,532,211,595,409,658,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[0,0,0,0,0,0,0,0,962,1907,2103,1358,1798,1347,1516,1470,1872,1069,5,0,0,0,0,0],"hour_counts_gmt7":[0,0,0,0,0,0,0,0,541,991,1073,681,903,673,753,735,928,558,3,0,0,0,0,0]},"fkluby":{"name":"LUBY","group":"onl","total_score":24595,"total_count":13558,"day_scores":[594,782,1436,963,1729,687,1112,185,1528,475,2019,1663,872,1797,675,1958,250,253,676,1651,919,1894,477,0,0,0,0,0,0,0,0],"day_counts":[330,429,767,515,909,389,612,123,840,283,1095,903,515,986,394,1067,142,157,380,907,557,1003,255,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[0,0,0,0,0,0,0,0,1230,1758,2480,2850,2333,2721,2916,2715,2883,2650,59,0,0,0,0,0],"hour_counts_gmt7":[0,0,0,0,0,0,0,0,875,1003,1408,1564,1254,1499,1596,1404,1517,1407,31,0,0,0,0,0]},"fkaimee":{"name":"AIMEE","group":"onl","total_score":19698,"total_count":11145,"day_scores":[1427,1335,0,1358,1611,0,0,0,691,1157,1698,1487,0,1250,0,1573,1390,1183,1511,0,0,1211,816,0,0,0,0,0,0,0,0],"day_counts":[802,746,0,704,887,0,0,0,379,667,979,913,0,769,0,891,774,673,861,0,0,645,455,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[1532,1176,1250,1024,46,0,0,0,0,0,0,0,0,0,0,0,0,23,2789,2543,2488,2492,2210,2125],"hour_counts_gmt7":[864,677,759,652,36,0,0,0,0,0,0,0,0,0,0,0,0,12,1506,1431,1431,1373,1217,1187]},"fkantony":{"name":"ANTONY","group":"onl","total_score":10903,"total_count":4974,"day_scores":[579,650,977,0,0,0,4,809,0,962,835,0,1236,604,266,0,0,754,592,863,0,725,1047,0,0,0,0,0,0,0,0],"day_counts":[252,295,447,0,0,0,2,351,0,409,355,0,549,268,125,0,0,363,284,421,0,343,510,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[1003,604,602,573,9,0,0,0,0,0,0,0,0,0,0,0,0,40,1421,1550,1317,1313,1190,1281],"hour_counts_gmt7":[477,276,285,259,5,0,0,0,0,0,0,0,0,0,0,0,0,18,635,697,599,593,541,589]},"fktrucia":{"name":"TRUCIA","group":"onl","total_score":21353,"total_count":12361,"day_scores":[21,1394,1539,0,1574,1854,2043,1881,59,2376,0,1660,29,1446,0,225,24,1861,1534,0,1819,0,14,0,0,0,0,0,0,0,0],"day_counts":[10,840,863,0,910,1093,1177,1100,30,1382,0,977,16,879,0,129,13,1034,899,0,1001,0,8,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[2243,1313,1108,840,42,0,0,0,0,0,0,0,0,0,0,0,0,76,2624,2452,2722,2657,2636,2640],"hour_counts_gmt7":[1302,795,727,539,27,0,0,0,0,0,0,0,0,0,0,0,0,36,1493,1439,1591,1471,1479,1462]},"fkminty":{"name":"MINTY","group":"onl","total_score":12238,"total_count":6281,"day_scores":[205,933,314,662,269,917,47,295,326,925,187,56,583,1085,278,1153,375,1134,540,1182,35,308,429,0,0,0,0,0,0,0,0],"day_counts":[109,462,149,340,141,432,21,132,173,470,99,31,312,544,149,609,206,603,281,601,18,158,241,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[0,0,0,0,0,0,0,0,311,1002,1488,1160,1319,1512,1359,1563,1315,1190,19,0,0,0,0,0],"hour_counts_gmt7":[0,0,0,0,0,0,0,0,189,521,756,609,680,781,704,770,663,598,10,0,0,0,0,0]},"fkbrenna":{"name":"BRENNA","group":"onl","total_score":15643,"total_count":8224,"day_scores":[1246,1143,34,26,469,1143,147,221,448,262,135,729,1297,708,1505,533,1241,42,114,394,639,1607,1560,0,0,0,0,0,0,0,0],"day_counts":[686,582,16,16,248,592,79,109,225,132,81,391,680,372,773,307,660,22,56,198,337,854,808,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[0,0,0,0,0,0,0,0,870,1428,1684,1808,1549,1781,1702,1559,1695,1560,7,0,0,0,0,0],"hour_counts_gmt7":[0,0,0,0,0,0,0,0,536,780,892,959,808,918,874,807,858,787,5,0,0,0,0,0]},"fkseren":{"name":"SEREN","group":"onl","total_score":20126,"total_count":10887,"day_scores":[1038,0,1519,1085,0,852,963,1325,1572,0,1497,0,1457,0,1194,1583,1415,720,1178,1293,1425,10,0,0,0,0,0,0,0,0,0],"day_counts":[580,0,807,572,0,474,519,770,808,0,807,0,793,0,623,834,771,382,654,729,759,5,0,0,0,0,0,0,0,0,0],"hour_scores_gmt7":[1683,1244,1010,520,13,0,0,0,0,0,0,0,0,0,0,0,0,78,2835,2734,2576,2620,2565,2248],"hour_counts_gmt7":[908,690,559,311,9,0,0,0,0,0,0,0,0,0,0,0,0,42,1498,1488,1408,1408,1364,1202]}},"fkvip":["fkjade","fkcarbon","fkmember","fkangel","fkgeon","fkdante","fkpiu"],"fkonl":["fkchamy","fkluby","fkaimee","fkantony","fktrucia","fkminty","fkbrenna","fkseren"]};
+// ===== EMBEDDED DATA (rỗng — dữ liệu thật tải từ cloud sau khi đăng nhập) =====
+const MD = (function(){
+  const NM={fkjade:"JADE",fkcarbon:"CARBON",fkmember:"MEMBER",fkangel:"ANGEL",fkgeon:"GEON",fkdante:"DANTE",fkpiu:"PIU",fkchamy:"CHAMY",fkluby:"LUBY",fkaimee:"AIMEE",fkantony:"ANTONY",fktrucia:"TRUCIA",fkminty:"MINTY",fkbrenna:"BRENNA",fkseren:"SEREN"};
+  const VIP=["fkjade","fkcarbon","fkmember","fkangel","fkgeon","fkdante","fkpiu"];
+  const ONL=["fkchamy","fkluby","fkaimee","fkantony","fktrucia","fkminty","fkbrenna","fkseren"];
+  const z31=()=>new Array(31).fill(0),z24=()=>new Array(24).fill(0);
+  const lbl=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
+  const fd={};
+  Object.keys(NM).forEach(fk=>{fd[fk]={name:NM[fk],group:VIP.includes(fk)?"vip":"onl",total_score:0,total_count:0,day_scores:z31(),day_counts:z31(),hour_scores_gmt7:z24(),hour_counts_gmt7:z24(),hour_scores_gmt4:z24()};});
+  return{month:"",days:Array.from({length:31},(_,i)=>i+1),days_in_month:[],hour_labels_gmt7:lbl,hour_labels_gmt4:lbl,day_scores:z31(),day_counts:z31(),hour_scores_gmt7:z24(),hour_counts_gmt7:z24(),hour_scores_gmt4:z24(),hour_counts_gmt4:z24(),fk_data:fd,fkvip:VIP,fkonl:ONL};
+})();
 const GMT_OFFSET = 11;
 const FK_SEARCH = {fkjade:"fkjade",fkcarbon:"carbon",fkmember:"fkmember",fkangel:"fkangel",fkgeon:"fkgeon",fkdante:"fkdante",fkpiu:"fkpiu",fkchamy:"chamy",fkluby:"fkluby",fkaimee:"aimee",fkantony:"antony",fktrucia:"trucia",fkminty:"minty",fkbrenna:"brenna",fkseren:"seren"};
 const FK_KEYS = Object.keys(FK_SEARCH);
@@ -900,6 +910,8 @@ function fkGrpCol(fk){return FKVIP.includes(fk)?VIP_COL:ONL_COL;}
 
 function ha(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return `rgba(${r},${g},${b},${a})`;}
 function nn(v){return(v||0).toLocaleString("vi-VN");}
+// Chống XSS: escape dữ liệu người-dùng-nhập (từ file Excel) trước khi đưa vào innerHTML
+function hesc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function dch(id){if(CH[id]){CH[id].destroy();delete CH[id];}}
 function hrs(f,t){const a=[];if(f<=t){for(let h=f;h<=t;h++)a.push(h);}else{for(let h=f;h<24;h++)a.push(h);for(let h=0;h<=t;h++)a.push(h);}return a;}
 function co(s){return{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:s,grid:{color:"rgba(255,255,255,.04)"},ticks:{color:"#64748b",font:{size:9}},border:{color:"#1e2545"}},y:{stacked:s,grid:{color:"rgba(255,255,255,.06)"},ticks:{color:"#64748b",font:{size:9}},border:{color:"#1e2545"}}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#131830",titleColor:"#e2e8f0",bodyColor:"#94a3b8",borderColor:"#252d55",borderWidth:1}}};}
@@ -1373,6 +1385,30 @@ async function admFillDelMonths(){
     if(cur)sel.value=cur;
   }catch(e){console.error('admFillDelMonths',e);}
 }
+// Tải toàn bộ dữ liệu 1 tháng ra file JSON (sao lưu tay, phòng gói free không backup tự động)
+async function admExportMonth(){
+  if(!CUR_PROFILE||!CUR_PROFILE.is_admin)return;
+  const m=document.getElementById('admDelMonth').value;
+  const msg=document.getElementById('admDelMsg');
+  if(!m){msg.style.color='var(--re)';msg.textContent='Chưa chọn tháng để sao lưu';return;}
+  try{
+    msg.style.color='var(--mu2)';msg.textContent='Đang tải dữ liệu tháng '+dispMonth(m)+'...';
+    const types=['don','km','shift','anomaly','work','limits','ov','bc'];
+    const out={month:m,exported_at:new Date().toISOString(),by:CUR_PROFILE.username,data:{}};
+    for(const t of types){out.data[t]=await SB.loadReport(t,m);}
+    const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='sanji_backup_'+m+'.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    logAction('Tải sao lưu JSON','Tháng '+dispMonth(m));
+    msg.style.color='var(--gr)';msg.textContent='Đã tải file sao lưu tháng '+dispMonth(m)+' ✓';
+  }catch(e){
+    console.error('admExportMonth',e);
+    msg.style.color='var(--re)';msg.textContent='Lỗi tải sao lưu: '+(e.message||e);
+  }
+}
 async function admDeleteMonth(){
   if(!CUR_PROFILE||!CUR_PROFILE.is_admin)return;
   const m=document.getElementById('admDelMonth').value;
@@ -1520,9 +1556,16 @@ async function bootData(){
   CUR_MONTH=mk;
   try{
     setCloudStatus('Đang tải dữ liệu tháng '+dispMonth(mk)+'...');
-    const[don,km,shift,an,wk,lm]=await Promise.all([SB.loadReport('don',mk),SB.loadReport('km',mk),SB.loadReport('shift',mk),SB.loadReport('anomaly',mk),SB.loadReport('work',mk),SB.loadReport('limits',mk)]);
+    const[don,km,shift,an,wk,lm,ov]=await Promise.all([SB.loadReport('don',mk),SB.loadReport('km',mk),SB.loadReport('shift',mk),SB.loadReport('anomaly',mk),SB.loadReport('work',mk),SB.loadReport('limits',mk),SB.loadReport('ov',mk)]);
     WORK=wk||{};
     LIMITS=lm||{};
+    if(ov&&Object.keys(ov).length){KO_OV=ov;}
+    else{
+      // di trú 1 lần: dữ liệu tổng quan cũ còn trong máy -> cloud tháng hiện tại
+      const legacy=loadKoOvLegacy();
+      KO_OV=Object.keys(legacy).length?legacy:{};
+      if(Object.keys(legacy).length){try{await SB.saveReport('ov',mk,KO_OV);localStorage.removeItem(KO_OV_KEY);}catch(e){}}
+    }
     D=don||emptyDataset(mk);
     KMD=km||null;
     if(shift)applyShiftData(shift);
@@ -1646,10 +1689,11 @@ async function loadHistMonth(m){
   document.getElementById("histDdMenu").classList.remove("show");
   try{
     setCloudStatus("Đang tải tháng "+dispMonth(m)+"...");
-    const[don,km,shift,an,wk,lm]=await Promise.all([SB.loadReport("don",m),SB.loadReport("km",m),SB.loadReport("shift",m),SB.loadReport("anomaly",m),SB.loadReport("work",m),SB.loadReport("limits",m)]);
+    const[don,km,shift,an,wk,lm,ov]=await Promise.all([SB.loadReport("don",m),SB.loadReport("km",m),SB.loadReport("shift",m),SB.loadReport("anomaly",m),SB.loadReport("work",m),SB.loadReport("limits",m),SB.loadReport("ov",m)]);
     CUR_MONTH=m;
     WORK=wk||{};
     LIMITS=lm||{};
+    KO_OV=(ov&&Object.keys(ov).length)?ov:{};
     D=don||emptyDataset(m);
     KMD=km||null;
     if(shift)applyShiftData(shift);
@@ -1672,10 +1716,21 @@ FK_KEYS.forEach(fk=>shAssign[fk]=null);
 ["fkjade","fkmember"].forEach(fk=>shAssign[fk]="trung");
 
 // ===== KO: BẢNG TỔNG QUAN (Cộng/Trừ/Khác/Ghi chú) — localStorage =====
-const KO_OV_KEY="fk_ko_overview_v1";
-function loadKoOv(){try{return JSON.parse(localStorage.getItem(KO_OV_KEY))||{};}catch(e){return {};}}
-function saveKoOv(){localStorage.setItem(KO_OV_KEY,JSON.stringify(KO_OV));}
-let KO_OV=loadKoOv();
+const KO_OV_KEY="fk_ko_overview_v1"; // chỉ dùng để di trú dữ liệu cũ 1 lần
+function loadKoOvLegacy(){try{return JSON.parse(localStorage.getItem(KO_OV_KEY))||{};}catch(e){return {};}}
+let KO_OV={};
+let _ovTimer=null;
+function saveKoOv(){
+  clearTimeout(_ovTimer);
+  _ovTimer=setTimeout(_saveKoOvCloud,1000);
+}
+async function _saveKoOvCloud(){
+  if(!SB.ready()||!CUR_PROFILE||!CUR_MONTH)return;
+  try{
+    await SB.saveReport('ov',CUR_MONTH,KO_OV);
+    setCloudStatus('Đã lưu tổng quan tháng '+dispMonth(CUR_MONTH)+' ✓');
+  }catch(e){console.error('_saveKoOvCloud',e);setCloudStatus('Lỗi lưu tổng quan',true);}
+}
 function ovGet(fk){return {cong:0,tru:0,khac:"",note:"",wd:null,...(KO_OV[fk]||{})};}
 function ovSet(fk,field,val){
   if(typeof CUR_PROFILE!=='undefined'&&CUR_PROFILE&&typeof canEdit==='function'&&!canEdit('ko')){alert('Bạn chỉ có quyền XEM tab Hiệu Suất KO.');return;}
@@ -3625,24 +3680,24 @@ const BC={
         :'';
       agCell=`<td rowspan="${agSpan||1}" style="vertical-align:middle;background:${bg};border:1px solid var(--border)">
         <div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:2px">
-          <b style="cursor:pointer;color:#9f67ff;text-decoration:underline" title="Bấm để kiểm tra đại lý" onclick="BC.goAgent('${ag}')">${r.dai_ly}</b>
+          <b style="cursor:pointer;color:#9f67ff;text-decoration:underline" title="Bấm để kiểm tra đại lý" onclick="BC.goAgent('${ag}')">${hesc(r.dai_ly)}</b>
           ${chk}
         </div>
       </td>`;
     }
     return`<tr style="background:${bg};${sep}">
-      <td class="tc stt">${i}</td>${agCell}<td>${r.id}</td>
-      <td class="ell">${r.cap_bac}</td><td>${r.ho_ten}</td>
+      <td class="tc stt">${i}</td>${agCell}<td>${hesc(r.id)}</td>
+      <td class="ell">${hesc(r.cap_bac)}</td><td>${hesc(r.ho_ten)}</td>
       <td>${kh}</td><td>${ct}</td>
       <td>${BC.fmt(r.tien_nap)}</td><td>${r.lan_nap}</td>
       <td>${BC.fmt(r.tien_rut)}</td><td>${r.lan_rut}</td>
       <td>${BC.ad(r.am_duong)}</td><td>${BC.fmt(r.cuoc_hop_le)}</td>
-      <td>${r.ngan_hang}</td><td>${r.chi_nhanh}</td><td>${r.stk}</td>
-      <td style="font-size:10px">${r.ip}</td>
+      <td>${hesc(r.ngan_hang)}</td><td>${hesc(r.chi_nhanh)}</td><td>${hesc(r.stk)}</td>
+      <td style="font-size:10px">${hesc(r.ip)}</td>
       <td>${tb}</td>
-      <td class="ell" title="${r.link_dk}" style="font-size:10px">${r.link_dk}</td>
-      <td class="ell" title="${r.link_dn}" style="font-size:10px">${r.link_dn}</td>
-      <td>${r.game}</td></tr>`;
+      <td class="ell" title="${hesc(r.link_dk)}" style="font-size:10px">${hesc(r.link_dk)}</td>
+      <td class="ell" title="${hesc(r.link_dn)}" style="font-size:10px">${hesc(r.link_dn)}</td>
+      <td>${hesc(r.game)}</td></tr>`;
   },
 
   renderAll(){
@@ -3677,7 +3732,7 @@ const BC={
     const s=(BC.pgAgents-1)*BC.PS,e=s+BC.PS;
     document.getElementById('bc-body-agents').innerHTML=BC.filtAgents.slice(s,e).map((a,i)=>{
       const ad2=a.am_duong<0?`<span class='pos'>+${BC.fmt(Math.abs(a.am_duong))}</span>`:`<span class='neg'>-${BC.fmt(a.am_duong)}</span>`;
-      return`<tr><td class="tc stt">${s+i+1}</td><td><b>${a.dai_ly}</b></td>
+      return`<tr><td class="tc stt">${s+i+1}</td><td><b>${hesc(a.dai_ly)}</b></td>
         <td class="tc">${a.tong_thanh_vien}</td><td class="tc"><b style="color:#9f67ff">${a.khach_hop_le}</b></td>
         <td class="tc"><span class="b-moi">${a.khach_moi}</span></td>
         <td class="tc"><span class="b-cu">${a.khach_cu}</span></td>
@@ -3713,18 +3768,18 @@ const BC={
       const tb=r.thiet_bi==='Điện thoại'?'<span class="b-dt">ĐT</span>':'<span class="b-mt">MT</span>';
       const kh=r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>';
       const ct=r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-chua">Chưa</span>';
-      return`<tr><td class="tc stt">${i+1}</td><td>${r.id}</td>
-        <td class="ell" title="${r.cap_bac}">${r.cap_bac}</td><td>${r.ho_ten}</td>
+      return`<tr><td class="tc stt">${i+1}</td><td>${hesc(r.id)}</td>
+        <td class="ell" title="${hesc(r.cap_bac)}">${hesc(r.cap_bac)}</td><td>${hesc(r.ho_ten)}</td>
         <td class="tc">${kh}</td><td class="tc">${ct}</td>
         <td class="tc">${BC.fmt(r.tien_nap)}</td><td class="tc">${r.lan_nap}</td>
         <td class="tc">${BC.fmt(r.tien_rut)}</td><td class="tc">${r.lan_rut}</td>
         <td class="tc">${BC.ad(r.am_duong)}</td><td class="tc">${BC.fmt(r.cuoc_hop_le)}</td>
-        <td>${r.ngan_hang}</td><td>${r.chi_nhanh}</td><td>${r.stk}</td>
-        <td style="font-size:10px">${r.ip}</td>
+        <td>${hesc(r.ngan_hang)}</td><td>${hesc(r.chi_nhanh)}</td><td>${hesc(r.stk)}</td>
+        <td style="font-size:10px">${hesc(r.ip)}</td>
         <td class="tc">${tb}</td>
-        <td class="ell" title="${r.link_dk}" style="font-size:10px">${r.link_dk}</td>
-        <td class="ell" title="${r.link_dn}" style="font-size:10px">${r.link_dn}</td>
-        <td title="${r.game}">${r.game}</td></tr>`;
+        <td class="ell" title="${hesc(r.link_dk)}" style="font-size:10px">${hesc(r.link_dk)}</td>
+        <td class="ell" title="${hesc(r.link_dn)}" style="font-size:10px">${hesc(r.link_dn)}</td>
+        <td title="${hesc(r.game)}">${hesc(r.game)}</td></tr>`;
     }).join('');
   },
 
@@ -3831,11 +3886,11 @@ const BC={
            <span>KH mới: <b style="color:#3b82f6">${sm.khach_moi??'-'}</b></span>`
         :'<span style="color:var(--mu)">(không có số liệu tổng — đánh dấu lúc chưa tính toán)</span>';
       const memRows=(s.members||[]).map((r,i)=>`<tr>
-        <td class="tc stt">${i+1}</td><td>${r.id}</td><td class="ell">${r.cap_bac}</td><td>${r.ho_ten}</td>
+        <td class="tc stt">${i+1}</td><td>${hesc(r.id)}</td><td class="ell">${hesc(r.cap_bac)}</td><td>${hesc(r.ho_ten)}</td>
         <td>${r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>'}</td>
         <td>${BC.fmt(r.tien_nap)}</td><td>${BC.fmt(r.tien_rut)}</td><td>${BC.ad(r.am_duong)}</td>
-        <td>${BC.fmt(r.cuoc_hop_le)}</td><td>${r.ngan_hang}</td><td>${r.stk}</td>
-        <td style="font-size:10px">${r.ip}</td><td>${r.game||''}</td>
+        <td>${BC.fmt(r.cuoc_hop_le)}</td><td>${hesc(r.ngan_hang)}</td><td>${hesc(r.stk)}</td>
+        <td style="font-size:10px">${hesc(r.ip)}</td><td>${hesc(r.game||'')}</td>
       </tr>`).join('');
       return`<div style="background:var(--card);border:1px solid rgba(239,68,68,.35);border-radius:10px;padding:14px;margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
@@ -3908,6 +3963,19 @@ const BC={
     document.querySelectorAll('.bc-bt-chip').forEach(c=>c.classList.toggle('sel',c.textContent===fk));
   },
 
+  // Gửi báo cáo QUA EDGE FUNCTION — token bot nằm bí mật ở server, điểm cộng do server quyết định
+  async callSendReport(mode,fk,content,agent,files){
+    if(!SB.ready())throw new Error('Chưa cấu hình cloud');
+    const{data:sess}=await SB.client().auth.getSession();
+    const token=sess&&sess.session&&sess.session.access_token;
+    if(!token)throw new Error('Chưa đăng nhập');
+    const fd=new FormData();
+    fd.append('meta',JSON.stringify({mode,fk,content,agent}));
+    (files||[]).forEach((f,i)=>fd.append('file'+i,f,f.name||('file_'+i)));
+    const r=await fetch(SB_URL+'/functions/v1/super-function',{method:'POST',headers:{'Authorization':'Bearer '+token,'apikey':SB_KEY},body:fd});
+    return await r.json();
+  },
+
   async sendBatThuong(){
     if(!BC._selFk){alert('Vui lòng chọn nhân viên phụ trách (FK)!');return;}
     const agentName=document.getElementById('bc-agent-select').value;
@@ -3919,22 +3987,11 @@ const BC={
     status.style.color='#888';status.textContent='Đang tạo file Excel...';
     try{
       const blob=BC.genExcel(rows,agentName);
-      status.textContent='Đang gửi Telegram...';
       const d=new Date();
-      const dd=d.getDate().toString().padStart(2,'0'),mm=(d.getMonth()+1).toString().padStart(2,'0'),yy=d.getFullYear();
-      const hh=d.getHours().toString().padStart(2,'0'),min=d.getMinutes().toString().padStart(2,'0');
-      const dateStr=`${dd}/${mm}/${yy} ${hh}:${min}`;
-      const isoDate=`${yy}-${mm}-${dd}`;
-      const caption=`🚨 BÁO CÁO ĐẠI LÝ BẤT THƯỜNG\n📅 ${dateStr}\n👤 FK: ${BC._selFk}\n🏢 Đại lý: ${agentName}\n📋 ${content||'(không có nội dung)'}`;
-      const filename=`BaoCao_${agentName}_${BC._selFk}_${dd}${mm}.xls`;
-      /* Inline keyboard callback: bot webhook (Supabase Edge Function) cộng điểm trực tiếp, rid dùng 1 lần */
-      const rid=Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);
-      const fkKey='fk'+BC._selFk.toLowerCase();
-      const rm={inline_keyboard:[[
-        {text:'✅ Xác Nhận',callback_data:`cf|${fkKey}|${isoDate}|m|3|${rid}`},
-        {text:'👁 Theo Dõi Thêm',callback_data:`wt|${fkKey}|${isoDate}|${rid}`}
-      ]]};
-      const res=await BC.tgSend(blob,filename,caption,rm);
+      const dd=d.getDate().toString().padStart(2,'0'),mm=(d.getMonth()+1).toString().padStart(2,'0');
+      const file=new File([blob],`BaoCao_${agentName}_${BC._selFk}_${dd}${mm}.xls`,{type:'application/vnd.ms-excel'});
+      status.textContent='Đang gửi Telegram...';
+      const res=await BC.callSendReport('dai_ly','fk'+BC._selFk.toLowerCase(),content,agentName,[file]);
       if(res.ok){
         status.style.color='#22c55e';status.textContent='Gửi thành công!';
         setTimeout(()=>BC.closeBtModal(),1600);
@@ -4079,82 +4136,19 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
     const btn=document.getElementById('bc-cu-send-btn');
     btn.disabled=true;
     status.style.color='#888';status.textContent='Đang gửi...';
-    const BOT='https://api.telegram.org/bot8521438412:AAHUPTf3Y1H02wY3ZsVWe-ciM0T86K5Rztk';
-    const G1='-5266235608';   /* nhóm 1: chỉ nhận text */
-    const G2='-1002508451381';/* nhóm 2: nhận file + inline keyboard */
     try{
-      const d=new Date();
-      const dd=d.getDate().toString().padStart(2,'0'),mm=(d.getMonth()+1).toString().padStart(2,'0'),yy=d.getFullYear();
-      const hh=d.getHours().toString().padStart(2,'0'),mi=d.getMinutes().toString().padStart(2,'0');
-      const dateStr=`${dd}/${mm}/${yy} ${hh}:${mi}`;
-      const isoDate=`${yy}-${mm}-${dd}`;
-      const txt=`🎰 BÁO CÁO CƯỢC BẤT THƯỜNG\n📅 ${dateStr}\n👤 FK: ${BC._selCuFk}\n📋 ${content||'(không có nội dung)'}`;
-      /* Nhóm 1: text only */
-      await fetch(`${BOT}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({chat_id:G1,text:txt})});
-      /* Nhóm 2: file/ảnh + inline keyboard (Xác Nhận / Hủy Bỏ) */
-      const rid=Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);
-      const fkKey='fk'+BC._selCuFk.toLowerCase();
-      const rm={inline_keyboard:[[
-        {text:'✅ Xác Nhận',callback_data:`cf|${fkKey}|${isoDate}|a|1|${rid}`},
-        {text:'❌ Hủy Bỏ',callback_data:`dm|${fkKey}|${isoDate}|${rid}`}
-      ]]};
-      /* Nhiều file: gửi lần lượt — caption ở file ĐẦU, nút Xác Nhận gắn vào tin CUỐI */
-      let lastMsgId=null;
-      if(files.length){
-        for(let i=0;i<files.length;i++){
-          const f=files[i];
-          const isImg=(f.type||'').startsWith('image/');
-          const fd=new FormData();
-          fd.append('chat_id',G2);
-          if(i===0)fd.append('caption',txt+(files.length>1?`\n📎 ${files.length} file đính kèm`:''));
-          fd.append(isImg?'photo':'document',f,f.name||('file_'+(i+1)));
-          status.textContent='Đang gửi file '+(i+1)+'/'+files.length+'...';
-          const r=await fetch(`${BOT}/${isImg?'sendPhoto':'sendDocument'}`,{method:'POST',body:fd});
-          const res=await r.json();
-          if(!res.ok)throw new Error(res.description||('Lỗi gửi file '+(i+1)));
-          lastMsgId=res.result.message_id;
-        }
+      const res=await BC.callSendReport('cuoc','fk'+BC._selCuFk.toLowerCase(),content,'',files);
+      if(res.ok){
+        status.style.color='#22c55e';status.textContent='Đã gửi thành công!';
+        setTimeout(()=>BC.closeCuModal(),1800);
       }else{
-        /* Không có file → gửi text với inline keyboard thẳng */
-        const r=await fetch(`${BOT}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({chat_id:G2,text:txt,reply_markup:rm})});
-        const res=await r.json();
-        if(!res.ok)throw new Error(res.description||'Lỗi gửi tin');
+        status.style.color='#ef4444';status.textContent='Lỗi: '+(res.description||'Unknown');
+        btn.disabled=false;
       }
-      /* Gắn keyboard vào tin cuối cùng */
-      if(lastMsgId){
-        await fetch(`${BOT}/editMessageReplyMarkup`,{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({chat_id:G2,message_id:lastMsgId,reply_markup:rm})});
-      }
-      status.style.color='#22c55e';status.textContent='Đã gửi thành công vào 2 nhóm!';
-      setTimeout(()=>BC.closeCuModal(),1800);
     }catch(err){
       status.style.color='#ef4444';status.textContent='Lỗi: '+err.message;
       btn.disabled=false;
     }
-  },
-
-  async tgSend(blob,filename,caption,replyMarkup){
-    const BOT='https://api.telegram.org/bot8521438412:AAHUPTf3Y1H02wY3ZsVWe-ciM0T86K5Rztk';
-    const CHAT='-1002508451381';
-    /* Step 1: send file via multipart */
-    const fd=new FormData();
-    fd.append('chat_id',CHAT);
-    fd.append('document',blob,filename);
-    fd.append('caption',caption);
-    const r=await fetch(`${BOT}/sendDocument`,{method:'POST',body:fd});
-    const result=await r.json();
-    /* Step 2: edit message to attach inline keyboard (JSON is more reliable than multipart for reply_markup) */
-    if(result.ok&&replyMarkup){
-      const msgId=result.result.message_id;
-      await fetch(`${BOT}/editMessageReplyMarkup`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({chat_id:CHAT,message_id:msgId,reply_markup:replyMarkup})
-      });
-    }
-    return result;
   }
 };
 
