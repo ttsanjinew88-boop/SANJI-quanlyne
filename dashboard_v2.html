@@ -432,6 +432,37 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 </head>
 <body>
 
+<!-- MODAL: THIẾT LẬP 2FA (Google Authenticator) -->
+<div id="tfaModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100001;align-items:center;justify-content:center">
+  <div class="login-box" style="width:min(400px,94vw);text-align:center">
+    <div class="login-title" style="color:var(--cy)">BẢO MẬT 2 LỚP (2FA)</div>
+    <div class="login-sub">Google Authenticator</div>
+    <div id="tfa-loading" style="font-size:.72rem;color:var(--mu);padding:14px">Đang tải...</div>
+    <!-- Trạng thái: đã bật -->
+    <div id="tfa-on" style="display:none">
+      <div style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);border-radius:8px;padding:12px;font-size:.75rem;color:#10b981;font-weight:700;margin-bottom:14px">✓ Tài khoản của bạn ĐÃ BẬT 2FA</div>
+      <button onclick="disable2fa()" style="width:100%;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171;border-radius:8px;padding:10px;font-size:.75rem;font-weight:800;cursor:pointer">Tắt 2FA</button>
+    </div>
+    <!-- Trạng thái: chưa bật -> nút bật -->
+    <div id="tfa-off" style="display:none">
+      <div style="font-size:.72rem;color:var(--mu2);line-height:1.7;margin-bottom:14px">Bật 2FA để mỗi lần đăng nhập cần thêm mã 6 số từ điện thoại — an toàn hơn nhiều.</div>
+      <button onclick="start2faEnroll()" style="width:100%;background:linear-gradient(135deg,var(--pu),var(--bl));border:none;color:#fff;border-radius:8px;padding:11px;font-size:.78rem;font-weight:800;cursor:pointer;box-shadow:0 4px 15px rgba(124,58,237,.3)">Bật 2FA — Google Authenticator</button>
+    </div>
+    <!-- Bước quét QR + nhập mã xác nhận -->
+    <div id="tfa-enroll" style="display:none">
+      <div style="font-size:.7rem;color:var(--mu2);line-height:1.6;margin-bottom:10px">1. Mở <b style="color:var(--pu2)">Google Authenticator</b> → bấm <b>+</b> → <b>Quét mã QR</b>:</div>
+      <div style="background:#fff;border-radius:10px;padding:10px;display:inline-block;margin-bottom:10px"><img id="tfa-qr" alt="QR 2FA" style="width:190px;height:190px;display:block"></div>
+      <div style="font-size:.64rem;color:var(--mu);margin-bottom:4px">Hoặc nhập tay mã bí mật (ID) này:</div>
+      <div id="tfa-secret" style="font-family:monospace;font-size:.72rem;font-weight:800;color:var(--cy);background:var(--card2);border:1px solid var(--border2);border-radius:6px;padding:8px;margin-bottom:14px;word-break:break-all;cursor:pointer" title="Bấm để copy" onclick="copy2faSecret()"></div>
+      <div style="font-size:.7rem;color:var(--mu2);margin-bottom:8px">2. Nhập mã 6 số đang hiện trong app để xác nhận:</div>
+      <input class="login-inp" id="tfa-code" inputmode="numeric" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:.5em;font-size:1.1rem;font-weight:800" onkeydown="if(event.key==='Enter')confirm2faEnroll()">
+      <button onclick="confirm2faEnroll()" style="width:100%;background:linear-gradient(135deg,var(--pu),var(--bl));border:none;color:#fff;border-radius:8px;padding:10px;font-size:.75rem;font-weight:800;cursor:pointer;margin-top:6px">Xác nhận bật 2FA</button>
+    </div>
+    <div id="tfa-err" style="font-size:.68rem;color:var(--re);margin-top:10px;min-height:16px;font-weight:600"></div>
+    <button onclick="close2faModal()" style="width:100%;margin-top:12px;background:transparent;border:1px solid var(--border2);color:var(--mu2);border-radius:8px;padding:9px;font-size:.7rem;font-weight:700;cursor:pointer">Đóng</button>
+  </div>
+</div>
+
 <!-- PASTE MODAL: dán dữ liệu copy từ Excel (phân công / điểm) -->
 <div id="pasteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9998;align-items:center;justify-content:center">
   <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:22px;width:min(780px,95vw);max-height:85vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.6)">
@@ -452,9 +483,19 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     <div class="login-logo">KO</div>
     <div class="login-title">ĐĂNG NHẬP HỆ THỐNG</div>
     <div class="login-sub">Dashboard Hiệu Suất Nhân Viên · NEW88</div>
-    <input class="login-inp" id="lg-user" placeholder="Tên đăng nhập" autocomplete="username">
-    <input class="login-inp" id="lg-pass" type="password" placeholder="Mật khẩu" autocomplete="current-password" onkeydown="if(event.key==='Enter')AUTH.login()">
-    <button class="login-btn" id="lg-btn" onclick="AUTH.login()">Đăng nhập</button>
+    <!-- Bước 1: tên + mật khẩu -->
+    <div id="lg-step1">
+      <input class="login-inp" id="lg-user" placeholder="Tên đăng nhập" autocomplete="username">
+      <input class="login-inp" id="lg-pass" type="password" placeholder="Mật khẩu" autocomplete="current-password" onkeydown="if(event.key==='Enter')AUTH.login()">
+      <button class="login-btn" id="lg-btn" onclick="AUTH.login()">Đăng nhập</button>
+    </div>
+    <!-- Bước 2: mã 2FA Google Authenticator (chỉ hiện nếu tài khoản đã bật 2FA) -->
+    <div id="lg-step2fa" style="display:none">
+      <div style="font-size:.72rem;color:var(--mu2);margin-bottom:12px;line-height:1.6">Nhập mã <b style="color:var(--tx)">6 số</b> từ ứng dụng <b style="color:var(--pu2)">Google Authenticator</b></div>
+      <input class="login-inp" id="lg-2fa-code" inputmode="numeric" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:.5em;font-size:1.1rem;font-weight:800" onkeydown="if(event.key==='Enter')AUTH.verifyLogin2fa()">
+      <button class="login-btn" id="lg-2fa-btn" onclick="AUTH.verifyLogin2fa()">Xác minh</button>
+      <button onclick="AUTH.cancel2fa()" style="width:100%;margin-top:8px;background:transparent;border:1px solid var(--border2);color:var(--mu2);border-radius:8px;padding:9px;font-size:.7rem;font-weight:700;cursor:pointer">Quay lại</button>
+    </div>
     <div class="login-err" id="lg-err"></div>
   </div>
 </div>
@@ -488,7 +529,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     </div>
   </div>
   <div class="hdr-right">
-    <div class="user-chip" id="userChip" style="display:none"><span id="userChipName"></span><button class="lo-btn" style="background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3);color:var(--pu2)" onclick="selfChangePw()">Đổi MK</button><button class="lo-btn" onclick="AUTH.logout()">Đăng xuất</button></div>
+    <div class="user-chip" id="userChip" style="display:none"><span id="userChipName"></span><button class="lo-btn" style="background:rgba(6,182,212,.15);border-color:rgba(6,182,212,.3);color:var(--cy)" onclick="open2faModal()">2FA</button><button class="lo-btn" style="background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3);color:var(--pu2)" onclick="selfChangePw()">Đổi MK</button><button class="lo-btn" onclick="AUTH.logout()">Đăng xuất</button></div>
     <span id="cloudStatus" style="font-size:.62rem;color:var(--mu2);min-width:0"></span>
     <div class="upload-dd-wrap">
       <button type="button" class="upload-btn" id="btnMonth" style="background:rgba(124,58,237,.15);box-shadow:none;border:1px solid rgba(124,58,237,.35);color:var(--pu2);font-weight:800" onclick="toggleHistMenu(event)">Tháng ▾</button>
@@ -1055,6 +1096,8 @@ const AUTH={
           document.getElementById('lg-err').textContent='Phiên đăng nhập đã hết hạn (24h) — vui lòng đăng nhập lại';
           return;
         }
+        // Phiên khôi phục nhưng chưa qua 2FA -> yêu cầu mã trước khi vào
+        if(await AUTH.needs2fa()){AUTH._pendingUser=data.session.user;AUTH.show2faStep();return;}
         await AUTH.postLogin(data.session.user);
         return;
       }
@@ -1097,6 +1140,12 @@ const AUTH={
       }
       try{await SB.client().rpc('login_ok',{uname:u.toLowerCase()});}catch(e){}
       localStorage.setItem(LOGIN_AT_KEY,String(Date.now()));
+      // Nếu tài khoản đã bật 2FA -> yêu cầu mã 6 số trước khi vào
+      if(await AUTH.needs2fa()){
+        AUTH._pendingUser=data.user;
+        AUTH.show2faStep();
+        return;
+      }
       await AUTH.postLogin(data.user);
     }catch(e){
       console.error('AUTH.login',e);
@@ -1104,6 +1153,49 @@ const AUTH={
     }finally{
       btn.disabled=false;btn.textContent='Đăng nhập';
     }
+  },
+  async needs2fa(){
+    try{
+      const{data}=await SB.client().auth.mfa.getAuthenticatorAssuranceLevel();
+      return !!data&&data.nextLevel==='aal2'&&data.currentLevel!=='aal2';
+    }catch(e){return false;}
+  },
+  show2faStep(){
+    document.getElementById('lg-step1').style.display='none';
+    document.getElementById('lg-step2fa').style.display='block';
+    document.getElementById('lg-err').textContent='';
+    const c=document.getElementById('lg-2fa-code');c.value='';setTimeout(()=>c.focus(),100);
+  },
+  _reset2faStep(){
+    document.getElementById('lg-step1').style.display='block';
+    document.getElementById('lg-step2fa').style.display='none';
+    document.getElementById('lg-2fa-code').value='';
+  },
+  async cancel2fa(){
+    try{await SB.client().auth.signOut();}catch(e){}
+    AUTH._pendingUser=null;
+    AUTH._reset2faStep();
+    document.getElementById('lg-err').textContent='';
+  },
+  async verifyLogin2fa(){
+    const code=document.getElementById('lg-2fa-code').value.trim();
+    const err=document.getElementById('lg-err'),btn=document.getElementById('lg-2fa-btn');
+    err.textContent='';
+    if(!/^\d{6}$/.test(code)){err.textContent='Nhập đúng mã 6 số';return;}
+    btn.disabled=true;btn.textContent='Đang xác minh...';
+    try{
+      const{data:factors}=await SB.client().auth.mfa.listFactors();
+      const totp=(factors.totp||[]).find(f=>f.status==='verified');
+      if(!totp){err.textContent='Không tìm thấy thiết bị 2FA';return;}
+      const{data:ch,error:ce}=await SB.client().auth.mfa.challenge({factorId:totp.id});
+      if(ce){err.textContent='Lỗi: '+ce.message;return;}
+      const{error:ve}=await SB.client().auth.mfa.verify({factorId:totp.id,challengeId:ch.id,code});
+      if(ve){err.textContent='Mã không đúng hoặc đã hết hạn — thử lại';return;}
+      const u=AUTH._pendingUser||(await SB.client().auth.getUser()).data.user;
+      AUTH._pendingUser=null;AUTH._reset2faStep();
+      await AUTH.postLogin(u);
+    }catch(e){console.error('verifyLogin2fa',e);err.textContent='Lỗi xác minh 2FA';}
+    finally{btn.disabled=false;btn.textContent='Xác minh';}
   },
   async postLogin(user){
     try{
@@ -1326,6 +1418,70 @@ async function selfChangePw(){
     alert('Lỗi: '+(e.message||e));
   }
 }
+// ===== 2FA GOOGLE AUTHENTICATOR (Supabase MFA/TOTP) =====
+let _enrollFactorId=null;
+function close2faModal(){document.getElementById('tfaModal').style.display='none';}
+async function open2faModal(){
+  if(!CUR_PROFILE||!SB.ready())return;
+  const modal=document.getElementById('tfaModal');modal.style.display='flex';
+  document.getElementById('tfa-err').textContent='';
+  ['tfa-on','tfa-off','tfa-enroll'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('tfa-loading').style.display='block';
+  try{
+    const{data}=await SB.client().auth.mfa.listFactors();
+    const verified=(data.totp||[]).some(f=>f.status==='verified');
+    document.getElementById('tfa-loading').style.display='none';
+    document.getElementById(verified?'tfa-on':'tfa-off').style.display='block';
+  }catch(e){
+    console.error('open2faModal',e);
+    document.getElementById('tfa-loading').style.display='none';
+    document.getElementById('tfa-off').style.display='block';
+  }
+}
+async function start2faEnroll(){
+  const err=document.getElementById('tfa-err');err.textContent='';
+  try{
+    // xóa các thiết bị chưa xác nhận còn sót
+    const{data:f}=await SB.client().auth.mfa.listFactors();
+    for(const fac of (f.all||[]))if(fac.status==='unverified'){try{await SB.client().auth.mfa.unenroll({factorId:fac.id});}catch(e){}}
+    const{data,error}=await SB.client().auth.mfa.enroll({factorType:'totp',friendlyName:'SANJI-'+Date.now()});
+    if(error){err.textContent='Lỗi: '+error.message;return;}
+    _enrollFactorId=data.id;
+    document.getElementById('tfa-qr').src=data.totp.qr_code;
+    document.getElementById('tfa-secret').textContent=data.totp.secret;
+    document.getElementById('tfa-off').style.display='none';
+    document.getElementById('tfa-enroll').style.display='block';
+    const c=document.getElementById('tfa-code');c.value='';setTimeout(()=>c.focus(),100);
+  }catch(e){console.error('start2faEnroll',e);err.textContent='Lỗi tạo mã 2FA (kiểm tra MFA đã bật trong Supabase chưa)';}
+}
+async function confirm2faEnroll(){
+  const code=document.getElementById('tfa-code').value.trim();
+  const err=document.getElementById('tfa-err');err.textContent='';
+  if(!/^\d{6}$/.test(code)){err.textContent='Nhập đúng mã 6 số';return;}
+  try{
+    const{error}=await SB.client().auth.mfa.challengeAndVerify({factorId:_enrollFactorId,code});
+    if(error){err.textContent='Mã không đúng — thử lại';return;}
+    logAction('Bật 2FA','Google Authenticator');
+    close2faModal();
+    alert('Đã BẬT 2FA thành công!\nTừ lần đăng nhập sau, bạn sẽ cần nhập mã 6 số từ Google Authenticator.');
+  }catch(e){console.error('confirm2faEnroll',e);err.textContent='Lỗi xác nhận';}
+}
+async function disable2fa(){
+  if(!confirm('Tắt 2FA?\nĐăng nhập sẽ không cần mã 6 số nữa.'))return;
+  const err=document.getElementById('tfa-err');err.textContent='';
+  try{
+    const{data}=await SB.client().auth.mfa.listFactors();
+    for(const fac of (data.all||[])){try{await SB.client().auth.mfa.unenroll({factorId:fac.id});}catch(e){}}
+    logAction('Tắt 2FA','Google Authenticator');
+    close2faModal();
+    alert('Đã tắt 2FA.');
+  }catch(e){console.error('disable2fa',e);err.textContent='Lỗi tắt 2FA (cần đã đăng nhập bằng 2FA phiên này)';}
+}
+function copy2faSecret(){
+  const s=document.getElementById('tfa-secret').textContent;
+  try{navigator.clipboard.writeText(s);setCloudStatus('Đã copy mã bí mật 2FA');}catch(e){}
+}
+
 // ===== WHITE IP (chỉ ADMIN quản lý) =====
 let WHITE_LIST=[];
 async function admLoadIps(){
