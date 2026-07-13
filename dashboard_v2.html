@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <style>
 :root{
   --bg:#080b1a;--card:#0f1229;--card2:#131830;--border:#1e2545;--border2:#252d55;
@@ -489,12 +490,24 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       <input class="login-inp" id="lg-pass" type="password" placeholder="Mật khẩu" autocomplete="current-password" onkeydown="if(event.key==='Enter')AUTH.login()">
       <button class="login-btn" id="lg-btn" onclick="AUTH.login()">Đăng nhập</button>
     </div>
-    <!-- Bước 2: mã 2FA Google Authenticator (chỉ hiện nếu tài khoản đã bật 2FA) -->
+    <!-- Bước 2: mã 2FA Google Authenticator (tài khoản đã bật 2FA) -->
     <div id="lg-step2fa" style="display:none">
       <div style="font-size:.72rem;color:var(--mu2);margin-bottom:12px;line-height:1.6">Nhập mã <b style="color:var(--tx)">6 số</b> từ ứng dụng <b style="color:var(--pu2)">Google Authenticator</b></div>
       <input class="login-inp" id="lg-2fa-code" inputmode="numeric" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:.5em;font-size:1.1rem;font-weight:800" onkeydown="if(event.key==='Enter')AUTH.verifyLogin2fa()">
       <button class="login-btn" id="lg-2fa-btn" onclick="AUTH.verifyLogin2fa()">Xác minh</button>
       <button onclick="AUTH.cancel2fa()" style="width:100%;margin-top:8px;background:transparent;border:1px solid var(--border2);color:var(--mu2);border-radius:8px;padding:9px;font-size:.7rem;font-weight:700;cursor:pointer">Quay lại</button>
+    </div>
+    <!-- Bước 3: BẮT BUỘC thiết lập 2FA (tài khoản chưa có) -->
+    <div id="lg-stepEnroll" style="display:none">
+      <div style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:10px;font-size:.68rem;color:var(--go);font-weight:700;margin-bottom:12px;line-height:1.6">Tài khoản BẮT BUỘC bật bảo mật 2 lớp trước khi vào hệ thống.</div>
+      <div style="font-size:.68rem;color:var(--mu2);line-height:1.6;margin-bottom:8px">1. Mở <b style="color:var(--pu2)">Google Authenticator</b> → <b>+</b> → <b>Quét mã QR</b>:</div>
+      <div style="background:#fff;border-radius:10px;padding:8px;display:inline-block;margin-bottom:8px"><img id="lg-qr" alt="QR 2FA" style="width:172px;height:172px;display:block"></div>
+      <div style="font-size:.6rem;color:var(--mu);margin-bottom:3px">Hoặc nhập tay mã bí mật (ID):</div>
+      <div id="lg-secret" style="font-family:monospace;font-size:.68rem;font-weight:800;color:var(--cy);background:var(--card2);border:1px solid var(--border2);border-radius:6px;padding:7px;margin-bottom:10px;word-break:break-all;cursor:pointer" title="Bấm để copy" onclick="AUTH.copyEnrollSecret()"></div>
+      <div style="font-size:.68rem;color:var(--mu2);margin-bottom:6px">2. Nhập mã 6 số đang hiện trong app:</div>
+      <input class="login-inp" id="lg-enroll-code" inputmode="numeric" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:.5em;font-size:1.1rem;font-weight:800" onkeydown="if(event.key==='Enter')AUTH.confirmEnrollLogin()">
+      <button class="login-btn" id="lg-enroll-btn" onclick="AUTH.confirmEnrollLogin()">Xác nhận &amp; vào hệ thống</button>
+      <button onclick="AUTH.cancel2fa()" style="width:100%;margin-top:8px;background:transparent;border:1px solid var(--border2);color:var(--mu2);border-radius:8px;padding:9px;font-size:.7rem;font-weight:700;cursor:pointer">Hủy</button>
     </div>
     <div class="login-err" id="lg-err"></div>
   </div>
@@ -529,7 +542,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     </div>
   </div>
   <div class="hdr-right">
-    <div class="user-chip" id="userChip" style="display:none"><span id="userChipName"></span><button class="lo-btn" style="background:rgba(6,182,212,.15);border-color:rgba(6,182,212,.3);color:var(--cy)" onclick="open2faModal()">2FA</button><button class="lo-btn" style="background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3);color:var(--pu2)" onclick="selfChangePw()">Đổi MK</button><button class="lo-btn" onclick="AUTH.logout()">Đăng xuất</button></div>
+    <div class="user-chip" id="userChip" style="display:none"><span id="userChipName"></span><button class="lo-btn" style="background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3);color:var(--pu2)" onclick="selfChangePw()">Đổi MK</button><button class="lo-btn" onclick="AUTH.logout()">Đăng xuất</button></div>
     <span id="cloudStatus" style="font-size:.62rem;color:var(--mu2);min-width:0"></span>
     <div class="upload-dd-wrap">
       <button type="button" class="upload-btn" id="btnMonth" style="background:rgba(124,58,237,.15);box-shadow:none;border:1px solid rgba(124,58,237,.35);color:var(--pu2);font-weight:800" onclick="toggleHistMenu(event)">Tháng ▾</button>
@@ -1096,10 +1109,15 @@ const AUTH={
           document.getElementById('lg-err').textContent='Phiên đăng nhập đã hết hạn (24h) — vui lòng đăng nhập lại';
           return;
         }
-        // Phiên khôi phục nhưng chưa qua 2FA -> yêu cầu mã trước khi vào
-        if(await AUTH.needs2fa()){AUTH._pendingUser=data.session.user;AUTH.show2faStep();return;}
-        await AUTH.postLogin(data.session.user);
-        return;
+        // BẮT BUỘC 2FA khi khôi phục phiên
+        AUTH._pendingUser=data.session.user;
+        const{data:factors}=await SB.client().auth.mfa.listFactors();
+        const verified=((factors&&factors.totp)||[]).find(f=>f.status==='verified');
+        if(verified){
+          if(await AUTH.needs2fa()){AUTH.show2faStep();return;}
+          AUTH._pendingUser=null;await AUTH.postLogin(data.session.user);return;
+        }
+        await AUTH.showEnrollStep();return;
       }
     }catch(e){console.error('AUTH.init',e);}
     // chưa đăng nhập -> overlay đang hiển thị sẵn
@@ -1140,13 +1158,12 @@ const AUTH={
       }
       try{await SB.client().rpc('login_ok',{uname:u.toLowerCase()});}catch(e){}
       localStorage.setItem(LOGIN_AT_KEY,String(Date.now()));
-      // Nếu tài khoản đã bật 2FA -> yêu cầu mã 6 số trước khi vào
-      if(await AUTH.needs2fa()){
-        AUTH._pendingUser=data.user;
-        AUTH.show2faStep();
-        return;
-      }
-      await AUTH.postLogin(data.user);
+      // BẮT BUỘC 2FA: đã bật -> nhập mã; chưa bật -> ép thiết lập trước khi vào
+      AUTH._pendingUser=data.user;
+      const{data:factors}=await SB.client().auth.mfa.listFactors();
+      const verified=((factors&&factors.totp)||[]).find(f=>f.status==='verified');
+      if(verified){AUTH.show2faStep();}
+      else{await AUTH.showEnrollStep();}
     }catch(e){
       console.error('AUTH.login',e);
       err.textContent='Lỗi kết nối, thử lại';
@@ -1162,6 +1179,7 @@ const AUTH={
   },
   show2faStep(){
     document.getElementById('lg-step1').style.display='none';
+    document.getElementById('lg-stepEnroll').style.display='none';
     document.getElementById('lg-step2fa').style.display='block';
     document.getElementById('lg-err').textContent='';
     const c=document.getElementById('lg-2fa-code');c.value='';setTimeout(()=>c.focus(),100);
@@ -1169,8 +1187,58 @@ const AUTH={
   _reset2faStep(){
     document.getElementById('lg-step1').style.display='block';
     document.getElementById('lg-step2fa').style.display='none';
+    document.getElementById('lg-stepEnroll').style.display='none';
     document.getElementById('lg-2fa-code').value='';
+    document.getElementById('lg-enroll-code').value='';
   },
+  _enrollFactorId:null,_enrollSecret:'',
+  // Dựng link otpauth với nhãn tùy chỉnh: "He Thong NE : <TÊN> - <ngày>"
+  _buildOtpUri(secret,uname){
+    const now=new Date();
+    const dd=String(now.getDate()).padStart(2,'0'),mm=String(now.getMonth()+1).padStart(2,'0'),yy=now.getFullYear();
+    const issuer='He Thong NE';
+    const account=(uname||'').toUpperCase()+' - '+dd+'/'+mm+'/'+yy;
+    return 'otpauth://totp/'+encodeURIComponent(issuer)+':'+encodeURIComponent(account)+'?secret='+secret+'&issuer='+encodeURIComponent(issuer)+'&algorithm=SHA1&digits=6&period=30';
+  },
+  async showEnrollStep(){
+    document.getElementById('lg-step1').style.display='none';
+    document.getElementById('lg-step2fa').style.display='none';
+    document.getElementById('lg-stepEnroll').style.display='block';
+    document.getElementById('lg-err').textContent='';
+    try{
+      // dọn factor chưa xác nhận còn sót
+      const{data:f}=await SB.client().auth.mfa.listFactors();
+      for(const fac of (f.all||[]))if(fac.status==='unverified'){try{await SB.client().auth.mfa.unenroll({factorId:fac.id});}catch(e){}}
+      const{data,error}=await SB.client().auth.mfa.enroll({factorType:'totp',friendlyName:'SANJI-'+Date.now()});
+      if(error){document.getElementById('lg-err').textContent='Lỗi tạo 2FA: '+error.message;return;}
+      AUTH._enrollFactorId=data.id;
+      AUTH._enrollSecret=data.totp.secret;
+      const uname=(AUTH._pendingUser&&AUTH._pendingUser.email||'').split('@')[0];
+      document.getElementById('lg-secret').textContent=data.totp.secret;
+      const uri=AUTH._buildOtpUri(data.totp.secret,uname);
+      try{
+        const qr=qrcode(0,'M');qr.addData(uri);qr.make();
+        document.getElementById('lg-qr').src=qr.createDataURL(5,8);
+      }catch(e){document.getElementById('lg-qr').src=data.totp.qr_code;} // dự phòng QR mặc định Supabase
+      const c=document.getElementById('lg-enroll-code');c.value='';setTimeout(()=>c.focus(),150);
+    }catch(e){console.error('showEnrollStep',e);document.getElementById('lg-err').textContent='Lỗi thiết lập 2FA';}
+  },
+  async confirmEnrollLogin(){
+    const code=document.getElementById('lg-enroll-code').value.trim();
+    const err=document.getElementById('lg-err'),btn=document.getElementById('lg-enroll-btn');
+    err.textContent='';
+    if(!/^\d{6}$/.test(code)){err.textContent='Nhập đúng mã 6 số';return;}
+    btn.disabled=true;btn.textContent='Đang xác nhận...';
+    try{
+      const{error}=await SB.client().auth.mfa.challengeAndVerify({factorId:AUTH._enrollFactorId,code});
+      if(error){err.textContent='Mã không đúng — thử lại';return;}
+      const u=AUTH._pendingUser;AUTH._pendingUser=null;AUTH._reset2faStep();
+      try{await logAction('Bật 2FA','Google Authenticator (bắt buộc lúc đăng nhập)');}catch(e){}
+      await AUTH.postLogin(u);
+    }catch(e){console.error('confirmEnrollLogin',e);err.textContent='Lỗi xác nhận 2FA';}
+    finally{btn.disabled=false;btn.textContent='Xác nhận & vào hệ thống';}
+  },
+  copyEnrollSecret(){try{navigator.clipboard.writeText(AUTH._enrollSecret);}catch(e){}},
   async cancel2fa(){
     try{await SB.client().auth.signOut();}catch(e){}
     AUTH._pendingUser=null;
@@ -1329,7 +1397,7 @@ async function admLoadUsers(){
       (sec||[]).forEach(x=>{lockMap[x.username]={locked:x.locked,fails:x.fails};});
     }catch(e){}
     const headPerms=isAdmin?PERM_TABS.map(t=>`<th class="tc">${t.label}</th>`).join(''):'';
-    list.innerHTML=`<table class="adm-tbl"><thead><tr><th>Tài khoản</th><th class="tc">Cấp bậc</th>${headPerms}${isAdmin?'<th class="tc">Admin</th>':''}<th class="tc">Khóa TK</th><th class="tc">Mật khẩu</th></tr></thead><tbody>`+
+    list.innerHTML=`<table class="adm-tbl"><thead><tr><th>Tài khoản</th><th class="tc">Cấp bậc</th>${headPerms}${isAdmin?'<th class="tc">Admin</th>':''}<th class="tc">Khóa TK</th><th class="tc">Reset 2FA</th><th class="tc">Mật khẩu</th></tr></thead><tbody>`+
       data.map(u=>{
         const perms=u.perms||{};
         const isSelf=u.user_id===CUR_PROFILE.user_id;
@@ -1364,8 +1432,13 @@ async function admLoadUsers(){
           ?`<button onclick="admToggleLock('${(u.username||'').replace(/'/g,'')}',${lk.locked?'false':'true'})" style="padding:3px 10px;border-radius:5px;cursor:pointer;font-size:.62rem;font-weight:700;${lk.locked?'background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.35);color:#10b981':'background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:#f87171'}">${lk.locked?'Mở khóa':'Khóa'}</button>`
             +(lk.locked?'<div style="font-size:.55rem;color:#f87171;margin-top:2px;font-weight:800">ĐANG KHÓA</div>':(lk.fails?`<div style="font-size:.55rem;color:var(--mu);margin-top:2px">sai ${lk.fails} lần</div>`:''))
           :(lk.locked?'<span style="color:#f87171;font-size:.6rem;font-weight:800">KHÓA</span>':'<span style="color:var(--mu)">—</span>');
+        // Reset 2FA: admin reset mọi người; Tổ Trưởng reset Nhân viên
+        const canReset=isAdmin||(role.key==='nhanvien'&&!u.is_admin);
+        const resetCell=canReset
+          ?`<button onclick="admReset2fa('${u.user_id}','${(u.username||'').replace(/'/g,'')}')" style="padding:3px 10px;border-radius:5px;cursor:pointer;font-size:.62rem;font-weight:700;background:rgba(6,182,212,.15);border:1px solid rgba(6,182,212,.4);color:var(--cy)">Reset</button>`
+          :'<span style="color:var(--mu)">—</span>';
         return `<tr><td style="font-weight:700;color:var(--tx)">${(u.username||'').toUpperCase()}${isSelf?' <span style="color:var(--pu2);font-size:.6rem">(bạn)</span>':''}</td>`+
-          `<td class="tc">${roleCell}</td>${permCells}${adminCell}<td class="tc">${lockCell}</td><td class="tc">${pwCell}</td></tr>`;
+          `<td class="tc">${roleCell}</td>${permCells}${adminCell}<td class="tc">${lockCell}</td><td class="tc">${resetCell}</td><td class="tc">${pwCell}</td></tr>`;
       }).join('')+'</tbody></table>';
   }catch(e){
     console.error('admLoadUsers',e);
@@ -1480,6 +1553,21 @@ async function disable2fa(){
 function copy2faSecret(){
   const s=document.getElementById('tfa-secret').textContent;
   try{navigator.clipboard.writeText(s);setCloudStatus('Đã copy mã bí mật 2FA');}catch(e){}
+}
+
+// Reset 2FA của tài khoản khác (qua Edge Function; server kiểm tra quyền lần nữa)
+async function admReset2fa(uid,uname){
+  if(!confirm('RESET 2FA cho tài khoản '+uname.toUpperCase()+'?\n\nThiết bị Google Authenticator cũ sẽ bị gỡ. Lần đăng nhập kế tiếp, tài khoản này sẽ được yêu cầu quét MÃ QR MỚI để thiết lập lại.'))return;
+  try{
+    const{data:sess}=await SB.client().auth.getSession();
+    const token=sess&&sess.session&&sess.session.access_token;
+    if(!token){alert('Phiên hết hạn, đăng nhập lại');return;}
+    const r=await fetch(SB_URL+'/functions/v1/super-function',{method:'POST',headers:{'Authorization':'Bearer '+token,'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({action:'reset_2fa',target:uid})});
+    const res=await r.json();
+    if(!res.ok)throw new Error(res.description||'Lỗi');
+    logAction('Reset 2FA',uname.toUpperCase());
+    alert('Đã reset 2FA cho '+uname.toUpperCase()+' ✓\nĐã gỡ '+(res.removed||0)+' thiết bị. Người dùng sẽ thiết lập lại khi đăng nhập lần sau.');
+  }catch(e){alert('Lỗi reset 2FA: '+(e.message||e));}
 }
 
 // ===== WHITE IP (chỉ ADMIN quản lý) =====

@@ -128,12 +128,48 @@ async function sendReport(req: Request): Promise<Response> {
   }
 }
 
+// Reset 2FA của 1 tài khoản khác — chỉ ADMIN (hoặc Tổ Trưởng với Nhân viên)
+async function handleAction(req: Request): Promise<Response> {
+  const auth = req.headers.get("authorization") || "";
+  const jwt = auth.replace(/^Bearer\s+/i, "");
+  const { data: uinfo, error: uerr } = await anon.auth.getUser(jwt);
+  if (uerr || !uinfo?.user) return new Response(JSON.stringify({ ok: false, description: "Phiên không hợp lệ" }), { status: 401, headers: CORS });
+  const body = await req.json().catch(() => ({}));
+  if (body.action !== "reset_2fa") return new Response(JSON.stringify({ ok: false, description: "Hành động không hợp lệ" }), { status: 400, headers: CORS });
+
+  const { data: caller } = await sb.from("profiles").select("is_admin, perms, username").eq("user_id", uinfo.user.id).maybeSingle();
+  const callerRole = caller?.is_admin ? "admin" : (caller?.perms?._role === "totruong" ? "totruong" : "nhanvien");
+  if (callerRole !== "admin" && callerRole !== "totruong")
+    return new Response(JSON.stringify({ ok: false, description: "Không có quyền reset 2FA" }), { status: 403, headers: CORS });
+
+  const targetId = String(body.target || "");
+  const { data: target } = await sb.from("profiles").select("is_admin, perms, username").eq("user_id", targetId).maybeSingle();
+  if (!target) return new Response(JSON.stringify({ ok: false, description: "Không tìm thấy tài khoản" }), { status: 404, headers: CORS });
+  const targetRole = target.is_admin ? "admin" : (target.perms?._role === "totruong" ? "totruong" : "nhanvien");
+  if (callerRole === "totruong" && targetRole !== "nhanvien")
+    return new Response(JSON.stringify({ ok: false, description: "Tổ Trưởng chỉ reset được 2FA của Nhân viên" }), { status: 403, headers: CORS });
+
+  try {
+    const { data: fl } = await sb.auth.admin.mfa.listFactors({ userId: targetId });
+    let n = 0;
+    for (const f of (fl?.factors || [])) { await sb.auth.admin.mfa.deleteFactor({ id: f.id, userId: targetId }); n++; }
+    await sb.from("audit_log").insert({ user_id: uinfo.user.id, username: caller?.username, action: "Reset 2FA", detail: (target.username || "").toUpperCase() + " · gỡ " + n + " thiết bị" });
+    return new Response(JSON.stringify({ ok: true, removed: n }), { headers: CORS });
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, description: String((e as any)?.message || e) }), { headers: CORS });
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   // Frontend gửi báo cáo (có Authorization Bearer, không có secret của Telegram)
   const hasTgSecret = SECRET && req.headers.get("x-telegram-bot-api-secret-token") === SECRET;
   if (!hasTgSecret) {
-    if (req.headers.get("authorization")) return await sendReport(req);
+    if (req.headers.get("authorization")) {
+      const ct = req.headers.get("content-type") || "";
+      if (ct.includes("application/json")) return await handleAction(req);
+      return await sendReport(req);
+    }
     return new Response("forbidden", { status: 403 });
   }
   let update: any = null;
