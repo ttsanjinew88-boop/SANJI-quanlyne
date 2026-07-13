@@ -1604,6 +1604,20 @@ function setCloudStatus(msg,isErr){
   el.style.color=isErr?'var(--re)':'var(--mu2)';
   if(msg&&!isErr&&/✓/.test(msg))setTimeout(()=>{if(el.textContent===msg)el.textContent='';},6000);
 }
+// Cắt bỏ các cột (0-based) khỏi file Excel -> trả về File mới cùng tên (dùng SheetJS đã nạp sẵn)
+async function stripSensitiveCols(file,colIdx){
+  const buf=await file.arrayBuffer();
+  const wb=XLSX.read(new Uint8Array(buf),{type:"array"});
+  const drop=new Set(colIdx);
+  wb.SheetNames.forEach(nm=>{
+    const aoa=XLSX.utils.sheet_to_json(wb.Sheets[nm],{header:1,raw:true,defval:""});
+    const cleaned=aoa.map(r=>r.filter((_,i)=>!drop.has(i)));
+    wb.Sheets[nm]=XLSX.utils.aoa_to_sheet(cleaned);
+  });
+  const out=XLSX.write(wb,{bookType:"xlsx",type:"array"});
+  return new File([out],file.name.replace(/\.(xlsx|xls)$/i,"")+"_loc.xlsx",{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+
 async function cloudSaveKO(target,nd){
   if(!SB.ready())return;
   const type=target==="km"?"km":"don";
@@ -1645,7 +1659,12 @@ async function cloudSaveKO(target,nd){
     setCloudStatus("Đang lưu cloud...");
     await SB.saveReport(type,month,nd);
     const fCnt=(window._lastUploadFiles||[]).length;
-    await SB.uploadOriginals(window._lastUploadFiles,type,month);
+    // Duyệt Đơn: cắt bỏ cột G/H/I (thông tin nhạy cảm) trước khi sao lưu file gốc lên Storage
+    let upFiles=window._lastUploadFiles;
+    if(type==="don"&&upFiles&&upFiles.length){
+      try{upFiles=await Promise.all(upFiles.map(f=>stripSensitiveCols(f,[6,7,8])));}catch(e){console.error('stripCols',e);}
+    }
+    await SB.uploadOriginals(upFiles,type,month);
     window._lastUploadFiles=null;
     CUR_MONTH=month;
     setCloudStatus("Đã lưu cloud tháng "+dispMonth(month)+" ✓");
@@ -2026,9 +2045,12 @@ function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
       nd._day7Raw[day_gmt7-1]+=sc; nd.day_counts_d7[day_gmt7-1]++; nd._d7Set.add(day_gmt7);
       nd.fk_data[fk]._day7Raw[day_gmt7-1]+=sc;
     }else{
-      // DON: cột T (idx 19) = ngày giờ, cột U (idx 20) = ghi chú FK
+      // DON: cột T (idx 19) = ngày giờ, cột U (idx 20) = ghi chú FK, cột F (idx 5) = Cấp độ thành viên
       const note=String(row[20]||""),status=String(row[17]||"").trim(),colB=row[1];
       const amt=typeof row[15]==="number"?row[15]:(parseFloat(String(row[15]||"").replace(/[^0-9.\-]/g,""))||0);
+      // Quy định: đơn của tài khoản CÓ TÍCH XANH (✅ ở cột F) với số tiền < 7000 -> bỏ hẳn, không điểm không đếm đơn
+      const capdo=String(row[5]||"");
+      if(capdo.includes("✅")&&amt<7000)continue;
       if(row[19] instanceof Date){pd=row[19];}
       else if(typeof row[19]==="number"&&row[19]>40000){pd=new Date((row[19]-25569)*86400000);}
       else if(row[19]){try{pd=new Date(String(row[19]).replace(/(\d{4})\/(\d{2})\/(\d{2})/,'$1-$2-$3').replace(' ','T'));}catch(e){}}
