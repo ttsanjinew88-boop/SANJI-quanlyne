@@ -978,22 +978,31 @@ function nn(v){return(v||0).toLocaleString("vi-VN");}
 function hesc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
 // ===== NGHI NGỜ: tùy chỉnh cột hiển thị bảng chi tiết khách =====
+// Đầy đủ 20 cột — đúng như tab Tổng Hợp (ĐL là tiêu đề thẻ nên không lặp trong bảng khách)
 const SUSPECT_COLS=[
   {k:'id',label:'Tên tài khoản',cell:r=>hesc(r.id)},
   {k:'cap_bac',label:'Cấp bậc',cls:'ell',cell:r=>hesc(r.cap_bac)},
-  {k:'ho_ten',label:'Họ tên',cell:r=>hesc(r.ho_ten)},
+  {k:'ho_ten',label:'Họ tên đăng kí',cell:r=>hesc(r.ho_ten)},
   {k:'khach',label:'Khách',cell:r=>r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>'},
+  {k:'chi_tieu',label:'Chỉ tiêu',cell:r=>r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-chua">Chưa</span>'},
   {k:'tien_nap',label:'Tiền nạp',cell:r=>BC.fmt(r.tien_nap)},
+  {k:'lan_nap',label:'Lần nạp',cell:r=>r.lan_nap},
   {k:'tien_rut',label:'Tiền rút',cell:r=>BC.fmt(r.tien_rut)},
+  {k:'lan_rut',label:'Lần rút',cell:r=>r.lan_rut},
   {k:'am_duong',label:'Âm/Dương',cell:r=>BC.ad(r.am_duong)},
   {k:'cuoc_hop_le',label:'Cược hợp lệ',cell:r=>BC.fmt(r.cuoc_hop_le)},
   {k:'ngan_hang',label:'Ngân hàng',cell:r=>hesc(r.ngan_hang)},
+  {k:'chi_nhanh',label:'Chi nhánh',cell:r=>hesc(r.chi_nhanh)},
   {k:'stk',label:'STK',cell:r=>hesc(r.stk)},
   {k:'ip',label:'IP',style:'font-size:10px',cell:r=>hesc(r.ip)},
+  {k:'thiet_bi',label:'Thiết bị',cell:r=>r.thiet_bi==='Điện thoại'?'Điện Thoại':'Máy Tính'},
+  {k:'link_dk',label:'LINK đăng ký',cls:'ell',style:'font-size:10px',cell:r=>hesc(r.link_dk)},
+  {k:'link_dn',label:'LINK đăng nhập',cls:'ell',style:'font-size:10px',cell:r=>hesc(r.link_dn)},
   {k:'game',label:'Cược sảnh',cell:r=>hesc(r.game||'')}
 ];
-let SUSPECT_VIS=(function(){try{const s=JSON.parse(localStorage.getItem('bc_suspect_cols'));return s&&s.length?new Set(s):new Set(SUSPECT_COLS.map(c=>c.k));}catch(e){return new Set(SUSPECT_COLS.map(c=>c.k));}})();
-function suspectSaveCols(){localStorage.setItem('bc_suspect_cols',JSON.stringify([...SUSPECT_VIS]));}
+// Dùng key phiên bản mới -> mọi người mặc định hiện đủ 20 cột (cấu hình cũ 12 cột không còn áp)
+let SUSPECT_VIS=(function(){try{const s=JSON.parse(localStorage.getItem('bc_suspect_cols_v2'));return s&&s.length?new Set(s):new Set(SUSPECT_COLS.map(c=>c.k));}catch(e){return new Set(SUSPECT_COLS.map(c=>c.k));}})();
+function suspectSaveCols(){localStorage.setItem('bc_suspect_cols_v2',JSON.stringify([...SUSPECT_VIS]));}
 function toggleSuspectColsPanel(){const el=document.getElementById('bc-suspect-cols');el.style.display=el.style.display==='none'?'flex':'none';if(el.style.display==='flex')renderSuspectColsPanel();}
 function renderSuspectColsPanel(){
   document.getElementById('bc-suspect-cols').innerHTML=SUSPECT_COLS.map(c=>`<label style="display:flex;align-items:center;gap:5px;background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px;font-weight:700;color:var(--tx)"><input type="checkbox" ${SUSPECT_VIS.has(c.k)?'checked':''} onchange="toggleSuspectCol('${c.k}')" style="accent-color:var(--bl);cursor:pointer">${c.label}</label>`).join('')
