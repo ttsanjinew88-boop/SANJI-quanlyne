@@ -84,8 +84,10 @@ async function sendReport(req: Request): Promise<Response> {
     ? { inline_keyboard: [[{ text: "✅ Xác Nhận", callback_data: `cf|${fk}|${isoDate}|m|3|${rid}` }, { text: "👁 Theo Dõi Thêm", callback_data: `wt|${fk}|${isoDate}|${rid}` }]] }
     : { inline_keyboard: [[{ text: "✅ Xác Nhận", callback_data: `cf|${fk}|${isoDate}|a|1|${rid}` }, { text: "❌ Hủy Bỏ", callback_data: `dm|${fk}|${isoDate}|${rid}` }]] };
   const fkName = (NAMES[fk] || fk.replace(/^fk/, "").toUpperCase());
-  const head = mode === "dai_ly" ? "🚨 BÁO CÁO ĐẠI LÝ BẤT THƯỜNG" : "🎰 BÁO CÁO CƯỢC BẤT THƯỜNG";
-  const txt = `${head}\n📅 ${dateStr}\n👤 FK: ${fkName}` + (agent ? `\n🏢 Đại lý: ${agent}` : "") + `\n📋 ${content || "(không có nội dung)"}`;
+  const head = mode === "dai_ly" ? "BÁO CÁO ĐẠI LÝ BẤT THƯỜNG" : "BÁO CÁO CƯỢC BẤT THƯỜNG";
+  let txt = `${head}\nNgày: ${dateStr}\nKO: ${fkName}`;
+  if (mode === "dai_ly") txt += `\nĐại Lý: ${agent || "-"}`;
+  txt += `\nNote: ${content || "(không có nội dung)"}`;
 
   const files: File[] = [];
   for (const [k, v] of form.entries()) if (k.startsWith("file") && v instanceof File) files.push(v);
@@ -102,7 +104,7 @@ async function sendReport(req: Request): Promise<Response> {
         const isImg = (f.type || "").startsWith("image/");
         const fd = new FormData();
         fd.append("chat_id", G2);
-        if (i === 0) fd.append("caption", txt + (files.length > 1 ? `\n📎 ${files.length} file đính kèm` : ""));
+        if (i === 0) fd.append("caption", txt + (files.length > 1 ? `\n(${files.length} file đính kèm)` : ""));
         fd.append(isImg ? "photo" : "document", f, f.name || `file_${i + 1}`);
         const r = await fetch(`${TG}/${isImg ? "sendPhoto" : "sendDocument"}`, { method: "POST", body: fd });
         const res = await r.json();
