@@ -328,6 +328,11 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .bc-tool tbody tr{height:36px}
 .bc-tool tbody tr:hover{background:rgba(124,58,237,.05)!important}
 .bc-tool tbody td{padding:6px 8px;font-size:11px;vertical-align:middle;border:1px solid var(--border);text-align:center;color:var(--tx)}
+/* Khung viền xanh dương bao mỗi đại lý ở tab Tổng Hợp (thay cho nền màu) */
+#bc-body-all .ag-row td:first-child{border-left:2px solid var(--bl)}
+#bc-body-all .ag-row td:last-child{border-right:2px solid var(--bl)}
+#bc-body-all .ag-first td{border-top:2px solid var(--bl)}
+#bc-body-all .ag-last td{border-bottom:2px solid var(--bl)}
 /* bc bat thuong modal */
 .bc-bt-modal{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9998;display:flex;align-items:center;justify-content:center}
 .bc-bt-box{background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:24px;width:min(560px,95vw);max-height:85vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.6)}
@@ -4051,11 +4056,10 @@ const BC={
   /* Nền tối phân biệt từng đại lý — 8 sắc thái đậm khác hue, chữ trắng vẫn đọc rõ */
   AGENT_COLORS:['#10162e','#0e2233','#12291f','#241733','#2b2414','#0e2b2e','#2b1520','#1a2038'],
 
-  rowHtml(r,i,bg,isFirst,agSpan){
+  rowHtml(r,i,isFirst,isLast,agSpan){
     const tb=r.thiet_bi==='Điện thoại'?'Điện Thoại':'Máy Tính';
     const kh=r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>';
     const ct=r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-chua">Chưa</span>';
-    const sep=isFirst?'border-top:2px solid #7c3aed;':'';
     /* Ô đại lý gộp (rowspan): tên click được -> Kiểm Tra Đại Lý; ADMIN có ô tích Nghi Ngờ */
     let agCell='';
     if(isFirst){
@@ -4064,14 +4068,15 @@ const BC={
       const chk=(CUR_PROFILE&&CUR_PROFILE.is_admin)
         ?`<label style="display:flex;align-items:center;justify-content:center;gap:4px;font-size:9px;color:${flagged?'#f87171':'var(--mu2)'};cursor:pointer;font-weight:700"><input type="checkbox" ${flagged?'checked':''} onchange="BC.toggleSuspect('${ag}',this)" style="accent-color:#ef4444;cursor:pointer">Nghi ngờ</label>`
         :'';
-      agCell=`<td rowspan="${agSpan||1}" style="vertical-align:middle;background:${bg};border:1px solid var(--border)">
+      agCell=`<td rowspan="${agSpan||1}" style="vertical-align:middle">
         <div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:2px">
           <b style="cursor:pointer;color:#9f67ff;text-decoration:underline" title="Bấm để kiểm tra đại lý" onclick="BC.goAgent('${ag}')">${hesc(r.dai_ly)}</b>
           ${chk}
         </div>
       </td>`;
     }
-    return`<tr style="background:${bg};${sep}">
+    const cls='ag-row'+(isFirst?' ag-first':'')+(isLast?' ag-last':'');
+    return`<tr class="${cls}">
       <td class="tc stt">${i}</td>${agCell}<td>${hesc(r.id)}</td>
       <td class="ell">${hesc(r.cap_bac)}</td><td>${hesc(r.ho_ten)}</td>
       <td>${kh}</td><td>${ct}</td>
@@ -4089,18 +4094,14 @@ const BC={
   renderAll(){
     const s=(BC.pgAll-1)*BC.PS,e=s+BC.PS;
     const slice=BC.filtAll.slice(s,e);
-    // assign color index per agent across full list (not just current page)
-    const agColorMap={};let agIdx=0;
-    BC.filtAll.forEach(r=>{if(!(r.dai_ly in agColorMap))agColorMap[r.dai_ly]=agIdx++;});
-    /* Gộp ô đại lý: đếm số dòng liên tiếp cùng đại lý trong trang để rowspan */
+    /* Gộp ô đại lý: đếm số dòng liên tiếp cùng đại lý trong trang -> khung viền xanh bao mỗi đại lý */
     let html='',i2=0;
     while(i2<slice.length){
       const ag=slice[i2].dai_ly;
       let j=i2;
       while(j<slice.length&&slice[j].dai_ly===ag)j++;
       const span=j-i2;
-      const bg=BC.AGENT_COLORS[agColorMap[ag]%BC.AGENT_COLORS.length];
-      for(let k=i2;k<j;k++)html+=BC.rowHtml(slice[k],s+k+1,bg,k===i2,span);
+      for(let k=i2;k<j;k++)html+=BC.rowHtml(slice[k],s+k+1,k===i2,k===j-1,span);
       i2=j;
     }
     document.getElementById('bc-body-all').innerHTML=html;
@@ -4278,7 +4279,7 @@ const BC={
         <td>${BC.fmt(r.cuoc_hop_le)}</td><td>${hesc(r.ngan_hang)}</td><td>${hesc(r.stk)}</td>
         <td style="font-size:10px">${hesc(r.ip)}</td><td>${hesc(r.game||'')}</td>
       </tr>`).join('');
-      return`<div style="background:var(--card);border:1px solid rgba(239,68,68,.35);border-radius:10px;padding:14px;margin-bottom:14px">
+      return`<div style="background:var(--card);border:2px solid var(--bl);border-radius:10px;padding:14px;margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
           <b style="font-size:14px;color:#f87171">${s.dai_ly}</b>
           <span style="font-size:10px;color:var(--mu)">Đánh dấu: ${t} · bởi ${(s.by||'').toUpperCase()}</span>
