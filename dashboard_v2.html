@@ -976,6 +976,30 @@ function ha(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5)
 function nn(v){return(v||0).toLocaleString("vi-VN");}
 // Chống XSS: escape dữ liệu người-dùng-nhập (từ file Excel) trước khi đưa vào innerHTML
 function hesc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+// ===== NGHI NGỜ: tùy chỉnh cột hiển thị bảng chi tiết khách =====
+const SUSPECT_COLS=[
+  {k:'id',label:'Tên tài khoản',cell:r=>hesc(r.id)},
+  {k:'cap_bac',label:'Cấp bậc',cls:'ell',cell:r=>hesc(r.cap_bac)},
+  {k:'ho_ten',label:'Họ tên',cell:r=>hesc(r.ho_ten)},
+  {k:'khach',label:'Khách',cell:r=>r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>'},
+  {k:'tien_nap',label:'Tiền nạp',cell:r=>BC.fmt(r.tien_nap)},
+  {k:'tien_rut',label:'Tiền rút',cell:r=>BC.fmt(r.tien_rut)},
+  {k:'am_duong',label:'Âm/Dương',cell:r=>BC.ad(r.am_duong)},
+  {k:'cuoc_hop_le',label:'Cược hợp lệ',cell:r=>BC.fmt(r.cuoc_hop_le)},
+  {k:'ngan_hang',label:'Ngân hàng',cell:r=>hesc(r.ngan_hang)},
+  {k:'stk',label:'STK',cell:r=>hesc(r.stk)},
+  {k:'ip',label:'IP',style:'font-size:10px',cell:r=>hesc(r.ip)},
+  {k:'game',label:'Cược sảnh',cell:r=>hesc(r.game||'')}
+];
+let SUSPECT_VIS=(function(){try{const s=JSON.parse(localStorage.getItem('bc_suspect_cols'));return s&&s.length?new Set(s):new Set(SUSPECT_COLS.map(c=>c.k));}catch(e){return new Set(SUSPECT_COLS.map(c=>c.k));}})();
+function suspectSaveCols(){localStorage.setItem('bc_suspect_cols',JSON.stringify([...SUSPECT_VIS]));}
+function toggleSuspectColsPanel(){const el=document.getElementById('bc-suspect-cols');el.style.display=el.style.display==='none'?'flex':'none';if(el.style.display==='flex')renderSuspectColsPanel();}
+function renderSuspectColsPanel(){
+  document.getElementById('bc-suspect-cols').innerHTML=SUSPECT_COLS.map(c=>`<label style="display:flex;align-items:center;gap:5px;background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px;font-weight:700;color:var(--tx)"><input type="checkbox" ${SUSPECT_VIS.has(c.k)?'checked':''} onchange="toggleSuspectCol('${c.k}')" style="accent-color:var(--bl);cursor:pointer">${c.label}</label>`).join('')
+    +`<button onclick="SUSPECT_VIS=new Set(SUSPECT_COLS.map(c=>c.k));suspectSaveCols();renderSuspectColsPanel();BC.renderSuspects()" style="font-size:11px;padding:4px 10px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:var(--bl2);border-radius:6px;cursor:pointer;font-weight:700">Chọn tất cả</button>`;
+}
+function toggleSuspectCol(k){if(SUSPECT_VIS.has(k))SUSPECT_VIS.delete(k);else SUSPECT_VIS.add(k);if(!SUSPECT_VIS.size)SUSPECT_VIS.add(k);suspectSaveCols();renderSuspectColsPanel();BC.renderSuspects();}
 function dch(id){if(CH[id]){CH[id].destroy();delete CH[id];}}
 function hrs(f,t){const a=[];if(f<=t){for(let h=f;h<=t;h++)a.push(h);}else{for(let h=f;h<24;h++)a.push(h);for(let h=0;h<=t;h++)a.push(h);}return a;}
 function co(s){return{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:s,grid:{color:"rgba(255,255,255,.04)"},ticks:{color:"#64748b",font:{size:9}},border:{color:"#1e2545"}},y:{stacked:s,grid:{color:"rgba(255,255,255,.06)"},ticks:{color:"#64748b",font:{size:9}},border:{color:"#1e2545"}}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#131830",titleColor:"#e2e8f0",bodyColor:"#94a3b8",borderColor:"#252d55",borderWidth:1}}};}
@@ -3677,12 +3701,14 @@ rAll();
 
 <!-- Panel: NGHI NGỜ (chỉ ADMIN) — đại lý được đánh dấu từ tab Tổng Hợp, lưu cloud -->
 <div class="bc-panel" id="bc-panel-suspect">
-  <div class="ph">
+  <div class="ph" style="justify-content:space-between">
     <div>
       <div class="ph-title" style="color:#f87171">Đại Lý Nghi Ngờ</div>
       <div class="ph-sub">Tích ô "Nghi ngờ" ở cột Đại Lý (tab Tổng Hợp) để đưa vào đây · thông tin được chụp lại tại thời điểm đánh dấu · lưu trên cloud</div>
     </div>
+    <button onclick="toggleSuspectColsPanel()" style="font-size:11px;padding:6px 14px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:var(--bl2);border-radius:6px;cursor:pointer;font-weight:700;white-space:nowrap">Cột hiển thị</button>
   </div>
+  <div id="bc-suspect-cols" style="display:none;flex-wrap:wrap;gap:7px;margin-bottom:14px;align-items:center"></div>
   <div id="bc-suspect-list"></div>
 </div>
 
@@ -4272,13 +4298,12 @@ const BC={
            <span>Âm/Dương: ${BC.ad(sm.am_duong||0)}</span>
            <span>KH mới: <b style="color:#3b82f6">${sm.khach_moi??'-'}</b></span>`
         :'<span style="color:var(--mu)">(không có số liệu tổng — đánh dấu lúc chưa tính toán)</span>';
-      const memRows=(s.members||[]).map((r,i)=>`<tr>
-        <td class="tc stt">${i+1}</td><td>${hesc(r.id)}</td><td class="ell">${hesc(r.cap_bac)}</td><td>${hesc(r.ho_ten)}</td>
-        <td>${r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>'}</td>
-        <td>${BC.fmt(r.tien_nap)}</td><td>${BC.fmt(r.tien_rut)}</td><td>${BC.ad(r.am_duong)}</td>
-        <td>${BC.fmt(r.cuoc_hop_le)}</td><td>${hesc(r.ngan_hang)}</td><td>${hesc(r.stk)}</td>
-        <td style="font-size:10px">${hesc(r.ip)}</td><td>${hesc(r.game||'')}</td>
-      </tr>`).join('');
+      const visCols=SUSPECT_COLS.filter(c=>SUSPECT_VIS.has(c.k));
+      const memRows=(s.members||[]).map((r,i)=>`<tr><td class="tc stt">${i+1}</td>`+
+        visCols.map(c=>`<td${c.cls?' class="'+c.cls+'"':''}${c.style?' style="'+c.style+'"':''}>${c.cell(r)}</td>`).join('')+
+      `</tr>`).join('');
+      const memHead='<th>STT</th>'+visCols.map(c=>`<th>${c.label}</th>`).join('');
+      const memColspan=visCols.length+1;
       return`<div style="background:var(--card);border:2px solid var(--bl);border-radius:10px;padding:14px;margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
           <b style="font-size:14px;color:#f87171">${s.dai_ly}</b>
@@ -4289,8 +4314,8 @@ const BC={
         </div>
         <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:var(--mu2)">${stats}</div>
         <div id="bc-suspect-detail-${idx}" style="display:none;margin-top:10px;overflow-x:auto">
-          <table><thead><tr><th>STT</th><th>Tên tài khoản</th><th>Cấp bậc</th><th>Họ tên</th><th>Khách</th><th>Tiền nạp</th><th>Tiền rút</th><th>Âm/Dương</th><th>Cược hợp lệ</th><th>Ngân hàng</th><th>STK</th><th>IP</th><th>Cược sảnh</th></tr></thead>
-          <tbody>${memRows||'<tr><td colspan="13" class="tc" style="color:var(--mu)">Không có dữ liệu khách</td></tr>'}</tbody></table>
+          <table><thead><tr>${memHead}</tr></thead>
+          <tbody>${memRows||`<tr><td colspan="${memColspan}" class="tc" style="color:var(--mu)">Không có dữ liệu khách</td></tr>`}</tbody></table>
         </div>
       </div>`;
     }).join('');
