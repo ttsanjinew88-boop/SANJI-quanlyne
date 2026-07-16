@@ -584,6 +584,10 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     <div class="vt-btn active" onclick="sds('don',this)">Duyệt Đơn</div>
     <div class="vt-btn" onclick="sds('km',this)">Khuyến Mãi</div>
   </div>
+  <div class="view-toggle" id="donSubToggle">
+    <div class="vt-btn active" onclick="setDonSub('time',this)">Thời Gian Cao Điểm</div>
+    <div class="vt-btn" onclick="setDonSub('donrut',this)">Báo Cáo Đơn Rút</div>
+  </div>
   <div id="dataEmptyKm" style="display:none;font-size:.65rem;color:var(--mu);padding:18px;border:1px dashed var(--border2);border-radius:8px;text-align:center">
     Chưa có dữ liệu Khuyến Mãi — bấm <b style="color:#10b981">Upload Excel ▾ → Duyệt Khuyến Mãi</b> ở góc trên để tải lên.
   </div>
@@ -641,6 +645,26 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       <div class="chart-card" style="margin-bottom:16px"><div class="chart-title">TB thời gian cao điểm trong tháng (GMT+7) — điểm trung bình mỗi giờ / ngày</div><div style="height:200px"><canvas id="mavg"></canvas></div></div>
     </div>
 
+    <!-- BÁO CÁO ĐƠN RÚT (từ file PROMAX, màu theme) -->
+    <div class="data-sub" id="data-donrut" style="display:none">
+      <div class="sec-hdr pu">Báo Cáo Đơn Rút <span style="font-size:.56rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— số đơn rút mỗi FK duyệt, chia theo mốc số tiền (cột P). Bấm mốc để xem chi tiết đơn.</span></div>
+      <div id="donrutEmpty" style="display:none;font-size:.65rem;color:var(--mu);padding:18px;border:1px dashed var(--border2);border-radius:8px;text-align:center">Chưa có dữ liệu — upload lại file Duyệt Đơn để có Báo Cáo Đơn Rút.</div>
+      <div id="donrutBody">
+        <div class="stats-row" id="donrutCards" style="margin-bottom:14px"></div>
+        <div class="chart-card" style="margin-bottom:16px">
+          <div class="chart-title" style="color:var(--pu2)">Mốc tiền toàn hệ thống</div>
+          <div id="donrutGlobal"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <span>Theo từng FK</span>
+            <input id="donrutSearch" type="search" placeholder="Tìm FK..." oninput="rDonRut()" style="background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:6px;padding:5px 10px;font-size:.66rem;outline:none;text-transform:none;letter-spacing:0;font-weight:400">
+          </div>
+          <div class="fk-grid" id="donrutFks" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -651,6 +675,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     <div class="vt-btn" onclick="skv('daily',this)">Duyệt Đơn</div>
     <div class="vt-btn" onclick="skv('anomaly',this)">Bất Thường</div>
     <div class="vt-btn" id="koLimitBtn" onclick="skv('limit',this)">Đề Xuất Hạn Mức Duyệt</div>
+    <div class="vt-btn" id="koOverBtn" onclick="skv('overlimit',this)">Vượt Hạn Mức</div>
   </div>
 
   <!-- VIEW: TỔNG QUAN -->
@@ -761,6 +786,12 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     </div>
     <div class="sec-hdr pu">Bảng đề xuất hạn mức duyệt <span style="font-size:.58rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— % so với người cao nhất trong nhóm · Tổng đánh giá = trung bình 3 tiêu chí (Đơn + KM + Bất thường)</span></div>
     <div class="mtbl-wrap"><table class="mtbl" id="limTbl"></table></div>
+  </div>
+
+  <!-- VIEW: VƯỢT HẠN MỨC -->
+  <div class="ko-view" id="ko-overlimit" style="display:none">
+    <div class="sec-hdr" style="color:var(--re)">Đơn Vượt Hạn Mức Duyệt <span style="font-size:.56rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— đơn rút có số tiền LỚN HƠN hạn mức của FK (đặt ở "Đề Xuất Hạn Mức Duyệt"), liệt kê theo từng ngày</span></div>
+    <div id="overlimitBody"></div>
   </div>
 </div>
 
@@ -2266,6 +2297,14 @@ function processFiles(files,idx,acc,target){
   reader.readAsArrayBuffer(file);
 }
 
+// ===== BÁO CÁO ĐƠN RÚT: mốc tiền + helper (theo file PROMAX) =====
+const DONRUT_BR=[[200,5000],[5001,20000],[20001,50000],[50001,149999],[150000,500000]];
+const DONRUT_MIN_DETAIL=20000; // chỉ lưu chi tiết đơn >= mốc này (cho drill-down + vượt hạn mức)
+function brLabelOf(lo,hi){return lo.toLocaleString('vi')+' – '+hi.toLocaleString('vi');}
+const DONRUT_LABELS=DONRUT_BR.map(([lo,hi])=>brLabelOf(lo,hi));
+function donrutBracket(v){for(const [lo,hi] of DONRUT_BR){if(v>=lo&&v<=hi)return brLabelOf(lo,hi);}return v>500000?'> 500.000':'Ngoài khoảng';}
+// Số tiền hạn mức của FK (từ LIMITS, ví dụ "40.000" -> 40000); 0 = chưa đặt
+function fkLimitNum(fk){const s=(LIMITS[fk]&&LIMITS[fk].limit)||'';const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?0:n;}
 function m31x24(){return Array.from({length:31},()=>new Array(24).fill(0));}
 function initAccum(){
   const nd={
@@ -2277,7 +2316,8 @@ function initAccum(){
     _daySet:new Set(), _mSet:new Set(),
     _day7Raw:new Array(31).fill(0), day_counts_d7:new Array(31).fill(0), _d7Set:new Set(),
     _hbd7:m31x24(), cbd7:m31x24(), // điểm & số đơn theo [ngày][giờ GMT+7] — cho view Theo Ngày
-    kmstat:{ok:new Array(31).fill(0),rej:new Array(31).fill(0),reward:new Array(31).fill(0),promos:{}} // KM: thành công/từ chối/tiền thưởng theo ngày + theo từng mã KM
+    kmstat:{ok:new Array(31).fill(0),rej:new Array(31).fill(0),reward:new Array(31).fill(0),promos:{}}, // KM: thành công/từ chối/tiền thưởng theo ngày + theo từng mã KM
+    donrut:{gbr:{},fbr:{},orders:[]} // Đơn rút: đếm mốc tiền toàn hệ thống + theo FK + chi tiết đơn >= DONRUT_MIN_DETAIL
   };
   FK_KEYS.forEach(fk=>{
     nd.fk_data[fk]={
@@ -2352,6 +2392,25 @@ function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
       if(!fk)continue;
       sc=gsc(colB,amt,status);
       hbdDay=day; // DON: view Theo Ngày dùng ngày GMT-4 (đồng nhất day_scores)
+      // ===== Thu thập BÁO CÁO ĐƠN RÚT =====
+      const isFirstOrder=colB!=null&&String(colB).trim()!=='';
+      const brl=donrutBracket(amt);
+      const D0=nd.donrut;
+      (D0.gbr[brl]=D0.gbr[brl]||{total:0,first:0}).total++; if(isFirstOrder)D0.gbr[brl].first++;
+      if(!D0.fbr[fk])D0.fbr[fk]={};
+      (D0.fbr[fk][brl]=D0.fbr[fk][brl]||{total:0,first:0}).total++; if(isFirstOrder)D0.fbr[fk][brl].first++;
+      if(amt>=DONRUT_MIN_DETAIL){
+        const pd7=new Date(pd.getTime()+11*3600000);
+        const t7=String(pd7.getUTCHours?pd7.getHours():pd7.getHours()).padStart(2,'0')+':'+String(pd7.getMinutes()).padStart(2,'0');
+        // Giờ gửi đơn (cột J idx 9, GMT-4) -> thời gian xử lý
+        let sd=null;
+        if(row[9] instanceof Date)sd=row[9];
+        else if(typeof row[9]==="number"&&row[9]>40000)sd=new Date((row[9]-25569)*86400000);
+        else if(row[9]){try{sd=new Date(String(row[9]).replace(/(\d{4})\/(\d{2})\/(\d{2})/,'$1-$2-$3').replace(' ','T'));}catch(e){}}
+        let dur=null;
+        if(sd&&!isNaN(sd.getTime())){const dd2=(pd.getTime()-sd.getTime())/1000;if(dd2>=0&&dd2<=7*86400)dur=Math.round(dd2);}
+        D0.orders.push({fk,m:String(row[3]==null?'?':row[3]).trim(),lv:capdo||'(không rõ)',a:amt,f:isFirstOrder,t7,day7:pd7.getDate(),d:dur,b:brl});
+      }
     }
     nd._hbd7[hbdDay-1][h7]+=sc; nd.cbd7[hbdDay-1][h7]++;
     nd.fk_data[fk]._hbd7[hbdDay-1][h7]+=sc;
@@ -2390,6 +2449,11 @@ function mergeAccum(base,add){
       });
     }
   }
+  if(base.donrut&&add.donrut){
+    Object.entries(add.donrut.gbr).forEach(([l,v])=>{const b=base.donrut.gbr[l]=base.donrut.gbr[l]||{total:0,first:0};b.total+=v.total;b.first+=v.first;});
+    Object.entries(add.donrut.fbr).forEach(([fk,brs])=>{base.donrut.fbr[fk]=base.donrut.fbr[fk]||{};Object.entries(brs).forEach(([l,v])=>{const b=base.donrut.fbr[fk][l]=base.donrut.fbr[fk][l]||{total:0,first:0};b.total+=v.total;b.first+=v.first;});});
+    base.donrut.orders=base.donrut.orders.concat(add.donrut.orders);
+  }
   FK_KEYS.forEach(fk=>{
     const bf=base.fk_data[fk],af=add.fk_data[fk];
     bf.total_count+=af.total_count;
@@ -2423,6 +2487,12 @@ function dsAddInto(base,add){
     if(!base.kmstat)base.kmstat={ok:new Array(31).fill(0),rej:new Array(31).fill(0),reward:new Array(31).fill(0),promos:{}};
     A(base.kmstat.ok,add.kmstat.ok);A(base.kmstat.rej,add.kmstat.rej);A(base.kmstat.reward,add.kmstat.reward);
     if(add.kmstat.promos){if(!base.kmstat.promos)base.kmstat.promos={};Object.entries(add.kmstat.promos).forEach(([nm,p])=>{if(!base.kmstat.promos[nm])base.kmstat.promos[nm]={ok:0,rej:0,reward:0};base.kmstat.promos[nm].ok+=p.ok;base.kmstat.promos[nm].rej+=p.rej;base.kmstat.promos[nm].reward+=p.reward;});}
+  }
+  if(add.donrut){
+    if(!base.donrut)base.donrut={gbr:{},fbr:{},orders:[]};
+    Object.entries(add.donrut.gbr||{}).forEach(([l,v])=>{const x=base.donrut.gbr[l]=base.donrut.gbr[l]||{total:0,first:0};x.total+=v.total;x.first+=v.first;});
+    Object.entries(add.donrut.fbr||{}).forEach(([fk,brs])=>{base.donrut.fbr[fk]=base.donrut.fbr[fk]||{};Object.entries(brs).forEach(([l,v])=>{const x=base.donrut.fbr[fk][l]=base.donrut.fbr[fk][l]||{total:0,first:0};x.total+=v.total;x.first+=v.first;});});
+    base.donrut.orders=base.donrut.orders.concat(add.donrut.orders||[]);
   }
   FK_KEYS.forEach(fk=>{
     const b=base.fk_data[fk],a=add.fk_data[fk];if(!b||!a)return;
@@ -2570,13 +2640,25 @@ function srk(g,el){rkGrp=g;selFK=null;document.getElementById("dp").classList.re
 function skv(v,el){koView=v;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");document.querySelectorAll(".ko-view").forEach(p=>p.style.display="none");document.getElementById("ko-"+v).style.display="block";rKO();}
 function sac(c,el){anCat=c;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");rKoAnomaly();}
 let dataSrc="don";
-function sds(src,el){dataSrc=src;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");selDay=null;rDataTab();}
+let donSub='time'; // 'time' = Thời Gian Cao Điểm | 'donrut' = Báo Cáo Đơn Rút
+function sds(src,el){dataSrc=src;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");selDay=null;
+  // Tab con "Báo Cáo Đơn Rút" chỉ có ở nguồn Duyệt Đơn
+  document.getElementById('donSubToggle').style.display=(src==='don')?'flex':'none';
+  if(src!=='don')donSub='time';
+  rDataTab();
+}
+function setDonSub(v,el){donSub=v;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");rDataTab();}
 function curDataSet(){return dataSrc==="km"?KMD:D;}
 function rDataTab(){
   const ds=curDataSet();
   const empty=document.getElementById("dataEmptyKm"),body=document.getElementById("dataBody");
   if(dataSrc==="km"&&!ds){empty.style.display="block";body.style.display="none";return;}
   empty.style.display="none";body.style.display="block";
+  const showDonrut=(dataSrc==='don'&&donSub==='donrut');
+  document.getElementById('data-day').style.display=showDonrut?'none':'block';
+  document.getElementById('data-kmstat').style.display=(dataSrc==='km')?'block':'none';
+  document.getElementById('data-donrut').style.display=showDonrut?'block':'none';
+  if(showDonrut){rDonRut();return;}
   // Ngày / Tháng — render trong 1 view
   const days=ds.days_in_month_d7||ds.days_in_month||[];
   if(!selDay&&days.length)selDay=days[0];
@@ -2584,6 +2666,81 @@ function rDataTab(){
   rDay(ds);
   rMonth(ds);
   rKmStat(ds);
+}
+// ===== RENDER BÁO CÁO ĐƠN RÚT =====
+function donrutBrRows(brs,fk){
+  const labs=[...DONRUT_LABELS];Object.keys(brs||{}).forEach(l=>{if(!labs.includes(l))labs.push(l);});
+  const max=Math.max(...labs.map(l=>(brs&&brs[l]?brs[l].total:0)),1);
+  return labs.map(l=>{
+    const v=(brs&&brs[l])||{total:0,first:0};
+    if(v.total===0&&!DONRUT_LABELS.includes(l))return '';
+    const w=(v.total/max*100).toFixed(1);
+    const hi=l===DONRUT_LABELS[DONRUT_LABELS.length-1]; // mốc cao nhất 150k+
+    const col=hi?'var(--go)':'var(--pu2)';
+    return `<div class="donrut-br" data-fk="${fk||''}" data-br="${hesc(l)}" style="display:grid;grid-template-columns:150px 1fr 54px 90px;gap:12px;align-items:center;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:.7rem" onmouseover="this.style.background='rgba(124,58,237,.06)'" onmouseout="this.style.background='none'" onclick="donrutToggle(this)">
+      <span style="font-family:monospace;color:${hi?'var(--go)':'var(--tx)'};font-weight:${hi?'800':'400'}">${hesc(l)}</span>
+      <span style="height:12px;background:var(--card2);border-radius:6px;overflow:hidden"><i style="display:block;height:100%;width:${w}%;background:linear-gradient(90deg,${col},var(--bl2))"></i></span>
+      <span style="font-family:monospace;color:var(--go);text-align:right;font-weight:700">${v.total}</span>
+      <span style="font-family:monospace;color:var(--cy);text-align:right;font-size:.62rem">${v.first?v.first+' lần đầu':'—'}</span>
+    </div><div class="donrut-orders" style="display:none"></div>`;
+  }).join('');
+}
+function donrutGetOrders(fk,br){
+  const dr=(curDataSet()||{}).donrut;if(!dr)return[];
+  let list=dr.orders.filter(o=>o.b===br&&(!fk||o.fk===fk));
+  if(!fk)list=list.map(o=>({...o}));
+  list.sort((a,b)=>(b.a||0)-(a.a||0));
+  return list;
+}
+function fmtDurSec(d){if(d==null)return '';const h=Math.floor(d/3600),m=Math.floor((d%3600)/60),s=d%60;if(h>0)return h+'g'+String(m).padStart(2,'0')+'p';if(m>0)return m+'p'+String(s).padStart(2,'0')+'s';return s+'s';}
+function donrutOrdersHTML(list){
+  if(!list.length)return '<div style="padding:8px 12px;color:var(--mu);font-size:.66rem">Không có đơn (chỉ lưu chi tiết đơn ≥ '+DONRUT_MIN_DETAIL.toLocaleString('vi')+')</div>';
+  const head='<div style="display:grid;grid-template-columns:26px 1fr 90px 62px 56px 60px;gap:8px;padding:5px 12px;font-size:.56rem;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0;background:var(--card2)"><span>#</span><span>Hội viên · FK</span><span style="text-align:right">Số tiền</span><span style="text-align:right">Giờ GMT+7</span><span style="text-align:right">Ngày</span><span style="text-align:right">Xử lý</span></div>';
+  return head+list.map((o,i)=>`<div style="display:grid;grid-template-columns:26px 1fr 90px 62px 56px 60px;gap:8px;padding:4px 12px;font-size:.64rem;border-top:1px solid rgba(30,37,69,.5)">
+    <span style="color:var(--mu);font-family:monospace">${i+1}</span>
+    <span style="font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${hesc(o.m)}">${hesc(o.m)}<span style="color:var(--pu2)"> · ${hesc(FK_NAMES[o.fk]||o.fk)}</span>${o.f?'<span style="color:var(--cy);font-size:.9em"> · lần đầu</span>':''}</span>
+    <span style="font-family:monospace;color:var(--go);text-align:right;font-weight:700">${(o.a||0).toLocaleString('vi')}</span>
+    <span style="font-family:monospace;color:var(--pu2);text-align:right">${o.t7||''}</span>
+    <span style="font-family:monospace;color:var(--mu2);text-align:right">${o.day7||''}</span>
+    <span style="font-family:monospace;color:${o.d==null?'var(--mu)':o.d>=3600?'var(--re)':o.d>=1800?'var(--go)':'var(--cy)'};text-align:right">${fmtDurSec(o.d)}</span>
+  </div>`).join('');
+}
+function donrutToggle(el){
+  const box=el.nextElementSibling;if(!box||!box.classList.contains('donrut-orders'))return;
+  if(box.style.display==='block'){box.style.display='none';return;}
+  if(!box.dataset.loaded){box.innerHTML=donrutOrdersHTML(donrutGetOrders(el.dataset.fk||null,el.dataset.br));box.dataset.loaded='1';}
+  box.style.display='block';
+}
+function rDonRut(){
+  const ds=curDataSet();
+  const dr=ds&&ds.donrut;
+  const has=dr&&(dr.orders.length||Object.keys(dr.gbr).length);
+  document.getElementById('donrutEmpty').style.display=has?'none':'block';
+  document.getElementById('donrutBody').style.display=has?'block':'none';
+  if(!has)return;
+  // Thẻ tổng
+  const totalT=Object.values(dr.gbr).reduce((a,b)=>a+b.total,0);
+  const totalF=Object.values(dr.gbr).reduce((a,b)=>a+b.first,0);
+  const hiLabel=DONRUT_LABELS[DONRUT_LABELS.length-1];
+  const hiCount=(dr.gbr[hiLabel]||{total:0}).total+(dr.gbr['> 500.000']||{total:0}).total;
+  document.getElementById('donrutCards').innerHTML=
+    `<div class='stat-card pu'><div class='stat-lbl'>Đơn rút FK duyệt</div><div class='stat-val pu'>${nn(totalT)}</div><div class='stat-sub'>tổng đơn có FK</div></div>`+
+    `<div class='stat-card cy'><div class='stat-lbl'>Đơn rút lần đầu</div><div class='stat-val' style='color:var(--cy)'>${nn(totalF)}</div><div class='stat-sub'>${totalT?Math.round(totalF/totalT*100):0}%</div></div>`+
+    `<div class='stat-card go'><div class='stat-lbl'>Đơn ≥ 150.000</div><div class='stat-val go'>${nn(hiCount)}</div><div class='stat-sub'>cần Tổ Trưởng duyệt</div></div>`;
+  document.getElementById('donrutGlobal').innerHTML=donrutBrRows(dr.gbr,'');
+  // Theo từng FK
+  const q=(document.getElementById('donrutSearch').value||'').trim().toLowerCase();
+  const fks=FK_KEYS.filter(fk=>dr.fbr[fk]).map(fk=>({fk,total:Object.values(dr.fbr[fk]).reduce((a,b)=>a+b.total,0),first:Object.values(dr.fbr[fk]).reduce((a,b)=>a+b.first,0)}));
+  fks.sort((a,b)=>b.total-a.total);
+  const shown=q?fks.filter(x=>(FK_NAMES[x.fk]||x.fk).toLowerCase().includes(q)):fks;
+  document.getElementById('donrutFks').innerHTML=shown.map(x=>`
+    <div class="chart-card" style="padding:12px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <b style="font-family:monospace;font-size:.9rem;letter-spacing:1px;color:${fkGrpCol(x.fk)}">${FK_NAMES[x.fk]||x.fk}</b>
+        <span style="text-align:right"><b style="font-family:monospace;color:var(--go);font-size:1.1rem">${x.total}</b><div style="font-size:.56rem;color:var(--cy)">${x.first} lần đầu</div></span>
+      </div>
+      ${donrutBrRows(dr.fbr[x.fk],x.fk)}
+    </div>`).join('')||'<div style="color:var(--mu);font-size:.7rem;padding:10px">Không có FK khớp tìm kiếm.</div>';
 }
 // ===== THỐNG KÊ KHUYẾN MÃI (thành công / từ chối / tiền thưởng đã phát) =====
 function rKmStat(ds){
@@ -3039,7 +3196,48 @@ function rKO(){
   if(koView==="overview")rKoOverview();
   else if(koView==="daily")rKoDaily();
   else if(koView==="limit")rKoLimit();
+  else if(koView==="overlimit")rKoOverLimit();
   else rKoAnomaly();
+}
+// ===== VƯỢT HẠN MỨC: đơn rút > hạn mức của FK, liệt kê theo ngày =====
+function rKoOverLimit(){
+  const el=document.getElementById('overlimitBody');if(!el)return;
+  const dr=D&&D.donrut;
+  if(!dr||!dr.orders||!dr.orders.length){el.innerHTML='<div style="color:var(--mu);font-size:.72rem;padding:14px">Chưa có dữ liệu đơn rút — upload lại file Duyệt Đơn.</div>';return;}
+  // Lọc đơn vượt hạn mức của chính FK đó (hạn mức > 0)
+  const over=dr.orders.filter(o=>{const lim=fkLimitNum(o.fk);return lim>0&&o.a>lim;});
+  if(!over.length){el.innerHTML='<div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:14px;color:#10b981;font-size:.72rem;font-weight:600">Không có đơn nào vượt hạn mức. <span style="color:var(--mu);font-weight:400">(Cần đặt hạn mức cho FK ở view "Đề Xuất Hạn Mức Duyệt". Chỉ tính đơn ≥ '+DONRUT_MIN_DETAIL.toLocaleString('vi')+'.)</span></div>';return;}
+  // Nhóm theo FK -> theo ngày
+  const byFk={};over.forEach(o=>{(byFk[o.fk]=byFk[o.fk]||[]).push(o);});
+  let html='';
+  Object.keys(byFk).sort((a,b)=>byFk[b].length-byFk[a].length).forEach(fk=>{
+    const list=byFk[fk],lim=fkLimitNum(fk);
+    const byDay={};list.forEach(o=>{(byDay[o.day7]=byDay[o.day7]||[]).push(o);});
+    const days=Object.keys(byDay).map(Number).sort((a,b)=>a-b);
+    html+=`<div class="chart-card" style="margin-bottom:14px;border:1px solid rgba(239,68,68,.3)">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+        <b style="font-family:monospace;font-size:1rem;letter-spacing:1px;color:${fkGrpCol(fk)}">${FK_NAMES[fk]||fk}</b>
+        <span style="font-size:.66rem;color:var(--mu2)">Hạn mức: <b style="color:var(--go)">${lim.toLocaleString('vi')}</b></span>
+        <span style="margin-left:auto;background:rgba(239,68,68,.15);color:#f87171;border-radius:10px;padding:2px 11px;font-size:.66rem;font-weight:800">${list.length} đơn vượt</span>
+      </div>`;
+    days.forEach(d=>{
+      const ords=byDay[d].sort((a,b)=>b.a-a.a);
+      html+=`<div style="margin-bottom:8px">
+        <div style="font-size:.62rem;color:var(--pu2);font-weight:700;margin-bottom:3px">Ngày ${d} <span style="color:var(--mu);font-weight:400">· ${ords.length} đơn</span></div>
+        <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:26px 1fr 90px 62px 60px;gap:8px;padding:4px 12px;font-size:.55rem;color:var(--mu);text-transform:uppercase;background:var(--card2)"><span>#</span><span>Hội viên</span><span style="text-align:right">Số tiền</span><span style="text-align:right">Giờ GMT+7</span><span style="text-align:right">Xử lý</span></div>`+
+          ords.map((o,i)=>`<div style="display:grid;grid-template-columns:26px 1fr 90px 62px 60px;gap:8px;padding:4px 12px;font-size:.64rem;border-top:1px solid rgba(30,37,69,.5)">
+            <span style="color:var(--mu);font-family:monospace">${i+1}</span>
+            <span style="font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${hesc(o.m)}">${hesc(o.m)}${o.f?'<span style="color:var(--cy)"> · lần đầu</span>':''}</span>
+            <span style="font-family:monospace;color:#f87171;text-align:right;font-weight:800">${(o.a||0).toLocaleString('vi')}</span>
+            <span style="font-family:monospace;color:var(--pu2);text-align:right">${o.t7||''}</span>
+            <span style="font-family:monospace;color:var(--mu2);text-align:right">${fmtDurSec(o.d)}</span>
+          </div>`).join('')+
+        `</div></div>`;
+    });
+    html+=`</div>`;
+  });
+  el.innerHTML=html;
 }
 
 // ===== VIEW: ĐỀ XUẤT HẠN MỨC DUYỆT (lưu cloud theo tháng) =====
