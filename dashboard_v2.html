@@ -728,6 +728,14 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
   </div>
 </div>
 
+<!-- MODAL: Toàn bộ thông tin 1 FK (Báo Cáo Đơn Rút) -->
+<div class="dr-modal" id="drFkModal">
+  <div class="box" style="max-width:860px;max-height:84vh;overflow:auto">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;position:sticky;top:0;background:var(--card);padding-bottom:6px;z-index:1"><span id="drFkTitle"></span><button onclick="drCloseFk()" style="margin-left:auto;background:none;border:none;color:var(--mu);font-size:16px;cursor:pointer">✕</button></div>
+    <div id="drFkBody"></div>
+  </div>
+</div>
+
 <!-- ============ TAB: HIỆU SUẤT KO (gộp Duyệt Đơn + Bất Thường) ============ -->
 <div class="pg" id="pg-ko">
   <div class="view-toggle" id="koViewToggle">
@@ -2817,26 +2825,44 @@ const DR={
     let fks=FK_KEYS.map(fk=>({fk,name:FK_NAMES[fk]||fk,...d.fks[fk]}));
     fks.sort((a,b)=>DR.sortBy==='name'?a.name.localeCompare(b.name):(b[DR.sortBy]-a[DR.sortBy])||a.name.localeCompare(b.name));
     document.getElementById('donrutFks').innerHTML=fks.map(f=>{
-      const lvs=Object.entries(f.levels).sort((a,b)=>b[1].total-a[1].total);
       const matchName=f.name.toLowerCase().includes(q);
-      const lvsShown=q&&!matchName?lvs.filter(([k])=>k.toLowerCase().includes(q)):lvs;
-      if(q&&!matchName&&lvsShown.length===0)return '';
+      const matchLevel=q&&Object.keys(f.levels).some(k=>k.toLowerCase().includes(q));
+      if(q&&!matchName&&!matchLevel)return '';
       const zero=f.total===0;
-      const open=q&&!matchName;
-      return `<div class="dr-card ${zero?'zero':''} ${open?'open':''}">
-        <div class="dr-head" ${zero?'':'onclick="this.parentElement.classList.toggle(\'open\')"'}>
+      return `<div class="dr-card ${zero?'zero':''}">
+        <div class="dr-head" ${zero?'':`onclick="drOpenFk('${f.fk}')"`}>
           <b style="font-family:monospace;font-size:.92rem;letter-spacing:1px;color:${fkGrpCol(f.fk)}">${f.name}</b>
           <span style="margin-left:auto;text-align:right"><b style="font-family:monospace;color:var(--go);font-size:1.05rem">${f.total}</b><div style="font-size:.56rem;color:var(--cy)">${f.first} lần đầu</div></span>
-          ${zero?'':'<span class="dr-chev">▶</span>'}
+          ${zero?'':'<span style="color:var(--pu2);font-size:.6rem;font-weight:700">Chi tiết ▸</span>'}
         </div>
-        ${zero?'':`<div class="dr-detail">
-          <div style="padding:8px 14px 2px;font-size:.58rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--pu2)">Mốc tiền</div>
-          <div style="padding:0 10px 6px">${DR.brRows(f.brackets,f.fk)}</div>
-          <div style="padding:6px 14px 4px;font-size:.58rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mu)">Cấp độ thành viên</div>
-          <div class="dr-lv">${lvsShown.map(([k,v])=>`<div class="dr-lvr"><span style="flex:1;color:var(--tx)">${hesc(k)}</span><span style="font-family:monospace;color:var(--go);min-width:34px;text-align:right">${v.total}</span><span style="font-family:monospace;color:${v.first?'var(--cy)':'var(--mu)'};min-width:64px;text-align:right;font-size:.9em">${v.first?v.first+' lần đầu':'—'}</span></div>`).join('')||'<div class="dr-lvr"><span style="color:var(--mu)">Không có cấp độ khớp tìm kiếm</span></div>'}</div>
-        </div>`}
       </div>`;
     }).join('')||'<div style="color:var(--mu);font-size:.7rem;padding:10px">Không có FK khớp tìm kiếm.</div>';
+  },
+  fkModalHTML(fk){
+    const f=DR.data&&DR.data.fks[fk];if(!f)return '';
+    const lvs=Object.entries(f.levels).sort((a,b)=>b[1].total-a[1].total);
+    const orders=f.orders.slice().sort((a,b)=>(b.a||0)-(a.a||0));
+    const gc='24px 1.4fr 1fr 82px 46px 52px 40px 52px 40px';
+    const oh=orders.length?(
+      `<div style="display:grid;grid-template-columns:${gc};gap:7px;padding:5px 10px;font-size:.54rem;color:var(--mu);text-transform:uppercase;letter-spacing:.03em;position:sticky;top:0;background:var(--card2)"><span>#</span><span>ID đăng nhập</span><span>Cấp độ TV</span><span style="text-align:right">Số tiền</span><span style="text-align:right">GMT−4</span><span style="text-align:right">GMT+7</span><span style="text-align:right">Ngày</span><span style="text-align:right">Xử lý</span><span style="text-align:right">Loại</span></div>`+
+      orders.map((o,i)=>`<div style="display:grid;grid-template-columns:${gc};gap:7px;padding:4px 10px;font-size:.63rem;border-top:1px solid rgba(30,37,69,.5)">
+        <span style="color:var(--mu);font-family:monospace">${i+1}</span>
+        <span style="font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${hesc(o.m)}">${hesc(o.m)}</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mu2)" title="${hesc(o.lv)}">${hesc(o.lv)}</span>
+        <span style="font-family:monospace;color:var(--go);text-align:right;font-weight:700">${o.a==null?'?':o.a.toLocaleString('vi')}</span>
+        <span style="font-family:monospace;color:var(--mu);text-align:right">${o.t||''}</span>
+        <span style="font-family:monospace;color:var(--pu2);text-align:right">${o.t7||''}</span>
+        <span style="font-family:monospace;color:var(--mu2);text-align:right">${o.day7||''}</span>
+        <span style="font-family:monospace;color:${o.d==null?'var(--mu)':o.d>=3600?'var(--re)':o.d>=1800?'var(--go)':'var(--cy)'};text-align:right">${fmtDurSec(o.d)}</span>
+        <span style="text-align:right;font-family:monospace;font-size:.9em;color:${o.f?'var(--cy)':'var(--mu)'}">${o.f?'đầu':'—'}</span>
+      </div>`).join('')
+    ):'<div style="padding:10px;color:var(--mu);font-size:.66rem">Không có đơn.</div>';
+    return `<div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--pu2);margin:2px 0 4px">Mốc tiền (bấm để xem đơn từng mốc)</div>`+
+      `<div>${DR.brRows(f.brackets,fk)}</div>`+
+      `<div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--mu);margin:14px 0 4px">Cấp độ thành viên</div>`+
+      `<div class="dr-lv" style="max-height:none;border-top:none">${lvs.map(([k,v])=>`<div class="dr-lvr"><span style="flex:1;color:var(--tx)">${hesc(k)}</span><span style="font-family:monospace;color:var(--go);min-width:34px;text-align:right">${v.total}</span><span style="font-family:monospace;color:${v.first?'var(--cy)':'var(--mu)'};min-width:64px;text-align:right;font-size:.9em">${v.first?v.first+' lần đầu':'—'}</span></div>`).join('')}</div>`+
+      `<div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--go);margin:14px 0 4px">Tất cả đơn (${orders.length}) — kèm ID đăng nhập & cấp độ</div>`+
+      `<div style="border:1px solid var(--border);border-radius:8px;overflow:auto;max-height:44vh">${oh}</div>`;
   },
   setStatus(msg,ok){const el=document.getElementById('drStatus');if(!el)return;el.textContent=msg;el.style.color=ok?'var(--cy)':'var(--re)';},
   apply(rows,label){
@@ -2863,6 +2889,15 @@ const DR={
   }
 };
 function rDonRut(){DR.render();}
+// ---- Popup toàn bộ thông tin 1 FK ----
+function drOpenFk(fk){
+  if(!DR.data||!DR.data.fks[fk]||!DR.data.fks[fk].total)return;
+  const f=DR.data.fks[fk];
+  document.getElementById('drFkTitle').innerHTML=`<b style="font-family:monospace;letter-spacing:1px;color:${fkGrpCol(fk)}">${FK_NAMES[fk]||fk}</b> <span style="color:var(--mu);font-size:.7rem;font-weight:400">· ${f.total} đơn · ${f.first} lần đầu</span>`;
+  document.getElementById('drFkBody').innerHTML=DR.fkModalHTML(fk);
+  document.getElementById('drFkModal').classList.add('show');
+}
+function drCloseFk(){document.getElementById('drFkModal').classList.remove('show');}
 function drToggleBr(el){
   const box=el.nextElementSibling;if(!box||!box.classList.contains('dr-orders'))return;
   if(box.classList.contains('show')){box.classList.remove('show');return;}
@@ -2912,6 +2947,9 @@ function drResetBr(){DR.brackets=DR_DEFAULT_BR.map(p=>[...p]);document.getElemen
     const text=e.clipboardData&&e.clipboardData.getData('text');
     if(text&&text.includes('\t')){e.preventDefault();const rows=text.replace(/\r/g,'').split('\n').map(l=>l.split('\t'));DR.apply(rows,'Dữ liệu dán ('+new Date().toLocaleDateString('vi')+')');}
   });
+  // Đóng popup Đơn Rút khi bấm nền tối hoặc nhấn Esc
+  document.querySelectorAll('.dr-modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.dr-modal.show').forEach(m=>m.classList.remove('show'));});
 })();
 // ===== THỐNG KÊ KHUYẾN MÃI (thành công / từ chối / tiền thưởng đã phát) =====
 function rKmStat(ds){
