@@ -688,7 +688,19 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
       </div>
 
       <div id="donrutBody" style="display:none">
-        <div class="stats-row" id="donrutCards" style="margin-bottom:14px"></div>
+        <div class="stats-row" style="margin-bottom:14px">
+          <div id="donrutCards" style="display:contents"></div>
+          <!-- Ô dán text Telegram: đối chiếu KO có xin ý kiến TT cho đơn >150k -->
+          <div class="stat-card" style="border-color:rgba(6,182,212,.35)">
+            <div class="stat-lbl" style="color:var(--cy)">Xin ý kiến TT (Telegram)</div>
+            <textarea id="drTgText" rows="2" placeholder="Dán text copy từ nhóm Telegram vào đây..." spellcheck="false" style="width:100%;margin-top:6px;background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:6px;padding:6px 8px;font-size:.6rem;font-family:monospace;line-height:1.5;resize:vertical;outline:none"></textarea>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+              <button onclick="drTgCheck()" style="background:var(--cy);color:#062a30;border:none;border-radius:6px;padding:5px 12px;font-size:.62rem;font-weight:800;cursor:pointer">Đối chiếu</button>
+              <span id="drTgSum" style="font-size:.58rem;color:var(--mu)"></span>
+            </div>
+          </div>
+        </div>
+        <div id="donrutTgPanel" style="margin-bottom:16px"></div>
         <div id="donrutOverLimit" style="margin-bottom:16px"></div>
         <div class="chart-card" style="margin-bottom:16px">
           <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
@@ -2834,6 +2846,7 @@ const DR={
         </div>
       </div>`;
     }).join('')||'<div style="color:var(--mu);font-size:.7rem;padding:10px">Không có FK khớp tìm kiếm.</div>';
+    DR.renderTg();
   },
   // Đơn vượt hạn mức duyệt: amount > hạn mức của FK (LIMITS ở tab Hiệu Suất KO)
   overLimitOrders(){
@@ -2874,6 +2887,84 @@ const DR={
     el.innerHTML=`<div class="chart-card" style="border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.04)">
       <div class="chart-title" style="color:#f87171;display:flex;align-items:center;gap:8px">⚠ Cảnh báo vượt hạn mức duyệt <span style="color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— đơn có số tiền LỚN HƠN hạn mức của FK (đặt ở Hiệu Suất KO → Đề Xuất Hạn Mức Duyệt): hội viên + số tiền + FK duyệt</span></div>
       ${blocks}
+    </div>`;
+  },
+  // ===== XIN Ý KIẾN TT: parse text Telegram + đối chiếu đơn >150k =====
+  tgMsgs:null, // [{fk,id,dt:{day,min},amt,raw}]
+  // Nhận diện số tiền linh động: 150tr / 150 triệu / 150k / 150.000 / 1500000 → quy về đơn vị file (nghìn)
+  parseMoney(s){
+    const m=String(s||'').match(/([\d][\d.,\s]*)\s*(tr|triệu|trieu|k|nghìn|nghin)?/i);
+    if(!m)return null;
+    const num=parseFloat(m[1].replace(/[.,\s]/g,''));if(isNaN(num))return null;
+    const u=(m[2]||'').toLowerCase();
+    if(u==='tr'||u==='triệu'||u==='trieu')return num*1000;
+    if(u==='k'||u==='nghìn'||u==='nghin')return num;
+    return num>=1000000?num/1000:num; // số trần: ≥1 triệu coi là VND, còn lại coi là nghìn
+  },
+  parseTg(text){
+    const out=[];
+    // Tách tin nhắn: mỗi tin bắt đầu bằng [M/D/YYYY H:MM AM/PM]
+    const re=/\[(\d{1,2})\/(\d{1,2})\/(\d{4})[,\s]+(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?\]\s*([^\n]*)/gi;
+    const marks=[];let mm;
+    while((mm=re.exec(text))!==null)marks.push({idx:mm.index,len:mm[0].length,mo:+mm[1],day:+mm[2],y:+mm[3],h:+mm[4],mi:+mm[5],ap:(mm[6]||'').toUpperCase(),head:mm[7]});
+    for(let i=0;i<marks.length;i++){
+      const k=marks[i];
+      const bodyEnd=i+1<marks.length?marks[i+1].idx:text.length;
+      const body=(k.head+'\n'+text.slice(k.idx+k.len,bodyEnd)).trim();
+      // Chỉ nhận tin KO gửi: "KO <TÊN> NE: <nội dung>"
+      const colon=body.indexOf(':');if(colon<0)continue;
+      const sender=body.slice(0,colon),content=body.slice(colon+1).trim();
+      const sm=sender.match(/KO\s+([A-ZÀ-Ỹ0-9]+)\s*NE/i);if(!sm)continue;
+      const fkName=sm[1].toUpperCase();
+      const fk=FK_KEYS.find(x=>(FK_NAMES[x]||'').toUpperCase()===fkName);if(!fk)continue;
+      // ID hội viên = token đầu tiên của nội dung
+      const idm=content.match(/[A-Za-z0-9_]+/);if(!idm)continue;
+      let h=k.h;if(k.ap==='PM'&&h<12)h+=12;if(k.ap==='AM'&&h===12)h=0;
+      const am=content.match(/r[úu]t\s*[:\-]?\s*([\d][\d.,\s]*\s*(?:tr|triệu|trieu|k|nghìn|nghin)?)/i);
+      out.push({fk,id:idm[0],day:k.day,min:h*60+k.mi,amt:am?DR.parseMoney(am[1]):null,raw:content.split('\n')[0].slice(0,80)});
+    }
+    return out;
+  },
+  // Đối chiếu: đơn >150k phải có tin KO cùng FK + cùng ID + |giờ GMT+7| lệch ≤ 10 phút
+  tgCheck(){
+    if(!DR.data)return null;
+    const TH=150000,TOL=10;
+    const big=[];
+    for(const fk of FK_KEYS)for(const o of DR.data.fks[fk].orders)if(o.a!=null&&o.a>=TH)big.push(o);
+    big.sort((a,b)=>(a.day7-b.day7)||((a.t7||'').localeCompare(b.t7||'')));
+    const res=big.map(o=>{
+      const [h,m]=(o.t7||'0:0').split(':').map(Number);
+      const oMin=(o.day7||0)*1440+h*60+m;
+      const hit=(DR.tgMsgs||[]).find(g=>g.fk===o.fk&&g.id.toLowerCase()===String(o.m).toLowerCase()&&Math.abs((g.day*1440+g.min)-oMin)<=TOL);
+      return {o,hit};
+    });
+    return res;
+  },
+  renderTg(){
+    const panel=document.getElementById('donrutTgPanel'),sum=document.getElementById('drTgSum');
+    if(!panel)return;
+    if(!DR.data||!DR.tgMsgs){panel.innerHTML='';if(sum)sum.textContent=DR.tgMsgs?'':'';return;}
+    const res=DR.tgCheck()||[];
+    const miss=res.filter(r=>!r.hit);
+    if(sum)sum.textContent=`${DR.tgMsgs.length} tin KO · ${res.length} đơn >150k · ${miss.length} chưa xin ý kiến`;
+    if(!res.length){panel.innerHTML='<div class="chart-card" style="font-size:.66rem;color:var(--mu)">Không có đơn nào >150.000 trong file để đối chiếu.</div>';return;}
+    const gc='24px 110px 1.3fr 90px 70px 40px 1fr';
+    const rows=res.map((r,i)=>{
+      const o=r.o,ok=!!r.hit;
+      return `<div style="display:grid;grid-template-columns:${gc};gap:7px;padding:5px 12px;font-size:.64rem;border-top:1px solid rgba(30,37,69,.5);background:${ok?'transparent':'rgba(239,68,68,.07)'}">
+        <span style="color:var(--mu);font-family:monospace">${i+1}</span>
+        <span style="font-family:monospace;color:${fkGrpCol(o.fk)};font-weight:700">${FK_NAMES[o.fk]||o.fk}</span>
+        <span style="font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${hesc(o.m)}">${hesc(o.m)}</span>
+        <span style="font-family:monospace;color:var(--go);text-align:right;font-weight:700">${(o.a||0).toLocaleString('vi')}</span>
+        <span style="font-family:monospace;color:var(--pu2);text-align:right">${o.t7||''}</span>
+        <span style="font-family:monospace;color:var(--mu2);text-align:right">${o.day7||''}</span>
+        <span style="font-size:.6rem;${ok?'color:#10b981':'color:#f87171;font-weight:800'}">${ok?'✔ đã xin ý kiến ('+String(Math.floor(r.hit.min/60)).padStart(2,'0')+':'+String(r.hit.min%60).padStart(2,'0')+')':'⚠ CHƯA XIN Ý KIẾN TT'}</span>
+      </div>`;
+    }).join('');
+    panel.innerHTML=`<div class="chart-card" style="border:1px solid ${miss.length?'rgba(239,68,68,.4)':'rgba(16,185,129,.35)'}">
+      <div class="chart-title" style="color:${miss.length?'#f87171':'#10b981'}">Đối chiếu xin ý kiến TT — đơn >150.000 <span style="color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— khớp ID hội viên + đúng FK + lệch ≤10 phút (GMT+7). ${miss.length?miss.length+' đơn CHƯA xin ý kiến':'tất cả đã xin ý kiến ✓'}</span></div>
+      <div style="display:grid;grid-template-columns:${gc};gap:7px;padding:4px 12px;font-size:.52rem;color:var(--mu);text-transform:uppercase;letter-spacing:.03em;background:var(--card2);border-radius:6px 6px 0 0"><span>#</span><span>FK duyệt</span><span>Hội viên (ID)</span><span style="text-align:right">Số tiền</span><span style="text-align:right">GMT+7</span><span style="text-align:right">Ngày</span><span>Trạng thái</span></div>
+      ${rows}
     </div>`;
   },
   fkModalHTML(fk){
@@ -2927,6 +3018,16 @@ const DR={
   }
 };
 function rDonRut(){DR.render();}
+// ---- Đối chiếu xin ý kiến TT từ text Telegram ----
+function drTgCheck(){
+  const text=(document.getElementById('drTgText').value||'').trim();
+  const sum=document.getElementById('drTgSum');
+  if(!DR.data){if(sum)sum.textContent='Chưa có dữ liệu — thả file Excel trước.';return;}
+  if(!text){DR.tgMsgs=null;if(sum)sum.textContent='Chưa dán text.';document.getElementById('donrutTgPanel').innerHTML='';return;}
+  DR.tgMsgs=DR.parseTg(text);
+  if(!DR.tgMsgs.length){if(sum)sum.textContent='Không nhận diện được tin KO nào — kiểm tra định dạng [ngày giờ] KO <TÊN> NE: ...';document.getElementById('donrutTgPanel').innerHTML='';DR.tgMsgs=null;return;}
+  DR.renderTg();
+}
 // ---- Popup toàn bộ thông tin 1 FK ----
 function drOpenFk(fk){
   if(!DR.data||!DR.data.fks[fk]||!DR.data.fks[fk].total)return;
@@ -2979,7 +3080,7 @@ function drResetBr(){DR.brackets=DR_DEFAULT_BR.map(p=>[...p]);document.getElemen
   document.addEventListener('paste',e=>{
     // Chỉ nhận dán khi đang ở sub-tab Báo Cáo Đơn Rút
     if(!(dataSrc==='don'&&donSub==='donrut'&&document.getElementById('pg-data').classList.contains('active')))return;
-    if(e.target&&e.target.id==='donrutSearch')return;
+    if(e.target&&(e.target.id==='donrutSearch'||e.target.id==='drTgText'))return;
     const items=e.clipboardData&&e.clipboardData.items;
     if(items)for(const it of items)if(it.kind==='file'){const f=it.getAsFile();if(f){e.preventDefault();DR.loadFile(f);return;}}
     const text=e.clipboardData&&e.clipboardData.getData('text');
