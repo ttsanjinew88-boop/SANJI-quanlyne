@@ -4899,31 +4899,31 @@ const BC={
     if(!BC.GS_WEBAPP_URL){alert('Chưa cấu hình Google Sheet.\n\nCần deploy file google_sheet_baocao.gs (Apps Script) rồi dán URL Web App vào BC.GS_WEBAPP_URL trong dashboard_v2.html.');return;}
     if(!BC.SUSPECTS.length){alert('Chưa có đại lý nghi ngờ nào để gửi.');return;}
     if(!confirm('Gửi '+BC.SUSPECTS.length+' đại lý nghi ngờ (kèm màu tô) sang Google Sheet "Báo cáo đại lý ngoài"?'))return;
-    const rows=[],colors=[],bolds=[];
-    BC.SUSPECTS.forEach(s=>{
+    // Mỗi đại lý 1 khối riêng (server chừa 1 dòng trống + merge cột Đại lý);
+    // server tự khớp field theo TIÊU ĐỀ HÀNG 1 của sheet. Tiền định dạng sẵn kiểu VN (350.000)
+    const blocks=BC.SUSPECTS.map(s=>{
       const cm=new Set(s.cellMarks||[]);
-      (s.members||[]).forEach((r,i)=>{
-        const vals=[i+1,s.dai_ly,r.id,r.cap_bac,r.ho_ten,r.khach,r.chi_tieu,'',r.tien_nap,r.lan_nap,r.tien_rut,r.lan_rut,r.am_duong,r.cuoc_hop_le,r.ngan_hang,r.chi_nhanh,String(r.stk??''),r.ip,'',r.link_dk,r.link_dn,r.thiet_bi,r.game];
-        rows.push(vals.map(v=>v==null?'':v));
-        colors.push(vals.map((v,ci)=>{
-          const f=BC.XLS_FIELDS[ci];
-          if(f&&cm.has(i+'|'+f))return f==='am_duong'?'#FFC7CE':'#F4B084';
-          return ci===1?'#F4B084':'#FFF2CC';
-        }));
-        bolds.push(vals.map((v,ci)=>{const f=BC.XLS_FIELDS[ci];return !!(f&&cm.has(i+'|'+f));}));
-      });
+      return{agent:s.dai_ly,rows:(s.members||[]).map((r,i)=>({
+        v:{id:r.id,cap_bac:r.cap_bac,ho_ten:r.ho_ten,khach:r.khach,chi_tieu:r.chi_tieu,
+           tien_nap:BC.fmt(r.tien_nap),lan_nap:r.lan_nap,tien_rut:BC.fmt(r.tien_rut),lan_rut:r.lan_rut,
+           am_duong:BC.fmt(r.am_duong),cuoc_hop_le:BC.fmt(r.cuoc_hop_le),
+           ngan_hang:r.ngan_hang,chi_nhanh:r.chi_nhanh,stk:String(r.stk??''),ip:r.ip,
+           thiet_bi:r.thiet_bi,link_dk:r.link_dk,link_dn:r.link_dn,game:r.game},
+        mk:[...cm].filter(k=>k.indexOf(i+'|')===0).map(k=>k.slice(String(i).length+1))
+      }))};
     });
+    const rowTotal=blocks.reduce((s,b)=>s+b.rows.length,0);
     const btn=document.getElementById('bcSusSheetBtn');
     const old=btn?btn.textContent:'';
     if(btn){btn.disabled=true;btn.textContent='Đang gửi Google Sheet...';}
     try{
       // Content-Type text/plain: tránh CORS preflight (Apps Script không trả lời OPTIONS)
       const res=await fetch(BC.GS_WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-        body:JSON.stringify({token:BC.GS_TOKEN,by:(CUR_PROFILE.username||'').toUpperCase(),rows,colors,bolds})});
+        body:JSON.stringify({token:BC.GS_TOKEN,by:(CUR_PROFILE.username||'').toUpperCase(),blocks})});
       const j=await res.json().catch(()=>null);
       if(j&&j.ok){
-        alert('Đã dán '+rows.length+' dòng ('+BC.SUSPECTS.length+' đại lý) vào Google Sheet ✓');
-        logAction('Gửi nghi ngờ → Google Sheet',BC.SUSPECTS.length+' đại lý · '+rows.length+' dòng');
+        alert('Đã dán '+(j.added||rowTotal)+' dòng ('+BC.SUSPECTS.length+' đại lý) vào Google Sheet ✓');
+        logAction('Gửi nghi ngờ → Google Sheet',BC.SUSPECTS.length+' đại lý · '+rowTotal+' dòng');
       }else{
         alert('Gửi không thành công'+(j&&j.error?':\n'+j.error:' — kiểm tra lại deploy Apps Script (Web app · Anyone).'));
       }

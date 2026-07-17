@@ -1,31 +1,61 @@
 /**
- * BÁO CÁO ĐẠI LÝ BẤT THƯỜNG → GOOGLE SHEET (SANJI / NEW88)
+ * BÁO CÁO ĐẠI LÝ BẤT THƯỜNG → GOOGLE SHEET (SANJI / NEW88) — BẢN 2
  * Sheet đích: https://docs.google.com/spreadsheets/d/1SnmzU9p0lhNWf7es7_SXVInWcPPl78cc7IzQdnAsD7E/edit?gid=1340440362
  *
- * ============ HƯỚNG DẪN CÀI ĐẶT (làm 1 lần, ~3 phút) ============
- * 1. Mở đúng Google Sheet trên → menu "Tiện ích mở rộng" (Extensions) → "Apps Script".
- * 2. Xóa code mẫu, dán TOÀN BỘ file này vào, bấm Lưu (Ctrl+S).
- * 3. Menu trái "Cài đặt dự án" (Project Settings) → Múi giờ (Time zone) chọn
- *    (GMT+07:00) Ho Chi Minh / Bangkok — để trigger chạy đúng "sáng 1 tây".
- * 4. Bấm "Triển khai" (Deploy) → "Tùy chọn triển khai mới" (New deployment) → loại "Ứng dụng web" (Web app):
- *      - Thực thi bằng (Execute as): Tôi (Me)
- *      - Ai có quyền truy cập (Who has access): Bất kỳ ai (Anyone)
- *    → Deploy → duyệt quyền → COPY "URL ứng dụng web" (dạng https://script.google.com/macros/s/.../exec)
- *    → gửi URL đó cho Claude dán vào BC.GS_WEBAPP_URL trong dashboard_v2.html.
- * 5. Trên thanh công cụ editor: chọn hàm "setupTrigger" → bấm Run (1 lần duy nhất)
- *    → bật tự động backup 06:00 sáng ngày 1 hằng tháng.
+ * ============ CẬP NHẬT TỪ BẢN CŨ ============
+ * Đã dán bản cũ rồi? Chỉ cần: xóa hết code cũ → dán TOÀN BỘ file này → Lưu (Ctrl+S)
+ * → Triển khai (Deploy) → "Quản lý các tùy chọn triển khai" (Manage deployments)
+ * → bấm ✎ (Edit) → Phiên bản (Version): "Phiên bản mới" (New version) → Deploy.
+ * URL KHÔNG đổi — dashboard không cần sửa gì.
  *
- * Backup hằng tháng: sáng ngày 1, sheet hiện tại được NHÂN BẢN thành
- * "Báo cáo đại lý ngoài tháng <tháng vừa kết thúc> - <năm>" rồi sheet gốc bị xóa
- * dữ liệu, CHỪA LẠI DÒNG 1 (tiêu đề) để nhận báo cáo tháng mới.
+ * ============ CÀI ĐẶT LẦN ĐẦU ============
+ * 1. Mở Google Sheet trên → Tiện ích mở rộng → Apps Script → dán file này → Lưu.
+ * 2. Cài đặt dự án (Project Settings) → Múi giờ = (GMT+07:00) Ho Chi Minh.
+ * 3. Deploy → New deployment → Web app: Execute as = Me · Who has access = Anyone → copy URL.
+ * 4. Chọn hàm "setupTrigger" → Run 1 lần (bật backup 06:00 sáng ngày 1 hằng tháng).
+ *
+ * ============ ĐỊNH DẠNG GHI VÀO SHEET ============
+ * - Dữ liệu điền THEO TIÊU ĐỀ HÀNG 1 của sheet (đổi thứ tự cột trên sheet vẫn điền đúng).
+ * - KHÔNG có cột Cổng nạp / Khu vực.
+ * - Mỗi đại lý 1 khối riêng, cách nhau 1 dòng trống; cột "Đại lý" gộp ô (merge) cả khối, nền cam nhạt.
+ * - Chữ: Tahoma 9, in đậm, căn giữa, viền đủ. Ô thường nền trắng.
+ * - Ô được tô nghi ngờ trên dashboard: CAM (#F4B084); riêng cột Âm/Dương: ĐỎ NHẠT (#FFC7CE).
  */
 
 var SHEET_GID = 1340440362;      // gid của sheet nhận báo cáo (trên URL)
 var TOKEN     = 'sanji-bc-2026'; // phải trùng BC.GS_TOKEN trong dashboard_v2.html
 
-var HEADERS = ['STT','Đại lý','Tên tài khoản','Cấp bậc','Họ tên đăng kí','Khách','Chỉ tiêu','Cổng',
+var C_HEAD    = '#F8CBAD'; // cam nhạt vừa: hàng tiêu đề + cột Đại lý
+var C_MARK    = '#F4B084'; // ô tô nghi ngờ (mọi cột)
+var C_MARK_AD = '#FFC7CE'; // ô tô nghi ngờ cột Âm/Dương
+var C_DATA    = '#FFFFFF'; // ô dữ liệu thường
+
+// Tiêu đề mặc định (chỉ tự ghi khi hàng 1 đang trống) — 21 cột, KHÔNG có Cổng/Khu vực
+var HEADERS = ['STT','Đại lý','Tên tài khoản','Cấp bậc','Họ tên đăng kí','Khách','Chỉ tiêu',
   'Tổng nạp','Lần nạp','Tổng rút','Lần rút','Âm/Dương','Cược hợp lệ','Ngân hàng','Chi nhánh',
-  'STK','IP','Khu vực','IP đăng ký','IP đăng nhập','Thiết bị','Sảnh'];
+  'STK','IP','Thiết bị','IP đăng ký','IP đăng nhập','Sảnh'];
+
+// Tiêu đề hàng 1 (đã chuẩn hóa chữ thường) → tên field dashboard gửi lên
+var HEADER_FIELD = {
+  'stt':'__stt', 'đại lý':'__agent',
+  'tên tài khoản':'id', 'id':'id',
+  'cấp bậc':'cap_bac',
+  'họ tên đăng kí':'ho_ten', 'họ tên đăng ký':'ho_ten', 'họ tên':'ho_ten',
+  'khách':'khach', 'chỉ tiêu':'chi_tieu',
+  'tổng nạp':'tien_nap', 'tiền nạp':'tien_nap',
+  'lần nạp':'lan_nap',
+  'tổng rút':'tien_rut', 'tiền rút':'tien_rut',
+  'lần rút':'lan_rut',
+  'âm/dương':'am_duong', 'âm dương':'am_duong',
+  'cược hợp lệ':'cuoc_hop_le',
+  'ngân hàng':'ngan_hang', 'chi nhánh':'chi_nhanh', 'stk':'stk', 'ip':'ip',
+  'thiết bị':'thiet_bi',
+  'ip đăng ký':'link_dk', 'link đăng ký':'link_dk', 'link đăng kí':'link_dk',
+  'ip đăng nhập':'link_dn', 'link đăng nhập':'link_dn',
+  'sảnh':'game', 'cược sảnh':'game', 'game':'game'
+};
+
+function norm_(s) { return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
 
 function getSheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -34,36 +64,64 @@ function getSheet_() {
   return shs[0];
 }
 
-// Nếu dòng 1 trống thì tự ghi tiêu đề (nền cam, chữ đậm) — bình thường dòng 1 luôn được giữ lại
+// Hàng 1 trống thì tự ghi tiêu đề mặc định (cam nhạt, Tahoma 9 đậm)
 function ensureHeader_(sh) {
-  var first = sh.getRange(1, 1, 1, HEADERS.length).getValues()[0];
-  if (String(first[0] || '') !== '') return;
+  var first = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), HEADERS.length)).getValues()[0];
+  if (first.some(function (v) { return String(v || '') !== ''; })) return;
   sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS])
-    .setBackground('#F4B084').setFontWeight('bold')
-    .setFontFamily('Arial').setFontSize(10).setHorizontalAlignment('center')
+    .setBackground(C_HEAD).setFontFamily('Tahoma').setFontSize(9).setFontWeight('bold')
+    .setFontColor('#000000').setHorizontalAlignment('center').setVerticalAlignment('middle')
     .setBorder(true, true, true, true, true, true);
 }
 
-// Nhận báo cáo từ dashboard: {token, by, rows[][], colors[][], bolds[][]}
+// Nhận báo cáo từ dashboard: {token, by, blocks:[{agent, rows:[{v:{field:value}, mk:[field]}]}]}
 function doPost(e) {
   try {
     var b = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     if (b.token !== TOKEN) return out_({ ok: false, error: 'Sai token' });
-    var rows = b.rows || [];
-    if (!rows.length) return out_({ ok: false, error: 'Không có dòng dữ liệu' });
+    var blocks = b.blocks || [];
+    if (!blocks.length) return out_({ ok: false, error: 'Không có dữ liệu' });
     var sh = getSheet_();
     ensureHeader_(sh);
-    var start = sh.getLastRow() + 1, nc = rows[0].length;
-    var rg = sh.getRange(start, 1, rows.length, nc);
-    rg.setNumberFormat('@')            // giữ STK/ID dạng chữ, không mất số 0 đầu
-      .setValues(rows)
-      .setFontFamily('Arial').setFontSize(10).setFontColor('#000000')
-      .setHorizontalAlignment('center')
-      .setBorder(true, true, true, true, true, true);
-    if (b.colors && b.colors.length === rows.length) rg.setBackgrounds(b.colors);
-    if (b.bolds && b.bolds.length === rows.length)
-      rg.setFontWeights(b.bolds.map(function (r) { return r.map(function (x) { return x ? 'bold' : 'normal'; }); }));
-    return out_({ ok: true, added: rows.length, by: b.by || '' });
+    var nc = sh.getLastColumn();
+    var hdr = sh.getRange(1, 1, 1, nc).getValues()[0];
+    var fields = hdr.map(function (h) { return HEADER_FIELD[norm_(h)] || null; });
+    var aCol = fields.indexOf('__agent');
+    var total = 0;
+    blocks.forEach(function (bl) {
+      var rows = bl.rows || [];
+      if (!rows.length) return;
+      // chừa 1 dòng trống ngăn cách với khối trước (nếu đã có dữ liệu)
+      var start = sh.getLastRow() + (sh.getLastRow() > 1 ? 2 : 1);
+      var vals = rows.map(function (rw, ri) {
+        return fields.map(function (f) {
+          if (f === '__stt') return '';
+          if (f === '__agent') return ri === 0 ? (bl.agent || '') : '';
+          return (f && rw.v && rw.v[f] != null) ? rw.v[f] : '';
+        });
+      });
+      var cols = rows.map(function (rw) {
+        var mk = {};
+        (rw.mk || []).forEach(function (f) { mk[f] = 1; });
+        return fields.map(function (f) {
+          if (f === '__agent') return C_HEAD;
+          if (f && mk[f]) return f === 'am_duong' ? C_MARK_AD : C_MARK;
+          return C_DATA;
+        });
+      });
+      sh.getRange(start, 1, rows.length, nc)
+        .setNumberFormat('@')          // giữ STK/IP dạng chữ, tiền đã định dạng sẵn kiểu VN
+        .setValues(vals)
+        .setFontFamily('Tahoma').setFontSize(9).setFontWeight('bold').setFontColor('#000000')
+        .setHorizontalAlignment('center').setVerticalAlignment('middle')
+        .setBorder(true, true, true, true, true, true)
+        .setBackgrounds(cols);
+      if (aCol > -1 && rows.length > 1) {
+        try { sh.getRange(start, aCol + 1, rows.length, 1).merge(); } catch (err) {}
+      }
+      total += rows.length;
+    });
+    return out_({ ok: true, added: total, agents: blocks.length, by: b.by || '' });
   } catch (err) {
     return out_({ ok: false, error: String(err) });
   }
@@ -85,7 +143,11 @@ function monthlyRotate() {
   var cp = sh.copyTo(ss).setName(name);
   ss.setActiveSheet(cp); ss.moveActiveSheet(ss.getSheets().length); // đưa bản backup ra cuối
   ss.setActiveSheet(sh);
-  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, sh.getMaxColumns()).clear();
+  if (sh.getLastRow() > 1) {
+    var rg = sh.getRange(2, 1, sh.getLastRow() - 1, sh.getMaxColumns());
+    rg.breakApart(); // gỡ các ô Đại lý đã merge trước khi xóa
+    rg.clear();
+  }
 }
 
 // Chạy tay 1 lần để đăng ký trigger 06:00 sáng ngày 1 hằng tháng (xóa trigger cũ nếu có)
