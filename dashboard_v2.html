@@ -356,6 +356,10 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .bc-bt-trigger:hover{background:rgba(124,58,237,.2)}
 .bc-cu-trigger{padding:7px 14px;background:rgba(124,58,237,.1);color:var(--pu2);border:1px solid rgba(124,58,237,.35);border-radius:5px;cursor:pointer;font-size:11px;font-weight:700;margin-left:8px;letter-spacing:.04em}
 .bc-cu-trigger:hover{background:rgba(124,58,237,.2)}
+/* Tô ô nghi ngờ (bấm vào ô trong bảng chi tiết): cam = thường, đỏ nhạt = Âm/Dương */
+.bc-mkc{cursor:cell}
+td.bc-mk{background:rgba(244,176,132,.45)!important;box-shadow:inset 0 0 0 1px #f4b084;color:#ffd9b8;font-weight:700}
+td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px #ef4444;color:#fecaca;font-weight:700}
 /* bc cuoc bat thuong modal */
 .bc-cu-title{font-size:15px;font-weight:bold;color:var(--pu2);margin-bottom:14px;text-align:center;border-bottom:1px solid var(--border2);padding-bottom:10px;letter-spacing:.04em}
 .bc-cu-chip{padding:6px 12px;border:1px solid var(--border2);border-radius:6px;cursor:pointer;font-size:11px;font-weight:bold;color:var(--mu2);transition:all .15s;user-select:none}
@@ -1474,9 +1478,12 @@ function applyPerms(){
   // Chỉ quyền SỬA tab Dữ Liệu mới được upload Excel
   const upBtn=document.getElementById('btnUploadExcel');
   if(upBtn)upBtn.parentElement.style.display=canEdit('data')?'':'none';
-  // Tab Nghi Ngờ trong BC tool: chỉ ADMIN
+  // Tab Nghi Ngờ trong BC tool: ADMIN + Tổ Trưởng (TT xem/tô ô/gửi Sheet; đánh dấu-bỏ nghi ngờ vẫn chỉ ADMIN)
   const tsus=document.getElementById('bcTabSuspect');
-  if(tsus)tsus.style.display=p.is_admin?'':'none';
+  const isTTup=p.is_admin||roleOf(p).key==='totruong';
+  if(tsus)tsus.style.display=isTTup?'':'none';
+  const sbt=document.getElementById('bcSusSheetBtn');
+  if(sbt)sbt.style.display=isTTup?'':'none';
   // View Đề Xuất Hạn Mức Duyệt: chỉ quyền SỬA tab Hiệu Suất KO mới thấy
   const klb=document.getElementById('koLimitBtn');
   if(klb)klb.style.display=canEdit('ko')?'':'none';
@@ -4195,7 +4202,7 @@ rAll();
 </div>
 
 <div class="bc-panel" id="bc-panel-detail">
-  <div class="ph"><div class="ph-title">Kiểm Tra Theo Đại Lý</div></div>
+  <div class="ph"><div><div class="ph-title">Kiểm Tra Theo Đại Lý</div><div class="ph-sub">Bấm vào Ô trong bảng để tô/bỏ tô điểm nghi ngờ (cam · riêng Âm/Dương đỏ) — file Excel gửi Telegram sẽ tô đúng các ô này · F5 là mất đánh dấu</div></div></div>
   <div class="agent-sel-bar">
     <select id="bc-agent-select" onchange="BC.loadAgent()"><option value="">-- Chọn đại lý --</option></select>
     <button class="bc-bt-trigger" onclick="BC.openBtModal()">Báo cáo đại lý bất thường</button>
@@ -4219,9 +4226,12 @@ rAll();
   <div class="ph" style="justify-content:space-between">
     <div>
       <div class="ph-title" style="color:#f87171">Đại Lý Nghi Ngờ</div>
-      <div class="ph-sub">Tích ô "Nghi ngờ" ở cột Đại Lý (tab Tổng Hợp) để đưa vào đây · thông tin được chụp lại tại thời điểm đánh dấu · lưu trên cloud</div>
+      <div class="ph-sub">Tích ô "Nghi ngờ" ở cột Đại Lý (tab Tổng Hợp) để đưa vào đây · bấm vào Ô trong bảng Chi tiết KH để tô/bỏ tô điểm nghi ngờ (lưu cloud) · lưu trên cloud</div>
     </div>
-    <button onclick="toggleSuspectColsPanel()" style="font-size:11px;padding:6px 14px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:var(--bl2);border-radius:6px;cursor:pointer;font-weight:700;white-space:nowrap">Cột hiển thị</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button id="bcSusSheetBtn" style="display:none;font-size:11px;padding:6px 14px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.45);color:#f87171;border-radius:6px;cursor:pointer;font-weight:700;white-space:nowrap" title="Chỉ Tổ Trưởng trở lên — gửi toàn bộ danh sách nghi ngờ (kèm màu tô) sang Google Sheet" onclick="BC.sendSuspectsToSheet()">Báo Cáo Đại Lý Bất Thường ⇢ Google Sheet</button>
+      <button onclick="toggleSuspectColsPanel()" style="font-size:11px;padding:6px 14px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:var(--bl2);border-radius:6px;cursor:pointer;font-weight:700;white-space:nowrap">Cột hiển thị</button>
+    </div>
   </div>
   <div id="bc-suspect-cols" style="display:none;flex-wrap:wrap;gap:7px;margin-bottom:14px;align-items:center"></div>
   <div id="bc-suspect-list"></div>
@@ -4678,6 +4688,25 @@ const BC={
     BC.pgAgents=1;BC.renderAgents();
   },
 
+  /* ---- Tô ô nghi ngờ trong Kiểm Tra Đại Lý (SESSION-ONLY — F5 là mất) ----
+     MARKS[agent] = Set("rowIdx|field") · bấm ô để tô/bỏ tô · khi gửi báo cáo Telegram,
+     genExcel tô đúng các ô này (cam, riêng Âm/Dương đỏ nhạt) */
+  MARKS:{},
+  mkSet(ag){return BC.MARKS[ag]||(BC.MARKS[ag]=new Set());},
+  mkAttr(ag,i,f,cls){
+    const on=BC.mkSet(ag).has(i+'|'+f);
+    return `class="bc-mkc${cls?' '+cls:''}${on?(f==='am_duong'?' bc-mk-ad':' bc-mk'):''}" onclick="BC.markCell(this,${i},'${f}')"`;
+  },
+  markCell(td,i,f){
+    const ag=document.getElementById('bc-agent-select').value;
+    if(!ag)return;
+    const s=BC.mkSet(ag),k=i+'|'+f;
+    if(s.has(k)){s.delete(k);td.classList.remove('bc-mk','bc-mk-ad');}
+    else{s.add(k);td.classList.add(f==='am_duong'?'bc-mk-ad':'bc-mk');}
+  },
+  // Thứ tự field khớp 23 cột của genExcel/Google Sheet ('' = cột trống Cổng/Khu vực)
+  XLS_FIELDS:['','dai_ly','id','cap_bac','ho_ten','khach','chi_tieu','','tien_nap','lan_nap','tien_rut','lan_rut','am_duong','cuoc_hop_le','ngan_hang','chi_nhanh','stk','ip','','link_dk','link_dn','thiet_bi','game'],
+
   loadAgent(){
     const name=document.getElementById('bc-agent-select').value;
     const ib=document.getElementById('bc-info-bar');
@@ -4692,22 +4721,23 @@ const BC={
       ['Âm/Dương',`<span style="color:${info.am_duong<0?'#16a34a':'#dc2626'};font-weight:bold">${info.am_duong<0?'+'+BC.fmt(Math.abs(info.am_duong)):'-'+BC.fmt(info.am_duong)}</span>`],
       ['Cược HL',BC.fmt(Math.round(info.cuoc_hop_le))]
     ].map(([l,v])=>`<div class="info-item"><div class="lbl">${l}</div><div class="val">${v}</div></div>`).join('');
+    const A=(i,f,cls)=>BC.mkAttr(name,i,f,cls);
     document.getElementById('bc-body-detail').innerHTML=rows.map((r,i)=>{
       const tb=r.thiet_bi==='Điện thoại'?'<span class="b-dt">ĐT</span>':'<span class="b-mt">MT</span>';
       const kh=r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>';
       const ct=r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-chua">Chưa</span>';
-      return`<tr><td class="tc stt">${i+1}</td><td>${hesc(r.id)}</td>
-        <td class="ell" title="${hesc(r.cap_bac)}">${hesc(r.cap_bac)}</td><td>${hesc(r.ho_ten)}</td>
-        <td class="tc">${kh}</td><td class="tc">${ct}</td>
-        <td class="tc">${BC.fmt(r.tien_nap)}</td><td class="tc">${r.lan_nap}</td>
-        <td class="tc">${BC.fmt(r.tien_rut)}</td><td class="tc">${r.lan_rut}</td>
-        <td class="tc">${BC.ad(r.am_duong)}</td><td class="tc">${BC.fmt(r.cuoc_hop_le)}</td>
-        <td>${hesc(r.ngan_hang)}</td><td>${hesc(r.chi_nhanh)}</td><td>${hesc(r.stk)}</td>
-        <td style="font-size:10px">${hesc(r.ip)}</td>
-        <td class="tc">${tb}</td>
-        <td class="ell" title="${hesc(r.link_dk)}" style="font-size:10px">${hesc(r.link_dk)}</td>
-        <td class="ell" title="${hesc(r.link_dn)}" style="font-size:10px">${hesc(r.link_dn)}</td>
-        <td title="${hesc(r.game)}">${hesc(r.game)}</td></tr>`;
+      return`<tr><td class="tc stt">${i+1}</td><td ${A(i,'id')}>${hesc(r.id)}</td>
+        <td ${A(i,'cap_bac','ell')} title="${hesc(r.cap_bac)}">${hesc(r.cap_bac)}</td><td ${A(i,'ho_ten')}>${hesc(r.ho_ten)}</td>
+        <td ${A(i,'khach','tc')}>${kh}</td><td ${A(i,'chi_tieu','tc')}>${ct}</td>
+        <td ${A(i,'tien_nap','tc')}>${BC.fmt(r.tien_nap)}</td><td ${A(i,'lan_nap','tc')}>${r.lan_nap}</td>
+        <td ${A(i,'tien_rut','tc')}>${BC.fmt(r.tien_rut)}</td><td ${A(i,'lan_rut','tc')}>${r.lan_rut}</td>
+        <td ${A(i,'am_duong','tc')}>${BC.ad(r.am_duong)}</td><td ${A(i,'cuoc_hop_le','tc')}>${BC.fmt(r.cuoc_hop_le)}</td>
+        <td ${A(i,'ngan_hang')}>${hesc(r.ngan_hang)}</td><td ${A(i,'chi_nhanh')}>${hesc(r.chi_nhanh)}</td><td ${A(i,'stk')}>${hesc(r.stk)}</td>
+        <td ${A(i,'ip')} style="font-size:10px">${hesc(r.ip)}</td>
+        <td ${A(i,'thiet_bi','tc')}>${tb}</td>
+        <td ${A(i,'link_dk','ell')} title="${hesc(r.link_dk)}" style="font-size:10px">${hesc(r.link_dk)}</td>
+        <td ${A(i,'link_dn','ell')} title="${hesc(r.link_dn)}" style="font-size:10px">${hesc(r.link_dn)}</td>
+        <td ${A(i,'game')} title="${hesc(r.game)}">${hesc(r.game)}</td></tr>`;
     }).join('');
   },
 
@@ -4801,7 +4831,8 @@ const BC={
   renderSuspects(){
     const el=document.getElementById('bc-suspect-list');
     if(!el)return;
-    if(!CUR_PROFILE||!CUR_PROFILE.is_admin){el.innerHTML='<div class="empty">Chỉ ADMIN xem được mục này.</div>';return;}
+    const _rl=CUR_PROFILE?roleOf(CUR_PROFILE):null;
+    if(!CUR_PROFILE||!(CUR_PROFILE.is_admin||(_rl&&_rl.key==='totruong'))){el.innerHTML='<div class="empty">Chỉ ADMIN / Tổ Trưởng xem được mục này.</div>';return;}
     if(!BC.SUSPECTS.length){el.innerHTML='<div class="empty">Chưa có đại lý nào bị đánh dấu nghi ngờ.</div>';return;}
     el.innerHTML=BC.SUSPECTS.map((s,idx)=>{
       const t=new Date(s.at).toLocaleString('vi-VN',{timeZone:'Asia/Bangkok',hour12:false});
@@ -4814,8 +4845,12 @@ const BC={
            <span>KH mới: <b style="color:#3b82f6">${sm.khach_moi??'-'}</b></span>`
         :'<span style="color:var(--mu)">(không có số liệu tổng — đánh dấu lúc chưa tính toán)</span>';
       const visCols=SUSPECT_COLS.filter(c=>SUSPECT_VIS.has(c.k));
+      const cm=new Set(s.cellMarks||[]);
       const memRows=(s.members||[]).map((r,i)=>`<tr><td class="tc stt">${i+1}</td>`+
-        visCols.map(c=>`<td${c.cls?' class="'+c.cls+'"':''}${c.style?' style="'+c.style+'"':''}>${c.cell(r)}</td>`).join('')+
+        visCols.map(c=>{
+          const on=cm.has(i+'|'+c.k);
+          return `<td class="bc-mkc${c.cls?' '+c.cls:''}${on?(c.k==='am_duong'?' bc-mk-ad':' bc-mk'):''}"${c.style?' style="'+c.style+'"':''} onclick="BC.suspectMark(${idx},${i},'${c.k}',this)">${c.cell(r)}</td>`;
+        }).join('')+
       `</tr>`).join('');
       const memHead='<th>STT</th>'+visCols.map(c=>`<th>${c.label}</th>`).join('');
       const memColspan=visCols.length+1;
@@ -4838,6 +4873,62 @@ const BC={
   suspectToggleDetail(idx){
     const el=document.getElementById('bc-suspect-detail-'+idx);
     if(el)el.style.display=el.style.display==='none'?'block':'none';
+  },
+
+  /* Tô ô nghi ngờ trong thẻ Nghi Ngờ — LƯU CLOUD (s.cellMarks = ["rowIdx|field",...]) */
+  async suspectMark(idx,i,f,td){
+    const s=BC.SUSPECTS[idx];
+    if(!s)return;
+    if(CUR_PROFILE&&!canEdit('bc')){alert('Bạn chỉ có quyền XEM, không tô được điểm nghi ngờ.');return;}
+    const cm=new Set(s.cellMarks||[]),k=i+'|'+f;
+    if(cm.has(k)){cm.delete(k);td.classList.remove('bc-mk','bc-mk-ad');}
+    else{cm.add(k);td.classList.add(f==='am_duong'?'bc-mk-ad':'bc-mk');}
+    s.cellMarks=[...cm];
+    try{await SB.saveReport('suspects','all',{list:BC.SUSPECTS});}
+    catch(e){console.error('suspectMark',e);alert('Lỗi lưu tô nghi ngờ: '+(e.message||e));}
+  },
+
+  /* ---- Gửi danh sách Nghi Ngờ sang Google Sheet (Apps Script Web App — file google_sheet_baocao.gs)
+     Chỉ Tổ Trưởng trở lên. Giữ nguyên form 23 cột như file Excel Telegram:
+     nền vàng, cột Đại lý cam, ô tô = cam đậm, riêng Âm/Dương tô = đỏ nhạt ---- */
+  GS_WEBAPP_URL:'', // dán URL Web App vào đây sau khi user deploy google_sheet_baocao.gs
+  GS_TOKEN:'sanji-bc-2026',
+  async sendSuspectsToSheet(){
+    const rl=CUR_PROFILE?roleOf(CUR_PROFILE):null;
+    if(!CUR_PROFILE||!(CUR_PROFILE.is_admin||(rl&&rl.key==='totruong'))){alert('Chức năng này chỉ dành cho Tổ Trưởng trở lên.');return;}
+    if(!BC.GS_WEBAPP_URL){alert('Chưa cấu hình Google Sheet.\n\nCần deploy file google_sheet_baocao.gs (Apps Script) rồi dán URL Web App vào BC.GS_WEBAPP_URL trong dashboard_v2.html.');return;}
+    if(!BC.SUSPECTS.length){alert('Chưa có đại lý nghi ngờ nào để gửi.');return;}
+    if(!confirm('Gửi '+BC.SUSPECTS.length+' đại lý nghi ngờ (kèm màu tô) sang Google Sheet "Báo cáo đại lý ngoài"?'))return;
+    const rows=[],colors=[],bolds=[];
+    BC.SUSPECTS.forEach(s=>{
+      const cm=new Set(s.cellMarks||[]);
+      (s.members||[]).forEach((r,i)=>{
+        const vals=[i+1,s.dai_ly,r.id,r.cap_bac,r.ho_ten,r.khach,r.chi_tieu,'',r.tien_nap,r.lan_nap,r.tien_rut,r.lan_rut,r.am_duong,r.cuoc_hop_le,r.ngan_hang,r.chi_nhanh,String(r.stk??''),r.ip,'',r.link_dk,r.link_dn,r.thiet_bi,r.game];
+        rows.push(vals.map(v=>v==null?'':v));
+        colors.push(vals.map((v,ci)=>{
+          const f=BC.XLS_FIELDS[ci];
+          if(f&&cm.has(i+'|'+f))return f==='am_duong'?'#FFC7CE':'#F4B084';
+          return ci===1?'#F4B084':'#FFF2CC';
+        }));
+        bolds.push(vals.map((v,ci)=>{const f=BC.XLS_FIELDS[ci];return !!(f&&cm.has(i+'|'+f));}));
+      });
+    });
+    const btn=document.getElementById('bcSusSheetBtn');
+    const old=btn?btn.textContent:'';
+    if(btn){btn.disabled=true;btn.textContent='Đang gửi Google Sheet...';}
+    try{
+      // Content-Type text/plain: tránh CORS preflight (Apps Script không trả lời OPTIONS)
+      const res=await fetch(BC.GS_WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body:JSON.stringify({token:BC.GS_TOKEN,by:(CUR_PROFILE.username||'').toUpperCase(),rows,colors,bolds})});
+      const j=await res.json().catch(()=>null);
+      if(j&&j.ok){
+        alert('Đã dán '+rows.length+' dòng ('+BC.SUSPECTS.length+' đại lý) vào Google Sheet ✓');
+        logAction('Gửi nghi ngờ → Google Sheet',BC.SUSPECTS.length+' đại lý · '+rows.length+' dòng');
+      }else{
+        alert('Gửi không thành công'+(j&&j.error?':\n'+j.error:' — kiểm tra lại deploy Apps Script (Web app · Anyone).'));
+      }
+    }catch(e){alert('Lỗi kết nối Google Sheet: '+e.message);}
+    if(btn){btn.disabled=false;btn.textContent=old;}
   },
 
   showOverlay(msg){document.getElementById('bc-overlay').classList.add('show');BC.overlayMsg(msg);},
@@ -4913,7 +5004,7 @@ const BC={
     btn.disabled=true;
     status.style.color='#888';status.textContent='Đang tạo file Excel...';
     try{
-      const blob=BC.genExcel(rows,agentName);
+      const blob=BC.genExcel(rows,agentName,BC.mkSet(agentName));
       const d=new Date();
       const dd=d.getDate().toString().padStart(2,'0'),mm=(d.getMonth()+1).toString().padStart(2,'0');
       const file=new File([blob],`BaoCao_${agentName}_${BC._selFk}_${dd}${mm}.xls`,{type:'application/vnd.ms-excel'});
@@ -4932,7 +5023,7 @@ const BC={
     }
   },
 
-  genExcel(rows,agentName){
+  genExcel(rows,agentName,marks){
     /* SpreadsheetML XML — explicit ss:Type per cell → STK stays text, colors via ss:Interior */
     const HDRS=['STT','Đại lý','Tên tài khoản','Cấp bậc','Họ tên đăng kí','Khách','Chỉ tiêu','Cổng','Tổng nạp','Lần nạp','Tổng rút','Lần rút','Âm/Dương','Cược hợp lệ','Ngân hàng','Chi nhánh','STK','IP','Khu vực','IP đăng ký','IP đăng nhập','Thiết bị','Sảnh'];
     const CW=[28,60,80,95,125,40,50,45,70,50,70,50,70,72,75,75,100,82,60,120,120,60,120];
@@ -4948,13 +5039,20 @@ const BC={
 <Style ss:ID="h"><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/><Borders>${B}</Borders><Font ss:Bold="1" ss:Name="Arial" ss:Size="10"/><Interior ss:Color="#F4B084" ss:Pattern="Solid"/></Style>
 <Style ss:ID="d"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Borders>${B}</Borders><Font ss:Name="Arial" ss:Size="10"/><Interior ss:Color="#FFF2CC" ss:Pattern="Solid"/></Style>
 <Style ss:ID="a"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Borders>${B}</Borders><Font ss:Name="Arial" ss:Size="10"/><Interior ss:Color="#F4B084" ss:Pattern="Solid"/></Style>
+<Style ss:ID="m"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Borders>${B}</Borders><Font ss:Name="Arial" ss:Size="10" ss:Bold="1"/><Interior ss:Color="#F4B084" ss:Pattern="Solid"/></Style>
+<Style ss:ID="r"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Borders>${B}</Borders><Font ss:Name="Arial" ss:Size="10" ss:Bold="1" ss:Color="#9C0006"/><Interior ss:Color="#FFC7CE" ss:Pattern="Solid"/></Style>
 </Styles>
 <Worksheet ss:Name="Báo cáo"><Table>
 ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
 <Row ss:AutoFitHeight="1">${HDRS.map(h=>c(h,'h')).join('')}</Row>`;
     rows.forEach((r,i)=>{
       const vals=[i+1,r.dai_ly,r.id,r.cap_bac,r.ho_ten,r.khach,r.chi_tieu,'',r.tien_nap,r.lan_nap,r.tien_rut,r.lan_rut,r.am_duong,r.cuoc_hop_le,r.ngan_hang,r.chi_nhanh,r.stk,r.ip,'',r.link_dk,r.link_dn,r.thiet_bi,r.game];
-      x+=`<Row>${vals.map((v,ci)=>c(v,ci===1?'a':'d',ci===16)).join('')}</Row>`;
+      x+=`<Row>${vals.map((v,ci)=>{
+        const f=BC.XLS_FIELDS[ci];
+        let sty=ci===1?'a':'d';
+        if(marks&&f&&marks.has(i+'|'+f))sty=f==='am_duong'?'r':'m';
+        return c(v,sty,ci===16);
+      }).join('')}</Row>`;
     });
     x+=`</Table></Worksheet></Workbook>`;
     return new Blob(['﻿'+x],{type:'application/vnd.ms-excel;charset=utf-8'});
