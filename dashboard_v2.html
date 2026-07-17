@@ -4891,7 +4891,7 @@ const BC={
   /* ---- Gửi danh sách Nghi Ngờ sang Google Sheet (Apps Script Web App — file google_sheet_baocao.gs)
      Chỉ Tổ Trưởng trở lên. Giữ nguyên form 23 cột như file Excel Telegram:
      nền vàng, cột Đại lý cam, ô tô = cam đậm, riêng Âm/Dương tô = đỏ nhạt ---- */
-  GS_WEBAPP_URL:'', // dán URL Web App vào đây sau khi user deploy google_sheet_baocao.gs
+  GS_WEBAPP_URL:'https://script.google.com/macros/s/AKfycbyH_ZdOK0YE8QUzBjWeg_NgnbuY6kOMtuUJZD8yGbpQaCCDKxaPT4lr9712tmKx9jZGFQ/exec',
   GS_TOKEN:'sanji-bc-2026',
   async sendSuspectsToSheet(){
     const rl=CUR_PROFILE?roleOf(CUR_PROFILE):null;
