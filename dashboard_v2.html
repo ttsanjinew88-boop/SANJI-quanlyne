@@ -455,7 +455,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .dr-lv{max-height:240px;overflow-y:auto;border-top:1px solid rgba(30,37,69,.5)}
 .dr-lvr{display:flex;align-items:center;gap:10px;padding:6px 14px;font-size:.66rem;border-bottom:1px solid rgba(30,37,69,.5)}
 .dr-lvr:last-child{border-bottom:none}
-.dr-modal{position:fixed;inset:0;background:rgba(8,12,20,.74);display:none;align-items:flex-start;justify-content:center;z-index:60;padding:8vh 16px}
+.dr-modal{position:fixed;inset:0;background:rgba(8,12,20,.74);display:none;align-items:center;justify-content:center;z-index:60;padding:5vh 16px}
 .dr-modal.show{display:flex}
 .dr-modal .box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;max-width:440px;width:100%;box-shadow:0 18px 50px rgba(0,0,0,.5)}
 .dr-modal textarea{width:100%;background:var(--bg);border:1px solid var(--border2);color:var(--tx);border-radius:8px;padding:10px 12px;font-family:monospace;font-size:.74rem;line-height:1.7;resize:vertical;outline:none}
@@ -689,6 +689,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 
       <div id="donrutBody" style="display:none">
         <div class="stats-row" id="donrutCards" style="margin-bottom:14px"></div>
+        <div id="donrutOverLimit" style="margin-bottom:16px"></div>
         <div class="chart-card" style="margin-bottom:16px">
           <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
             <span style="color:var(--pu2)">Mốc tiền toàn hệ thống <span style="color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">(số tiền xuất khoản — cột P)</span></span>
@@ -743,7 +744,6 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     <div class="vt-btn" onclick="skv('daily',this)">Duyệt Đơn</div>
     <div class="vt-btn" onclick="skv('anomaly',this)">Bất Thường</div>
     <div class="vt-btn" id="koLimitBtn" onclick="skv('limit',this)">Đề Xuất Hạn Mức Duyệt</div>
-    <div class="vt-btn" id="koOverBtn" onclick="skv('overlimit',this)">Vượt Hạn Mức</div>
   </div>
 
   <!-- VIEW: TỔNG QUAN -->
@@ -854,12 +854,6 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
     </div>
     <div class="sec-hdr pu">Bảng đề xuất hạn mức duyệt <span style="font-size:.58rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— % so với người cao nhất trong nhóm · Tổng đánh giá = trung bình 3 tiêu chí (Đơn + KM + Bất thường)</span></div>
     <div class="mtbl-wrap"><table class="mtbl" id="limTbl"></table></div>
-  </div>
-
-  <!-- VIEW: VƯỢT HẠN MỨC -->
-  <div class="ko-view" id="ko-overlimit" style="display:none">
-    <div class="sec-hdr" style="color:var(--re)">Đơn Vượt Hạn Mức Duyệt <span style="font-size:.56rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— đơn rút có số tiền LỚN HƠN hạn mức của FK (đặt ở "Đề Xuất Hạn Mức Duyệt"), liệt kê theo từng ngày</span></div>
-    <div id="overlimitBody"></div>
   </div>
 </div>
 
@@ -2814,11 +2808,14 @@ const DR={
     const std=DR.labels(),hiLabel=std[std.length-1];
     const hiCount=(d.gbr[hiLabel]||{total:0}).total+(d.gbr['> mốc cao nhất']||{total:0}).total;
     const activeFks=FK_KEYS.filter(fk=>d.fks[fk].total>0).length;
+    const over=DR.overLimitOrders();
     document.getElementById('donrutCards').innerHTML=
       `<div class='stat-card pu'><div class='stat-lbl'>Đơn rút FK duyệt</div><div class='stat-val pu'>${nn(totalT)}</div><div class='stat-sub'>tổng ${nn(d.totalRows)} dòng · ${nn(d.totalNoted)} có note FK</div></div>`+
       `<div class='stat-card cy'><div class='stat-lbl'>Đơn rút lần đầu</div><div class='stat-val' style='color:var(--cy)'>${nn(totalF)}</div><div class='stat-sub'>${totalT?Math.round(totalF/totalT*100):0}% tổng đơn FK</div></div>`+
       `<div class='stat-card go'><div class='stat-lbl'>${hesc(hiLabel)}</div><div class='stat-val go'>${nn(hiCount)}</div><div class='stat-sub'>mốc cao nhất</div></div>`+
-      `<div class='stat-card bl'><div class='stat-lbl'>FK có duyệt</div><div class='stat-val bl'>${activeFks}/${FK_KEYS.length}</div><div class='stat-sub'>FK có đơn / tổng FK</div></div>`;
+      `<div class='stat-card bl'><div class='stat-lbl'>FK có duyệt</div><div class='stat-val bl'>${activeFks}/${FK_KEYS.length}</div><div class='stat-sub'>FK có đơn / tổng FK</div></div>`+
+      `<div class='stat-card' style='border-color:${over.length?'rgba(239,68,68,.4)':'var(--border)'}'><div class='stat-lbl'>Vượt hạn mức duyệt</div><div class='stat-val' style='color:${over.length?'#f87171':'var(--gr)'}'>${nn(over.length)}</div><div class='stat-sub'>${over.length?'xem cảnh báo bên dưới ▾':'không có đơn vượt'}</div></div>`;
+    DR.renderOverLimit(over);
     document.getElementById('donrutGlobal').innerHTML=DR.brRows(d.gbr,'');
     // Theo từng FK
     const q=(document.getElementById('donrutSearch').value||'').trim().toLowerCase();
@@ -2837,6 +2834,47 @@ const DR={
         </div>
       </div>`;
     }).join('')||'<div style="color:var(--mu);font-size:.7rem;padding:10px">Không có FK khớp tìm kiếm.</div>';
+  },
+  // Đơn vượt hạn mức duyệt: amount > hạn mức của FK (LIMITS ở tab Hiệu Suất KO)
+  overLimitOrders(){
+    if(!DR.data)return[];
+    const out=[];
+    for(const fk of FK_KEYS){const lim=fkLimitNum(fk);if(lim<=0)continue;for(const o of DR.data.fks[fk].orders)if(o.a!=null&&o.a>lim)out.push({...o,lim});}
+    out.sort((a,b)=>(b.a||0)-(a.a||0));
+    return out;
+  },
+  renderOverLimit(over){
+    over=over||DR.overLimitOrders();
+    const el=document.getElementById('donrutOverLimit');if(!el)return;
+    if(!over.length){el.innerHTML='';return;}
+    const gc='24px 1.4fr 1fr 90px 90px 52px 40px';
+    // Nhóm theo FK
+    const byFk={};over.forEach(o=>{(byFk[o.fk]=byFk[o.fk]||[]).push(o);});
+    const blocks=Object.keys(byFk).sort((a,b)=>byFk[b].length-byFk[a].length).map(fk=>{
+      const list=byFk[fk],lim=fkLimitNum(fk);
+      const rows=list.map((o,i)=>`<div style="display:grid;grid-template-columns:${gc};gap:7px;padding:4px 12px;font-size:.64rem;border-top:1px solid rgba(239,68,68,.18)">
+        <span style="color:var(--mu);font-family:monospace">${i+1}</span>
+        <span style="font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${hesc(o.m)}">${hesc(o.m)}${o.f?'<span style="color:var(--cy);font-size:.9em"> · lần đầu</span>':''}</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mu2)" title="${hesc(o.lv)}">${hesc(o.lv)}</span>
+        <span style="font-family:monospace;color:#f87171;text-align:right;font-weight:800">${(o.a||0).toLocaleString('vi')}</span>
+        <span style="font-family:monospace;color:var(--mu);text-align:right">HM ${(o.lim||0).toLocaleString('vi')}</span>
+        <span style="font-family:monospace;color:var(--pu2);text-align:right">${o.t7||''}</span>
+        <span style="font-family:monospace;color:var(--mu2);text-align:right">${o.day7||''}</span>
+      </div>`).join('');
+      return `<div style="margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:2px 4px 4px">
+          <b style="font-family:monospace;font-size:.9rem;letter-spacing:1px;color:${fkGrpCol(fk)}">${FK_NAMES[fk]||fk}</b>
+          <span style="font-size:.62rem;color:var(--mu2)">Hạn mức: <b style="color:var(--go)">${lim.toLocaleString('vi')}</b></span>
+          <span style="margin-left:auto;background:rgba(239,68,68,.15);color:#f87171;border-radius:10px;padding:2px 11px;font-size:.62rem;font-weight:800">${list.length} đơn vượt</span>
+        </div>
+        <div style="display:grid;grid-template-columns:${gc};gap:7px;padding:4px 12px;font-size:.52rem;color:var(--mu);text-transform:uppercase;letter-spacing:.03em;background:var(--card2);border-radius:6px 6px 0 0"><span>#</span><span>Hội viên (ID)</span><span>Cấp độ</span><span style="text-align:right">Số tiền duyệt</span><span style="text-align:right">Hạn mức</span><span style="text-align:right">GMT+7</span><span style="text-align:right">Ngày</span></div>
+        ${rows}
+      </div>`;
+    }).join('');
+    el.innerHTML=`<div class="chart-card" style="border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.04)">
+      <div class="chart-title" style="color:#f87171;display:flex;align-items:center;gap:8px">⚠ Cảnh báo vượt hạn mức duyệt <span style="color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— đơn có số tiền LỚN HƠN hạn mức của FK (đặt ở Hiệu Suất KO → Đề Xuất Hạn Mức Duyệt): hội viên + số tiền + FK duyệt</span></div>
+      ${blocks}
+    </div>`;
   },
   fkModalHTML(fk){
     const f=DR.data&&DR.data.fks[fk];if(!f)return '';
@@ -3405,50 +3443,9 @@ function rKO(){
   if(koView==="overview")rKoOverview();
   else if(koView==="daily")rKoDaily();
   else if(koView==="limit")rKoLimit();
-  else if(koView==="overlimit")rKoOverLimit();
   else rKoAnomaly();
 }
-// ===== VƯỢT HẠN MỨC: đơn rút > hạn mức của FK, liệt kê theo ngày =====
-function rKoOverLimit(){
-  const el=document.getElementById('overlimitBody');if(!el)return;
-  // Nguồn: Báo Cáo Đơn Rút (session-only) — nạp file ở tab Dữ Liệu → Duyệt Đơn → Báo Cáo Đơn Rút
-  const orders=DR.data?[].concat(...FK_KEYS.map(fk=>DR.data.fks[fk].orders)):[];
-  if(!orders.length){el.innerHTML='<div style="color:var(--mu);font-size:.72rem;padding:14px">Chưa có dữ liệu đơn rút — vào tab <b style="color:var(--pu2)">Dữ Liệu → Duyệt Đơn → Báo Cáo Đơn Rút</b> và thả file Excel (dữ liệu dùng 1 lần, F5 là mất).</div>';return;}
-  // Lọc đơn vượt hạn mức của chính FK đó (hạn mức > 0)
-  const over=orders.filter(o=>{const lim=fkLimitNum(o.fk);return lim>0&&o.a>lim;});
-  if(!over.length){el.innerHTML='<div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:14px;color:#10b981;font-size:.72rem;font-weight:600">Không có đơn nào vượt hạn mức. <span style="color:var(--mu);font-weight:400">(Cần đặt hạn mức cho FK ở view "Đề Xuất Hạn Mức Duyệt".)</span></div>';return;}
-  // Nhóm theo FK -> theo ngày
-  const byFk={};over.forEach(o=>{(byFk[o.fk]=byFk[o.fk]||[]).push(o);});
-  let html='';
-  Object.keys(byFk).sort((a,b)=>byFk[b].length-byFk[a].length).forEach(fk=>{
-    const list=byFk[fk],lim=fkLimitNum(fk);
-    const byDay={};list.forEach(o=>{(byDay[o.day7]=byDay[o.day7]||[]).push(o);});
-    const days=Object.keys(byDay).map(Number).sort((a,b)=>a-b);
-    html+=`<div class="chart-card" style="margin-bottom:14px;border:1px solid rgba(239,68,68,.3)">
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
-        <b style="font-family:monospace;font-size:1rem;letter-spacing:1px;color:${fkGrpCol(fk)}">${FK_NAMES[fk]||fk}</b>
-        <span style="font-size:.66rem;color:var(--mu2)">Hạn mức: <b style="color:var(--go)">${lim.toLocaleString('vi')}</b></span>
-        <span style="margin-left:auto;background:rgba(239,68,68,.15);color:#f87171;border-radius:10px;padding:2px 11px;font-size:.66rem;font-weight:800">${list.length} đơn vượt</span>
-      </div>`;
-    days.forEach(d=>{
-      const ords=byDay[d].sort((a,b)=>b.a-a.a);
-      html+=`<div style="margin-bottom:8px">
-        <div style="font-size:.62rem;color:var(--pu2);font-weight:700;margin-bottom:3px">Ngày ${d} <span style="color:var(--mu);font-weight:400">· ${ords.length} đơn</span></div>
-        <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
-          <div style="display:grid;grid-template-columns:26px 1fr 90px 62px 60px;gap:8px;padding:4px 12px;font-size:.55rem;color:var(--mu);text-transform:uppercase;background:var(--card2)"><span>#</span><span>Hội viên</span><span style="text-align:right">Số tiền</span><span style="text-align:right">Giờ GMT+7</span><span style="text-align:right">Xử lý</span></div>`+
-          ords.map((o,i)=>`<div style="display:grid;grid-template-columns:26px 1fr 90px 62px 60px;gap:8px;padding:4px 12px;font-size:.64rem;border-top:1px solid rgba(30,37,69,.5)">
-            <span style="color:var(--mu);font-family:monospace">${i+1}</span>
-            <span style="font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${hesc(o.m)}">${hesc(o.m)}${o.f?'<span style="color:var(--cy)"> · lần đầu</span>':''}</span>
-            <span style="font-family:monospace;color:#f87171;text-align:right;font-weight:800">${(o.a||0).toLocaleString('vi')}</span>
-            <span style="font-family:monospace;color:var(--pu2);text-align:right">${o.t7||''}</span>
-            <span style="font-family:monospace;color:var(--mu2);text-align:right">${fmtDurSec(o.d)}</span>
-          </div>`).join('')+
-        `</div></div>`;
-    });
-    html+=`</div>`;
-  });
-  el.innerHTML=html;
-}
+// (Cảnh báo "Vượt Hạn Mức" đã chuyển sang tab Dữ Liệu → Báo Cáo Đơn Rút — xem DR.renderOverLimit)
 
 // ===== VIEW: ĐỀ XUẤT HẠN MỨC DUYỆT (lưu cloud theo tháng) =====
 let LIMITS={}; // {fk:{limit:'20.000.000đ', pcq:'Duyệt'}}

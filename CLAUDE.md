@@ -87,7 +87,7 @@ Lịch sử tháng: `toggleHistMenu` 1995, `loadHistMonth` 2025.
 `rKO` 3196 điều hướng view (`koView`, `skv` 2641). Các view:
 - Tổng quan: `rKoOverview` 3095, bảng thưởng/phạt `buildOvTable` 3018, `calcBonusPenalty` 2995, `ovFootHtml` 3074.
 - Hạn mức: `LIMITS` 3245, `rKoLimit` 3246, `limSet` 3302, `_saveLimits` 3312.
-- **Vượt hạn mức**: `rKoOverLimit` (grep) — đọc đơn từ module session-only `DR.data.fks[*].orders` (KHÔNG còn `D.donrut`), so amount với `fkLimitNum(fk)`. Cần nạp file ở tab Dữ Liệu → Báo Cáo Đơn Rút trước.
+- ~~Vượt hạn mức~~: **ĐÃ XOÁ view/tab riêng**. Cảnh báo vượt hạn mức giờ nằm TRONG Báo Cáo Đơn Rút: `DR.overLimitOrders` (amount > `fkLimitNum(fk)`) + `DR.renderOverLimit` (panel đỏ `#donrutOverLimit` + thẻ tổng thứ 5). Dùng `LIMITS` nạp sẵn ở boot.
 - Bất thường: `KO_AN` 2081, `rKoAnomaly` 3169, `anSet/anGet/anTotal` 2100–2112, lưới `buildAnGridAbuse` 3115 / `buildAnGridMkt` 3140.
 - KO_OV (cộng/trừ/ghi chú): `KO_OV` 2058, `ovGet` 2071, `ovSet` 2072, `_saveKoOvCloud` 2064.
 
