@@ -20,17 +20,19 @@
  * - Mỗi đại lý 1 khối riêng, cách nhau 1 dòng trống; cột "Đại lý" gộp ô (merge) cả khối, nền cam nhạt.
  * - Chữ: Tahoma 9, in đậm, căn giữa. Ô thường nền VÀNG NHẠT (#FFF2CC), ô không có dữ liệu điền "-".
  * - Viền: trong mảnh, viền NGOÀI mỗi khối đậm (medium) — giống báo cáo thủ công.
- * - Ô được tô nghi ngờ trên dashboard: CAM (#F4B084); riêng cột Âm/Dương: ĐỎ NHẠT (#FFC7CE).
+ * - Ô được tô nghi ngờ trên dashboard: VÀNG ĐẬM (#FFE599); riêng cột Âm/Dương: ĐỎ NHẠT (#FFC7CE).
+ * - Ô tên Đại lý: CAM (#F4B084).
  * - Cấp bậc chứa "ĐỔI ĐẦU" (DD-): TỰ ĐỘNG tô đỏ nhạt (#FFC7CE) không cần tô tay.
  */
 
 var SHEET_GID = 1340440362;      // gid của sheet nhận báo cáo (trên URL)
 var TOKEN     = 'sanji-bc-2026'; // phải trùng BC.GS_TOKEN trong dashboard_v2.html
 
-var C_HEAD    = '#F8CBAD'; // cam nhạt vừa: hàng tiêu đề + cột Đại lý
-var C_MARK    = '#F4B084'; // ô tô nghi ngờ (mọi cột)
-var C_MARK_AD = '#FFC7CE'; // ô tô nghi ngờ cột Âm/Dương + Cấp bậc ĐỐI ĐẦU (tự động)
-var C_DATA    = '#FFF2CC'; // ô dữ liệu thường: vàng nhạt (giống báo cáo thủ công / file Excel Telegram)
+var C_HEAD    = '#F8CBAD'; // cam nhạt: hàng tiêu đề
+var C_AGENT   = '#F4B084'; // cam đậm: ô tên Đại lý (merge cả khối)
+var C_MARK    = '#FFE599'; // vàng đậm: ô tô nghi ngờ (điểm nhấn bất thường, mọi cột)
+var C_MARK_AD = '#FFC7CE'; // đỏ nhạt: ô tô cột Âm/Dương + Cấp bậc ĐỐI ĐẦU (tự động)
+var C_DATA    = '#FFF2CC'; // vàng nhạt: ô dữ liệu thường (giống báo cáo thủ công)
 
 // Tiêu đề mặc định (chỉ tự ghi khi hàng 1 đang trống) — 21 cột, KHÔNG có Cổng/Khu vực
 var HEADERS = ['STT','Đại lý','Tên tài khoản','Cấp bậc','Họ tên đăng kí','Khách','Chỉ tiêu',
@@ -114,7 +116,7 @@ function doPost(e) {
         var mk = {};
         (rw.mk || []).forEach(function (f) { mk[f] = 1; });
         return fields.map(function (f) {
-          if (f === '__agent') return C_HEAD;
+          if (f === '__agent') return C_AGENT;
           // Cấp bậc ĐỐI ĐẦU (DD-): tự động đỏ nhạt, không cần tô tay
           if (f === 'cap_bac' && isDoiDau_(rw.v && rw.v.cap_bac)) return C_MARK_AD;
           if (f && mk[f]) return f === 'am_duong' ? C_MARK_AD : C_MARK;
