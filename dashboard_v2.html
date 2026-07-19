@@ -2484,7 +2484,7 @@ function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
       hbdDay=day; // DON: view Theo Ngày dùng ngày GMT-4 (đồng nhất day_scores)
     }
     nd._hbd7[hbdDay-1][h7]+=sc; nd.cbd7[hbdDay-1][h7]++;
-    nd.fk_data[fk]._hbd7[hbdDay-1][h7]+=sc;
+    nd.fk_data[fk]._hbd7[hbdDay-1][h7]+=sc; nd.fk_data[fk]._cbd7[hbdDay-1][h7]++;
     nd.fk_data[fk]._dayRaw[day-1]+=sc; nd.fk_data[fk].day_counts[day-1]++;
     nd.fk_data[fk]._hr7Raw[h7]+=sc; nd.fk_data[fk].hour_counts_gmt7[h7]++;
     nd.fk_data[fk]._hr4Raw[h4]+=sc; nd.fk_data[fk].total_count++;
