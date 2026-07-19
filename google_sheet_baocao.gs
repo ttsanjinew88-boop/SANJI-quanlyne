@@ -109,7 +109,8 @@ function doPost(e) {
           if (f === '__agent') return ri === 0 ? (bl.agent || '') : '';
           if (!f) return '';
           var v = (rw.v && rw.v[f] != null) ? rw.v[f] : '';
-          return String(v).trim() === '' ? '-' : v; // ô không có dữ liệu điền "-" như bản thủ công
+          if (String(v).trim() !== '') return v;
+          return f === 'ngan_hang' ? 'USDT' : '-'; // Ngân hàng trống = USDT; ô trống khác điền "-"
         });
       });
       var cols = rows.map(function (rw) {
