@@ -2294,18 +2294,28 @@ function setProg(pct,rows,step){
 function hideProg(){document.getElementById("progOverlay").classList.remove("show");}
 
 // ===== SCORE FUNCTION (same business rule as original) =====
+// Chỉ 3 trạng thái được nhận vào hệ thống: Đã rút tiền / Đã trả lại (trả về) / Đã từ chối.
+// Trả về 'rut' | 'tra' | 'tuchoi' | null (null = dòng bị bỏ, không điểm không đếm đơn).
+function donStatusKind(s){
+  const st=String(s||"").trim().toLowerCase();
+  if(st==="đã rút tiền")return"rut";
+  if(st==="đã trả lại"||st==="đã trả về")return"tra";
+  if(st==="đã từ chối"||st==="từ chối")return"tuchoi";
+  return null;
+}
 function gsc(b,a,s){
   const bs=String(b||"").trim();
   const ip=bs==="phải";
   const lt=!bs;
   let v=0;
-  const st=String(s||"").trim();
-  if(st==="Đã rút tiền"){
+  const kind=donStatusKind(s);
+  if(kind==="rut"){
     if(ip){if(a>=50&&a<=500)v+=2;else if(a>=501&&a<=4999)v+=3;else if(a>=5000&&a<=49999)v+=4;else if(a>=50000&&a<=500000)v+=5;}
     else if(lt){if(a<100000)v+=1;else v+=1.5;}
-  }else if(st==="Đã trả lại"){
+  }else if(kind==="tra"){
     v+=1;
   }
+  // 'tuchoi': 0 điểm nhưng vẫn đếm đơn (lọc dòng lạ nằm ở processChunks)
   return v;
 }
 function mfk(note){const n=note.toLowerCase();for(const fk of FK_KEYS)if(n.includes(FK_SEARCH[fk]))return fk;return null;}
@@ -2455,6 +2465,8 @@ function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
     }else{
       // DON: cột T (idx 19) = ngày giờ, cột U (idx 20) = ghi chú FK, cột F (idx 5) = Cấp độ thành viên
       const note=String(row[20]||""),status=String(row[17]||"").trim(),colB=row[1];
+      // Chỉ nhận 3 trạng thái: Đã rút tiền / Đã trả lại / Đã từ chối — dòng khác bỏ hẳn
+      if(!donStatusKind(status))continue;
       const amt=typeof row[15]==="number"?row[15]:(parseFloat(String(row[15]||"").replace(/[^0-9.\-]/g,""))||0);
       // Quy định: đơn của tài khoản CÓ TÍCH XANH (✅ ở cột F) với số tiền < 7000 -> bỏ hẳn, không điểm không đếm đơn
       const capdo=String(row[5]||"");
@@ -2571,6 +2583,22 @@ function dsSubtractDay(ds,day){
   });
   for(let h=0;h<24;h++){ds.hbd7[di][h]=0;ds.cbd7[di][h]=0;}
 }
+// DON (roundV2): suy MỌI số hiển thị từ ô thô hbd7/cbd7 — làm tròn LÊN riêng từng NGÀY,
+// tổng tháng = CỘNG các ngày đã làm tròn. Nhờ vậy upload cả tháng 1 lần hay cộng dồn từng ngày đều ra cùng kết quả.
+function dsRecalcScores(ds){
+  const rot=h4=>(h4+GMT_OFFSET)%24;
+  for(let d=0;d<31;d++){let s=0,c=0;for(let h=0;h<24;h++){s+=ds.hbd7[d][h]||0;c+=ds.cbd7[d][h]||0;}ds.day_scores[d]=Math.ceil(s);ds.day_counts[d]=c;}
+  for(let h=0;h<24;h++){let s=0,c=0;for(let d=0;d<31;d++){s+=ds.hbd7[d][h]||0;c+=ds.cbd7[d][h]||0;}ds.hour_scores_gmt7[h]=Math.ceil(s);ds.hour_counts_gmt7[h]=c;}
+  for(let h4=0;h4<24;h4++){const h7=rot(h4);let s=0,c=0;for(let d=0;d<31;d++){s+=ds.hbd7[d][h7]||0;c+=ds.cbd7[d][h7]||0;}ds.hour_scores_gmt4[h4]=Math.ceil(s);ds.hour_counts_gmt4[h4]=c;}
+  FK_KEYS.forEach(fk=>{
+    const b=ds.fk_data[fk];if(!b||!b.hbd7||!b.cbd7)return;
+    let tot=0,cnt=0;
+    for(let d=0;d<31;d++){let s=0,c=0;for(let h=0;h<24;h++){s+=b.hbd7[d][h]||0;c+=b.cbd7[d][h]||0;}b.day_scores[d]=Math.ceil(s);b.day_counts[d]=c;tot+=Math.ceil(s);cnt+=c;}
+    b.total_score=tot;b.total_count=cnt;
+    for(let h=0;h<24;h++){let s=0,c=0;for(let d=0;d<31;d++){s+=b.hbd7[d][h]||0;c+=b.cbd7[d][h]||0;}b.hour_scores_gmt7[h]=Math.ceil(s);b.hour_counts_gmt7[h]=c;}
+    for(let h4=0;h4<24;h4++){const h7=rot(h4);let s=0;for(let d=0;d<31;d++)s+=b.hbd7[d][h7]||0;b.hour_scores_gmt4[h4]=Math.ceil(s);}
+  });
+}
 // Tính lại danh sách ngày có dữ liệu sau khi cộng dồn
 function dsRecalcDays(ds){
   const dim=[];for(let d=0;d<31;d++)if((ds.day_counts[d]||0)>0)dim.push(d+1);
@@ -2603,9 +2631,9 @@ async function applyAddMode(target,nd){
       setCloudStatus('Đã thêm dữ liệu tháng '+dispMonth(month)+' ✓');
       return;
     }
-    const legacy=!base.cbd7||!base.fk_data||!base.fk_data[FK_KEYS[0]]||!base.fk_data[FK_KEYS[0]].cbd7;
+    const legacy=!base.cbd7||!base.fk_data||!base.fk_data[FK_KEYS[0]]||!base.fk_data[FK_KEYS[0]].cbd7||(type==="don"&&!base.roundV2);
     if(legacy){
-      alert('Dữ liệu '+lbl+' tháng '+dispMonth(month)+' được tạo TRƯỚC bản cập nhật nên chưa cộng dồn được.\n\nHãy upload lại 1 lần ở chế độ "Thay thế cả tháng" cho tháng này, sau đó mới dùng "Thêm ngày".');
+      alert('Dữ liệu '+lbl+' tháng '+dispMonth(month)+' được tạo TRƯỚC bản cập nhật (cách làm tròn cũ) nên chưa cộng dồn được.\n\nHãy upload lại 1 lần ở chế độ "Thay thế cả tháng" cho tháng này, sau đó mới dùng "Thêm ngày".');
       return;
     }
     const baseDays=dsDaysPresent(base),newDays=dsDaysPresent(nd);
@@ -2618,6 +2646,7 @@ async function applyAddMode(target,nd){
       overlap.forEach(d=>dsSubtractDay(base,d));
     }
     dsAddInto(base,nd);
+    if(type==="don")dsRecalcScores(base); // DON: tính lại toàn bộ từ ô thô — kết quả không phụ thuộc thứ tự/số lần upload
     dsRecalcDays(base);
     base.month=nd.month;base.fkvip=FKVIP;base.fkonl=FKONL;
     if(type==="km")KMD=base;else{D=base;setMonthLabel(month,false);}
@@ -2634,23 +2663,36 @@ async function applyAddMode(target,nd){
 function finalizeResult(nd,target){
   setProg(100,"Hoàn tất!","Đang cập nhật giao diện...");
   setTimeout(function(){
-    for(let i=0;i<31;i++) nd.day_scores[i]=Math.ceil(nd._dayRaw[i]);
-    for(let i=0;i<24;i++){nd.hour_scores_gmt7[i]=Math.ceil(nd._hr7Raw[i]);nd.hour_scores_gmt4[i]=Math.ceil(nd._hr4Raw[i]);}
-    nd.hbd7=nd._hbd7.map(r=>r.map(Math.ceil));delete nd._hbd7;
-    FK_KEYS.forEach(fk=>{
-      const fd=nd.fk_data[fk];
-      fd.day_scores=fd._dayRaw.map(Math.ceil);
-      fd.hour_scores_gmt7=fd._hr7Raw.map(Math.ceil);
-      fd.hour_scores_gmt4=fd._hr4Raw.map(Math.ceil);
-      fd.total_score=Math.ceil(fd._dayRaw.reduce((a,b)=>a+b,0));
-      fd.hbd7=fd._hbd7.map(r=>r.map(Math.ceil));delete fd._hbd7;
-      fd.cbd7=fd._cbd7;delete fd._cbd7; // số đơn theo ngày-giờ của từng FK (đếm nguyên, cho cộng dồn/thay ngày)
-      delete fd._dayRaw;delete fd._hr7Raw;delete fd._hr4Raw;
-      if(fd._day7Raw){fd.day_scores_d7=fd._day7Raw.map(Math.ceil);delete fd._day7Raw;}
-    });
     if(target==="km"){
+      // KM: điểm luôn nguyên (mỗi đơn = 1) — giữ cách chốt cũ
+      for(let i=0;i<31;i++) nd.day_scores[i]=Math.ceil(nd._dayRaw[i]);
+      for(let i=0;i<24;i++){nd.hour_scores_gmt7[i]=Math.ceil(nd._hr7Raw[i]);nd.hour_scores_gmt4[i]=Math.ceil(nd._hr4Raw[i]);}
+      nd.hbd7=nd._hbd7.map(r=>r.map(Math.ceil));delete nd._hbd7;
+      FK_KEYS.forEach(fk=>{
+        const fd=nd.fk_data[fk];
+        fd.day_scores=fd._dayRaw.map(Math.ceil);
+        fd.hour_scores_gmt7=fd._hr7Raw.map(Math.ceil);
+        fd.hour_scores_gmt4=fd._hr4Raw.map(Math.ceil);
+        fd.total_score=Math.ceil(fd._dayRaw.reduce((a,b)=>a+b,0));
+        fd.hbd7=fd._hbd7.map(r=>r.map(Math.ceil));delete fd._hbd7;
+        fd.cbd7=fd._cbd7;delete fd._cbd7;
+        delete fd._dayRaw;delete fd._hr7Raw;delete fd._hr4Raw;
+        if(fd._day7Raw){fd.day_scores_d7=fd._day7Raw.map(Math.ceil);delete fd._day7Raw;}
+      });
       nd.day_scores_d7=nd._day7Raw.map(Math.ceil);
       nd.days_in_month_d7=[...nd._d7Set].sort((a,b)=>a-b);
+    }else{
+      // DON (roundV2): giữ ô ngày-giờ THÔ (số lẻ 0.5), mọi số hiển thị suy từ ô thô —
+      // làm tròn LÊN riêng từng ngày, tổng tháng = cộng các ngày đã làm tròn
+      nd.hbd7=nd._hbd7;delete nd._hbd7;
+      FK_KEYS.forEach(fk=>{
+        const fd=nd.fk_data[fk];
+        fd.hbd7=fd._hbd7;delete fd._hbd7;
+        fd.cbd7=fd._cbd7;delete fd._cbd7;
+        delete fd._dayRaw;delete fd._hr7Raw;delete fd._hr4Raw;delete fd._day7Raw;
+      });
+      dsRecalcScores(nd);
+      nd.roundV2=true;
     }
     delete nd._dayRaw;delete nd._hr7Raw;delete nd._hr4Raw;delete nd._day7Raw;delete nd.day_counts_d7;delete nd._d7Set;
     nd.days_in_month=[...nd._daySet].sort((a,b)=>a-b);
@@ -3167,7 +3209,7 @@ function rDay(ds){
   const ts=dayScores[d-1]||0,tc=dayCounts[d-1]||0;
   // Dữ liệu giờ THEO ĐÚNG NGÀY đã chọn (hbd7); file cũ chưa có -> tạm dùng tổng cả tháng
   const perDay=!!(ds.hbd7&&ds.hbd7[d-1]);
-  const hs7=perDay?ds.hbd7[d-1]:ds.hour_scores_gmt7;
+  const hs7=perDay?ds.hbd7[d-1].map(Math.ceil):ds.hour_scores_gmt7; // roundV2: ô thô có 0.5 -> làm tròn lên khi hiển thị
   const hc7=perDay?ds.cbd7[d-1]:ds.hour_counts_gmt7;
   const peakH=hs7.indexOf(Math.max(...hs7));
   document.getElementById("d_s").textContent=nn(ts);
@@ -3185,7 +3227,7 @@ function rDay(ds){
   const hs4=perDay?Array.from({length:24},(_,h)=>hs7[(h+11)%24]):ds.hour_scores_gmt4;
   const lbl=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
   dch("dhc");CH.dhc=new Chart(document.getElementById("dhc"),{type:"line",data:{labels:lbl,datasets:[{label:"GMT−4",data:hs4,borderColor:"#94a3b8",backgroundColor:"rgba(148,163,184,.05)",fill:true,tension:.4,pointRadius:2,borderWidth:1.5,borderDash:[4,3]},{label:"GMT+7",data:hs7,borderColor:"#7c3aed",backgroundColor:"rgba(124,58,237,.1)",fill:true,tension:.4,pointRadius:hs7.map((_,i)=>i===peakH?6:2),pointBackgroundColor:hs7.map((_,i)=>i===peakH?"#f59e0b":"#7c3aed"),borderWidth:2}]},options:coL(false)});
-  const fkHr=fk=>{const fd=ds.fk_data[fk];return(perDay&&fd.hbd7)?fd.hbd7[d-1]:fd.hour_scores_gmt7;};
+  const fkHr=fk=>{const fd=ds.fk_data[fk];return(perDay&&fd.hbd7)?fd.hbd7[d-1].map(Math.ceil):fd.hour_scores_gmt7;};
   dch("dvc");CH.dvc=new Chart(document.getElementById("dvc"),{type:"bar",data:{labels:lbl,datasets:ds.fkvip.filter(fk=>ds.fk_data[fk].total_score>0).map(fk=>({label:ds.fk_data[fk].name,data:fkHr(fk),backgroundColor:ha(FK_COL[fk],.7),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
   dch("doc");CH.doc=new Chart(document.getElementById("doc"),{type:"bar",data:{labels:lbl,datasets:ds.fkonl.filter(fk=>ds.fk_data[fk].total_score>0).map(fk=>({label:ds.fk_data[fk].name,data:fkHr(fk),backgroundColor:ha(FK_COL[fk],.7),borderColor:FK_COL[fk],borderWidth:1}))},options:coL(true)});
 }

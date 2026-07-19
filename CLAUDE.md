@@ -75,7 +75,8 @@ Lịch sử tháng: `toggleHistMenu` 1995, `loadHistMonth` 2025.
 - Pipeline: `initAccum` 2309 → `processChunks` 2337 (parse từng dòng) → `mergeAccum` 2438 → `finalizeResult` 2587.
 - Chế độ cộng dồn theo ngày: `applyAddMode` 2543, `dsAddInto` 2480, `dsSubtractDay` 2508, `dsRecalcDays` 2528, `dsDaysPresent` 2473.
 - Lưu: `saveMonthData` 2535, `cloudSaveKO` 1939, `stripSensitiveCols` 1926.
-- Cột Duyệt Đơn (0-based): B(1)=lần đầu/thứ, D(3)=member, F(5)=Cấp độ(✅), J(9)=submit GMT-4, P(15)=amount, R(17)=status, T(19)=process GMT-4, U(20)=FK note. GMT-4→GMT+7 cộng 11h.
+- Cột Duyệt Đơn (0-based): B(1)=lần đầu/thứ, D(3)=member, F(5)=Cấp độ(✅), J(9)=submit GMT-4, P(15)=amount, R(17)=status, T(19)=process GMT-4, U(20)=FK note. GMT-4→GMT+7 cộng 11h (chỉ xoay GIỜ; NGÀY chia theo GMT-4 — user chỉ upload các ngày đã trọn GMT-4).
+- **Chấm điểm DON (roundV2, 20/07/2026)**: chỉ nhận 3 trạng thái qua `donStatusKind` (cạnh `gsc`) — "đã rút tiền" / "đã trả lại|trả về" (+1) / "đã từ chối" (0 điểm, VẪN đếm đơn); dòng trạng thái khác BỎ HẲN (lọc đầu nhánh DON trong `processChunks`). `gsc` giữ nguyên bảng điểm. **Làm tròn**: ô `hbd7` lưu THÔ (có 0.5); `dsRecalcScores` (ngay trên `dsRecalcDays`) suy MỌI số hiển thị từ ô thô — ceil RIÊNG từng ngày, `total_score` = Σ các ngày đã ceil ⇒ upload cả tháng 1 lần / cộng dồn từng ngày / thay ngày trùng đều ra CÙNG kết quả (đã test invariance qua preview). Dataset mới có cờ `roundV2:true`; add-mode vào tháng cũ thiếu cờ → alert bắt "Thay thế cả tháng" 1 lần. KM giữ cách chốt cũ (điểm nguyên, không đổi). Hiển thị hbd7 thô trong `rDay`/`fkHr`: `.map(Math.ceil)`.
 
 ### TAB Dữ Liệu (Ngày/Tháng/Giờ + Báo Cáo Đơn Rút)
 - Nguồn dữ liệu: `dataSrc` 2643 ('don'/'km'), `sds` 2645 (đổi nguồn), `curDataSet` 2652.
