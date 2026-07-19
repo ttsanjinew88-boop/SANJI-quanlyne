@@ -4908,7 +4908,7 @@ const BC={
            tien_nap:BC.fmt(r.tien_nap),lan_nap:r.lan_nap,tien_rut:BC.fmt(r.tien_rut),lan_rut:r.lan_rut,
            am_duong:BC.fmt(r.am_duong),cuoc_hop_le:BC.fmt(r.cuoc_hop_le),
            ngan_hang:r.ngan_hang,chi_nhanh:r.chi_nhanh,stk:String(r.stk??''),ip:r.ip,
-           thiet_bi:r.thiet_bi,link_dk:r.link_dk,link_dn:r.link_dn,game:r.game},
+           thiet_bi:r.thiet_bi==='Điện thoại'?'Điện Thoại':'Máy Tính',link_dk:r.link_dk,link_dn:r.link_dn,game:r.game},
         mk:[...cm].filter(k=>k.indexOf(i+'|')===0).map(k=>k.slice(String(i).length+1))
       }))};
     });

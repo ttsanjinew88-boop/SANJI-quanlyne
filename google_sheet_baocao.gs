@@ -18,8 +18,10 @@
  * - Dữ liệu điền THEO TIÊU ĐỀ HÀNG 1 của sheet (đổi thứ tự cột trên sheet vẫn điền đúng).
  * - KHÔNG có cột Cổng nạp / Khu vực.
  * - Mỗi đại lý 1 khối riêng, cách nhau 1 dòng trống; cột "Đại lý" gộp ô (merge) cả khối, nền cam nhạt.
- * - Chữ: Tahoma 9, in đậm, căn giữa, viền đủ. Ô thường nền trắng.
+ * - Chữ: Tahoma 9, in đậm, căn giữa. Ô thường nền VÀNG NHẠT (#FFF2CC), ô không có dữ liệu điền "-".
+ * - Viền: trong mảnh, viền NGOÀI mỗi khối đậm (medium) — giống báo cáo thủ công.
  * - Ô được tô nghi ngờ trên dashboard: CAM (#F4B084); riêng cột Âm/Dương: ĐỎ NHẠT (#FFC7CE).
+ * - Cấp bậc chứa "ĐỔI ĐẦU" (DD-): TỰ ĐỘNG tô đỏ nhạt (#FFC7CE) không cần tô tay.
  */
 
 var SHEET_GID = 1340440362;      // gid của sheet nhận báo cáo (trên URL)
@@ -27,8 +29,8 @@ var TOKEN     = 'sanji-bc-2026'; // phải trùng BC.GS_TOKEN trong dashboard_v2
 
 var C_HEAD    = '#F8CBAD'; // cam nhạt vừa: hàng tiêu đề + cột Đại lý
 var C_MARK    = '#F4B084'; // ô tô nghi ngờ (mọi cột)
-var C_MARK_AD = '#FFC7CE'; // ô tô nghi ngờ cột Âm/Dương
-var C_DATA    = '#FFFFFF'; // ô dữ liệu thường
+var C_MARK_AD = '#FFC7CE'; // ô tô nghi ngờ cột Âm/Dương + Cấp bậc ĐỐI ĐẦU (tự động)
+var C_DATA    = '#FFF2CC'; // ô dữ liệu thường: vàng nhạt (giống báo cáo thủ công / file Excel Telegram)
 
 // Tiêu đề mặc định (chỉ tự ghi khi hàng 1 đang trống) — 21 cột, KHÔNG có Cổng/Khu vực
 var HEADERS = ['STT','Đại lý','Tên tài khoản','Cấp bậc','Họ tên đăng kí','Khách','Chỉ tiêu',
@@ -56,6 +58,12 @@ var HEADER_FIELD = {
 };
 
 function norm_(s) { return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+
+// Cấp bậc "đối đầu": chứa chữ ĐỔI ĐẦU (mọi kiểu hoa/thường) hoặc mã [DD-...]
+function isDoiDau_(v) {
+  var s = norm_(v);
+  return s.indexOf('đổi đầu') > -1 || s.indexOf('đối đầu') > -1 || s.indexOf('doi dau') > -1 || /\[?dd-/.test(s);
+}
 
 function getSheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -91,13 +99,15 @@ function doPost(e) {
     blocks.forEach(function (bl) {
       var rows = bl.rows || [];
       if (!rows.length) return;
-      // chừa 1 dòng trống ngăn cách với khối trước (nếu đã có dữ liệu)
-      var start = sh.getLastRow() + (sh.getLastRow() > 1 ? 2 : 1);
+      // luôn chừa 1 dòng trống: ngăn cách các khối và cách cả hàng tiêu đề (giống bản thủ công)
+      var start = sh.getLastRow() + 2;
       var vals = rows.map(function (rw, ri) {
         return fields.map(function (f) {
           if (f === '__stt') return '';
           if (f === '__agent') return ri === 0 ? (bl.agent || '') : '';
-          return (f && rw.v && rw.v[f] != null) ? rw.v[f] : '';
+          if (!f) return '';
+          var v = (rw.v && rw.v[f] != null) ? rw.v[f] : '';
+          return String(v).trim() === '' ? '-' : v; // ô không có dữ liệu điền "-" như bản thủ công
         });
       });
       var cols = rows.map(function (rw) {
@@ -105,17 +115,21 @@ function doPost(e) {
         (rw.mk || []).forEach(function (f) { mk[f] = 1; });
         return fields.map(function (f) {
           if (f === '__agent') return C_HEAD;
+          // Cấp bậc ĐỐI ĐẦU (DD-): tự động đỏ nhạt, không cần tô tay
+          if (f === 'cap_bac' && isDoiDau_(rw.v && rw.v.cap_bac)) return C_MARK_AD;
           if (f && mk[f]) return f === 'am_duong' ? C_MARK_AD : C_MARK;
           return C_DATA;
         });
       });
-      sh.getRange(start, 1, rows.length, nc)
-        .setNumberFormat('@')          // giữ STK/IP dạng chữ, tiền đã định dạng sẵn kiểu VN
+      var rg = sh.getRange(start, 1, rows.length, nc);
+      rg.setNumberFormat('@')          // giữ STK/IP dạng chữ, tiền đã định dạng sẵn kiểu VN
         .setValues(vals)
         .setFontFamily('Tahoma').setFontSize(9).setFontWeight('bold').setFontColor('#000000')
         .setHorizontalAlignment('center').setVerticalAlignment('middle')
         .setBorder(true, true, true, true, true, true)
         .setBackgrounds(cols);
+      // viền NGOÀI khối đậm như bản thủ công (viền trong giữ mảnh)
+      rg.setBorder(true, true, true, true, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
       if (aCol > -1 && rows.length > 1) {
         try { sh.getRange(start, aCol + 1, rows.length, 1).merge(); } catch (err) {}
       }
