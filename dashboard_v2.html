@@ -127,6 +127,13 @@ input#fh{display:none}
 .fk-card-sub{font-size:.6rem;color:var(--mu);margin-top:2px}
 .fk-mini-bar{height:3px;border-radius:2px;margin-top:8px;background:var(--border)}
 .fk-mini-bar-fill{height:100%;border-radius:2px}
+/* Thẻ FK gọn: mỗi nhóm (FKVIP/FKONL) 1 hàng ngang */
+.fk-grid-compact{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:7px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px}
+.fk-card-mini{padding:8px 10px 9px}
+.fk-card-mini .fk-card-rank{width:17px;height:17px;font-size:.55rem;top:6px;right:6px}
+.fkm-name{font-size:.8rem;font-weight:800;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:18px}
+.fkm-score{font-size:1.1rem;font-weight:900;line-height:1.05}
+.fkm-sub{font-size:.54rem;color:var(--mu);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* TABLE */
 .mtbl-wrap{overflow-x:auto}
@@ -753,6 +760,19 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
   </div>
 </div>
 
+<!-- POPUP biểu đồ nhân viên (bấm thẻ FK ở Duyệt Đơn) -->
+<div class="dr-modal" id="koChartModal">
+  <div class="box" style="max-width:720px;width:100%">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div class="dp-name" id="koCmName" style="font-size:1rem;font-weight:800">-</div>
+      <span class="fk-card-type" id="koCmBadge">-</span>
+      <div class="dp-stats" style="margin-left:auto;display:flex;gap:16px;font-size:.68rem;color:var(--mu2)"><span>Điểm: <b id="koCmSc" style="color:var(--tx)">-</b></span><span>Đơn: <b id="koCmCt" style="color:var(--tx)">-</b></span></div>
+      <button onclick="koCloseChart()" style="background:none;border:none;color:var(--mu);font-size:16px;cursor:pointer">✕</button>
+    </div>
+    <div style="height:300px"><canvas id="koCmCh"></canvas></div>
+  </div>
+</div>
+
 <!-- ============ TAB: HIỆU SUẤT KO (gộp Duyệt Đơn + Bất Thường) ============ -->
 <div class="pg" id="pg-ko">
   <div class="view-toggle" id="koViewToggle">
@@ -814,9 +834,9 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 
     <div class="sec-hdr" style="color:var(--pu2)">Hiệu Suất Duyệt Đơn <button onclick="openPasteModal('don')" style="font-size:.58rem;padding:2px 10px;background:rgba(6,182,212,.15);border:1px solid rgba(6,182,212,.35);color:var(--cy);border-radius:5px;cursor:pointer;font-weight:700;text-transform:none;letter-spacing:0">Dán từ Excel</button></div>
     <div class="sec-hdr" style="color:var(--vip-c)">FKVIP <span class="cnt-badge" id="vipCount">0 người</span></div>
-    <div class="fk-grid" id="perfVipGrid" style="margin-bottom:12px"></div>
+    <div class="fk-grid-compact" id="perfVipGrid" style="margin-bottom:12px"></div>
     <div class="sec-hdr" style="color:var(--onl-c)">FKONL <span class="cnt-badge" id="onlCount">0 người</span></div>
-    <div class="fk-grid" id="perfOnlGrid" style="margin-bottom:12px"></div>
+    <div class="fk-grid-compact" id="perfOnlGrid" style="margin-bottom:12px"></div>
     <div class="mtbl-wrap" id="perfCombinedTable" style="margin-bottom:26px"></div>
 
     <div class="sec-hdr" style="color:#10b981">Hiệu Suất Duyệt Khuyến Mãi <span class="cnt-badge" id="kmStatusBadge" style="background:rgba(239,68,68,.15);color:#ef4444">Chưa có dữ liệu</span> <button onclick="openPasteModal('km')" style="font-size:.58rem;padding:2px 10px;background:rgba(6,182,212,.15);border:1px solid rgba(6,182,212,.35);color:var(--cy);border-radius:5px;cursor:pointer;font-weight:700;text-transform:none;letter-spacing:0">Dán từ Excel</button></div>
@@ -825,9 +845,9 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
     </div>
     <div id="kmDataWrap" style="display:none">
       <div class="sec-hdr" style="color:var(--vip-c)">FKVIP <span class="cnt-badge" id="kmVipCount">0 người</span></div>
-      <div class="fk-grid" id="kmVipGrid" style="margin-bottom:12px"></div>
+      <div class="fk-grid-compact" id="kmVipGrid" style="margin-bottom:12px"></div>
       <div class="sec-hdr" style="color:var(--onl-c)">FKONL <span class="cnt-badge" id="kmOnlCount">0 người</span></div>
-      <div class="fk-grid" id="kmOnlGrid" style="margin-bottom:12px"></div>
+      <div class="fk-grid-compact" id="kmOnlGrid" style="margin-bottom:12px"></div>
       <div class="mtbl-wrap" id="kmCombinedTable"></div>
     </div>
 
@@ -1958,6 +1978,7 @@ async function bootData(){
     const[don,km,shift,an,wk,lm,ov]=await Promise.all([SB.loadReport('don',mk),SB.loadReport('km',mk),SB.loadReport('shift',mk),SB.loadReport('anomaly',mk),SB.loadReport('work',mk),SB.loadReport('limits',mk),SB.loadReport('ov',mk)]);
     WORK=wk||{};
     LIMITS=lm||{};
+    await inheritLimitsIfEmpty(mk);
     if(ov&&Object.keys(ov).length){KO_OV=ov;}
     else{
       // di trú 1 lần: dữ liệu tổng quan cũ còn trong máy -> cloud tháng hiện tại
@@ -2111,6 +2132,7 @@ async function loadHistMonth(m){
     CUR_MONTH=m;
     WORK=wk||{};
     LIMITS=lm||{};
+    await inheritLimitsIfEmpty(m);
     KO_OV=(ov&&Object.keys(ov).length)?ov:{};
     D=don||emptyDataset(m);
     KMD=km||null;
@@ -3274,12 +3296,11 @@ function fkGroupCardHtml(fk,rank,isS,dataObj){
   const col=fkGrpCol(fk);
   const badgeCls=fd.group==="vip"?"vip-badge":"onl-badge";
   const rankCol=rank===1?"background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#111":rank===2?"background:linear-gradient(135deg,#94a3b8,#cbd5e1);color:#111":rank===3?"background:linear-gradient(135deg,#cd7f32,#b87333);color:#fff":"background:#1e2545;color:#64748b";
-  return `<div class="fk-card" onclick="rPerfDetail('${fk}','${dataObj===KMD?'km':'don'}')">
+  return `<div class="fk-card fk-card-mini" title="Bấm để xem biểu đồ ${fd.name}" onclick="rPerfDetail('${fk}','${dataObj===KMD?'km':'don'}')">
     <div class="fk-card-rank" style="${rankCol}">${tot>0?rank:"-"}</div>
-    <div class="fk-card-type ${badgeCls}">${fd.group==="vip"?"FKVIP":"FKONL"}</div>
-    <div class="fk-card-name">${fd.name}</div>
-    <div class="fk-card-score" style="color:${col}">${tot>0?nn(tot):"-"}</div>
-    <div class="fk-card-sub">${isS?nn(fd.total_count)+" đơn":nn(fd.total_score)+" điểm"}</div>
+    <div class="fkm-name" style="color:${col}">${fd.name}</div>
+    <div class="fkm-score" style="color:${col}">${tot>0?nn(tot):"-"}</div>
+    <div class="fkm-sub">${isS?nn(fd.total_count)+" đơn":nn(fd.total_score)+" điểm"}</div>
     <div class="fk-mini-bar"><div class="fk-mini-bar-fill" style="width:${pct}%;background:${col}"></div></div>
   </div>`;
 }
@@ -3287,17 +3308,18 @@ function rPerfDetail(fk,which){
   const dataObj=which==="km"?KMD:D;
   if(!dataObj)return;
   const fd=dataObj.fk_data[fk];if(!fd)return;
-  const panel=document.getElementById('koDp');
-  panel.style.display='block';
-  document.getElementById('koDpName').textContent=fd.name;
-  document.getElementById('koDpBadge').textContent=(fd.group==="vip"?"FKVIP":"FKONL")+(which==="km"?" · KHUYẾN MÃI":" · DUYỆT ĐƠN");
-  document.getElementById('koDpSc').textContent=nn(fd.total_score);
-  document.getElementById('koDpCt').textContent=nn(fd.total_count);
+  document.getElementById('koCmName').textContent=fd.name;
+  const badge=document.getElementById('koCmBadge');
+  badge.textContent=(fd.group==="vip"?"FKVIP":"FKONL")+(which==="km"?" · KHUYẾN MÃI":" · DUYỆT ĐƠN");
+  badge.className='fk-card-type '+(fd.group==="vip"?"vip-badge":"onl-badge");
+  document.getElementById('koCmSc').textContent=nn(fd.total_score);
+  document.getElementById('koCmCt').textContent=nn(fd.total_count);
   const scores=which==='km'?(fd.day_scores_d7||fd.day_scores):fd.day_scores;
-  dch('koDpCh');
-  CH.koDpCh=new Chart(document.getElementById('koDpCh'),{type:'bar',data:{labels:dataObj.days,datasets:[{label:'Điểm theo ngày',data:scores,backgroundColor:ha(fkGrpCol(fk),.75),borderColor:fkGrpCol(fk),borderWidth:1,borderRadius:3}]},options:co(false)});
-  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+  dch('koCmCh');
+  document.getElementById('koChartModal').classList.add('show'); // hiện modal trước để canvas có kích thước
+  CH.koCmCh=new Chart(document.getElementById('koCmCh'),{type:'bar',data:{labels:dataObj.days,datasets:[{label:'Điểm theo ngày',data:scores,backgroundColor:ha(fkGrpCol(fk),.75),borderColor:fkGrpCol(fk),borderWidth:1,borderRadius:3}]},options:co(false)});
 }
+function koCloseChart(){dch('koCmCh');document.getElementById('koChartModal').classList.remove('show');}
 function buildCombinedPerfTable(dataObj,isS,src){
   src=src||'don';
   const canFix=isS&&typeof canEdit==='function'&&canEdit('ko'); // chế độ Điểm + quyền Sửa -> cho chỉnh tay
@@ -3682,6 +3704,21 @@ async function _saveLimits(){
     if(det)logAction('Hạn mức duyệt','Tháng '+dispMonth(CUR_MONTH)+' · '+det.slice(0,600));
     if(koView==='overview')rKoOverview();
   }catch(e){console.error('_saveLimits',e);setCloudStatus('Lỗi lưu hạn mức',true);}
+}
+// Sao chép hạn mức duyệt từ tháng gần nhất trước đó khi tháng hiện tại CHƯA có (giữ cho tới khi có người chỉnh sửa & lưu)
+async function inheritLimitsIfEmpty(mk){
+  try{
+    if(LIMITS&&Object.keys(LIMITS).length)return; // tháng này đã có hạn mức
+    if(!SB.ready())return;
+    const reps=await SB.listReports();
+    const prevMonth=(reps||[]).filter(r=>r.type==='limits'&&r.month<mk).map(r=>r.month).sort().pop();
+    if(!prevMonth)return;
+    const old=await SB.loadReport('limits',prevMonth);
+    if(!old)return;
+    const inh={};
+    for(const fk in old){const v=old[fk];if(v&&v.limit)inh[fk]={limit:v.limit};}
+    if(Object.keys(inh).length)LIMITS=inh;
+  }catch(e){console.error('inheritLimitsIfEmpty',e);}
 }
 
 // ===== TAB: PHÂN CA =====

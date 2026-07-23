@@ -87,7 +87,8 @@ Lịch sử tháng: `toggleHistMenu` 1995, `loadHistMonth` 2025.
 ### TAB Hiệu Suất KO
 `rKO` 3196 điều hướng view (`koView`, `skv` 2641). Các view:
 - Tổng quan: `rKoOverview` 3095, bảng thưởng/phạt `buildOvTable` 3018, `calcBonusPenalty` 2995, `ovFootHtml` 3074.
-- Hạn mức: `LIMITS` 3245, `rKoLimit` 3246, `limSet` 3302, `_saveLimits` 3312.
+- Duyệt Đơn (view `daily`, `rKoDaily`): thẻ FK do `fkGroupCardHtml` render — **GỌN thành 1 hàng/nhóm** (CSS `.fk-grid-compact` grid-auto-flow:column + `.fk-card-mini`/`.fkm-name/.fkm-score/.fkm-sub`; 4 lưới `perfVip/OnlGrid` + `kmVip/OnlGrid` đổi class sang `fk-grid-compact`). Bấm thẻ → `rPerfDetail` mở **POPUP** `#koChartModal` (class `dr-modal`, `koCloseChart`, canvas `koCmCh`) thay vì panel `#koDp` cũ (giữ trong DOM nhưng KHÔNG dùng). Đóng bằng ✕/nền/Esc (dùng handler `.dr-modal` chung của DR).
+- Hạn mức: `LIMITS` 3245, `rKoLimit` 3246, `limSet` 3302, `_saveLimits` 3312. **Sao chép hạn mức sang tháng mới** (chốt 24/07/2026): `inheritLimitsIfEmpty(mk)` (cạnh `_saveLimits`) — nếu tháng đang mở CHƯA có report `limits`, `listReports` tìm tháng `limits` gần nhất `<mk`, load & copy **chỉ field `limit`** (không copy `pcq`) vào `LIMITS` trong RAM (LAZY: không tự lưu). Gọi trong `bootData` + `loadHistMonth` ngay sau `LIMITS=lm||{}`. Khi có người sửa → `limSet`→`_saveLimits` lưu cả bộ vào tháng đó ⇒ tháng sau kế thừa từ tháng vừa sửa.
 - ~~Vượt hạn mức~~: **ĐÃ XOÁ view/tab riêng**. Cảnh báo vượt hạn mức giờ nằm TRONG Báo Cáo Đơn Rút: `DR.overLimitOrders` (amount > `fkLimitNum(fk)`) + `DR.renderOverLimit` (panel đỏ `#donrutOverLimit` + thẻ tổng thứ 5). Dùng `LIMITS` nạp sẵn ở boot.
 - Bất thường: `KO_AN` 2081, `rKoAnomaly` 3169, `anSet/anGet/anTotal` 2100–2112, lưới `buildAnGridAbuse` 3115 / `buildAnGridMkt` 3140.
 - KO_OV (cộng/trừ/ghi chú): `KO_OV` 2058, `ovGet` 2071, `ovSet` 2072, `_saveKoOvCloud` 2064.
