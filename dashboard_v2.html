@@ -1504,6 +1504,8 @@ function applyPerms(){
   if(tsus)tsus.style.display=isTTup?'':'none';
   const sbt=document.getElementById('bcSusSheetBtn');
   if(sbt)sbt.style.display=isTTup?'':'none';
+  const spb=document.getElementById('bcSusSepBtn');
+  if(spb)spb.style.display=p.is_admin?'':'none';
   // View Đề Xuất Hạn Mức Duyệt: chỉ quyền SỬA tab Hiệu Suất KO mới thấy
   const klb=document.getElementById('koLimitBtn');
   if(klb)klb.style.display=canEdit('ko')?'':'none';
@@ -4316,7 +4318,11 @@ rAll();
       <div class="ph-sub">Tích ô "Nghi ngờ" ở cột Đại Lý (tab Tổng Hợp) để đưa vào đây · bấm vào Ô trong bảng Chi tiết KH để tô/bỏ tô điểm nghi ngờ (lưu cloud) · lưu trên cloud</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <button id="bcSusSheetBtn" style="display:none;font-size:11px;padding:6px 14px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.45);color:#f87171;border-radius:6px;cursor:pointer;font-weight:700;white-space:nowrap" title="Chỉ Tổ Trưởng trở lên — gửi toàn bộ danh sách nghi ngờ (kèm màu tô) sang Google Sheet" onclick="BC.sendSuspectsToSheet()">Báo Cáo Đại Lý Bất Thường ⇢ Google Sheet</button>
+      <button id="bcSusSepBtn" style="display:none;font-size:11px;padding:6px 14px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.45);color:var(--go);border-radius:6px;cursor:pointer;font-weight:700;white-space:nowrap" title="Chỉ ADMIN — chèn phân cách: các đại lý đánh dấu SAU điểm này thuộc giai đoạn kế tiếp" onclick="BC.addSuspectSep()">➕ Phân cách giai đoạn</button>
+      <div style="position:relative">
+        <button id="bcSusSheetBtn" style="display:none;font-size:11px;padding:6px 14px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.45);color:#f87171;border-radius:6px;cursor:pointer;font-weight:700;white-space:nowrap" title="Chỉ Tổ Trưởng trở lên — gửi danh sách nghi ngờ (theo giai đoạn nếu có phân cách, kèm màu tô) sang Google Sheet" onclick="BC.clickSheetBtn()">Báo Cáo Đại Lý Bất Thường ⇢ Google Sheet</button>
+        <div id="bcSusPhaseMenu" style="display:none;position:absolute;right:0;top:calc(100% + 5px);z-index:60;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px;min-width:240px;box-shadow:0 10px 28px rgba(0,0,0,.45)"></div>
+      </div>
       <button onclick="toggleSuspectColsPanel()" style="font-size:11px;padding:6px 14px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:var(--bl2);border-radius:6px;cursor:pointer;font-weight:700;white-space:nowrap">Cột hiển thị</button>
     </div>
   </div>
@@ -4877,10 +4883,25 @@ const BC={
   /* ===== NGHI NGỜ (chỉ ADMIN) — lưu cloud, không mất khi F5 ===== */
   SUSPECTS:[],
   isSuspect(ag){return BC.SUSPECTS.some(x=>x.dai_ly===ag);},
+  suspectCount(){return BC.SUSPECTS.filter(x=>!x.sep).length;},
   updateSuspectBadge(){
     const b=document.getElementById('bc-suspect-badge');
-    if(b)b.textContent=BC.SUSPECTS.length;
+    if(b)b.textContent=BC.suspectCount();
   },
+  /* Chia danh sách nghi ngờ thành các GIAI ĐOẠN theo phần tử phân cách {sep:true}.
+     Mỗi phần tử sep KẾT THÚC 1 giai đoạn. items giữ idx thật trong BC.SUSPECTS. */
+  suspectSegments(){
+    const segs=[];let cur={items:[],sepIdx:-1};
+    BC.SUSPECTS.forEach((s,idx)=>{
+      if(s.sep){cur.sepIdx=idx;segs.push(cur);cur={items:[],sepIdx:-1};}
+      else cur.items.push({s,idx});
+    });
+    segs.push(cur);
+    const n=segs.length;
+    segs.forEach((g,i)=>{g.label=n===1?'Giai Đoạn 1':(i===n-1?'Giai Đoạn Cuối':'Giai Đoạn '+(i+1));});
+    return segs;
+  },
+  hasSuspectSep(){return BC.SUSPECTS.some(x=>x.sep);},
   async loadSuspects(){
     if(!SB.ready())return;
     try{
@@ -4915,47 +4936,88 @@ const BC={
       if(cb)cb.checked=!cb.checked;
     }
   },
+  suspectCardHtml(s,idx){
+    const t=new Date(s.at).toLocaleString('vi-VN',{timeZone:'Asia/Bangkok',hour12:false});
+    const sm=s.summary||{};
+    const stats=s.summary
+      ?`<span>KH hợp lệ: <b style="color:#9f67ff">${sm.khach_hop_le??'-'}</b></span>
+         <span>Tổng nạp: <b>${BC.fmt(sm.tong_nap)}</b></span>
+         <span>Tổng rút: <b>${BC.fmt(sm.tong_rut)}</b></span>
+         <span>Âm/Dương: ${BC.ad(sm.am_duong||0)}</span>
+         <span>KH mới: <b style="color:#3b82f6">${sm.khach_moi??'-'}</b></span>`
+      :'<span style="color:var(--mu)">(không có số liệu tổng — đánh dấu lúc chưa tính toán)</span>';
+    const visCols=SUSPECT_COLS.filter(c=>SUSPECT_VIS.has(c.k));
+    const cm=new Set(s.cellMarks||[]);
+    const memRows=(s.members||[]).map((r,i)=>`<tr><td class="tc stt">${i+1}</td>`+
+      visCols.map(c=>{
+        const on=cm.has(i+'|'+c.k);
+        return `<td class="bc-mkc${c.cls?' '+c.cls:''}${on?(c.k==='am_duong'?' bc-mk-ad':' bc-mk'):''}"${c.style?' style="'+c.style+'"':''} onclick="BC.suspectMark(${idx},${i},'${c.k}',this)">${c.cell(r)}</td>`;
+      }).join('')+
+    `</tr>`).join('');
+    const memHead='<th>STT</th>'+visCols.map(c=>`<th>${c.label}</th>`).join('');
+    const memColspan=visCols.length+1;
+    return`<div style="background:var(--card);border:2px solid var(--bl);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+        <b style="font-size:14px;color:#f87171">${s.dai_ly}</b>
+        <span style="font-size:10px;color:var(--mu)">Đánh dấu: ${t} · bởi ${(s.by||'').toUpperCase()}</span>
+        <button class="view-btn" onclick="BC.goAgent('${String(s.dai_ly).replace(/'/g,"\\'")}')">Kiểm tra lại</button>
+        <button onclick="BC.suspectToggleDetail(${idx})" style="padding:2px 9px;background:var(--card2);color:var(--mu2);border:1px solid var(--border2);border-radius:4px;cursor:pointer;font-size:10px">Chi tiết KH (${(s.members||[]).length})</button>
+        <button onclick="BC.toggleSuspect('${String(s.dai_ly).replace(/'/g,"\\'")}',null)" style="padding:2px 9px;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.35);border-radius:4px;cursor:pointer;font-size:10px;margin-left:auto">Bỏ nghi ngờ</button>
+      </div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:var(--mu2)">${stats}</div>
+      <div id="bc-suspect-detail-${idx}" style="display:none;margin-top:10px;overflow-x:auto">
+        <table><thead><tr>${memHead}</tr></thead>
+        <tbody>${memRows||`<tr><td colspan="${memColspan}" class="tc" style="color:var(--mu)">Không có dữ liệu khách</td></tr>`}</tbody></table>
+      </div>
+    </div>`;
+  },
   renderSuspects(){
     const el=document.getElementById('bc-suspect-list');
     if(!el)return;
     const _rl=CUR_PROFILE?roleOf(CUR_PROFILE):null;
     if(!CUR_PROFILE||!(CUR_PROFILE.is_admin||(_rl&&_rl.key==='totruong'))){el.innerHTML='<div class="empty">Chỉ ADMIN / Tổ Trưởng xem được mục này.</div>';return;}
-    if(!BC.SUSPECTS.length){el.innerHTML='<div class="empty">Chưa có đại lý nào bị đánh dấu nghi ngờ.</div>';return;}
-    el.innerHTML=BC.SUSPECTS.map((s,idx)=>{
-      const t=new Date(s.at).toLocaleString('vi-VN',{timeZone:'Asia/Bangkok',hour12:false});
-      const sm=s.summary||{};
-      const stats=s.summary
-        ?`<span>KH hợp lệ: <b style="color:#9f67ff">${sm.khach_hop_le??'-'}</b></span>
-           <span>Tổng nạp: <b>${BC.fmt(sm.tong_nap)}</b></span>
-           <span>Tổng rút: <b>${BC.fmt(sm.tong_rut)}</b></span>
-           <span>Âm/Dương: ${BC.ad(sm.am_duong||0)}</span>
-           <span>KH mới: <b style="color:#3b82f6">${sm.khach_moi??'-'}</b></span>`
-        :'<span style="color:var(--mu)">(không có số liệu tổng — đánh dấu lúc chưa tính toán)</span>';
-      const visCols=SUSPECT_COLS.filter(c=>SUSPECT_VIS.has(c.k));
-      const cm=new Set(s.cellMarks||[]);
-      const memRows=(s.members||[]).map((r,i)=>`<tr><td class="tc stt">${i+1}</td>`+
-        visCols.map(c=>{
-          const on=cm.has(i+'|'+c.k);
-          return `<td class="bc-mkc${c.cls?' '+c.cls:''}${on?(c.k==='am_duong'?' bc-mk-ad':' bc-mk'):''}"${c.style?' style="'+c.style+'"':''} onclick="BC.suspectMark(${idx},${i},'${c.k}',this)">${c.cell(r)}</td>`;
-        }).join('')+
-      `</tr>`).join('');
-      const memHead='<th>STT</th>'+visCols.map(c=>`<th>${c.label}</th>`).join('');
-      const memColspan=visCols.length+1;
-      return`<div style="background:var(--card);border:2px solid var(--bl);border-radius:10px;padding:14px;margin-bottom:14px">
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
-          <b style="font-size:14px;color:#f87171">${s.dai_ly}</b>
-          <span style="font-size:10px;color:var(--mu)">Đánh dấu: ${t} · bởi ${(s.by||'').toUpperCase()}</span>
-          <button class="view-btn" onclick="BC.goAgent('${String(s.dai_ly).replace(/'/g,"\\'")}')">Kiểm tra lại</button>
-          <button onclick="BC.suspectToggleDetail(${idx})" style="padding:2px 9px;background:var(--card2);color:var(--mu2);border:1px solid var(--border2);border-radius:4px;cursor:pointer;font-size:10px">Chi tiết KH (${(s.members||[]).length})</button>
-          <button onclick="BC.toggleSuspect('${String(s.dai_ly).replace(/'/g,"\\'")}',null)" style="padding:2px 9px;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.35);border-radius:4px;cursor:pointer;font-size:10px;margin-left:auto">Bỏ nghi ngờ</button>
-        </div>
-        <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:var(--mu2)">${stats}</div>
-        <div id="bc-suspect-detail-${idx}" style="display:none;margin-top:10px;overflow-x:auto">
-          <table><thead><tr>${memHead}</tr></thead>
-          <tbody>${memRows||`<tr><td colspan="${memColspan}" class="tc" style="color:var(--mu)">Không có dữ liệu khách</td></tr>`}</tbody></table>
-        </div>
+    if(!BC.suspectCount()){el.innerHTML='<div class="empty">Chưa có đại lý nào bị đánh dấu nghi ngờ.</div>';return;}
+    const isAdm=!!(CUR_PROFILE&&CUR_PROFILE.is_admin);
+    const segs=BC.suspectSegments();
+    const multi=BC.hasSuspectSep();
+    el.innerHTML=segs.map((g,si)=>{
+      let h='';
+      if(multi)h+=`<div style="display:flex;align-items:center;gap:10px;margin:2px 0 12px;padding:7px 14px;background:linear-gradient(90deg,rgba(124,58,237,.18),transparent);border-left:4px solid var(--pu2);border-radius:6px">
+        <b style="font-size:13px;color:var(--pu2)">▶ ${g.label}</b>
+        <span style="font-size:11px;color:var(--mu2)">${g.items.length} đại lý</span></div>`;
+      h+=g.items.map(({s,idx})=>BC.suspectCardHtml(s,idx)).join('')
+        ||`<div class="empty" style="margin-bottom:12px">Giai đoạn này chưa có đại lý.</div>`;
+      // Nút xóa phân cách nằm ở ranh giới KẾT THÚC giai đoạn (trừ giai đoạn cuối)
+      if(g.sepIdx>=0)h+=`<div style="display:flex;align-items:center;gap:10px;margin:0 0 16px">
+        <div style="flex:1;height:2px;background:repeating-linear-gradient(90deg,var(--go) 0 10px,transparent 10px 18px)"></div>
+        <span style="font-size:10px;color:var(--go);font-weight:700;white-space:nowrap">— PHÂN CÁCH GIAI ĐOẠN —</span>
+        ${isAdm?`<button onclick="BC.removeSuspectSep(${g.sepIdx})" title="Xóa phân cách này (gộp lại với giai đoạn sau)" style="padding:2px 9px;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.35);border-radius:4px;cursor:pointer;font-size:10px;white-space:nowrap">✕ Xóa phân cách</button>`:''}
+        <div style="flex:1;height:2px;background:repeating-linear-gradient(90deg,var(--go) 0 10px,transparent 10px 18px)"></div>
       </div>`;
+      return h;
     }).join('');
+  },
+  async addSuspectSep(){
+    if(!CUR_PROFILE||!CUR_PROFILE.is_admin){alert('Chỉ tài khoản ADMIN mới chèn được phân cách giai đoạn.');return;}
+    if(!BC.suspectCount()){alert('Chưa có đại lý nghi ngờ nào — hãy đánh dấu đại lý trước khi phân cách giai đoạn.');return;}
+    if(BC.SUSPECTS.length&&BC.SUSPECTS[BC.SUSPECTS.length-1].sep){alert('Phần cuối danh sách đã là một phân cách — hãy thêm đại lý cho giai đoạn mới trước khi phân cách tiếp.');return;}
+    try{
+      BC.SUSPECTS.push({sep:true,at:new Date().toISOString(),by:CUR_PROFILE.username});
+      await SB.saveReport('suspects','all',{list:BC.SUSPECTS});
+      logAction('Chèn phân cách giai đoạn nghi ngờ','Sau '+BC.suspectCount()+' đại lý');
+      BC.renderSuspects();
+    }catch(e){console.error('addSuspectSep',e);alert('Lỗi lưu phân cách: '+(e.message||e));BC.SUSPECTS=BC.SUSPECTS.filter((x,i)=>i!==BC.SUSPECTS.length-1);}
+  },
+  async removeSuspectSep(idx){
+    if(!CUR_PROFILE||!CUR_PROFILE.is_admin){alert('Chỉ tài khoản ADMIN mới xóa được phân cách giai đoạn.');return;}
+    const s=BC.SUSPECTS[idx];
+    if(!s||!s.sep)return;
+    try{
+      BC.SUSPECTS.splice(idx,1);
+      await SB.saveReport('suspects','all',{list:BC.SUSPECTS});
+      logAction('Xóa phân cách giai đoạn nghi ngờ','');
+      BC.renderSuspects();
+    }catch(e){console.error('removeSuspectSep',e);alert('Lỗi xóa phân cách: '+(e.message||e));BC.loadSuspects().then(()=>BC.renderSuspects());}
   },
   suspectToggleDetail(idx){
     const el=document.getElementById('bc-suspect-detail-'+idx);
@@ -4980,15 +5042,39 @@ const BC={
      nền vàng, cột Đại lý cam, ô tô = cam đậm, riêng Âm/Dương tô = đỏ nhạt ---- */
   GS_WEBAPP_URL:'https://script.google.com/macros/s/AKfycbyH_ZdOK0YE8QUzBjWeg_NgnbuY6kOMtuUJZD8yGbpQaCCDKxaPT4lr9712tmKx9jZGFQ/exec',
   GS_TOKEN:'sanji-bc-2026',
-  async sendSuspectsToSheet(){
+  /* Bấm nút "Báo Cáo ⇢ Google Sheet": nếu có phân cách giai đoạn thì mở menu chọn giai đoạn,
+     không thì gửi thẳng toàn bộ (như cũ). */
+  clickSheetBtn(){
+    const rl=CUR_PROFILE?roleOf(CUR_PROFILE):null;
+    if(!CUR_PROFILE||!(CUR_PROFILE.is_admin||(rl&&rl.key==='totruong'))){alert('Chức năng này chỉ dành cho Tổ Trưởng trở lên.');return;}
+    if(!BC.suspectCount()){alert('Chưa có đại lý nghi ngờ nào để gửi.');return;}
+    const menu=document.getElementById('bcSusPhaseMenu');
+    if(!BC.hasSuspectSep()){if(menu)menu.style.display='none';BC.sendSuspectsToSheet('all');return;}
+    if(!menu)return;
+    if(menu.style.display==='block'){menu.style.display='none';return;}
+    const segs=BC.suspectSegments();
+    const btnCss='display:block;width:100%;text-align:left;margin:0 0 4px;padding:7px 12px;background:var(--card2);border:1px solid var(--border2);border-radius:6px;color:var(--tx);font-size:12px;font-weight:700;cursor:pointer';
+    let h=`<div style="font-size:10px;color:var(--mu);padding:2px 4px 6px">Chọn giai đoạn để gửi:</div>`;
+    segs.forEach((g,si)=>{if(!g.items.length)return;
+      h+=`<button style="${btnCss}" onclick="BC.sendSuspectsToSheet(${si})">${g.label} <span style="color:var(--mu2);font-weight:600">(${g.items.length} đại lý)</span></button>`;});
+    h+=`<button style="${btnCss}border-color:var(--pu2);color:var(--pu2)" onclick="BC.sendSuspectsToSheet('all')">Tất cả giai đoạn <span style="color:var(--mu2);font-weight:600">(${BC.suspectCount()} đại lý)</span></button>`;
+    menu.innerHTML=h;menu.style.display='block';
+    setTimeout(()=>{const close=e=>{if(!menu.contains(e.target)&&e.target.id!=='bcSusSheetBtn'){menu.style.display='none';document.removeEventListener('mousedown',close);}};document.addEventListener('mousedown',close);},0);
+  },
+  async sendSuspectsToSheet(phase){
     const rl=CUR_PROFILE?roleOf(CUR_PROFILE):null;
     if(!CUR_PROFILE||!(CUR_PROFILE.is_admin||(rl&&rl.key==='totruong'))){alert('Chức năng này chỉ dành cho Tổ Trưởng trở lên.');return;}
     if(!BC.GS_WEBAPP_URL){alert('Chưa cấu hình Google Sheet.\n\nCần deploy file google_sheet_baocao.gs (Apps Script) rồi dán URL Web App vào BC.GS_WEBAPP_URL trong dashboard_v2.html.');return;}
-    if(!BC.SUSPECTS.length){alert('Chưa có đại lý nghi ngờ nào để gửi.');return;}
-    if(!confirm('Gửi '+BC.SUSPECTS.length+' đại lý nghi ngờ (kèm màu tô) sang Google Sheet "Báo cáo đại lý ngoài"?'))return;
+    const menu=document.getElementById('bcSusPhaseMenu');if(menu)menu.style.display='none';
+    // Chọn danh sách đại lý theo giai đoạn
+    let list,phaseLabel;
+    if(phase==='all'||phase==null){list=BC.SUSPECTS.filter(x=>!x.sep);phaseLabel='tất cả giai đoạn';}
+    else{const g=BC.suspectSegments()[phase];if(!g||!g.items.length){alert('Giai đoạn này chưa có đại lý.');return;}list=g.items.map(x=>x.s);phaseLabel=g.label;}
+    if(!list.length){alert('Chưa có đại lý nghi ngờ nào để gửi.');return;}
+    if(!confirm('Gửi '+list.length+' đại lý nghi ngờ ('+phaseLabel+', kèm màu tô) sang Google Sheet "Báo cáo đại lý ngoài"?'))return;
     // Mỗi đại lý 1 khối riêng (server chừa 1 dòng trống + merge cột Đại lý);
     // server tự khớp field theo TIÊU ĐỀ HÀNG 1 của sheet. Tiền định dạng sẵn kiểu VN (350.000)
-    const blocks=BC.SUSPECTS.map(s=>{
+    const blocks=list.map(s=>{
       const cm=new Set(s.cellMarks||[]);
       return{agent:s.dai_ly,rows:(s.members||[]).map((r,i)=>({
         v:{id:r.id,cap_bac:r.cap_bac,ho_ten:r.ho_ten,khach:r.khach,chi_tieu:r.chi_tieu,
@@ -5009,8 +5095,8 @@ const BC={
         body:JSON.stringify({token:BC.GS_TOKEN,by:(CUR_PROFILE.username||'').toUpperCase(),blocks})});
       const j=await res.json().catch(()=>null);
       if(j&&j.ok){
-        alert('Đã dán '+(j.added||rowTotal)+' dòng ('+BC.SUSPECTS.length+' đại lý) vào Google Sheet ✓');
-        logAction('Gửi nghi ngờ → Google Sheet',BC.SUSPECTS.length+' đại lý · '+rowTotal+' dòng');
+        alert('Đã dán '+(j.added||rowTotal)+' dòng ('+list.length+' đại lý · '+phaseLabel+') vào Google Sheet ✓');
+        logAction('Gửi nghi ngờ → Google Sheet',list.length+' đại lý · '+phaseLabel+' · '+rowTotal+' dòng');
       }else{
         alert('Gửi không thành công'+(j&&j.error?':\n'+j.error:' — kiểm tra lại deploy Apps Script (Web app · Anyone).'));
       }
