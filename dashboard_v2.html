@@ -2815,8 +2815,8 @@ const DR={
       }
       let dur=null;
       if(stt&&en){const dd=(en.getTime()-stt.getTime())/1000;if(dd>=0&&dd<=7*86400)dur=Math.round(dd);}
-      const stt=r[0]==null?'':String(r[0]).trim();
-      b.orders.push({fk,stt,m:r[3]==null?'?':String(r[3]).trim(),lv:level,a:amt,f:isFirst,t,t7,day7,d:dur,b:br});
+      const sttNo=r[0]==null?'':String(r[0]).trim();
+      b.orders.push({fk,stt:sttNo,m:r[3]==null?'?':String(r[3]).trim(),lv:level,a:amt,f:isFirst,t,t7,day7,d:dur,b:br});
     }
     return {label,totalRows,totalNoted,totalFirst,gbr,fks};
   },
@@ -3022,6 +3022,7 @@ const DR={
       <div style="display:grid;grid-template-columns:${gc};gap:7px;padding:4px 12px;font-size:.52rem;color:var(--mu);text-transform:uppercase;letter-spacing:.03em;background:var(--card2);border-radius:6px 6px 0 0"><span>#</span><span>Số thứ tự</span><span>FK duyệt</span><span>Hội viên (ID)</span><span style="text-align:right">Số tiền</span><span style="text-align:right">GMT+7</span><span style="text-align:right">Ngày</span><span>Trạng thái</span></div>
       ${rows}
     </div>`;
+  },
   fkModalHTML(fk){
     const f=DR.data&&DR.data.fks[fk];if(!f)return '';
     const lvs=Object.entries(f.levels).sort((a,b)=>b[1].total-a[1].total);
