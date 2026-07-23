@@ -697,7 +697,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
           <!-- Ô dán text Telegram: đối chiếu KO có xin ý kiến TT cho đơn >150k -->
           <div class="stat-card" style="border-color:rgba(6,182,212,.35)">
             <div class="stat-lbl" style="color:var(--cy)">Xin ý kiến TT (Telegram)</div>
-            <textarea id="drTgText" rows="2" placeholder="Dán text copy từ nhóm Telegram vào đây..." spellcheck="false" style="width:100%;margin-top:6px;background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:6px;padding:6px 8px;font-size:.6rem;font-family:monospace;line-height:1.5;resize:vertical;outline:none"></textarea>
+            <textarea id="drTgText" rows="2" placeholder="Dán text nhóm Telegram (có mã Số thứ tự đơn) vào đây..." spellcheck="false" style="width:100%;margin-top:6px;background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:6px;padding:6px 8px;font-size:.6rem;font-family:monospace;line-height:1.5;resize:vertical;outline:none"></textarea>
             <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
               <button onclick="drTgCheck()" style="background:var(--cy);color:#062a30;border:none;border-radius:6px;padding:5px 12px;font-size:.62rem;font-weight:800;cursor:pointer">Đối chiếu</button>
               <span id="drTgSum" style="font-size:.58rem;color:var(--mu)"></span>
@@ -2815,7 +2815,8 @@ const DR={
       }
       let dur=null;
       if(stt&&en){const dd=(en.getTime()-stt.getTime())/1000;if(dd>=0&&dd<=7*86400)dur=Math.round(dd);}
-      b.orders.push({fk,m:r[3]==null?'?':String(r[3]).trim(),lv:level,a:amt,f:isFirst,t,t7,day7,d:dur,b:br});
+      const stt=r[0]==null?'':String(r[0]).trim();
+      b.orders.push({fk,stt,m:r[3]==null?'?':String(r[3]).trim(),lv:level,a:amt,f:isFirst,t,t7,day7,d:dur,b:br});
     }
     return {label,totalRows,totalNoted,totalFirst,gbr,fks};
   },
@@ -2846,11 +2847,12 @@ const DR={
   },
   ordersHTML(list,showFk){
     if(!list.length)return '<div style="padding:8px 12px;color:var(--mu);font-size:.66rem">Không có đơn</div>';
-    const gc='24px 1.5fr 1fr 82px 46px 52px 40px 52px';
-    const head=`<div style="display:grid;grid-template-columns:${gc};gap:7px;padding:5px 12px;font-size:.54rem;color:var(--mu);text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0;background:var(--card2)"><span>#</span><span>Hội viên${showFk?' · FK':''}</span><span>Cấp độ</span><span style="text-align:right">Số tiền</span><span style="text-align:right">GMT−4</span><span style="text-align:right">GMT+7</span><span style="text-align:right">Ngày</span><span style="text-align:right">Xử lý</span></div>`;
+    const gc='24px 1.4fr 84px 1fr 82px 46px 52px 40px 52px';
+    const head=`<div style="display:grid;grid-template-columns:${gc};gap:7px;padding:5px 12px;font-size:.54rem;color:var(--mu);text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0;background:var(--card2)"><span>#</span><span>Hội viên${showFk?' · FK':''}</span><span>Số thứ tự</span><span>Cấp độ</span><span style="text-align:right">Số tiền</span><span style="text-align:right">GMT−4</span><span style="text-align:right">GMT+7</span><span style="text-align:right">Ngày</span><span style="text-align:right">Xử lý</span></div>`;
     return head+list.map((o,i)=>`<div style="display:grid;grid-template-columns:${gc};gap:7px;padding:4px 12px;font-size:.63rem;border-top:1px solid rgba(30,37,69,.5)">
       <span style="color:var(--mu);font-family:monospace">${i+1}</span>
       <span style="font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${hesc(o.m)}">${hesc(o.m)}${showFk?`<span style="color:var(--pu2)"> · ${hesc(FK_NAMES[o.fk]||o.fk)}</span>`:''}${o.f?'<span style="color:var(--cy);font-size:.9em"> · lần đầu</span>':''}</span>
+      <span style="font-family:monospace;color:var(--cy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${hesc(o.stt)}">${hesc(o.stt||'—')}</span>
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mu2)" title="${hesc(o.lv)}">${hesc(o.lv)}</span>
       <span style="font-family:monospace;color:var(--go);text-align:right;font-weight:700">${o.a==null?'?':o.a.toLocaleString('vi')}</span>
       <span style="font-family:monospace;color:var(--mu);text-align:right">${o.t||''}</span>
@@ -2940,6 +2942,14 @@ const DR={
   },
   // ===== XIN Ý KIẾN TT: parse text Telegram + đối chiếu đơn >150k =====
   tgMsgs:null, // [{fk,id,dt:{day,min},amt,raw}]
+  tgStts:null, // Set các mã "Số thứ tự" (cột A) tìm thấy trong text dán
+  // Quét mọi mã số ≥5 chữ số trong text (mã Số thứ tự file đơn rút dài ~8 số → không trùng giờ/tiền)
+  parseSttSet(text){
+    const set=new Set();
+    const m=String(text||'').match(/\d{5,}/g);
+    if(m)m.forEach(x=>set.add(x.replace(/^0+/,'')||x));
+    return set;
+  },
   // Nhận diện số tiền linh động: 150tr / 150 triệu / 150k / 150.000 / 1500000 → quy về đơn vị file (nghìn)
   parseMoney(s){
     const m=String(s||'').match(/([\d][\d.,\s]*)\s*(tr|triệu|trieu|k|nghìn|nghin)?/i);
@@ -2974,58 +2984,55 @@ const DR={
     }
     return out;
   },
-  // Đối chiếu: đơn >150k phải có tin KO cùng FK + cùng ID + |giờ GMT+7| lệch ≤ 10 phút
+  // Đối chiếu đơn LỚN >150k với mã Số thứ tự trong text: đơn nào STT không có trong text = CHƯA xin ý kiến TT
+  sttKey(v){const s=String(v==null?'':v);return s.replace(/^0+/,'')||s;},
   tgCheck(){
     if(!DR.data)return null;
-    const TH=150000,TOL=10;
+    const TH=150000;
     const big=[];
     for(const fk of FK_KEYS)for(const o of DR.data.fks[fk].orders)if(o.a!=null&&o.a>=TH)big.push(o);
-    big.sort((a,b)=>(a.day7-b.day7)||((a.t7||'').localeCompare(b.t7||'')));
-    const res=big.map(o=>{
-      const [h,m]=(o.t7||'0:0').split(':').map(Number);
-      const oMin=(o.day7||0)*1440+h*60+m;
-      const hit=(DR.tgMsgs||[]).find(g=>g.fk===o.fk&&g.id.toLowerCase()===String(o.m).toLowerCase()&&Math.abs((g.day*1440+g.min)-oMin)<=TOL);
-      return {o,hit};
-    });
+    const res=big.map(o=>({o,sttHit:!!(DR.tgStts&&o.stt&&DR.tgStts.has(DR.sttKey(o.stt)))}));
+    // Chưa xin ý kiến lên đầu, rồi số tiền giảm dần
+    res.sort((a,b)=>(a.sttHit-b.sttHit)||((b.o.a||0)-(a.o.a||0)));
     return res;
   },
   renderTg(){
     const panel=document.getElementById('donrutTgPanel'),sum=document.getElementById('drTgSum');
     if(!panel)return;
-    if(!DR.data||!DR.tgMsgs){panel.innerHTML='';if(sum)sum.textContent=DR.tgMsgs?'':'';return;}
-    const res=DR.tgCheck()||[];
-    const miss=res.filter(r=>!r.hit);
-    if(sum)sum.textContent=`${DR.tgMsgs.length} tin KO · ${res.length} đơn >150k · ${miss.length} chưa xin ý kiến`;
+    if(!DR.data||!DR.tgStts){panel.innerHTML='';if(sum)sum.textContent='';return;}
+    const res=DR.tgCheck();
+    if(!res){panel.innerHTML='';if(sum)sum.textContent='';return;}
+    const miss=res.filter(r=>!r.sttHit),okN=res.length-miss.length;
+    if(sum)sum.textContent=`${res.length} đơn >150k · ${okN} đã xin ý kiến · ${miss.length} CHƯA xin ý kiến`;
     if(!res.length){panel.innerHTML='<div class="chart-card" style="font-size:.66rem;color:var(--mu)">Không có đơn nào >150.000 trong file để đối chiếu.</div>';return;}
-    const gc='24px 110px 1.3fr 90px 70px 40px 1fr';
-    const rows=res.map((r,i)=>{
-      const o=r.o,ok=!!r.hit;
-      return `<div style="display:grid;grid-template-columns:${gc};gap:7px;padding:5px 12px;font-size:.64rem;border-top:1px solid rgba(30,37,69,.5);background:${ok?'transparent':'rgba(239,68,68,.07)'}">
+    const gc='24px 104px 96px 1.2fr 92px 78px 52px 1fr';
+    const rows=res.map((r,i)=>{const o=r.o,ok=r.sttHit;
+      return `<div style="display:grid;grid-template-columns:${gc};gap:7px;padding:5px 12px;font-size:.64rem;border-top:1px solid rgba(30,37,69,.5);background:${ok?'transparent':'rgba(239,68,68,.08)'}">
         <span style="color:var(--mu);font-family:monospace">${i+1}</span>
+        <span style="font-family:monospace;color:${ok?'#10b981':'#f87171'};font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${hesc(o.stt)}">${hesc(o.stt||'—')}</span>
         <span style="font-family:monospace;color:${fkGrpCol(o.fk)};font-weight:700">${FK_NAMES[o.fk]||o.fk}</span>
         <span style="font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${hesc(o.m)}">${hesc(o.m)}</span>
-        <span style="font-family:monospace;color:var(--go);text-align:right;font-weight:700">${(o.a||0).toLocaleString('vi')}</span>
+        <span style="font-family:monospace;color:var(--go);text-align:right;font-weight:700">${o.a==null?'—':o.a.toLocaleString('vi')}</span>
         <span style="font-family:monospace;color:var(--pu2);text-align:right">${o.t7||''}</span>
         <span style="font-family:monospace;color:var(--mu2);text-align:right">${o.day7||''}</span>
-        <span style="font-size:.6rem;${ok?'color:#10b981':'color:#f87171;font-weight:800'}">${ok?'✔ đã xin ý kiến ('+String(Math.floor(r.hit.min/60)).padStart(2,'0')+':'+String(r.hit.min%60).padStart(2,'0')+')':'⚠ CHƯA XIN Ý KIẾN TT'}</span>
-      </div>`;
-    }).join('');
+        <span style="font-size:.6rem;${ok?'color:#10b981':'color:#f87171;font-weight:800'}">${ok?'✔ đã xin ý kiến':'⚠ CHƯA XIN Ý KIẾN'}</span>
+      </div>`;}).join('');
     panel.innerHTML=`<div class="chart-card" style="border:1px solid ${miss.length?'rgba(239,68,68,.4)':'rgba(16,185,129,.35)'}">
-      <div class="chart-title" style="color:${miss.length?'#f87171':'#10b981'}">Đối chiếu xin ý kiến TT — đơn >150.000 <span style="color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— khớp ID hội viên + đúng FK + lệch ≤10 phút (GMT+7). ${miss.length?miss.length+' đơn CHƯA xin ý kiến':'tất cả đã xin ý kiến ✓'}</span></div>
-      <div style="display:grid;grid-template-columns:${gc};gap:7px;padding:4px 12px;font-size:.52rem;color:var(--mu);text-transform:uppercase;letter-spacing:.03em;background:var(--card2);border-radius:6px 6px 0 0"><span>#</span><span>FK duyệt</span><span>Hội viên (ID)</span><span style="text-align:right">Số tiền</span><span style="text-align:right">GMT+7</span><span style="text-align:right">Ngày</span><span>Trạng thái</span></div>
+      <div class="chart-title" style="color:${miss.length?'#f87171':'#10b981'}">Đối chiếu xin ý kiến TT — đơn >150.000 <span style="color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— khớp Số thứ tự đơn với mã trong text tin nhắn. ${miss.length?'⚠ '+miss.length+' đơn CHƯA xin ý kiến (đỏ, xếp trên cùng)':'tất cả đã xin ý kiến ✓'}</span></div>
+      <div style="display:grid;grid-template-columns:${gc};gap:7px;padding:4px 12px;font-size:.52rem;color:var(--mu);text-transform:uppercase;letter-spacing:.03em;background:var(--card2);border-radius:6px 6px 0 0"><span>#</span><span>Số thứ tự</span><span>FK duyệt</span><span>Hội viên (ID)</span><span style="text-align:right">Số tiền</span><span style="text-align:right">GMT+7</span><span style="text-align:right">Ngày</span><span>Trạng thái</span></div>
       ${rows}
     </div>`;
-  },
   fkModalHTML(fk){
     const f=DR.data&&DR.data.fks[fk];if(!f)return '';
     const lvs=Object.entries(f.levels).sort((a,b)=>b[1].total-a[1].total);
     const orders=f.orders.slice().sort((a,b)=>(b.a||0)-(a.a||0));
-    const gc='24px 1.4fr 1fr 82px 46px 52px 40px 52px 40px';
+    const gc='24px 1.4fr 84px 1fr 82px 46px 52px 40px 52px 40px';
     const oh=orders.length?(
-      `<div style="display:grid;grid-template-columns:${gc};gap:7px;padding:5px 10px;font-size:.54rem;color:var(--mu);text-transform:uppercase;letter-spacing:.03em;position:sticky;top:0;background:var(--card2)"><span>#</span><span>ID đăng nhập</span><span>Cấp độ TV</span><span style="text-align:right">Số tiền</span><span style="text-align:right">GMT−4</span><span style="text-align:right">GMT+7</span><span style="text-align:right">Ngày</span><span style="text-align:right">Xử lý</span><span style="text-align:right">Loại</span></div>`+
+      `<div style="display:grid;grid-template-columns:${gc};gap:7px;padding:5px 10px;font-size:.54rem;color:var(--mu);text-transform:uppercase;letter-spacing:.03em;position:sticky;top:0;background:var(--card2)"><span>#</span><span>ID đăng nhập</span><span>Số thứ tự</span><span>Cấp độ TV</span><span style="text-align:right">Số tiền</span><span style="text-align:right">GMT−4</span><span style="text-align:right">GMT+7</span><span style="text-align:right">Ngày</span><span style="text-align:right">Xử lý</span><span style="text-align:right">Loại</span></div>`+
       orders.map((o,i)=>`<div style="display:grid;grid-template-columns:${gc};gap:7px;padding:4px 10px;font-size:.63rem;border-top:1px solid rgba(30,37,69,.5)">
         <span style="color:var(--mu);font-family:monospace">${i+1}</span>
         <span style="font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${hesc(o.m)}">${hesc(o.m)}</span>
+        <span style="font-family:monospace;color:var(--cy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${hesc(o.stt)}">${hesc(o.stt||'—')}</span>
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mu2)" title="${hesc(o.lv)}">${hesc(o.lv)}</span>
         <span style="font-family:monospace;color:var(--go);text-align:right;font-weight:700">${o.a==null?'?':o.a.toLocaleString('vi')}</span>
         <span style="font-family:monospace;color:var(--mu);text-align:right">${o.t||''}</span>
@@ -3072,9 +3079,9 @@ function drTgCheck(){
   const text=(document.getElementById('drTgText').value||'').trim();
   const sum=document.getElementById('drTgSum');
   if(!DR.data){if(sum)sum.textContent='Chưa có dữ liệu — thả file Excel trước.';return;}
-  if(!text){DR.tgMsgs=null;if(sum)sum.textContent='Chưa dán text.';document.getElementById('donrutTgPanel').innerHTML='';return;}
-  DR.tgMsgs=DR.parseTg(text);
-  if(!DR.tgMsgs.length){if(sum)sum.textContent='Không nhận diện được tin KO nào — kiểm tra định dạng [ngày giờ] KO <TÊN> NE: ...';document.getElementById('donrutTgPanel').innerHTML='';DR.tgMsgs=null;return;}
+  if(!text){DR.tgStts=null;if(sum)sum.textContent='Chưa dán text.';document.getElementById('donrutTgPanel').innerHTML='';return;}
+  const stts=DR.parseSttSet(text);DR.tgStts=stts.size?stts:null;
+  if(!DR.tgStts){if(sum)sum.textContent='Không tìm thấy mã Số thứ tự (số) nào trong text.';document.getElementById('donrutTgPanel').innerHTML='';return;}
   DR.renderTg();
 }
 // ---- Popup toàn bộ thông tin 1 FK ----
