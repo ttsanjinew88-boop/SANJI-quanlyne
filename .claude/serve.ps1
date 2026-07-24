@@ -1,4 +1,6 @@
 $root = Split-Path $PSScriptRoot -Parent
+# Gop src/ -> dashboard_v2.html truoc khi phuc vu (de sua trong src/ la thay ngay).
+try { & (Join-Path $root 'build.ps1') } catch { Write-Host "build.ps1 loi, phuc vu ban cu: $_" }
 $l = New-Object Net.HttpListener
 $l.Prefixes.Add('http://localhost:8788/')
 $l.Start()

@@ -19,8 +19,13 @@
 - User **tự chạy SQL** và **tự deploy Edge Function**. Không tự làm hộ.
 - **Đừng sửa file trực tiếp trên GitHub** khi Claude đang sửa local (gây lệch, phải `git pull --rebase`).
 - Deploy: `git commit → push → chờ GitHub Actions`. Poll API `until grep '"conclusion"'`.
+- **BUILD (chốt 24/07/2026 — đang tách dần)**: `dashboard_v2.html` giờ là FILE SINH RA từ `src/` — **ĐỪNG sửa thẳng file này** (build kế tiếp ghi đè). Sửa trong `src/`:
+  - `src/dashboard_v2.src.html` — khung (còn chứa gần hết HTML + JS khối T1), có dấu `/*#include styles.css*/` và `//#include js/bc.js`.
+  - `src/styles.css` — toàn bộ CSS (khối `<style>`).
+  - `src/js/bc.js` — khối JS T2 (BC / Nghi Ngờ, `<script>` thứ 2).
+  - `build.ps1` (root) gộp lại bằng `.Replace` chuỗi thô (giữ CRLF, không phụ thuộc OS). `serve.ps1` tự chạy `build.ps1` trước khi phục vụ. **Phép thử vàng: build xong `git diff dashboard_v2.html` phải RỖNG** (SHA256 khớp). Chưa nối vào `deploy.yml` — CI vẫn deploy `dashboard_v2.html` đã commit. Lộ trình: tách tiếp từng khối JS T1 ra `src/js/*.js`, mỗi bước 1 commit diff-rỗng.
 
-## Bố cục file `dashboard_v2.html`
+## Bố cục file `dashboard_v2.html` (số dòng theo FILE GỘP; sửa thì vào `src/`)
 | Vùng | Dòng | Nội dung |
 |---|---|---|
 | CSS | 14–438 | `<style>`; biến theme ở `:root{` dòng **15** (galaxy dark) |
