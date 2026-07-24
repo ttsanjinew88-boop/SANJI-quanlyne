@@ -1,4 +1,3 @@
-
 // ===== TOOL SWITCHER =====
 function switchTool(id){
   document.getElementById('t1').style.display=id==='t1'?'':'none';

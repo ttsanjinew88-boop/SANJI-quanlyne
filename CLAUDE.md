@@ -19,11 +19,12 @@
 - User **tự chạy SQL** và **tự deploy Edge Function**. Không tự làm hộ.
 - **Đừng sửa file trực tiếp trên GitHub** khi Claude đang sửa local (gây lệch, phải `git pull --rebase`).
 - Deploy: `git commit → push → chờ GitHub Actions`. Poll API `until grep '"conclusion"'`.
-- **BUILD (chốt 24/07/2026 — đang tách dần)**: `dashboard_v2.html` giờ là FILE SINH RA từ `src/` — **ĐỪNG sửa thẳng file này** (build kế tiếp ghi đè). Sửa trong `src/`:
-  - `src/dashboard_v2.src.html` — khung (còn chứa gần hết HTML + JS khối T1), có dấu `/*#include styles.css*/` và `//#include js/bc.js`.
+- **BUILD (chốt 24/07/2026)**: `dashboard_v2.html` là FILE SINH RA từ `src/` — **ĐỪNG sửa thẳng file này** (build ghi đè). `build.ps1` (root) ghép các mảnh bằng `.Replace` chuỗi thô (giữ CRLF, marker mỗi cái 1 dòng, file con không có newline thừa → byte-identical). `serve.ps1` tự chạy `build.ps1` trước khi phục vụ. **Phép thử vàng: build xong `git diff dashboard_v2.html` phải RỖNG** (SHA256 khớp). CHƯA nối vào `deploy.yml` — CI vẫn deploy `dashboard_v2.html` đã commit (nên phải commit cả file sinh ra). Muốn tự sinh trên CI thì thêm 1 step `pwsh build.ps1` trước `upload-pages-artifact`.
+  - `src/dashboard_v2.src.html` (~856 dòng) — khung: gần như toàn bộ HTML (body/modal/login/tabs) + các dòng marker `//#include`. **JS đã tách hết ra `src/js/`.**
   - `src/styles.css` — toàn bộ CSS (khối `<style>`).
-  - `src/js/bc.js` — khối JS T2 (BC / Nghi Ngờ, `<script>` thứ 2).
-  - `build.ps1` (root) gộp lại bằng `.Replace` chuỗi thô (giữ CRLF, không phụ thuộc OS). `serve.ps1` tự chạy `build.ps1` trước khi phục vụ. **Phép thử vàng: build xong `git diff dashboard_v2.html` phải RỖNG** (SHA256 khớp). Chưa nối vào `deploy.yml` — CI vẫn deploy `dashboard_v2.html` đã commit. Lộ trình: tách tiếp từng khối JS T1 ra `src/js/*.js`, mỗi bước 1 commit diff-rỗng.
+  - **JS khối T1** (thứ tự trong file gộp): `src/js/core.js` (util, cấu hình cột Nghi Ngờ, module `SB` Supabase, profile/quyền) → `auth.js` (AUTH đăng nhập + phân quyền + white-IP lúc login) → `admin.js` (rAdminPanel, 2FA, white-IP quản lý, Lịch Sử, xóa/xuất tháng) → `data-boot.js` (tháng/dataset/bootData, KO_OV/KO_AN localStorage, URL handler Telegram, progress UI, hàm chấm điểm) → `upload.js` (upload dropdown, parse Excel, helper Đơn Rút, cộng dồn add-mode) → `nav-donrut.js` (navigation sw/switchTool/rAll + module `DR` Báo Cáo Đơn Rút) → `render.js` (thống kê KM, render tab Dữ Liệu, Hiệu Suất Duyệt Đơn, Tổng Quan, Bất Thường, Hạn Mức) → `shift-rank.js` (Phân Ca, Công Việc, Xếp Hạng, màu FK).
+  - **JS khối T2**: `src/js/bc.js` (module `BC`: parse, render, Tổng Hợp/Nghi Ngờ, gửi Telegram/Sheet).
+  - ⚠ Số dòng trong bảng "Bố cục" & "Bản đồ chức năng" bên dưới là theo FILE GỘP; khi sửa thì mở đúng file `src/js/*` tương ứng (grep tên hàm để định vị trong file con).
 
 ## Bố cục file `dashboard_v2.html` (số dòng theo FILE GỘP; sửa thì vào `src/`)
 | Vùng | Dòng | Nội dung |
