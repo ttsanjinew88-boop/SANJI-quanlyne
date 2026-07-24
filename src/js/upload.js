@@ -41,6 +41,47 @@ document.getElementById("fh").addEventListener("change",function(e){
   processFiles(files,0,null,target);
 });
 
+// ===== LỌC NGÀY KHI CỘNG DỒN: giữ mọi ngày có lượng đơn đáng kể, bỏ mẩu lẻ ở ranh giới nửa đêm =====
+// Chỉ dùng cho chế độ "Thêm ngày (cộng dồn)". Mirror cách chia ngày trong processChunks:
+// DON = cột T (idx19, GMT-4); KM = cột B (idx1, GMT+8 → GMT-4 trừ 12h).
+function _dayOfRow(row,target){
+  let pd=null;
+  if(target==="km"){
+    const v=row[1];
+    if(v instanceof Date)pd=v;
+    else if(typeof v==="number"&&v>40000)pd=new Date((v-25569)*86400000);
+    else if(v){try{pd=new Date(String(v).replace(" ","T"));}catch(e){}}
+    if(!pd||isNaN(pd.getTime()))return 0;
+    return new Date(pd.getTime()-12*3600000).getDate();
+  }
+  const v=row[19];
+  if(v instanceof Date)pd=v;
+  else if(typeof v==="number"&&v>40000)pd=new Date((v-25569)*86400000);
+  else if(v){try{pd=new Date(String(v).replace(/(\d{4})\/(\d{2})\/(\d{2})/,'$1-$2-$3').replace(" ","T"));}catch(e){}}
+  if(!pd||isNaN(pd.getTime()))return 0;
+  return pd.getDate();
+}
+// Trả về aoa đã lọc; chính aoa nếu không cần lọc; null nếu user hủy.
+function filterUploadDays(aoa,target){
+  const hist={};
+  for(let i=1;i<aoa.length;i++){const d=_dayOfRow(aoa[i]||[],target);if(d)hist[d]=(hist[d]||0)+1;}
+  const days=Object.keys(hist).map(Number);
+  if(days.length<=1)return aoa;
+  const max=Math.max(...days.map(d=>hist[d]));
+  // Giữ ngày nếu >=5% ngày lớn nhất HOẶC >=100 đơn (bảo vệ ngày thật nhưng ít đơn); còn lại = mẩu lẻ -> bỏ.
+  const keep=new Set(days.filter(d=>hist[d]>=max*0.05||hist[d]>=100));
+  const drop=days.filter(d=>!keep.has(d)).sort((a,b)=>a-b);
+  if(!drop.length)return aoa;
+  const dd=d=>String(d).padStart(2,"0");
+  const keepStr=[...keep].sort((a,b)=>a-b).map(d=>"ngày "+dd(d)+" ("+hist[d].toLocaleString("vi")+" đơn)").join(", ");
+  const dropStr=drop.map(d=>"ngày "+dd(d)+" ("+hist[d]+" đơn)").join(", ");
+  const dropTotal=drop.reduce((s,d)=>s+hist[d],0);
+  if(!confirm("File này chứa nhiều ngày:\n\n• GIỮ: "+keepStr+"\n• BỎ (lẻ ở ranh giới nửa đêm): "+dropStr+"\n\nTổng "+dropTotal+" đơn lẻ sẽ bị loại để không lẫn sang ngày khác.\n\nĐồng ý?"))return null;
+  const out=[aoa[0]];
+  for(let i=1;i<aoa.length;i++){const row=aoa[i]||[];const d=_dayOfRow(row,target);if(d===0||keep.has(d))out.push(row);}
+  return out;
+}
+
 function processFiles(files,idx,acc,target){
   if(idx>=files.length){finalizeResult(acc,target);return;}
   const file=files[idx];
@@ -57,8 +98,15 @@ function processFiles(files,idx,acc,target){
         setProg(15,"Đang chuyển đổi dữ liệu...","");
         setTimeout(function(){
           const aoa=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:""});
+          // Chế độ cộng dồn: loại các đơn thuộc ngày lẻ ở ranh giới (giữ mọi ngày thật)
+          let useAoa=aoa;
+          if(window._uploadMode==="add"){
+            const f=filterUploadDays(aoa,target);
+            if(f===null){hideProg();return;}
+            useAoa=f;
+          }
           const nd=initAccum();
-          processChunks(aoa,1,nd,files,idx,acc,target);
+          processChunks(useAoa,1,nd,files,idx,acc,target);
         },30);
       }catch(err){hideProg();alert("Lỗi đọc file: "+err.message);}
     },50);

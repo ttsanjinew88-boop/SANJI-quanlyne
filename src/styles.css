@@ -130,7 +130,7 @@ input#fh{display:none}
 .mtbl tr:nth-child(even) td{background:#0b0e1e}
 .mtbl tr:nth-child(odd) td{background:#080b18}
 .mtbl tr:hover td{background:#141933!important}
-td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text-align:left;font-weight:700;padding-left:10px}
+td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:3;text-align:left;font-weight:700;padding-left:10px}
 .mtbl .total-row td{background:#111630!important;color:var(--go)!important;font-weight:800;border-top:2px solid rgba(240,180,41,.3)}
 .mtbl .total-row td.sticky-col{background:#111630!important}
 .cell-zero{color:#1e2545}
@@ -234,9 +234,9 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:1;text
 .ko-ov-foot .ofc .ofl{font-size:.54rem;color:var(--mu2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
 .ko-ov-foot .ofc .ofv{font-size:1.05rem;font-weight:800;color:var(--go)}
 .mtbl tr.onl-row td{background:rgba(59,130,246,.07)!important}
-.mtbl tr.onl-row td.sticky-col{background:rgba(59,130,246,.14)!important}
+.mtbl tr.onl-row td.sticky-col{background:#121e3c!important}
 .mtbl tr.vip-row td{background:rgba(240,180,41,.035)!important}
-.mtbl tr.vip-row td.sticky-col{background:rgba(240,180,41,.09)!important}
+.mtbl tr.vip-row td.sticky-col{background:#201d1f!important}
 
 /* HOUR TABLE */
 .htbl{border-collapse:collapse;font-size:.68rem;width:100%}
