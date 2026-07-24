@@ -25,5 +25,8 @@ foreach ($inc in $includes) {
   $content = [IO.File]::ReadAllText((Join-Path $root ('src/' + $inc[1])), $enc)
   $tpl = $tpl.Replace($inc[0], $content)
 }
+# Chot an toan: khong duoc con marker (neu con -> sai duong dan/thieu file -> dung, khong deploy file hong)
+if ($tpl.Contains('/*#include ') -or $tpl.Contains('//#include ')) { throw "Con marker #include chua thay -> build that bai" }
+if ($tpl.Length -lt 300000) { throw "Output qua nho ($($tpl.Length) chars) -> build nghi ngo loi" }
 [IO.File]::WriteAllText((Join-Path $root 'dashboard_v2.html'), $tpl, $enc)
 Write-Host "Built dashboard_v2.html ($($tpl.Length) chars)"
