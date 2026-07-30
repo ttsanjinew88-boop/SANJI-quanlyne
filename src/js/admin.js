@@ -171,7 +171,7 @@ async function start2faEnroll(){
     document.getElementById('tfa-secret').textContent=data.totp.secret;
     document.getElementById('tfa-off').style.display='none';
     document.getElementById('tfa-enroll').style.display='block';
-    const c=document.getElementById('tfa-code');c.value='';setTimeout(()=>c.focus(),100);
+    OTP.reset('tfa-code');
   }catch(e){console.error('start2faEnroll',e);err.textContent='Lỗi tạo mã 2FA (kiểm tra MFA đã bật trong Supabase chưa)';}
 }
 async function confirm2faEnroll(){
@@ -180,7 +180,7 @@ async function confirm2faEnroll(){
   if(!/^\d{6}$/.test(code)){err.textContent='Nhập đúng mã 6 số';return;}
   try{
     const{error}=await SB.client().auth.mfa.challengeAndVerify({factorId:_enrollFactorId,code});
-    if(error){err.textContent='Mã không đúng — thử lại';return;}
+    if(error){err.textContent='Mã không đúng — thử lại';OTP.reset('tfa-code');return;}
     logAction('Bật 2FA','Google Authenticator');
     close2faModal();
     alert('Đã BẬT 2FA thành công!\nTừ lần đăng nhập sau, bạn sẽ cần nhập mã 6 số từ Google Authenticator.');

@@ -414,6 +414,10 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .login-sub{font-size:.65rem;color:var(--mu);margin-bottom:22px}
 .login-inp{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:11px 14px;font-size:.8rem;color:var(--tx);outline:none;margin-bottom:10px;box-sizing:border-box;font-family:inherit}
 .login-inp:focus{border-color:var(--pu)}
+.otp-wrap{display:flex;gap:8px;justify-content:center;margin-bottom:10px}
+.otp-box{flex:1 1 0;min-width:0;max-width:54px;height:52px;text-align:center;font-size:1.3rem;font-weight:800;color:var(--tx);background:var(--card2);border:1px solid var(--border2);border-radius:9px;outline:none;font-family:inherit;box-sizing:border-box;caret-color:var(--pu2);transition:border-color .15s,box-shadow .15s}
+.otp-box:focus{border-color:var(--pu2);box-shadow:0 0 0 3px rgba(124,58,237,.20)}
+.otp-box.filled{border-color:var(--pu)}
 .login-btn{width:100%;background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;border:none;border-radius:8px;padding:11px;font-size:.8rem;font-weight:800;cursor:pointer;box-shadow:0 4px 15px rgba(124,58,237,.3);margin-top:4px;letter-spacing:.05em}
 .login-btn:hover{opacity:.9}
 .login-btn:disabled{background:var(--border2);color:var(--mu);cursor:not-allowed;box-shadow:none}

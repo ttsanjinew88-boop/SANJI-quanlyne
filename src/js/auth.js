@@ -161,14 +161,14 @@ const AUTH={
     document.getElementById('lg-stepEnroll').style.display='none';
     document.getElementById('lg-step2fa').style.display='block';
     document.getElementById('lg-err').textContent='';
-    const c=document.getElementById('lg-2fa-code');c.value='';setTimeout(()=>c.focus(),100);
+    OTP.reset('lg-2fa-code');
   },
   _reset2faStep(){
     document.getElementById('lg-step1').style.display='block';
     document.getElementById('lg-step2fa').style.display='none';
     document.getElementById('lg-stepEnroll').style.display='none';
-    document.getElementById('lg-2fa-code').value='';
-    document.getElementById('lg-enroll-code').value='';
+    OTP.reset('lg-2fa-code');
+    OTP.reset('lg-enroll-code');
   },
   _enrollFactorId:null,_enrollSecret:'',
   // Dựng link otpauth với nhãn tùy chỉnh: "He Thong NE : <TÊN> - <ngày>"
@@ -199,7 +199,7 @@ const AUTH={
         const qr=qrcode(0,'M');qr.addData(uri);qr.make();
         document.getElementById('lg-qr').src=qr.createDataURL(5,8);
       }catch(e){document.getElementById('lg-qr').src=data.totp.qr_code;} // dự phòng QR mặc định Supabase
-      const c=document.getElementById('lg-enroll-code');c.value='';setTimeout(()=>c.focus(),150);
+      OTP.reset('lg-enroll-code');
     }catch(e){console.error('showEnrollStep',e);document.getElementById('lg-err').textContent='Lỗi thiết lập 2FA';}
   },
   async confirmEnrollLogin(){
@@ -210,7 +210,7 @@ const AUTH={
     btn.disabled=true;btn.textContent='Đang xác nhận...';
     try{
       const{error}=await SB.client().auth.mfa.challengeAndVerify({factorId:AUTH._enrollFactorId,code});
-      if(error){err.textContent='Mã không đúng — thử lại';return;}
+      if(error){err.textContent='Mã không đúng — thử lại';OTP.reset('lg-enroll-code');return;}
       const u=AUTH._pendingUser;AUTH._pendingUser=null;AUTH._reset2faStep();
       try{await logAction('Bật 2FA','Google Authenticator (bắt buộc lúc đăng nhập)');}catch(e){}
       await AUTH.postLogin(u);
@@ -237,7 +237,7 @@ const AUTH={
       const{data:ch,error:ce}=await SB.client().auth.mfa.challenge({factorId:totp.id});
       if(ce){err.textContent='Lỗi: '+ce.message;return;}
       const{error:ve}=await SB.client().auth.mfa.verify({factorId:totp.id,challengeId:ch.id,code});
-      if(ve){err.textContent='Mã không đúng hoặc đã hết hạn — thử lại';return;}
+      if(ve){err.textContent='Mã không đúng hoặc đã hết hạn — thử lại';OTP.reset('lg-2fa-code');return;}
       const u=AUTH._pendingUser||(await SB.client().auth.getUser()).data.user;
       AUTH._pendingUser=null;AUTH._reset2faStep();
       await AUTH.postLogin(u);

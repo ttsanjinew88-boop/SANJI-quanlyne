@@ -139,22 +139,26 @@ function wkAssignCore(startDay){
       const avail=members.filter(fk=>((WORK[fk]||{})[d])!=='OFF');
       if(!avail.length)continue;
       const mon=isMon(d);
-      // KM (ưu tiên 1): người ít KM nhất; thứ 2 loại người đã có KM-thứ-2
-      const kmPool=avail.filter(fk=>!mon||kmMon[fk]<1);
+      // KM (ưu tiên 1): người ít KM nhất. Thứ 2: loại người đã có KM-thứ-2;
+      // nhưng ÉP luôn có 1 KM/ca — nếu Thứ 2 mọi người đã hết suất thì fallback về cả ca.
+      let kmPool=avail.filter(fk=>!mon||kmMon[fk]<1);
+      if(!kmPool.length)kmPool=avail;
       let kmPick=null;
-      if(kmPool.length){
+      {
         const min=Math.min(...kmPool.map(fk=>kmCount[fk]));
         const cands=kmPool.filter(fk=>kmCount[fk]===min);
         kmPick=cands[Math.floor(Math.random()*cands.length)];
       }
-      // HT (ưu tiên 3): người ít HT nhất; hòa nhau -> ưu tiên người đang NHIỀU DD (để DD đều lại)
+      // HT (ưu tiên 3 — "HT sau"): HT dùng để GÁNH lệch cho DD.
+      // Cân bằng KM & DD trước: cho người đang NHIỀU DD nhất làm HT (để họ khỏi phải DD hôm nay)
+      // -> DD san đều hơn; hòa DD thì mới xét người ít HT nhất.
       let htPick=null;
       const htPool=avail.filter(fk=>fk!==kmPick);
       if(htPool.length){
-        const min=Math.min(...htPool.map(fk=>htCount[fk]));
-        let cands=htPool.filter(fk=>htCount[fk]===min);
-        const maxDd=Math.max(...cands.map(fk=>ddCount[fk]));
-        cands=cands.filter(fk=>ddCount[fk]===maxDd);
+        const maxDd=Math.max(...htPool.map(fk=>ddCount[fk]));
+        let cands=htPool.filter(fk=>ddCount[fk]===maxDd);
+        const minHt=Math.min(...cands.map(fk=>htCount[fk]));
+        cands=cands.filter(fk=>htCount[fk]===minHt);
         htPick=cands[Math.floor(Math.random()*cands.length)];
       }
       avail.forEach(fk=>{

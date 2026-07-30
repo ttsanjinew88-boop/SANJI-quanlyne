@@ -428,6 +428,10 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .login-sub{font-size:.65rem;color:var(--mu);margin-bottom:22px}
 .login-inp{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:11px 14px;font-size:.8rem;color:var(--tx);outline:none;margin-bottom:10px;box-sizing:border-box;font-family:inherit}
 .login-inp:focus{border-color:var(--pu)}
+.otp-wrap{display:flex;gap:8px;justify-content:center;margin-bottom:10px}
+.otp-box{flex:1 1 0;min-width:0;max-width:54px;height:52px;text-align:center;font-size:1.3rem;font-weight:800;color:var(--tx);background:var(--card2);border:1px solid var(--border2);border-radius:9px;outline:none;font-family:inherit;box-sizing:border-box;caret-color:var(--pu2);transition:border-color .15s,box-shadow .15s}
+.otp-box:focus{border-color:var(--pu2);box-shadow:0 0 0 3px rgba(124,58,237,.20)}
+.otp-box.filled{border-color:var(--pu)}
 .login-btn{width:100%;background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;border:none;border-radius:8px;padding:11px;font-size:.8rem;font-weight:800;cursor:pointer;box-shadow:0 4px 15px rgba(124,58,237,.3);margin-top:4px;letter-spacing:.05em}
 .login-btn:hover{opacity:.9}
 .login-btn:disabled{background:var(--border2);color:var(--mu);cursor:not-allowed;box-shadow:none}
@@ -498,7 +502,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
       <div style="font-size:.64rem;color:var(--mu);margin-bottom:4px">Hoặc nhập tay mã bí mật (ID) này:</div>
       <div id="tfa-secret" style="font-family:monospace;font-size:.72rem;font-weight:800;color:var(--cy);background:var(--card2);border:1px solid var(--border2);border-radius:6px;padding:8px;margin-bottom:14px;word-break:break-all;cursor:pointer" title="Bấm để copy" onclick="copy2faSecret()"></div>
       <div style="font-size:.7rem;color:var(--mu2);margin-bottom:8px">2. Nhập mã 6 số đang hiện trong app để xác nhận:</div>
-      <input class="login-inp" id="tfa-code" inputmode="numeric" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:.5em;font-size:1.1rem;font-weight:800" onkeydown="if(event.key==='Enter')confirm2faEnroll()">
+      <div class="otp-wrap" data-for="tfa-code" data-submit="confirm2faEnroll"></div>
       <button onclick="confirm2faEnroll()" style="width:100%;background:linear-gradient(135deg,var(--pu),var(--bl));border:none;color:#fff;border-radius:8px;padding:10px;font-size:.75rem;font-weight:800;cursor:pointer;margin-top:6px">Xác nhận bật 2FA</button>
     </div>
     <div id="tfa-err" style="font-size:.68rem;color:var(--re);margin-top:10px;min-height:16px;font-weight:600"></div>
@@ -535,7 +539,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
     <!-- Bước 2: mã 2FA Google Authenticator (tài khoản đã bật 2FA) -->
     <div id="lg-step2fa" style="display:none">
       <div style="font-size:.72rem;color:var(--mu2);margin-bottom:12px;line-height:1.6">Nhập mã <b style="color:var(--tx)">6 số</b> từ ứng dụng <b style="color:var(--pu2)">Google Authenticator</b></div>
-      <input class="login-inp" id="lg-2fa-code" inputmode="numeric" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:.5em;font-size:1.1rem;font-weight:800" onkeydown="if(event.key==='Enter')AUTH.verifyLogin2fa()">
+      <div class="otp-wrap" data-for="lg-2fa-code" data-submit="AUTH.verifyLogin2fa"></div>
       <button class="login-btn" id="lg-2fa-btn" onclick="AUTH.verifyLogin2fa()">Xác minh</button>
       <button onclick="AUTH.cancel2fa()" style="width:100%;margin-top:8px;background:transparent;border:1px solid var(--border2);color:var(--mu2);border-radius:8px;padding:9px;font-size:.7rem;font-weight:700;cursor:pointer">Quay lại</button>
     </div>
@@ -547,7 +551,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
       <div style="font-size:.6rem;color:var(--mu);margin-bottom:3px">Hoặc nhập tay mã bí mật (ID):</div>
       <div id="lg-secret" style="font-family:monospace;font-size:.68rem;font-weight:800;color:var(--cy);background:var(--card2);border:1px solid var(--border2);border-radius:6px;padding:7px;margin-bottom:10px;word-break:break-all;cursor:pointer" title="Bấm để copy" onclick="AUTH.copyEnrollSecret()"></div>
       <div style="font-size:.68rem;color:var(--mu2);margin-bottom:6px">2. Nhập mã 6 số đang hiện trong app:</div>
-      <input class="login-inp" id="lg-enroll-code" inputmode="numeric" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:.5em;font-size:1.1rem;font-weight:800" onkeydown="if(event.key==='Enter')AUTH.confirmEnrollLogin()">
+      <div class="otp-wrap" data-for="lg-enroll-code" data-submit="AUTH.confirmEnrollLogin"></div>
       <button class="login-btn" id="lg-enroll-btn" onclick="AUTH.confirmEnrollLogin()">Xác nhận &amp; vào hệ thống</button>
       <button onclick="AUTH.cancel2fa()" style="width:100%;margin-top:8px;background:transparent;border:1px solid var(--border2);color:var(--mu2);border-radius:8px;padding:9px;font-size:.7rem;font-weight:700;cursor:pointer">Hủy</button>
     </div>
@@ -1106,6 +1110,63 @@ function nn(v){return(v||0).toLocaleString("vi-VN");}
 // Chống XSS: escape dữ liệu người-dùng-nhập (từ file Excel) trước khi đưa vào innerHTML
 function hesc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
+// ===== Ô NHẬP MÃ OTP 6 số rời (dùng chung cho 2FA: đăng nhập / bắt buộc thiết lập / bật trong cài đặt) =====
+// HTML chỉ cần <div class="otp-wrap" data-for="<id>" data-submit="Ham.xac.minh"></div>
+// OTP tự dựng 6 ô + 1 input ẩn mang đúng <id> để code cũ đọc/ghi .value như thường.
+const OTP=(function(){
+  const LEN=6;
+  function build(wrap){
+    if(wrap._otpBuilt)return;
+    wrap._otpBuilt=1;
+    const forId=wrap.getAttribute('data-for'),submit=wrap.getAttribute('data-submit')||'';
+    const hid=document.createElement('input');hid.type='hidden';hid.id=forId;wrap.appendChild(hid);
+    const boxes=[];
+    for(let i=0;i<LEN;i++){
+      const b=document.createElement('input');
+      b.type='text';b.className='otp-box';b.inputMode='numeric';b.maxLength=1;b.autocomplete='off';
+      b.setAttribute('aria-label','Số thứ '+(i+1));
+      wrap.appendChild(b);boxes.push(b);
+    }
+    const sync=()=>{hid.value=boxes.map(b=>b.value).join('');boxes.forEach(b=>b.classList.toggle('filled',!!b.value));return hid.value;};
+    const fire=()=>{const fn=submit.split('.').reduce((o,k)=>o&&o[k],window);if(typeof fn==='function')fn();};
+    boxes.forEach((b,i)=>{
+      b.addEventListener('focus',()=>b.select());
+      b.addEventListener('input',()=>{
+        b.value=b.value.replace(/\D/g,'').slice(0,1);
+        if(b.value&&i<LEN-1)boxes[i+1].focus();
+        if(sync().length===LEN){b.blur();fire();}
+      });
+      b.addEventListener('keydown',e=>{
+        if(e.key==='Backspace'&&!b.value&&i>0){boxes[i-1].value='';boxes[i-1].focus();sync();e.preventDefault();}
+        else if(e.key==='ArrowLeft'&&i>0){boxes[i-1].focus();e.preventDefault();}
+        else if(e.key==='ArrowRight'&&i<LEN-1){boxes[i+1].focus();e.preventDefault();}
+        else if(e.key==='Enter'){sync();fire();}
+      });
+      b.addEventListener('paste',e=>{
+        e.preventDefault();
+        const t=(((e.clipboardData||window.clipboardData).getData('text'))||'').replace(/\D/g,'').slice(0,LEN);
+        if(!t)return;
+        boxes.forEach((bb,j)=>bb.value=t[j]||'');
+        boxes[Math.min(t.length,LEN-1)].focus();
+        if(sync().length===LEN)fire();
+      });
+    });
+    wrap._boxes=boxes;wrap._hidden=hid;
+  }
+  return {
+    init(){document.querySelectorAll('.otp-wrap').forEach(build);},
+    reset(forId){
+      const wrap=document.querySelector('.otp-wrap[data-for="'+forId+'"]');
+      if(!wrap)return;
+      build(wrap);
+      wrap._boxes.forEach(b=>{b.value='';b.classList.remove('filled');});
+      wrap._hidden.value='';
+      setTimeout(()=>wrap._boxes[0].focus(),0);
+    }
+  };
+})();
+document.addEventListener('DOMContentLoaded',()=>OTP.init());
+
 // ===== NGHI NGỜ: tùy chỉnh cột hiển thị bảng chi tiết khách =====
 // Đầy đủ 20 cột — đúng như tab Tổng Hợp (ĐL là tiêu đề thẻ nên không lặp trong bảng khách)
 const SUSPECT_COLS=[
@@ -1349,14 +1410,14 @@ const AUTH={
     document.getElementById('lg-stepEnroll').style.display='none';
     document.getElementById('lg-step2fa').style.display='block';
     document.getElementById('lg-err').textContent='';
-    const c=document.getElementById('lg-2fa-code');c.value='';setTimeout(()=>c.focus(),100);
+    OTP.reset('lg-2fa-code');
   },
   _reset2faStep(){
     document.getElementById('lg-step1').style.display='block';
     document.getElementById('lg-step2fa').style.display='none';
     document.getElementById('lg-stepEnroll').style.display='none';
-    document.getElementById('lg-2fa-code').value='';
-    document.getElementById('lg-enroll-code').value='';
+    OTP.reset('lg-2fa-code');
+    OTP.reset('lg-enroll-code');
   },
   _enrollFactorId:null,_enrollSecret:'',
   // Dựng link otpauth với nhãn tùy chỉnh: "He Thong NE : <TÊN> - <ngày>"
@@ -1387,7 +1448,7 @@ const AUTH={
         const qr=qrcode(0,'M');qr.addData(uri);qr.make();
         document.getElementById('lg-qr').src=qr.createDataURL(5,8);
       }catch(e){document.getElementById('lg-qr').src=data.totp.qr_code;} // dự phòng QR mặc định Supabase
-      const c=document.getElementById('lg-enroll-code');c.value='';setTimeout(()=>c.focus(),150);
+      OTP.reset('lg-enroll-code');
     }catch(e){console.error('showEnrollStep',e);document.getElementById('lg-err').textContent='Lỗi thiết lập 2FA';}
   },
   async confirmEnrollLogin(){
@@ -1398,7 +1459,7 @@ const AUTH={
     btn.disabled=true;btn.textContent='Đang xác nhận...';
     try{
       const{error}=await SB.client().auth.mfa.challengeAndVerify({factorId:AUTH._enrollFactorId,code});
-      if(error){err.textContent='Mã không đúng — thử lại';return;}
+      if(error){err.textContent='Mã không đúng — thử lại';OTP.reset('lg-enroll-code');return;}
       const u=AUTH._pendingUser;AUTH._pendingUser=null;AUTH._reset2faStep();
       try{await logAction('Bật 2FA','Google Authenticator (bắt buộc lúc đăng nhập)');}catch(e){}
       await AUTH.postLogin(u);
@@ -1425,7 +1486,7 @@ const AUTH={
       const{data:ch,error:ce}=await SB.client().auth.mfa.challenge({factorId:totp.id});
       if(ce){err.textContent='Lỗi: '+ce.message;return;}
       const{error:ve}=await SB.client().auth.mfa.verify({factorId:totp.id,challengeId:ch.id,code});
-      if(ve){err.textContent='Mã không đúng hoặc đã hết hạn — thử lại';return;}
+      if(ve){err.textContent='Mã không đúng hoặc đã hết hạn — thử lại';OTP.reset('lg-2fa-code');return;}
       const u=AUTH._pendingUser||(await SB.client().auth.getUser()).data.user;
       AUTH._pendingUser=null;AUTH._reset2faStep();
       await AUTH.postLogin(u);
@@ -1696,7 +1757,7 @@ async function start2faEnroll(){
     document.getElementById('tfa-secret').textContent=data.totp.secret;
     document.getElementById('tfa-off').style.display='none';
     document.getElementById('tfa-enroll').style.display='block';
-    const c=document.getElementById('tfa-code');c.value='';setTimeout(()=>c.focus(),100);
+    OTP.reset('tfa-code');
   }catch(e){console.error('start2faEnroll',e);err.textContent='Lỗi tạo mã 2FA (kiểm tra MFA đã bật trong Supabase chưa)';}
 }
 async function confirm2faEnroll(){
@@ -1705,7 +1766,7 @@ async function confirm2faEnroll(){
   if(!/^\d{6}$/.test(code)){err.textContent='Nhập đúng mã 6 số';return;}
   try{
     const{error}=await SB.client().auth.mfa.challengeAndVerify({factorId:_enrollFactorId,code});
-    if(error){err.textContent='Mã không đúng — thử lại';return;}
+    if(error){err.textContent='Mã không đúng — thử lại';OTP.reset('tfa-code');return;}
     logAction('Bật 2FA','Google Authenticator');
     close2faModal();
     alert('Đã BẬT 2FA thành công!\nTừ lần đăng nhập sau, bạn sẽ cần nhập mã 6 số từ Google Authenticator.');
@@ -3912,22 +3973,26 @@ function wkAssignCore(startDay){
       const avail=members.filter(fk=>((WORK[fk]||{})[d])!=='OFF');
       if(!avail.length)continue;
       const mon=isMon(d);
-      // KM (ưu tiên 1): người ít KM nhất; thứ 2 loại người đã có KM-thứ-2
-      const kmPool=avail.filter(fk=>!mon||kmMon[fk]<1);
+      // KM (ưu tiên 1): người ít KM nhất. Thứ 2: loại người đã có KM-thứ-2;
+      // nhưng ÉP luôn có 1 KM/ca — nếu Thứ 2 mọi người đã hết suất thì fallback về cả ca.
+      let kmPool=avail.filter(fk=>!mon||kmMon[fk]<1);
+      if(!kmPool.length)kmPool=avail;
       let kmPick=null;
-      if(kmPool.length){
+      {
         const min=Math.min(...kmPool.map(fk=>kmCount[fk]));
         const cands=kmPool.filter(fk=>kmCount[fk]===min);
         kmPick=cands[Math.floor(Math.random()*cands.length)];
       }
-      // HT (ưu tiên 3): người ít HT nhất; hòa nhau -> ưu tiên người đang NHIỀU DD (để DD đều lại)
+      // HT (ưu tiên 3 — "HT sau"): HT dùng để GÁNH lệch cho DD.
+      // Cân bằng KM & DD trước: cho người đang NHIỀU DD nhất làm HT (để họ khỏi phải DD hôm nay)
+      // -> DD san đều hơn; hòa DD thì mới xét người ít HT nhất.
       let htPick=null;
       const htPool=avail.filter(fk=>fk!==kmPick);
       if(htPool.length){
-        const min=Math.min(...htPool.map(fk=>htCount[fk]));
-        let cands=htPool.filter(fk=>htCount[fk]===min);
-        const maxDd=Math.max(...cands.map(fk=>ddCount[fk]));
-        cands=cands.filter(fk=>ddCount[fk]===maxDd);
+        const maxDd=Math.max(...htPool.map(fk=>ddCount[fk]));
+        let cands=htPool.filter(fk=>ddCount[fk]===maxDd);
+        const minHt=Math.min(...cands.map(fk=>htCount[fk]));
+        cands=cands.filter(fk=>htCount[fk]===minHt);
         htPick=cands[Math.floor(Math.random()*cands.length)];
       }
       avail.forEach(fk=>{

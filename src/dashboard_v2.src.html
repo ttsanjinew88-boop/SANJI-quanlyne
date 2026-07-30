@@ -40,7 +40,7 @@
       <div style="font-size:.64rem;color:var(--mu);margin-bottom:4px">Hoặc nhập tay mã bí mật (ID) này:</div>
       <div id="tfa-secret" style="font-family:monospace;font-size:.72rem;font-weight:800;color:var(--cy);background:var(--card2);border:1px solid var(--border2);border-radius:6px;padding:8px;margin-bottom:14px;word-break:break-all;cursor:pointer" title="Bấm để copy" onclick="copy2faSecret()"></div>
       <div style="font-size:.7rem;color:var(--mu2);margin-bottom:8px">2. Nhập mã 6 số đang hiện trong app để xác nhận:</div>
-      <input class="login-inp" id="tfa-code" inputmode="numeric" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:.5em;font-size:1.1rem;font-weight:800" onkeydown="if(event.key==='Enter')confirm2faEnroll()">
+      <div class="otp-wrap" data-for="tfa-code" data-submit="confirm2faEnroll"></div>
       <button onclick="confirm2faEnroll()" style="width:100%;background:linear-gradient(135deg,var(--pu),var(--bl));border:none;color:#fff;border-radius:8px;padding:10px;font-size:.75rem;font-weight:800;cursor:pointer;margin-top:6px">Xác nhận bật 2FA</button>
     </div>
     <div id="tfa-err" style="font-size:.68rem;color:var(--re);margin-top:10px;min-height:16px;font-weight:600"></div>
@@ -77,7 +77,7 @@
     <!-- Bước 2: mã 2FA Google Authenticator (tài khoản đã bật 2FA) -->
     <div id="lg-step2fa" style="display:none">
       <div style="font-size:.72rem;color:var(--mu2);margin-bottom:12px;line-height:1.6">Nhập mã <b style="color:var(--tx)">6 số</b> từ ứng dụng <b style="color:var(--pu2)">Google Authenticator</b></div>
-      <input class="login-inp" id="lg-2fa-code" inputmode="numeric" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:.5em;font-size:1.1rem;font-weight:800" onkeydown="if(event.key==='Enter')AUTH.verifyLogin2fa()">
+      <div class="otp-wrap" data-for="lg-2fa-code" data-submit="AUTH.verifyLogin2fa"></div>
       <button class="login-btn" id="lg-2fa-btn" onclick="AUTH.verifyLogin2fa()">Xác minh</button>
       <button onclick="AUTH.cancel2fa()" style="width:100%;margin-top:8px;background:transparent;border:1px solid var(--border2);color:var(--mu2);border-radius:8px;padding:9px;font-size:.7rem;font-weight:700;cursor:pointer">Quay lại</button>
     </div>
@@ -89,7 +89,7 @@
       <div style="font-size:.6rem;color:var(--mu);margin-bottom:3px">Hoặc nhập tay mã bí mật (ID):</div>
       <div id="lg-secret" style="font-family:monospace;font-size:.68rem;font-weight:800;color:var(--cy);background:var(--card2);border:1px solid var(--border2);border-radius:6px;padding:7px;margin-bottom:10px;word-break:break-all;cursor:pointer" title="Bấm để copy" onclick="AUTH.copyEnrollSecret()"></div>
       <div style="font-size:.68rem;color:var(--mu2);margin-bottom:6px">2. Nhập mã 6 số đang hiện trong app:</div>
-      <input class="login-inp" id="lg-enroll-code" inputmode="numeric" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:.5em;font-size:1.1rem;font-weight:800" onkeydown="if(event.key==='Enter')AUTH.confirmEnrollLogin()">
+      <div class="otp-wrap" data-for="lg-enroll-code" data-submit="AUTH.confirmEnrollLogin"></div>
       <button class="login-btn" id="lg-enroll-btn" onclick="AUTH.confirmEnrollLogin()">Xác nhận &amp; vào hệ thống</button>
       <button onclick="AUTH.cancel2fa()" style="width:100%;margin-top:8px;background:transparent;border:1px solid var(--border2);color:var(--mu2);border-radius:8px;padding:9px;font-size:.7rem;font-weight:700;cursor:pointer">Hủy</button>
     </div>

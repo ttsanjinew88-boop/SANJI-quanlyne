@@ -26,6 +26,63 @@ function nn(v){return(v||0).toLocaleString("vi-VN");}
 // Chống XSS: escape dữ liệu người-dùng-nhập (từ file Excel) trước khi đưa vào innerHTML
 function hesc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
+// ===== Ô NHẬP MÃ OTP 6 số rời (dùng chung cho 2FA: đăng nhập / bắt buộc thiết lập / bật trong cài đặt) =====
+// HTML chỉ cần <div class="otp-wrap" data-for="<id>" data-submit="Ham.xac.minh"></div>
+// OTP tự dựng 6 ô + 1 input ẩn mang đúng <id> để code cũ đọc/ghi .value như thường.
+const OTP=(function(){
+  const LEN=6;
+  function build(wrap){
+    if(wrap._otpBuilt)return;
+    wrap._otpBuilt=1;
+    const forId=wrap.getAttribute('data-for'),submit=wrap.getAttribute('data-submit')||'';
+    const hid=document.createElement('input');hid.type='hidden';hid.id=forId;wrap.appendChild(hid);
+    const boxes=[];
+    for(let i=0;i<LEN;i++){
+      const b=document.createElement('input');
+      b.type='text';b.className='otp-box';b.inputMode='numeric';b.maxLength=1;b.autocomplete='off';
+      b.setAttribute('aria-label','Số thứ '+(i+1));
+      wrap.appendChild(b);boxes.push(b);
+    }
+    const sync=()=>{hid.value=boxes.map(b=>b.value).join('');boxes.forEach(b=>b.classList.toggle('filled',!!b.value));return hid.value;};
+    const fire=()=>{const fn=submit.split('.').reduce((o,k)=>o&&o[k],window);if(typeof fn==='function')fn();};
+    boxes.forEach((b,i)=>{
+      b.addEventListener('focus',()=>b.select());
+      b.addEventListener('input',()=>{
+        b.value=b.value.replace(/\D/g,'').slice(0,1);
+        if(b.value&&i<LEN-1)boxes[i+1].focus();
+        if(sync().length===LEN){b.blur();fire();}
+      });
+      b.addEventListener('keydown',e=>{
+        if(e.key==='Backspace'&&!b.value&&i>0){boxes[i-1].value='';boxes[i-1].focus();sync();e.preventDefault();}
+        else if(e.key==='ArrowLeft'&&i>0){boxes[i-1].focus();e.preventDefault();}
+        else if(e.key==='ArrowRight'&&i<LEN-1){boxes[i+1].focus();e.preventDefault();}
+        else if(e.key==='Enter'){sync();fire();}
+      });
+      b.addEventListener('paste',e=>{
+        e.preventDefault();
+        const t=(((e.clipboardData||window.clipboardData).getData('text'))||'').replace(/\D/g,'').slice(0,LEN);
+        if(!t)return;
+        boxes.forEach((bb,j)=>bb.value=t[j]||'');
+        boxes[Math.min(t.length,LEN-1)].focus();
+        if(sync().length===LEN)fire();
+      });
+    });
+    wrap._boxes=boxes;wrap._hidden=hid;
+  }
+  return {
+    init(){document.querySelectorAll('.otp-wrap').forEach(build);},
+    reset(forId){
+      const wrap=document.querySelector('.otp-wrap[data-for="'+forId+'"]');
+      if(!wrap)return;
+      build(wrap);
+      wrap._boxes.forEach(b=>{b.value='';b.classList.remove('filled');});
+      wrap._hidden.value='';
+      setTimeout(()=>wrap._boxes[0].focus(),0);
+    }
+  };
+})();
+document.addEventListener('DOMContentLoaded',()=>OTP.init());
+
 // ===== NGHI NGỜ: tùy chỉnh cột hiển thị bảng chi tiết khách =====
 // Đầy đủ 20 cột — đúng như tab Tổng Hợp (ĐL là tiêu đề thẻ nên không lặp trong bảng khách)
 const SUSPECT_COLS=[
