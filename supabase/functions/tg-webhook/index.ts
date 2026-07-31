@@ -8,9 +8,12 @@
 // 2. Dán toàn bộ file này -> Deploy
 // 3. Tắt "Enforce JWT verification" của function này
 //    (Edge Functions -> tg-webhook -> Details -> tắt Verify JWT)
-// 4. Edge Functions -> Secrets -> thêm 2 secret:
+// 4. Edge Functions -> Secrets -> thêm các secret:
 //    TG_BOT_TOKEN = token bot Telegram
 //    TG_SECRET    = chuỗi bí mật webhook (trùng với lúc setWebhook)
+//    TG_G1        = ID nhóm hậu đài (cược bất thường - chỉ text)
+//    TG_G2        = ID nhóm xử lý bất thường (text + file/ảnh)
+//    TG_G3        = ID nhóm đại lý ngoài (file báo cáo đại lý)
 // ============================================================
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -47,8 +50,11 @@ const CORS = {
   "access-control-allow-headers": "authorization, content-type, x-client-info, apikey",
   "access-control-allow-methods": "POST, OPTIONS",
 };
-const G1 = "-5266235608";      // nhóm 1: chỉ nhận text
-const G2 = "-1002508451381";   // nhóm 2: nhận file + inline keyboard
+// ID nhóm đọc từ secret (KHÔNG hardcode — repo public, tránh lộ). Set trong Supabase:
+// Edge Functions -> Secrets: TG_G1, TG_G2, TG_G3
+const G1 = Deno.env.get("TG_G1") ?? "";   // nhóm hậu đài: chỉ nhận text (cược bất thường)
+const G2 = Deno.env.get("TG_G2") ?? "";   // nhóm xử lý bất thường: text + file/ảnh + inline keyboard
+const G3 = Deno.env.get("TG_G3") ?? "";   // nhóm đại lý ngoài: nhận file báo cáo đại lý
 const anon = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
 
 async function sendReport(req: Request): Promise<Response> {
@@ -92,8 +98,10 @@ async function sendReport(req: Request): Promise<Response> {
   const files: File[] = [];
   for (const [k, v] of form.entries()) if (k.startsWith("file") && v instanceof File) files.push(v);
 
+  // Nhóm nhận file/keyboard: đại lý -> nhóm "đại lý ngoài" (G3); cược bất thường -> nhóm xử lý (G2)
+  const fileChat = mode === "dai_ly" ? G3 : G2;
   try {
-    // cược bất thường: gửi text vào nhóm 1
+    // cược bất thường: gửi text vào nhóm hậu đài (G1)
     if (mode === "cuoc") {
       await tg("sendMessage", { chat_id: G1, text: txt });
     }
@@ -103,7 +111,7 @@ async function sendReport(req: Request): Promise<Response> {
         const f = files[i];
         const isImg = (f.type || "").startsWith("image/");
         const fd = new FormData();
-        fd.append("chat_id", G2);
+        fd.append("chat_id", fileChat);
         if (i === 0) fd.append("caption", txt + (files.length > 1 ? `\n(${files.length} file đính kèm)` : ""));
         fd.append(isImg ? "photo" : "document", f, f.name || `file_${i + 1}`);
         const r = await fetch(`${TG}/${isImg ? "sendPhoto" : "sendDocument"}`, { method: "POST", body: fd });
@@ -112,11 +120,11 @@ async function sendReport(req: Request): Promise<Response> {
         lastMsgId = res.result.message_id;
       }
     } else {
-      const res = await tg("sendMessage", { chat_id: G2, text: txt, reply_markup: rm });
+      const res = await tg("sendMessage", { chat_id: fileChat, text: txt, reply_markup: rm });
       if (!res?.ok) throw new Error(res?.description || "Lỗi gửi tin");
     }
     if (lastMsgId) {
-      await tg("editMessageReplyMarkup", { chat_id: G2, message_id: lastMsgId, reply_markup: rm });
+      await tg("editMessageReplyMarkup", { chat_id: fileChat, message_id: lastMsgId, reply_markup: rm });
     }
     // ghi log gửi báo cáo
     await sb.from("audit_log").insert({
