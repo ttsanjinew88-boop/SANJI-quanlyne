@@ -4152,12 +4152,24 @@ function wkAssignCore(startDay){
       const avail=members.filter(fk=>!isOffish((WORK[fk]||{})[d]));
       if(!avail.length)continue;
       const mon=isMon(d);
-      // KM (ưu tiên 1): người ít KM nhất. Thứ 2: loại người đã có KM-thứ-2;
-      // nhưng ÉP luôn có 1 KM/ca — nếu Thứ 2 mọi người đã hết suất thì fallback về cả ca.
-      let kmPool=avail.filter(fk=>!mon||kmMon[fk]<1);
-      if(!kmPool.length)kmPool=avail;
+      // ÉP mỗi ngày ≥1 fkvip trực DD (fkvip = duyệt chính DD/đối đầu): giữ chỗ 1 fkvip
+      // (ít DD nhất → xoay vòng công bằng giữa các fkvip trong ca), loại khỏi pool KM/HT.
+      // fkvip còn lại vẫn KM/HT/DD bình thường. Ngày cả ca không còn fkvip (đều OFF) thì bỏ qua.
+      const vipAvail=avail.filter(fk=>FKVIP.includes(fk));
+      let ddVip=null;
+      if(vipAvail.length){
+        const minDd=Math.min(...vipAvail.map(fk=>ddCount[fk]));
+        const vc=vipAvail.filter(fk=>ddCount[fk]===minDd);
+        ddVip=vc[Math.floor(Math.random()*vc.length)];
+      }
+      // Pool được chọn KM/HT = available trừ fkvip giữ-DD (fkvip đó đứng ngoài, chắc chắn nằm DD).
+      const selPool=avail.filter(fk=>fk!==ddVip);
+      // KM (ưu tiên 1): người ít KM nhất trong pool. Thứ 2: loại người đã có KM-thứ-2;
+      // nhưng ÉP luôn có 1 KM/ca — nếu Thứ 2 mọi người đã hết suất thì fallback về cả pool.
+      let kmPool=selPool.filter(fk=>!mon||kmMon[fk]<1);
+      if(!kmPool.length)kmPool=selPool;
       let kmPick=null;
-      {
+      if(kmPool.length){
         const min=Math.min(...kmPool.map(fk=>kmCount[fk]));
         const cands=kmPool.filter(fk=>kmCount[fk]===min);
         kmPick=cands[Math.floor(Math.random()*cands.length)];
@@ -4166,7 +4178,7 @@ function wkAssignCore(startDay){
       // Cân bằng KM & DD trước: cho người đang NHIỀU DD nhất làm HT (để họ khỏi phải DD hôm nay)
       // -> DD san đều hơn; hòa DD thì mới xét người ít HT nhất.
       let htPick=null;
-      const htPool=avail.filter(fk=>fk!==kmPick);
+      const htPool=selPool.filter(fk=>fk!==kmPick);
       if(htPool.length){
         const maxDd=Math.max(...htPool.map(fk=>ddCount[fk]));
         let cands=htPool.filter(fk=>ddCount[fk]===maxDd);
@@ -4185,7 +4197,7 @@ function wkAssignCore(startDay){
 }
 function wkAutoAssign(){
   if(!canEdit('shift')){alert('Bạn chỉ có quyền XEM.');return;}
-  if(!confirm('TỰ ĐỘNG PHÂN CÔNG tháng '+dispMonth(CUR_MONTH||curMonthKey())+'?\n\n— Giữ nguyên các ô OFF / SN (sinh nhật) đã điền\n— Mỗi ngày mỗi ca: 1 KM + 1 HT, còn lại DD — ưu tiên chia đều KM và DD trước, HT sau\n— Thứ 2: mỗi người tối đa 1 lần KM/tháng\n\nPhân công cũ (không phải OFF) sẽ bị GHI ĐÈ.'))return;
+  if(!confirm('TỰ ĐỘNG PHÂN CÔNG tháng '+dispMonth(CUR_MONTH||curMonthKey())+'?\n\n— Giữ nguyên các ô OFF / SN (sinh nhật) đã điền\n— Mỗi ngày mỗi ca: 1 KM + 1 HT, còn lại DD — ưu tiên chia đều KM và DD trước, HT sau\n— Mỗi ngày mỗi ca ÉP ≥1 fkvip trực DD (fkvip vẫn được chia đều KM/HT)\n— Thứ 2: mỗi người tối đa 1 lần KM/tháng\n\nPhân công cũ (không phải OFF) sẽ bị GHI ĐÈ.'))return;
   wkAssignCore(1);
   _wkChanges.push('Tự Động Phân Công toàn tháng');
   clearTimeout(_wkTimer);
