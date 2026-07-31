@@ -130,7 +130,7 @@ Lịch sử tháng: `toggleHistMenu` 1995, `loadHistMonth` 2025.
 - `supabase_update2.sql` — `my_role`, `change_password`, `audit_log`.
 - `supabase_update3.sql` — `login_security`, `login_fail/is_locked/set_lock/login_ok/get_whiteip`.
 - `supabase_update4.sql` — `can_edit`, `can_write_report`, RLS ghi theo quyền.
-- `supabase/functions/tg-webhook/index.ts` — deploy tên **`super-function`**. Xử lý: webhook callback (cộng điểm, rid dùng-1-lần), `send_report` (multipart, server chấm điểm), `reset_2fa`. Token ở secret `TG_BOT_TOKEN`.
+- `supabase/functions/tg-webhook/index.ts` — deploy tên **`super-function`**. Xử lý: webhook callback (cộng điểm, rid dùng-1-lần), `send_report` (multipart, server chấm điểm), `reset_2fa`. **Tất cả bí mật ở secret Supabase, KHÔNG hardcode (repo public)**: `TG_BOT_TOKEN` (token bot), `TG_SECRET` (webhook), `TG_G1` (nhóm hậu đài — cược bất thường, chỉ text), `TG_G2` (nhóm xử lý bất thường — text+file/ảnh+nút xác nhận), `TG_G3` (nhóm đại lý ngoài — file báo cáo đại lý). Route: `mode==='cuoc'` → text vào G1 + text/file vào G2; `mode==='dai_ly'` → file vào G3.
 
 Bảng `reports(type,month,data JSON)`. type: `don, km, shift, anomaly, work, limits, ov, suspects, whiteip, rids, bc, roster`. **`roster`**: month cố định `'all'`, data `{members:[...]}` = danh sách nhân viên dùng chung (xem "Danh sách nhân viên (ROSTER)").
 
@@ -138,4 +138,5 @@ Bảng `reports(type,month,data JSON)`. type: `don, km, shift, anomaly, work, li
 - ~~Gửi Nghi Ngờ → Google Sheet~~: **XONG** — user đã deploy Apps Script, URL đã điền vào `BC.GS_WEBAPP_URL`, endpoint test OK. (Nếu user sửa code .gs phải deploy lại: Deploy → Manage deployments → Edit → New version.)
 - ~~Báo Cáo Đơn Rút~~: **XONG** — chuyển sang module `DR` session-only (không cloud, F5 mất), port đầy đủ PROMAX (sửa mốc tiền, sort, cấp độ, drill-down, thả/dán/chọn file riêng). "Vượt hạn mức" đọc từ `DR.data`.
 - **Bot lắng nghe thụ động** (đọc text nhóm, nhận ID tài khoản rút ≥150k): CHỜ user cung cấp (a) mẫu/định dạng ID đăng nhập trong text, (b) group ID Telegram, (c) tắt privacy mode qua BotFather `/setprivacy`.
+- **Chuyển bot + nhóm sang PRODUCTION (chốt 31/07/2026)**: đã đổi từ bot/nhóm test sang thật. Code đọc ID nhóm từ secret `TG_G1/TG_G2/TG_G3` (không còn hardcode). CHỜ user: (a) set 4 secret `TG_BOT_TOKEN`+`TG_G1/G2/G3` trong Supabase, (b) deploy lại `super-function`, (c) setWebhook lại cho bot mới (kèm `TG_SECRET`), (d) thêm bot vào cả 3 nhóm, (e) `/revoke` token bot cũ (và token production đã lỡ dán trong chat) qua BotFather. ⚠ Nhóm G3 hiện là nhóm THƯỜNG (id dạng ngắn) — nếu bị nâng thành supergroup thì id đổi sang `-100...`, phải cập nhật secret `TG_G3`.
 - Nhắc user: xóa điểm test (JADE ngày 15, "Đại lý ngoài"/mkt, tháng 7 = +3); deploy lại Edge Function cho `reset_2fa`; chạy `supabase_update4.sql`; thu hồi token bot cũ qua BotFather.
