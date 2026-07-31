@@ -992,6 +992,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
           <span id="wk_chips" style="display:flex;gap:6px;flex-wrap:wrap;text-transform:none;letter-spacing:0"></span>
           <button onclick="openPasteModal('work')" style="font-size:.62rem;padding:4px 12px;background:rgba(6,182,212,.15);border:1px solid rgba(6,182,212,.35);color:var(--cy);border-radius:5px;cursor:pointer;font-weight:700">Dán từ Excel</button>
           <button onclick="wkAutoAssign()" style="font-size:.62rem;padding:4px 12px;background:linear-gradient(135deg,var(--pu),var(--bl));border:none;color:#fff;border-radius:5px;cursor:pointer;font-weight:800;box-shadow:0 2px 10px rgba(124,58,237,.35)">Tự Động Phân Công</button>
+          <button id="wkClearBtn" onclick="wkClearAll()" style="display:none;font-size:.62rem;padding:4px 12px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171;border-radius:5px;cursor:pointer;font-weight:800">Xóa toàn bộ phân công</button>
         </span>
       </div>
       <div class="mtbl-wrap"><table class="mtbl" id="wkTbl"></table></div>
@@ -1649,6 +1650,9 @@ function applyPerms(){
   // Quản lý nhân viên (roster) ở Tổng Quan: ADMIN + Tổ Trưởng
   const reb=document.getElementById('rosterEditBtn');
   if(reb)reb.style.display=isTTup?'':'none';
+  // Xóa toàn bộ phân công (tab Phân Ca): ADMIN + Tổ Trưởng
+  const wcb=document.getElementById('wkClearBtn');
+  if(wcb)wcb.style.display=isTTup?'':'none';
   const chip=document.getElementById('userChip');
   document.getElementById('userChipName').textContent=(p.username||'').toUpperCase()+' · '+roleOf(p).label;
   chip.style.display='flex';
@@ -4204,6 +4208,19 @@ function wkAutoAssign(){
   _wkTimer=setTimeout(_saveWork,800);
   rWork();
   setCloudStatus('Đã tự động phân công tháng '+dispMonth(CUR_MONTH)+' ✓');
+}
+// Xóa TOÀN BỘ phân công tháng (mọi ô KM/DD/HT/OFF/SN của tất cả nhân viên) — chỉ Admin / Tổ Trưởng.
+// Dùng khi note OFF sai, cần làm lại từ đầu thay vì sửa tay từng ô. Giữ lại lịch sử báo cáo OFF.
+function wkClearAll(){
+  if(!canManageRoster()){alert('Chỉ ADMIN / Tổ Trưởng được xóa toàn bộ phân công.');return;}
+  if(!confirm('XÓA TOÀN BỘ phân công tháng '+dispMonth(CUR_MONTH||curMonthKey())+'?\n\n— Xóa MỌI ô: KM / DD / HT / OFF / SN của tất cả nhân viên\n— Lịch sử báo cáo OFF / chuyển ngày vẫn được giữ\n\nKhông thể hoàn tác. Chắc chắn xóa?'))return;
+  FK_KEYS.forEach(fk=>{if(WORK[fk])WORK[fk]={};});
+  logAction('Xóa toàn bộ phân công','Tháng '+dispMonth(CUR_MONTH||curMonthKey())+' · bởi '+(CUR_PROFILE.username||'').toUpperCase());
+  _wkChanges.push('Xóa toàn bộ phân công tháng');
+  clearTimeout(_wkTimer);
+  _wkTimer=setTimeout(_saveWork,800);
+  rWork();
+  setCloudStatus('Đã xóa toàn bộ phân công tháng '+dispMonth(CUR_MONTH)+' ✓');
 }
 // Cân bằng lại từ 1 ngày (sau báo cáo OFF/chuyển ngày) — chỉ khi lưới đã có phân công
 function wkRebalanceFrom(startDay){

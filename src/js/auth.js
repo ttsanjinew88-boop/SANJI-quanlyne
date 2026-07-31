@@ -324,6 +324,9 @@ function applyPerms(){
   // Quản lý nhân viên (roster) ở Tổng Quan: ADMIN + Tổ Trưởng
   const reb=document.getElementById('rosterEditBtn');
   if(reb)reb.style.display=isTTup?'':'none';
+  // Xóa toàn bộ phân công (tab Phân Ca): ADMIN + Tổ Trưởng
+  const wcb=document.getElementById('wkClearBtn');
+  if(wcb)wcb.style.display=isTTup?'':'none';
   const chip=document.getElementById('userChip');
   document.getElementById('userChipName').textContent=(p.username||'').toUpperCase()+' · '+roleOf(p).label;
   chip.style.display='flex';

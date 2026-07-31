@@ -197,6 +197,19 @@ function wkAutoAssign(){
   rWork();
   setCloudStatus('Đã tự động phân công tháng '+dispMonth(CUR_MONTH)+' ✓');
 }
+// Xóa TOÀN BỘ phân công tháng (mọi ô KM/DD/HT/OFF/SN của tất cả nhân viên) — chỉ Admin / Tổ Trưởng.
+// Dùng khi note OFF sai, cần làm lại từ đầu thay vì sửa tay từng ô. Giữ lại lịch sử báo cáo OFF.
+function wkClearAll(){
+  if(!canManageRoster()){alert('Chỉ ADMIN / Tổ Trưởng được xóa toàn bộ phân công.');return;}
+  if(!confirm('XÓA TOÀN BỘ phân công tháng '+dispMonth(CUR_MONTH||curMonthKey())+'?\n\n— Xóa MỌI ô: KM / DD / HT / OFF / SN của tất cả nhân viên\n— Lịch sử báo cáo OFF / chuyển ngày vẫn được giữ\n\nKhông thể hoàn tác. Chắc chắn xóa?'))return;
+  FK_KEYS.forEach(fk=>{if(WORK[fk])WORK[fk]={};});
+  logAction('Xóa toàn bộ phân công','Tháng '+dispMonth(CUR_MONTH||curMonthKey())+' · bởi '+(CUR_PROFILE.username||'').toUpperCase());
+  _wkChanges.push('Xóa toàn bộ phân công tháng');
+  clearTimeout(_wkTimer);
+  _wkTimer=setTimeout(_saveWork,800);
+  rWork();
+  setCloudStatus('Đã xóa toàn bộ phân công tháng '+dispMonth(CUR_MONTH)+' ✓');
+}
 // Cân bằng lại từ 1 ngày (sau báo cáo OFF/chuyển ngày) — chỉ khi lưới đã có phân công
 function wkRebalanceFrom(startDay){
   const hasPlan=FK_KEYS.some(fk=>Object.values(WORK[fk]||{}).some(v=>v&&!isOffish(v)));
