@@ -366,6 +366,68 @@ function rKoOverview(){
   }
 }
 
+// ===== QUẢN LÝ NHÂN VIÊN (roster) — Admin + Tổ Trưởng; áp dụng TOÀN hệ thống =====
+function rosterOpenModal(){
+  if(!canManageRoster()){alert('Chỉ ADMIN / Tổ Trưởng được quản lý nhân viên.');return;}
+  document.getElementById('rosterAddName').value='';
+  document.getElementById('rosterAddSearch').value='';
+  document.getElementById('rosterAddMsg').textContent='';
+  rosterRenderList();
+  document.getElementById('rosterModal').classList.add('show');
+}
+function rosterCloseModal(){document.getElementById('rosterModal').classList.remove('show');}
+function rosterRenderList(){
+  const grpLbl={vip:'VIP',onl:'ONL'};
+  let h='<thead><tr><th style="text-align:left">Nhân viên</th><th>Nhóm</th><th>Màu</th><th>Mã Excel</th><th>Trạng thái</th><th></th></tr></thead><tbody>';
+  ROSTER.forEach((m,i)=>{
+    const act=m.active!==false;
+    h+=`<tr style="${act?'':'opacity:.5'}">`+
+      `<td style="text-align:left;font-weight:800">${hesc(m.name)}</td>`+
+      `<td><span style="color:${m.group==='vip'?'var(--vip-c)':'var(--onl-c)'};font-weight:700">${grpLbl[m.group]||'?'}</span></td>`+
+      `<td style="text-align:center"><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:${m.col||'#7c3aed'};vertical-align:middle"></span></td>`+
+      `<td style="font-size:.58rem;color:var(--mu)">${hesc(m.search||m.key)}</td>`+
+      `<td style="font-weight:700;color:${act?'#10b981':'#ef4444'}">${act?'Đang làm':'Đã nghỉ'}</td>`+
+      `<td style="text-align:center">`+(act
+        ? `<button onclick="rosterToggleActive(${i})" style="background:none;border:1px solid #ef4444;color:#ef4444;border-radius:5px;padding:2px 8px;font-size:.58rem;font-weight:700;cursor:pointer">Ẩn (nghỉ)</button>`
+        : `<button onclick="rosterToggleActive(${i})" style="background:none;border:1px solid #10b981;color:#10b981;border-radius:5px;padding:2px 8px;font-size:.58rem;font-weight:700;cursor:pointer">Khôi phục</button>`)+`</td>`+
+      `</tr>`;
+  });
+  h+='</tbody>';
+  document.getElementById('rosterTbl').innerHTML=h;
+}
+function rosterAddMember(){
+  if(!canManageRoster()){alert('Chỉ ADMIN / Tổ Trưởng.');return;}
+  const msg=document.getElementById('rosterAddMsg');
+  const name=document.getElementById('rosterAddName').value.trim();
+  const group=document.getElementById('rosterAddGroup').value==='onl'?'onl':'vip';
+  let search=document.getElementById('rosterAddSearch').value.trim();
+  const col=document.getElementById('rosterAddCol').value||'#7c3aed';
+  if(!name){msg.style.color='var(--re)';msg.textContent='Nhập tên nhân viên.';return;}
+  if(ROSTER.some(m=>m.name.toUpperCase()===name.toUpperCase())){msg.style.color='var(--re)';msg.textContent='Tên đã tồn tại.';return;}
+  let base='fk'+name.toLowerCase().replace(/[^a-z0-9]/g,'');
+  if(base==='fk')base='fk'+Date.now();
+  let key=base,n=2;while(ROSTER.some(m=>m.key===key)){key=base+n;n++;}
+  if(!search)search=name.toLowerCase().replace(/[^a-z0-9]/g,'');
+  else search=search.toLowerCase();
+  ROSTER.push({key,name,group,col,search,active:true});
+  saveRoster('Thêm '+name+' ('+group.toUpperCase()+')');
+  rosterRenderList();
+  msg.style.color='var(--gr)';msg.textContent='Đã thêm '+name+' ✓';
+  document.getElementById('rosterAddName').value='';
+  document.getElementById('rosterAddSearch').value='';
+}
+function rosterToggleActive(i){
+  if(!canManageRoster()){alert('Chỉ ADMIN / Tổ Trưởng.');return;}
+  const m=ROSTER[i];if(!m)return;
+  const act=m.active!==false;
+  if(act){
+    if(!confirm('Ẩn (đánh dấu nghỉ) nhân viên '+m.name+'?\n\nHọ sẽ biến mất khỏi mọi bảng / phân ca / chip HIỆN TẠI. Dữ liệu điểm các tháng cũ VẪN được giữ nguyên.'))return;
+    m.active=false;
+  }else{m.active=true;}
+  saveRoster((m.active?'Khôi phục ':'Ẩn (nghỉ) ')+m.name);
+  rosterRenderList();
+}
+
 // ===== TAB: BẤT THƯỜNG THEO NGÀY (2 bảng song song: Abuse + MKT) =====
 function buildAnGridAbuse(fkList){
   const allD=Array.from({length:31},(_,i)=>i+1),actD=D.days_in_month||[];

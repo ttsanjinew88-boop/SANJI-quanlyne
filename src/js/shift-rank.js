@@ -35,8 +35,12 @@ const WK_CODES={
   DD:{full:'Duyệt đơn',col:'#10b981'},
   KM:{full:'Kiểm tra nhóm và duyệt khuyến mãi',col:'#f59e0b'},
   HT:{full:'Hỗ trợ hoặc làm công việc cấp trên giao',col:'#3b82f6'},
-  OFF:{full:'Nghỉ / không trực',col:'#ef4444'}
+  OFF:{full:'Nghỉ / không trực',col:'#ef4444'},
+  SN:{full:'Sinh nhật — nghỉ trọn ngày (xử lý như OFF)',col:'#ec4899'}
 };
+// Các mã "nghỉ trọn ngày": không tính ngày công, bị loại khỏi tự động phân công.
+const WK_OFFISH=['OFF','SN'];
+function isOffish(v){return v==='OFF'||v==='SN';}
 function daysInViewMonth(){const p=(CUR_MONTH||curMonthKey()).split('-');return new Date(+p[0],+p[1],0).getDate();}
 function rWork(){
   const tbl=document.getElementById('wkTbl');
@@ -83,7 +87,8 @@ function rWork(){
   FK_KEYS.forEach(fk=>{
     const m=WORK[fk]||{};
     const cnt={KM:0,DD:0,HT:0,OFF:0};
-    Object.keys(m).forEach(d=>{const v=m[d];if(cnt[v]!==undefined)cnt[v]++;});
+    // SN (sinh nhật) đếm gộp vào cột OFF — cùng bản chất "nghỉ trọn ngày".
+    Object.keys(m).forEach(d=>{const v=m[d];if(v==='SN')cnt.OFF++;else if(cnt[v]!==undefined)cnt[v]++;});
     const half=wkHalfCount(fk);
     const total=wkTotalDays(fk);
     if(!total&&!cnt.OFF&&!half)return;
@@ -129,14 +134,14 @@ function wkAssignCore(startDay){
       else if(v==='HT')htCount[fk]++;
       else if(v==='DD')ddCount[fk]++;
     }
-    // xóa phân công từ startDay trở đi, giữ OFF
-    for(let d=startDay;d<=nD;d++){if(m2[d]&&m2[d]!=='OFF')delete m2[d];}
+    // xóa phân công từ startDay trở đi, giữ OFF / SN (nghỉ trọn ngày)
+    for(let d=startDay;d<=nD;d++){if(m2[d]&&!isOffish(m2[d]))delete m2[d];}
   });
   ['sang','gay','trung'].forEach(ca=>{
     const members=FK_KEYS.filter(fk=>shAssign[fk]===ca);
     if(!members.length)return;
     for(let d=startDay;d<=nD;d++){
-      const avail=members.filter(fk=>((WORK[fk]||{})[d])!=='OFF');
+      const avail=members.filter(fk=>!isOffish((WORK[fk]||{})[d]));
       if(!avail.length)continue;
       const mon=isMon(d);
       // KM (ưu tiên 1): người ít KM nhất. Thứ 2: loại người đã có KM-thứ-2;
@@ -172,7 +177,7 @@ function wkAssignCore(startDay){
 }
 function wkAutoAssign(){
   if(!canEdit('shift')){alert('Bạn chỉ có quyền XEM.');return;}
-  if(!confirm('TỰ ĐỘNG PHÂN CÔNG tháng '+dispMonth(CUR_MONTH||curMonthKey())+'?\n\n— Giữ nguyên các ô OFF đã điền\n— Mỗi ngày mỗi ca: 1 KM + 1 HT, còn lại DD — ưu tiên chia đều KM và DD trước, HT sau\n— Thứ 2: mỗi người tối đa 1 lần KM/tháng\n\nPhân công cũ (không phải OFF) sẽ bị GHI ĐÈ.'))return;
+  if(!confirm('TỰ ĐỘNG PHÂN CÔNG tháng '+dispMonth(CUR_MONTH||curMonthKey())+'?\n\n— Giữ nguyên các ô OFF / SN (sinh nhật) đã điền\n— Mỗi ngày mỗi ca: 1 KM + 1 HT, còn lại DD — ưu tiên chia đều KM và DD trước, HT sau\n— Thứ 2: mỗi người tối đa 1 lần KM/tháng\n\nPhân công cũ (không phải OFF) sẽ bị GHI ĐÈ.'))return;
   wkAssignCore(1);
   _wkChanges.push('Tự Động Phân Công toàn tháng');
   clearTimeout(_wkTimer);
@@ -182,7 +187,7 @@ function wkAutoAssign(){
 }
 // Cân bằng lại từ 1 ngày (sau báo cáo OFF/chuyển ngày) — chỉ khi lưới đã có phân công
 function wkRebalanceFrom(startDay){
-  const hasPlan=FK_KEYS.some(fk=>Object.values(WORK[fk]||{}).some(v=>v&&v!=='OFF'));
+  const hasPlan=FK_KEYS.some(fk=>Object.values(WORK[fk]||{}).some(v=>v&&!isOffish(v)));
   if(hasPlan)wkAssignCore(startDay);
 }
 // Tổng ngày làm của 1 FK trong tháng = KM+DD+HT − 0.5 × số báo cáo OFF nửa ngày
@@ -258,7 +263,7 @@ async function wkOffConfirm(){
 
 // ===== DÁN TỪ EXCEL (phân công / điểm duyệt đơn / điểm KM) =====
 let _pasteMode='work';
-const NAME2FK={};FK_KEYS.forEach(fk=>{NAME2FK[FK_NAMES[fk].toUpperCase()]=fk;});
+// NAME2FK được xây trong applyRoster() (core.js) và rebuild mỗi khi roster đổi.
 function openPasteModal(mode){
   if(!canEdit(mode==='work'?'shift':'ko')){alert('Bạn chỉ có quyền XEM.');return;}
   if(mode==='km'&&!KMD){alert('Chưa có dữ liệu Khuyến Mãi tháng này — upload file KM trước.');return;}
@@ -268,7 +273,7 @@ function openPasteModal(mode){
     'Copy vùng dữ liệu trong Excel (bôi đen → Ctrl+C) rồi dán vào ô bên dưới (Ctrl+V).<br>'+
     'Mỗi dòng: <b style="color:var(--tx)">TÊN NHÂN VIÊN</b> (GEON, DANTE, LUBY...) rồi tới giá trị của <b>ngày 1, 2, 3...</b> mỗi cột 1 ngày — cột CA đứng trước tên cũng nhận được.<br>'+
     (mode==='work'
-      ?'Giá trị hợp lệ: <b style="color:#10b981">DD</b> · <b style="color:#f59e0b">KM</b> · <b style="color:#3b82f6">HT</b> · <b style="color:#ef4444">OFF</b> — ô trống giữ nguyên giá trị cũ. Mẹo: chỉ dán các ô OFF rồi bấm Tự Động Phân Công.'
+      ?'Giá trị hợp lệ: <b style="color:#10b981">DD</b> · <b style="color:#f59e0b">KM</b> · <b style="color:#3b82f6">HT</b> · <b style="color:#ef4444">OFF</b> · <b style="color:#ec4899">SN</b> (sinh nhật, xử lý như OFF) — ô trống giữ nguyên giá trị cũ. Mẹo: chỉ dán các ô OFF/SN rồi bấm Tự Động Phân Công.'
       :'Giá trị là SỐ ĐIỂM từng ngày — ô trống giữ nguyên giá trị cũ.');
   document.getElementById('pasteArea').value='';
   document.getElementById('pasteMsg').textContent='';

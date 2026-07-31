@@ -10,14 +10,59 @@ const MD = (function(){
   return{month:"",days:Array.from({length:31},(_,i)=>i+1),days_in_month:[],hour_labels_gmt7:lbl,hour_labels_gmt4:lbl,day_scores:z31(),day_counts:z31(),hour_scores_gmt7:z24(),hour_counts_gmt7:z24(),hour_scores_gmt4:z24(),hour_counts_gmt4:z24(),fk_data:fd,fkvip:VIP,fkonl:ONL};
 })();
 const GMT_OFFSET = 11;
-const FK_SEARCH = {fkjade:"fkjade",fkcarbon:"carbon",fkmember:"fkmember",fkangel:"fkangel",fkgeon:"fkgeon",fkdante:"fkdante",fkpiu:"fkpiu",fkchamy:"chamy",fkluby:"fkluby",fkaimee:"aimee",fkantony:"antony",fktrucia:"trucia",fkminty:"minty",fkbrenna:"brenna",fkseren:"seren"};
-const FK_KEYS = Object.keys(FK_SEARCH);
-const FK_NAMES = {fkjade:"JADE",fkcarbon:"CARBON",fkmember:"MEMBER",fkangel:"ANGEL",fkgeon:"GEON",fkdante:"DANTE",fkpiu:"PIU",fkchamy:"CHAMY",fkluby:"LUBY",fkaimee:"AIMEE",fkantony:"ANTONY",fktrucia:"TRUCIA",fkminty:"MINTY",fkbrenna:"BRENNA",fkseren:"SEREN"};
-const FKVIP=["fkjade","fkcarbon","fkmember","fkangel","fkgeon","fkdante","fkpiu"];
-const FKONL=["fkchamy","fkluby","fkaimee","fkantony","fktrucia","fkminty","fkbrenna","fkseren"];
-const FK_COL={fkangel:"#f0b429",fkpiu:"#ff6b35",fkcarbon:"#3b82f6",fkbrenna:"#ec4899",fkdante:"#8b5cf6",fkgeon:"#10b981",fkluby:"#06b6d4",fkjade:"#f97316",fkmember:"#a855f7",fkchamy:"#60a5fa",fkantony:"#a78bfa",fkaimee:"#34d399",fktrucia:"#fb923c",fkminty:"#e879f9",fkseren:"#facc15"};
-// Load persisted custom colors for hourly chart
-(function(){const s=JSON.parse(localStorage.getItem('FK_COL_CUSTOM')||'{}');FK_KEYS.forEach(k=>{if(s[k])FK_COL[k]=s[k];});})();
+// ===== ROSTER (danh sách nhân viên) — CÓ THỂ THÊM/BỚT, lưu cloud (report type 'roster'/'all') dùng chung TOÀN hệ thống =====
+// Mỗi member: {key, name, group:'vip'|'onl', col, search, active}
+//  - key: mã nội bộ (vd 'fkjade') — DUY NHẤT, không đổi sau khi tạo.
+//  - search: chuỗi con để nhận diện FK từ cột note file Excel (mfk()). Mặc định = key.
+//  - active:false = đã nghỉ → ẨN khỏi mọi bảng/phân ca/chip HIỆN TẠI, nhưng name vẫn giữ để render lịch sử.
+const ROSTER_DEFAULT=[
+  {key:"fkjade",name:"JADE",group:"vip",col:"#f97316",search:"fkjade"},
+  {key:"fkcarbon",name:"CARBON",group:"vip",col:"#3b82f6",search:"carbon"},
+  {key:"fkmember",name:"MEMBER",group:"vip",col:"#a855f7",search:"fkmember"},
+  {key:"fkangel",name:"ANGEL",group:"vip",col:"#f0b429",search:"fkangel"},
+  {key:"fkgeon",name:"GEON",group:"vip",col:"#10b981",search:"fkgeon"},
+  {key:"fkdante",name:"DANTE",group:"vip",col:"#8b5cf6",search:"fkdante"},
+  {key:"fkpiu",name:"PIU",group:"vip",col:"#ff6b35",search:"fkpiu"},
+  {key:"fkchamy",name:"CHAMY",group:"onl",col:"#60a5fa",search:"chamy"},
+  {key:"fkluby",name:"LUBY",group:"onl",col:"#06b6d4",search:"fkluby"},
+  {key:"fkaimee",name:"AIMEE",group:"onl",col:"#34d399",search:"aimee"},
+  {key:"fkantony",name:"ANTONY",group:"onl",col:"#a78bfa",search:"antony"},
+  {key:"fktrucia",name:"TRUCIA",group:"onl",col:"#fb923c",search:"trucia"},
+  {key:"fkminty",name:"MINTY",group:"onl",col:"#e879f9",search:"minty"},
+  {key:"fkbrenna",name:"BRENNA",group:"onl",col:"#ec4899",search:"brenna"},
+  {key:"fkseren",name:"SEREN",group:"onl",col:"#facc15",search:"seren"}
+];
+let ROSTER=ROSTER_DEFAULT.map(m=>({...m,active:true}));
+// Biến SUY RA từ ROSTER (rebuild bởi applyRoster). active-only cho hiển thị/phân công hiện tại;
+// FK_NAMES giữ CẢ nhân viên đã nghỉ để render dữ liệu lịch sử không bị "undefined".
+let FK_SEARCH={},FK_KEYS=[],FK_NAMES={},FKVIP=[],FKONL=[],FK_COL={};
+const NAME2FK={}; // TÊN(hoa) -> key, dùng khi dán phân công/điểm từ Excel
+function applyRoster(){
+  FK_SEARCH={};FK_NAMES={};FK_COL={};FKVIP=[];FKONL=[];
+  const active=ROSTER.filter(m=>m.active!==false);
+  FK_KEYS=active.map(m=>m.key);
+  ROSTER.forEach(m=>{FK_NAMES[m.key]=m.name;if(m.col)FK_COL[m.key]=m.col;});
+  active.forEach(m=>{FK_SEARCH[m.key]=(m.search||m.key).toLowerCase();(m.group==="onl"?FKONL:FKVIP).push(m.key);});
+  // màu tùy chỉnh (biểu đồ theo giờ) ghi đè màu roster
+  try{const s=JSON.parse(localStorage.getItem('FK_COL_CUSTOM')||'{}');Object.keys(s).forEach(k=>{if(s[k])FK_COL[k]=s[k];});}catch(e){}
+  Object.keys(NAME2FK).forEach(k=>delete NAME2FK[k]);
+  active.forEach(m=>{NAME2FK[String(m.name).toUpperCase()]=m.key;});
+}
+applyRoster();
+// Đảm bảo 1 dataset (don/km) có đủ fk_data cho MỌI nhân viên đang active + đồng bộ nhóm vip/onl theo ROSTER.
+// Gọi sau khi load dataset từ cloud (bootData/loadHistMonth) để nhân viên MỚI hiện ngay & không vỡ render.
+function reconcileDataset(ds){
+  if(!ds||!ds.fk_data)return ds;
+  const z31=()=>Array(31).fill(0),z24=()=>Array(24).fill(0);
+  FK_KEYS.forEach(fk=>{
+    if(!ds.fk_data[fk])ds.fk_data[fk]={name:FK_NAMES[fk],group:FKVIP.includes(fk)?'vip':'onl',total_score:0,total_count:0,day_scores:z31(),day_counts:z31(),hour_scores_gmt7:z24(),hour_counts_gmt7:z24(),hour_scores_gmt4:z24()};
+    else{ds.fk_data[fk].name=FK_NAMES[fk];ds.fk_data[fk].group=FKVIP.includes(fk)?'vip':'onl';}
+  });
+  ds.fkvip=FKVIP.slice();ds.fkonl=FKONL.slice();
+  return ds;
+}
+// Quyền quản lý roster: ADMIN hoặc Tổ Trưởng
+function canManageRoster(){return !!(CUR_PROFILE&&(CUR_PROFILE.is_admin||roleOf(CUR_PROFILE).key==='totruong'));}
 const VIP_COL='#06b6d4',ONL_COL='#a78bfa'; /* đồng bộ màu tab Phân Ca: cyan / tím nhạt */
 function fkGrpCol(fk){return FKVIP.includes(fk)?VIP_COL:ONL_COL;}
 

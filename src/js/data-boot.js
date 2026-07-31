@@ -43,7 +43,8 @@ async function bootData(){
   CUR_MONTH=mk;
   try{
     setCloudStatus('Đang tải dữ liệu tháng '+dispMonth(mk)+'...');
-    const[don,km,shift,an,wk,lm,ov]=await Promise.all([SB.loadReport('don',mk),SB.loadReport('km',mk),SB.loadReport('shift',mk),SB.loadReport('anomaly',mk),SB.loadReport('work',mk),SB.loadReport('limits',mk),SB.loadReport('ov',mk)]);
+    const[don,km,shift,an,wk,lm,ov,roster]=await Promise.all([SB.loadReport('don',mk),SB.loadReport('km',mk),SB.loadReport('shift',mk),SB.loadReport('anomaly',mk),SB.loadReport('work',mk),SB.loadReport('limits',mk),SB.loadReport('ov',mk),SB.loadReport('roster','all')]);
+    applyRosterFromCloud(roster);
     WORK=wk||{};
     LIMITS=lm||{};
     await inheritLimitsIfEmpty(mk);
@@ -54,8 +55,8 @@ async function bootData(){
       KO_OV=Object.keys(legacy).length?legacy:{};
       if(Object.keys(legacy).length){try{await SB.saveReport('ov',mk,KO_OV);localStorage.removeItem(KO_OV_KEY);}catch(e){}}
     }
-    D=don||emptyDataset(mk);
-    KMD=km||null;
+    D=reconcileDataset(don)||emptyDataset(mk);
+    KMD=reconcileDataset(km);
     if(shift)applyShiftData(shift);
     _shiftReady=true;
     if(an&&an.abuse){
@@ -80,6 +81,38 @@ async function bootData(){
     _shiftReady=true;
     setCloudStatus('Lỗi tải dữ liệu cloud',true);
   }
+}
+// ===== ROSTER (danh sách nhân viên) — LƯU CLOUD dùng chung toàn hệ thống =====
+// Áp roster từ cloud (report type 'roster', month 'all'). Không có -> giữ ROSTER_DEFAULT.
+function applyRosterFromCloud(roster){
+  if(roster&&Array.isArray(roster.members)&&roster.members.length){
+    ROSTER=roster.members.map(m=>({
+      key:String(m.key),
+      name:String(m.name||m.key),
+      group:m.group==='onl'?'onl':'vip',
+      col:m.col||'#7c3aed',
+      search:String(m.search||m.key).toLowerCase(),
+      active:m.active!==false
+    }));
+  }
+  applyRoster();
+  if(typeof BC!=='undefined'&&BC.renderFkChips)BC.renderFkChips();
+}
+// Lưu ROSTER lên cloud + rebuild biến suy ra + reconcile dataset đang mở + render lại.
+async function saveRoster(actionLabel){
+  applyRoster();
+  if(D)reconcileDataset(D);
+  if(KMD)reconcileDataset(KMD);
+  if(typeof BC!=='undefined'&&BC.renderFkChips)BC.renderFkChips();
+  try{
+    await SB.saveReport('roster','all',{members:ROSTER});
+    setCloudStatus('Đã lưu danh sách nhân viên ✓');
+    if(actionLabel)logAction('Chỉnh danh sách nhân viên',actionLabel);
+  }catch(e){
+    console.error('saveRoster',e);
+    setCloudStatus('Lỗi lưu danh sách nhân viên — kiểm tra quyền (RLS type "roster")',true);
+  }
+  if(typeof rAll==='function')rAll();
 }
 // "06/2026" hoặc "6/2026" -> "2026-06" (định dạng lưu DB, sort được)
 function normMonth(m){const p=/^(\d{1,2})\/(\d{4})$/.exec(String(m||'').trim());return p?p[2]+'-'+p[1].padStart(2,'0'):String(m||'').trim();}
@@ -202,8 +235,8 @@ async function loadHistMonth(m){
     LIMITS=lm||{};
     await inheritLimitsIfEmpty(m);
     KO_OV=(ov&&Object.keys(ov).length)?ov:{};
-    D=don||emptyDataset(m);
-    KMD=km||null;
+    D=reconcileDataset(don)||emptyDataset(m);
+    KMD=reconcileDataset(km);
     if(shift)applyShiftData(shift);
     KO_AN=(an&&an.abuse)?an:{abuse:{},mkt:{}};
     setMonthLabel(m,!don);

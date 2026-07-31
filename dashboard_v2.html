@@ -777,6 +777,34 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
   </div>
 </div>
 
+<!-- QUẢN LÝ NHÂN VIÊN (roster) — Admin + Tổ Trưởng -->
+<div class="dr-modal" id="rosterModal">
+  <div class="box" style="max-width:640px;width:100%">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <div style="font-size:1rem;font-weight:800;color:var(--pu2)">👥 Quản lý nhân viên</div>
+      <button onclick="rosterCloseModal()" style="margin-left:auto;background:none;border:none;color:var(--mu);font-size:16px;cursor:pointer">✕</button>
+    </div>
+    <div style="font-size:.62rem;color:var(--mu);margin-bottom:12px">Thêm/ẩn nhân viên áp dụng cho TOÀN hệ thống (Hiệu Suất + Báo Cáo Đại Lý). Ẩn nhân viên vẫn GIỮ dữ liệu lịch sử các tháng cũ. Mã nhận diện = chuỗi con trong cột FK của file Excel duyệt đơn.</div>
+    <!-- Form thêm -->
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:12px">
+      <div style="font-size:.66rem;font-weight:800;color:var(--tx);margin-bottom:8px">➕ Thêm nhân viên mới</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <input id="rosterAddName" placeholder="Tên (vd: HUNTER)" style="flex:1;min-width:120px;background:var(--card);border:1px solid var(--border);color:var(--tx);padding:6px 9px;border-radius:6px;font-size:.7rem;font-weight:700">
+        <select id="rosterAddGroup" style="background:var(--card);border:1px solid var(--border);color:var(--tx);padding:6px 9px;border-radius:6px;font-size:.7rem;font-weight:700">
+          <option value="vip">FK ONLINE VIP</option>
+          <option value="onl">FK ONLINE</option>
+        </select>
+        <input id="rosterAddSearch" placeholder="Mã nhận diện Excel (tùy chọn)" style="flex:1;min-width:120px;background:var(--card);border:1px solid var(--border);color:var(--tx);padding:6px 9px;border-radius:6px;font-size:.7rem">
+        <input id="rosterAddCol" type="color" value="#7c3aed" style="width:34px;height:32px;border:1px solid var(--border);border-radius:6px;padding:0;background:none;cursor:pointer">
+        <button onclick="rosterAddMember()" style="background:var(--pu);border:none;color:#fff;border-radius:6px;padding:7px 14px;font-size:.68rem;font-weight:800;cursor:pointer">Thêm</button>
+      </div>
+      <div id="rosterAddMsg" style="font-size:.62rem;margin-top:6px;min-height:14px"></div>
+    </div>
+    <!-- Danh sách -->
+    <div class="mtbl-wrap" style="max-height:46vh;overflow:auto"><table class="mtbl" id="rosterTbl" style="width:100%"></table></div>
+  </div>
+</div>
+
 <!-- ============ TAB: HIỆU SUẤT KO (gộp Duyệt Đơn + Bất Thường) ============ -->
 <div class="pg" id="pg-ko">
   <div class="view-toggle" id="koViewToggle">
@@ -788,7 +816,10 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 
   <!-- VIEW: TỔNG QUAN -->
   <div class="ko-view" id="ko-overview">
-    <div style="font-size:.6rem;color:var(--mu);margin-bottom:12px">Ngày làm việc và Ghi chú có thể click để sửa. Khác: chọn trạng thái từ dropdown. Cộng/Trừ tự động tính theo hiệu suất tổng hợp.</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px">
+      <div style="font-size:.6rem;color:var(--mu)">Ngày làm việc và Ghi chú có thể click để sửa. Khác: chọn trạng thái từ dropdown. Cộng/Trừ tự động tính theo hiệu suất tổng hợp.</div>
+      <button id="rosterEditBtn" onclick="rosterOpenModal()" style="display:none;flex:0 0 auto;background:var(--card2);border:1px solid var(--pu);color:var(--pu2);border-radius:7px;padding:5px 12px;font-size:.66rem;font-weight:800;cursor:pointer;white-space:nowrap">👥 Quản lý nhân viên</button>
+    </div>
     <div class="sec-hdr" style="color:var(--vip-c)">FK ONLINE VIP <span class="cnt-badge" id="ovVipCount">0 người</span></div>
     <div class="mtbl-wrap" style="margin-bottom:8px"><table class="mtbl ko-ov-tbl" id="ovVipTbl"></table></div>
     <div class="ko-ov-foot" id="ovVipFoot"></div>
@@ -1094,14 +1125,59 @@ const MD = (function(){
   return{month:"",days:Array.from({length:31},(_,i)=>i+1),days_in_month:[],hour_labels_gmt7:lbl,hour_labels_gmt4:lbl,day_scores:z31(),day_counts:z31(),hour_scores_gmt7:z24(),hour_counts_gmt7:z24(),hour_scores_gmt4:z24(),hour_counts_gmt4:z24(),fk_data:fd,fkvip:VIP,fkonl:ONL};
 })();
 const GMT_OFFSET = 11;
-const FK_SEARCH = {fkjade:"fkjade",fkcarbon:"carbon",fkmember:"fkmember",fkangel:"fkangel",fkgeon:"fkgeon",fkdante:"fkdante",fkpiu:"fkpiu",fkchamy:"chamy",fkluby:"fkluby",fkaimee:"aimee",fkantony:"antony",fktrucia:"trucia",fkminty:"minty",fkbrenna:"brenna",fkseren:"seren"};
-const FK_KEYS = Object.keys(FK_SEARCH);
-const FK_NAMES = {fkjade:"JADE",fkcarbon:"CARBON",fkmember:"MEMBER",fkangel:"ANGEL",fkgeon:"GEON",fkdante:"DANTE",fkpiu:"PIU",fkchamy:"CHAMY",fkluby:"LUBY",fkaimee:"AIMEE",fkantony:"ANTONY",fktrucia:"TRUCIA",fkminty:"MINTY",fkbrenna:"BRENNA",fkseren:"SEREN"};
-const FKVIP=["fkjade","fkcarbon","fkmember","fkangel","fkgeon","fkdante","fkpiu"];
-const FKONL=["fkchamy","fkluby","fkaimee","fkantony","fktrucia","fkminty","fkbrenna","fkseren"];
-const FK_COL={fkangel:"#f0b429",fkpiu:"#ff6b35",fkcarbon:"#3b82f6",fkbrenna:"#ec4899",fkdante:"#8b5cf6",fkgeon:"#10b981",fkluby:"#06b6d4",fkjade:"#f97316",fkmember:"#a855f7",fkchamy:"#60a5fa",fkantony:"#a78bfa",fkaimee:"#34d399",fktrucia:"#fb923c",fkminty:"#e879f9",fkseren:"#facc15"};
-// Load persisted custom colors for hourly chart
-(function(){const s=JSON.parse(localStorage.getItem('FK_COL_CUSTOM')||'{}');FK_KEYS.forEach(k=>{if(s[k])FK_COL[k]=s[k];});})();
+// ===== ROSTER (danh sách nhân viên) — CÓ THỂ THÊM/BỚT, lưu cloud (report type 'roster'/'all') dùng chung TOÀN hệ thống =====
+// Mỗi member: {key, name, group:'vip'|'onl', col, search, active}
+//  - key: mã nội bộ (vd 'fkjade') — DUY NHẤT, không đổi sau khi tạo.
+//  - search: chuỗi con để nhận diện FK từ cột note file Excel (mfk()). Mặc định = key.
+//  - active:false = đã nghỉ → ẨN khỏi mọi bảng/phân ca/chip HIỆN TẠI, nhưng name vẫn giữ để render lịch sử.
+const ROSTER_DEFAULT=[
+  {key:"fkjade",name:"JADE",group:"vip",col:"#f97316",search:"fkjade"},
+  {key:"fkcarbon",name:"CARBON",group:"vip",col:"#3b82f6",search:"carbon"},
+  {key:"fkmember",name:"MEMBER",group:"vip",col:"#a855f7",search:"fkmember"},
+  {key:"fkangel",name:"ANGEL",group:"vip",col:"#f0b429",search:"fkangel"},
+  {key:"fkgeon",name:"GEON",group:"vip",col:"#10b981",search:"fkgeon"},
+  {key:"fkdante",name:"DANTE",group:"vip",col:"#8b5cf6",search:"fkdante"},
+  {key:"fkpiu",name:"PIU",group:"vip",col:"#ff6b35",search:"fkpiu"},
+  {key:"fkchamy",name:"CHAMY",group:"onl",col:"#60a5fa",search:"chamy"},
+  {key:"fkluby",name:"LUBY",group:"onl",col:"#06b6d4",search:"fkluby"},
+  {key:"fkaimee",name:"AIMEE",group:"onl",col:"#34d399",search:"aimee"},
+  {key:"fkantony",name:"ANTONY",group:"onl",col:"#a78bfa",search:"antony"},
+  {key:"fktrucia",name:"TRUCIA",group:"onl",col:"#fb923c",search:"trucia"},
+  {key:"fkminty",name:"MINTY",group:"onl",col:"#e879f9",search:"minty"},
+  {key:"fkbrenna",name:"BRENNA",group:"onl",col:"#ec4899",search:"brenna"},
+  {key:"fkseren",name:"SEREN",group:"onl",col:"#facc15",search:"seren"}
+];
+let ROSTER=ROSTER_DEFAULT.map(m=>({...m,active:true}));
+// Biến SUY RA từ ROSTER (rebuild bởi applyRoster). active-only cho hiển thị/phân công hiện tại;
+// FK_NAMES giữ CẢ nhân viên đã nghỉ để render dữ liệu lịch sử không bị "undefined".
+let FK_SEARCH={},FK_KEYS=[],FK_NAMES={},FKVIP=[],FKONL=[],FK_COL={};
+const NAME2FK={}; // TÊN(hoa) -> key, dùng khi dán phân công/điểm từ Excel
+function applyRoster(){
+  FK_SEARCH={};FK_NAMES={};FK_COL={};FKVIP=[];FKONL=[];
+  const active=ROSTER.filter(m=>m.active!==false);
+  FK_KEYS=active.map(m=>m.key);
+  ROSTER.forEach(m=>{FK_NAMES[m.key]=m.name;if(m.col)FK_COL[m.key]=m.col;});
+  active.forEach(m=>{FK_SEARCH[m.key]=(m.search||m.key).toLowerCase();(m.group==="onl"?FKONL:FKVIP).push(m.key);});
+  // màu tùy chỉnh (biểu đồ theo giờ) ghi đè màu roster
+  try{const s=JSON.parse(localStorage.getItem('FK_COL_CUSTOM')||'{}');Object.keys(s).forEach(k=>{if(s[k])FK_COL[k]=s[k];});}catch(e){}
+  Object.keys(NAME2FK).forEach(k=>delete NAME2FK[k]);
+  active.forEach(m=>{NAME2FK[String(m.name).toUpperCase()]=m.key;});
+}
+applyRoster();
+// Đảm bảo 1 dataset (don/km) có đủ fk_data cho MỌI nhân viên đang active + đồng bộ nhóm vip/onl theo ROSTER.
+// Gọi sau khi load dataset từ cloud (bootData/loadHistMonth) để nhân viên MỚI hiện ngay & không vỡ render.
+function reconcileDataset(ds){
+  if(!ds||!ds.fk_data)return ds;
+  const z31=()=>Array(31).fill(0),z24=()=>Array(24).fill(0);
+  FK_KEYS.forEach(fk=>{
+    if(!ds.fk_data[fk])ds.fk_data[fk]={name:FK_NAMES[fk],group:FKVIP.includes(fk)?'vip':'onl',total_score:0,total_count:0,day_scores:z31(),day_counts:z31(),hour_scores_gmt7:z24(),hour_counts_gmt7:z24(),hour_scores_gmt4:z24()};
+    else{ds.fk_data[fk].name=FK_NAMES[fk];ds.fk_data[fk].group=FKVIP.includes(fk)?'vip':'onl';}
+  });
+  ds.fkvip=FKVIP.slice();ds.fkonl=FKONL.slice();
+  return ds;
+}
+// Quyền quản lý roster: ADMIN hoặc Tổ Trưởng
+function canManageRoster(){return !!(CUR_PROFILE&&(CUR_PROFILE.is_admin||roleOf(CUR_PROFILE).key==='totruong'));}
 const VIP_COL='#06b6d4',ONL_COL='#a78bfa'; /* đồng bộ màu tab Phân Ca: cyan / tím nhạt */
 function fkGrpCol(fk){return FKVIP.includes(fk)?VIP_COL:ONL_COL;}
 
@@ -1280,7 +1356,7 @@ function roleOf(profile){
   return{key:k,label:ROLES[k].label,color:ROLES[k].color};
 }
 const LOGIN_AT_KEY='login_at_v1';
-const SESSION_MAX_MS=24*3600*1000; // phiên đăng nhập tối đa 24 giờ
+const SESSION_MAX_MS=12*3600*1000; // phiên đăng nhập tối đa 12 giờ
 function sessionExpired(){
   const at=Number(localStorage.getItem(LOGIN_AT_KEY)||0);
   return !at||Date.now()-at>SESSION_MAX_MS;
@@ -1331,10 +1407,10 @@ const AUTH={
       const{data}=await SB.client().auth.getSession();
       if(data&&data.session){
         if(sessionExpired()){
-          // quá 24h -> buộc đăng nhập lại
+          // quá 12h -> buộc đăng nhập lại
           await SB.client().auth.signOut();
           localStorage.removeItem(LOGIN_AT_KEY);
-          document.getElementById('lg-err').textContent='Phiên đăng nhập đã hết hạn (24h) — vui lòng đăng nhập lại';
+          document.getElementById('lg-err').textContent='Phiên đăng nhập đã hết hạn (12h) — vui lòng đăng nhập lại';
           return;
         }
         // BẮT BUỘC 2FA khi khôi phục phiên
@@ -1516,10 +1592,10 @@ const AUTH={
     location.reload();
   }
 };
-// Kiểm tra định kỳ: đang dùng mà quá 24h kể từ lúc đăng nhập -> tự đăng xuất
+// Kiểm tra định kỳ: đang dùng mà quá 12h kể từ lúc đăng nhập -> tự đăng xuất
 setInterval(function(){
   if(CUR_PROFILE&&sessionExpired()){
-    alert('Phiên đăng nhập đã hết hạn (24 giờ) — hệ thống sẽ đăng xuất.');
+    alert('Phiên đăng nhập đã hết hạn (12 giờ) — hệ thống sẽ đăng xuất.');
     AUTH.logout();
   }
 },5*60*1000);
@@ -1570,6 +1646,9 @@ function applyPerms(){
   // View Đề Xuất Hạn Mức Duyệt: chỉ quyền SỬA tab Hiệu Suất KO mới thấy
   const klb=document.getElementById('koLimitBtn');
   if(klb)klb.style.display=canEdit('ko')?'':'none';
+  // Quản lý nhân viên (roster) ở Tổng Quan: ADMIN + Tổ Trưởng
+  const reb=document.getElementById('rosterEditBtn');
+  if(reb)reb.style.display=isTTup?'':'none';
   const chip=document.getElementById('userChip');
   document.getElementById('userChipName').textContent=(p.username||'').toUpperCase()+' · '+roleOf(p).label;
   chip.style.display='flex';
@@ -2038,7 +2117,8 @@ async function bootData(){
   CUR_MONTH=mk;
   try{
     setCloudStatus('Đang tải dữ liệu tháng '+dispMonth(mk)+'...');
-    const[don,km,shift,an,wk,lm,ov]=await Promise.all([SB.loadReport('don',mk),SB.loadReport('km',mk),SB.loadReport('shift',mk),SB.loadReport('anomaly',mk),SB.loadReport('work',mk),SB.loadReport('limits',mk),SB.loadReport('ov',mk)]);
+    const[don,km,shift,an,wk,lm,ov,roster]=await Promise.all([SB.loadReport('don',mk),SB.loadReport('km',mk),SB.loadReport('shift',mk),SB.loadReport('anomaly',mk),SB.loadReport('work',mk),SB.loadReport('limits',mk),SB.loadReport('ov',mk),SB.loadReport('roster','all')]);
+    applyRosterFromCloud(roster);
     WORK=wk||{};
     LIMITS=lm||{};
     await inheritLimitsIfEmpty(mk);
@@ -2049,8 +2129,8 @@ async function bootData(){
       KO_OV=Object.keys(legacy).length?legacy:{};
       if(Object.keys(legacy).length){try{await SB.saveReport('ov',mk,KO_OV);localStorage.removeItem(KO_OV_KEY);}catch(e){}}
     }
-    D=don||emptyDataset(mk);
-    KMD=km||null;
+    D=reconcileDataset(don)||emptyDataset(mk);
+    KMD=reconcileDataset(km);
     if(shift)applyShiftData(shift);
     _shiftReady=true;
     if(an&&an.abuse){
@@ -2075,6 +2155,38 @@ async function bootData(){
     _shiftReady=true;
     setCloudStatus('Lỗi tải dữ liệu cloud',true);
   }
+}
+// ===== ROSTER (danh sách nhân viên) — LƯU CLOUD dùng chung toàn hệ thống =====
+// Áp roster từ cloud (report type 'roster', month 'all'). Không có -> giữ ROSTER_DEFAULT.
+function applyRosterFromCloud(roster){
+  if(roster&&Array.isArray(roster.members)&&roster.members.length){
+    ROSTER=roster.members.map(m=>({
+      key:String(m.key),
+      name:String(m.name||m.key),
+      group:m.group==='onl'?'onl':'vip',
+      col:m.col||'#7c3aed',
+      search:String(m.search||m.key).toLowerCase(),
+      active:m.active!==false
+    }));
+  }
+  applyRoster();
+  if(typeof BC!=='undefined'&&BC.renderFkChips)BC.renderFkChips();
+}
+// Lưu ROSTER lên cloud + rebuild biến suy ra + reconcile dataset đang mở + render lại.
+async function saveRoster(actionLabel){
+  applyRoster();
+  if(D)reconcileDataset(D);
+  if(KMD)reconcileDataset(KMD);
+  if(typeof BC!=='undefined'&&BC.renderFkChips)BC.renderFkChips();
+  try{
+    await SB.saveReport('roster','all',{members:ROSTER});
+    setCloudStatus('Đã lưu danh sách nhân viên ✓');
+    if(actionLabel)logAction('Chỉnh danh sách nhân viên',actionLabel);
+  }catch(e){
+    console.error('saveRoster',e);
+    setCloudStatus('Lỗi lưu danh sách nhân viên — kiểm tra quyền (RLS type "roster")',true);
+  }
+  if(typeof rAll==='function')rAll();
 }
 // "06/2026" hoặc "6/2026" -> "2026-06" (định dạng lưu DB, sort được)
 function normMonth(m){const p=/^(\d{1,2})\/(\d{4})$/.exec(String(m||'').trim());return p?p[2]+'-'+p[1].padStart(2,'0'):String(m||'').trim();}
@@ -2197,8 +2309,8 @@ async function loadHistMonth(m){
     LIMITS=lm||{};
     await inheritLimitsIfEmpty(m);
     KO_OV=(ov&&Object.keys(ov).length)?ov:{};
-    D=don||emptyDataset(m);
-    KMD=km||null;
+    D=reconcileDataset(don)||emptyDataset(m);
+    KMD=reconcileDataset(km);
     if(shift)applyShiftData(shift);
     KO_AN=(an&&an.abuse)?an:{abuse:{},mkt:{}};
     setMonthLabel(m,!don);
@@ -3648,6 +3760,68 @@ function rKoOverview(){
   }
 }
 
+// ===== QUẢN LÝ NHÂN VIÊN (roster) — Admin + Tổ Trưởng; áp dụng TOÀN hệ thống =====
+function rosterOpenModal(){
+  if(!canManageRoster()){alert('Chỉ ADMIN / Tổ Trưởng được quản lý nhân viên.');return;}
+  document.getElementById('rosterAddName').value='';
+  document.getElementById('rosterAddSearch').value='';
+  document.getElementById('rosterAddMsg').textContent='';
+  rosterRenderList();
+  document.getElementById('rosterModal').classList.add('show');
+}
+function rosterCloseModal(){document.getElementById('rosterModal').classList.remove('show');}
+function rosterRenderList(){
+  const grpLbl={vip:'VIP',onl:'ONL'};
+  let h='<thead><tr><th style="text-align:left">Nhân viên</th><th>Nhóm</th><th>Màu</th><th>Mã Excel</th><th>Trạng thái</th><th></th></tr></thead><tbody>';
+  ROSTER.forEach((m,i)=>{
+    const act=m.active!==false;
+    h+=`<tr style="${act?'':'opacity:.5'}">`+
+      `<td style="text-align:left;font-weight:800">${hesc(m.name)}</td>`+
+      `<td><span style="color:${m.group==='vip'?'var(--vip-c)':'var(--onl-c)'};font-weight:700">${grpLbl[m.group]||'?'}</span></td>`+
+      `<td style="text-align:center"><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:${m.col||'#7c3aed'};vertical-align:middle"></span></td>`+
+      `<td style="font-size:.58rem;color:var(--mu)">${hesc(m.search||m.key)}</td>`+
+      `<td style="font-weight:700;color:${act?'#10b981':'#ef4444'}">${act?'Đang làm':'Đã nghỉ'}</td>`+
+      `<td style="text-align:center">`+(act
+        ? `<button onclick="rosterToggleActive(${i})" style="background:none;border:1px solid #ef4444;color:#ef4444;border-radius:5px;padding:2px 8px;font-size:.58rem;font-weight:700;cursor:pointer">Ẩn (nghỉ)</button>`
+        : `<button onclick="rosterToggleActive(${i})" style="background:none;border:1px solid #10b981;color:#10b981;border-radius:5px;padding:2px 8px;font-size:.58rem;font-weight:700;cursor:pointer">Khôi phục</button>`)+`</td>`+
+      `</tr>`;
+  });
+  h+='</tbody>';
+  document.getElementById('rosterTbl').innerHTML=h;
+}
+function rosterAddMember(){
+  if(!canManageRoster()){alert('Chỉ ADMIN / Tổ Trưởng.');return;}
+  const msg=document.getElementById('rosterAddMsg');
+  const name=document.getElementById('rosterAddName').value.trim();
+  const group=document.getElementById('rosterAddGroup').value==='onl'?'onl':'vip';
+  let search=document.getElementById('rosterAddSearch').value.trim();
+  const col=document.getElementById('rosterAddCol').value||'#7c3aed';
+  if(!name){msg.style.color='var(--re)';msg.textContent='Nhập tên nhân viên.';return;}
+  if(ROSTER.some(m=>m.name.toUpperCase()===name.toUpperCase())){msg.style.color='var(--re)';msg.textContent='Tên đã tồn tại.';return;}
+  let base='fk'+name.toLowerCase().replace(/[^a-z0-9]/g,'');
+  if(base==='fk')base='fk'+Date.now();
+  let key=base,n=2;while(ROSTER.some(m=>m.key===key)){key=base+n;n++;}
+  if(!search)search=name.toLowerCase().replace(/[^a-z0-9]/g,'');
+  else search=search.toLowerCase();
+  ROSTER.push({key,name,group,col,search,active:true});
+  saveRoster('Thêm '+name+' ('+group.toUpperCase()+')');
+  rosterRenderList();
+  msg.style.color='var(--gr)';msg.textContent='Đã thêm '+name+' ✓';
+  document.getElementById('rosterAddName').value='';
+  document.getElementById('rosterAddSearch').value='';
+}
+function rosterToggleActive(i){
+  if(!canManageRoster()){alert('Chỉ ADMIN / Tổ Trưởng.');return;}
+  const m=ROSTER[i];if(!m)return;
+  const act=m.active!==false;
+  if(act){
+    if(!confirm('Ẩn (đánh dấu nghỉ) nhân viên '+m.name+'?\n\nHọ sẽ biến mất khỏi mọi bảng / phân ca / chip HIỆN TẠI. Dữ liệu điểm các tháng cũ VẪN được giữ nguyên.'))return;
+    m.active=false;
+  }else{m.active=true;}
+  saveRoster((m.active?'Khôi phục ':'Ẩn (nghỉ) ')+m.name);
+  rosterRenderList();
+}
+
 // ===== TAB: BẤT THƯỜNG THEO NGÀY (2 bảng song song: Abuse + MKT) =====
 function buildAnGridAbuse(fkList){
   const allD=Array.from({length:31},(_,i)=>i+1),actD=D.days_in_month||[];
@@ -3869,8 +4043,12 @@ const WK_CODES={
   DD:{full:'Duyệt đơn',col:'#10b981'},
   KM:{full:'Kiểm tra nhóm và duyệt khuyến mãi',col:'#f59e0b'},
   HT:{full:'Hỗ trợ hoặc làm công việc cấp trên giao',col:'#3b82f6'},
-  OFF:{full:'Nghỉ / không trực',col:'#ef4444'}
+  OFF:{full:'Nghỉ / không trực',col:'#ef4444'},
+  SN:{full:'Sinh nhật — nghỉ trọn ngày (xử lý như OFF)',col:'#ec4899'}
 };
+// Các mã "nghỉ trọn ngày": không tính ngày công, bị loại khỏi tự động phân công.
+const WK_OFFISH=['OFF','SN'];
+function isOffish(v){return v==='OFF'||v==='SN';}
 function daysInViewMonth(){const p=(CUR_MONTH||curMonthKey()).split('-');return new Date(+p[0],+p[1],0).getDate();}
 function rWork(){
   const tbl=document.getElementById('wkTbl');
@@ -3917,7 +4095,8 @@ function rWork(){
   FK_KEYS.forEach(fk=>{
     const m=WORK[fk]||{};
     const cnt={KM:0,DD:0,HT:0,OFF:0};
-    Object.keys(m).forEach(d=>{const v=m[d];if(cnt[v]!==undefined)cnt[v]++;});
+    // SN (sinh nhật) đếm gộp vào cột OFF — cùng bản chất "nghỉ trọn ngày".
+    Object.keys(m).forEach(d=>{const v=m[d];if(v==='SN')cnt.OFF++;else if(cnt[v]!==undefined)cnt[v]++;});
     const half=wkHalfCount(fk);
     const total=wkTotalDays(fk);
     if(!total&&!cnt.OFF&&!half)return;
@@ -3963,14 +4142,14 @@ function wkAssignCore(startDay){
       else if(v==='HT')htCount[fk]++;
       else if(v==='DD')ddCount[fk]++;
     }
-    // xóa phân công từ startDay trở đi, giữ OFF
-    for(let d=startDay;d<=nD;d++){if(m2[d]&&m2[d]!=='OFF')delete m2[d];}
+    // xóa phân công từ startDay trở đi, giữ OFF / SN (nghỉ trọn ngày)
+    for(let d=startDay;d<=nD;d++){if(m2[d]&&!isOffish(m2[d]))delete m2[d];}
   });
   ['sang','gay','trung'].forEach(ca=>{
     const members=FK_KEYS.filter(fk=>shAssign[fk]===ca);
     if(!members.length)return;
     for(let d=startDay;d<=nD;d++){
-      const avail=members.filter(fk=>((WORK[fk]||{})[d])!=='OFF');
+      const avail=members.filter(fk=>!isOffish((WORK[fk]||{})[d]));
       if(!avail.length)continue;
       const mon=isMon(d);
       // KM (ưu tiên 1): người ít KM nhất. Thứ 2: loại người đã có KM-thứ-2;
@@ -4006,7 +4185,7 @@ function wkAssignCore(startDay){
 }
 function wkAutoAssign(){
   if(!canEdit('shift')){alert('Bạn chỉ có quyền XEM.');return;}
-  if(!confirm('TỰ ĐỘNG PHÂN CÔNG tháng '+dispMonth(CUR_MONTH||curMonthKey())+'?\n\n— Giữ nguyên các ô OFF đã điền\n— Mỗi ngày mỗi ca: 1 KM + 1 HT, còn lại DD — ưu tiên chia đều KM và DD trước, HT sau\n— Thứ 2: mỗi người tối đa 1 lần KM/tháng\n\nPhân công cũ (không phải OFF) sẽ bị GHI ĐÈ.'))return;
+  if(!confirm('TỰ ĐỘNG PHÂN CÔNG tháng '+dispMonth(CUR_MONTH||curMonthKey())+'?\n\n— Giữ nguyên các ô OFF / SN (sinh nhật) đã điền\n— Mỗi ngày mỗi ca: 1 KM + 1 HT, còn lại DD — ưu tiên chia đều KM và DD trước, HT sau\n— Thứ 2: mỗi người tối đa 1 lần KM/tháng\n\nPhân công cũ (không phải OFF) sẽ bị GHI ĐÈ.'))return;
   wkAssignCore(1);
   _wkChanges.push('Tự Động Phân Công toàn tháng');
   clearTimeout(_wkTimer);
@@ -4016,7 +4195,7 @@ function wkAutoAssign(){
 }
 // Cân bằng lại từ 1 ngày (sau báo cáo OFF/chuyển ngày) — chỉ khi lưới đã có phân công
 function wkRebalanceFrom(startDay){
-  const hasPlan=FK_KEYS.some(fk=>Object.values(WORK[fk]||{}).some(v=>v&&v!=='OFF'));
+  const hasPlan=FK_KEYS.some(fk=>Object.values(WORK[fk]||{}).some(v=>v&&!isOffish(v)));
   if(hasPlan)wkAssignCore(startDay);
 }
 // Tổng ngày làm của 1 FK trong tháng = KM+DD+HT − 0.5 × số báo cáo OFF nửa ngày
@@ -4092,7 +4271,7 @@ async function wkOffConfirm(){
 
 // ===== DÁN TỪ EXCEL (phân công / điểm duyệt đơn / điểm KM) =====
 let _pasteMode='work';
-const NAME2FK={};FK_KEYS.forEach(fk=>{NAME2FK[FK_NAMES[fk].toUpperCase()]=fk;});
+// NAME2FK được xây trong applyRoster() (core.js) và rebuild mỗi khi roster đổi.
 function openPasteModal(mode){
   if(!canEdit(mode==='work'?'shift':'ko')){alert('Bạn chỉ có quyền XEM.');return;}
   if(mode==='km'&&!KMD){alert('Chưa có dữ liệu Khuyến Mãi tháng này — upload file KM trước.');return;}
@@ -4102,7 +4281,7 @@ function openPasteModal(mode){
     'Copy vùng dữ liệu trong Excel (bôi đen → Ctrl+C) rồi dán vào ô bên dưới (Ctrl+V).<br>'+
     'Mỗi dòng: <b style="color:var(--tx)">TÊN NHÂN VIÊN</b> (GEON, DANTE, LUBY...) rồi tới giá trị của <b>ngày 1, 2, 3...</b> mỗi cột 1 ngày — cột CA đứng trước tên cũng nhận được.<br>'+
     (mode==='work'
-      ?'Giá trị hợp lệ: <b style="color:#10b981">DD</b> · <b style="color:#f59e0b">KM</b> · <b style="color:#3b82f6">HT</b> · <b style="color:#ef4444">OFF</b> — ô trống giữ nguyên giá trị cũ. Mẹo: chỉ dán các ô OFF rồi bấm Tự Động Phân Công.'
+      ?'Giá trị hợp lệ: <b style="color:#10b981">DD</b> · <b style="color:#f59e0b">KM</b> · <b style="color:#3b82f6">HT</b> · <b style="color:#ef4444">OFF</b> · <b style="color:#ec4899">SN</b> (sinh nhật, xử lý như OFF) — ô trống giữ nguyên giá trị cũ. Mẹo: chỉ dán các ô OFF/SN rồi bấm Tự Động Phân Công.'
       :'Giá trị là SỐ ĐIỂM từng ngày — ô trống giữ nguyên giá trị cũ.');
   document.getElementById('pasteArea').value='';
   document.getElementById('pasteMsg').textContent='';
@@ -4450,15 +4629,7 @@ rAll();
     <div class="bc-bt-agent" id="bc-bt-agent-info"></div>
     <div style="margin-bottom:14px">
       <span class="bc-bt-lbl">Nhân viên phụ trách (FK):</span>
-      <div class="bc-bt-chips">
-        <div class="bc-bt-chip" onclick="BC.selectFk('JADE')">JADE</div>
-        <div class="bc-bt-chip" onclick="BC.selectFk('CARBON')">CARBON</div>
-        <div class="bc-bt-chip" onclick="BC.selectFk('MEMBER')">MEMBER</div>
-        <div class="bc-bt-chip" onclick="BC.selectFk('ANGEL')">ANGEL</div>
-        <div class="bc-bt-chip" onclick="BC.selectFk('GEON')">GEON</div>
-        <div class="bc-bt-chip" onclick="BC.selectFk('DANTE')">DANTE</div>
-        <div class="bc-bt-chip" onclick="BC.selectFk('PIU')">PIU</div>
-      </div>
+      <div class="bc-bt-chips" id="bcBtChips"></div>
     </div>
     <div style="margin-bottom:14px">
       <span class="bc-bt-lbl">Nội dung kiểm tra:</span>
@@ -4478,23 +4649,7 @@ rAll();
     <div class="bc-cu-title">BÁO CÁO CƯỢC BẤT THƯỜNG</div>
     <div style="margin-bottom:14px">
       <span class="bc-bt-lbl">Nhân viên phụ trách (FK):</span>
-      <div class="bc-bt-chips" style="gap:6px">
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('JADE')">JADE</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('CARBON')">CARBON</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('MEMBER')">MEMBER</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('ANGEL')">ANGEL</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('GEON')">GEON</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('DANTE')">DANTE</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('PIU')">PIU</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('CHAMY')">CHAMY</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('LUBY')">LUBY</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('AIMEE')">AIMEE</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('ANTONY')">ANTONY</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('TRUCIA')">TRUCIA</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('MINTY')">MINTY</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('BRENNA')">BRENNA</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('SEREN')">SEREN</div>
-      </div>
+      <div class="bc-bt-chips" style="gap:6px" id="bcCuChips"></div>
     </div>
     <div style="margin-bottom:14px">
       <span class="bc-bt-lbl">Đính kèm file / hình ảnh (tuỳ chọn):</span>
@@ -5245,6 +5400,14 @@ const BC={
   // ---- Báo cáo đại lý bất thường ----
   _selFk: null,
 
+  // Render chip nhân viên phụ trách TỪ ROSTER (động): bất thường = nhóm VIP; cược = tất cả nhân viên active.
+  renderFkChips(){
+    const bt=document.getElementById('bcBtChips');
+    if(bt)bt.innerHTML=FKVIP.map(fk=>`<div class="bc-bt-chip" onclick="BC.selectFk('${FK_NAMES[fk]}')">${FK_NAMES[fk]}</div>`).join('');
+    const cu=document.getElementById('bcCuChips');
+    if(cu)cu.innerHTML=FK_KEYS.map(fk=>`<div class="bc-cu-chip" onclick="BC.selectCuFk('${FK_NAMES[fk]}')">${FK_NAMES[fk]}</div>`).join('');
+  },
+
   openBtModal(){
     if(CUR_PROFILE&&!canEdit('bc')){alert('Bạn chỉ có quyền XEM, không được gửi báo cáo.');return;}
     const name=document.getElementById('bc-agent-select').value;
@@ -5253,6 +5416,7 @@ const BC={
     document.getElementById('bc-bt-agent-info').innerHTML=
       `<b>Đại lý: ${name}</b> &nbsp;·&nbsp; KH hợp lệ: ${ag?ag.khach_hop_le:0} &nbsp;·&nbsp; Tổng thành viên: ${ag?ag.tong_thanh_vien:0}`;
     BC._selFk=null;
+    BC.renderFkChips();
     document.querySelectorAll('.bc-bt-chip').forEach(c=>c.classList.remove('sel'));
     document.getElementById('bc-bt-content').value='';
     document.getElementById('bc-bt-status').textContent='';
@@ -5384,6 +5548,7 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
   openCuModal(){
     if(CUR_PROFILE&&!canEdit('bc')){alert('Bạn chỉ có quyền XEM, không được gửi báo cáo.');return;}
     BC._selCuFk=null;BC._cuFiles=[];
+    BC.renderFkChips();
     document.querySelectorAll('.bc-cu-chip').forEach(c=>c.classList.remove('sel'));
     document.getElementById('bc-cu-content').value='';
     document.getElementById('bc-cu-file').value='';

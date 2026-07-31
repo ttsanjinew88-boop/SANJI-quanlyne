@@ -31,7 +31,7 @@ function roleOf(profile){
   return{key:k,label:ROLES[k].label,color:ROLES[k].color};
 }
 const LOGIN_AT_KEY='login_at_v1';
-const SESSION_MAX_MS=24*3600*1000; // phiên đăng nhập tối đa 24 giờ
+const SESSION_MAX_MS=12*3600*1000; // phiên đăng nhập tối đa 12 giờ
 function sessionExpired(){
   const at=Number(localStorage.getItem(LOGIN_AT_KEY)||0);
   return !at||Date.now()-at>SESSION_MAX_MS;
@@ -82,10 +82,10 @@ const AUTH={
       const{data}=await SB.client().auth.getSession();
       if(data&&data.session){
         if(sessionExpired()){
-          // quá 24h -> buộc đăng nhập lại
+          // quá 12h -> buộc đăng nhập lại
           await SB.client().auth.signOut();
           localStorage.removeItem(LOGIN_AT_KEY);
-          document.getElementById('lg-err').textContent='Phiên đăng nhập đã hết hạn (24h) — vui lòng đăng nhập lại';
+          document.getElementById('lg-err').textContent='Phiên đăng nhập đã hết hạn (12h) — vui lòng đăng nhập lại';
           return;
         }
         // BẮT BUỘC 2FA khi khôi phục phiên
@@ -267,10 +267,10 @@ const AUTH={
     location.reload();
   }
 };
-// Kiểm tra định kỳ: đang dùng mà quá 24h kể từ lúc đăng nhập -> tự đăng xuất
+// Kiểm tra định kỳ: đang dùng mà quá 12h kể từ lúc đăng nhập -> tự đăng xuất
 setInterval(function(){
   if(CUR_PROFILE&&sessionExpired()){
-    alert('Phiên đăng nhập đã hết hạn (24 giờ) — hệ thống sẽ đăng xuất.');
+    alert('Phiên đăng nhập đã hết hạn (12 giờ) — hệ thống sẽ đăng xuất.');
     AUTH.logout();
   }
 },5*60*1000);
@@ -321,6 +321,9 @@ function applyPerms(){
   // View Đề Xuất Hạn Mức Duyệt: chỉ quyền SỬA tab Hiệu Suất KO mới thấy
   const klb=document.getElementById('koLimitBtn');
   if(klb)klb.style.display=canEdit('ko')?'':'none';
+  // Quản lý nhân viên (roster) ở Tổng Quan: ADMIN + Tổ Trưởng
+  const reb=document.getElementById('rosterEditBtn');
+  if(reb)reb.style.display=isTTup?'':'none';
   const chip=document.getElementById('userChip');
   document.getElementById('userChipName').textContent=(p.username||'').toUpperCase()+' · '+roleOf(p).label;
   chip.style.display='flex';

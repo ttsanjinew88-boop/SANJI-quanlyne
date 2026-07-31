@@ -315,6 +315,34 @@
   </div>
 </div>
 
+<!-- QUẢN LÝ NHÂN VIÊN (roster) — Admin + Tổ Trưởng -->
+<div class="dr-modal" id="rosterModal">
+  <div class="box" style="max-width:640px;width:100%">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <div style="font-size:1rem;font-weight:800;color:var(--pu2)">👥 Quản lý nhân viên</div>
+      <button onclick="rosterCloseModal()" style="margin-left:auto;background:none;border:none;color:var(--mu);font-size:16px;cursor:pointer">✕</button>
+    </div>
+    <div style="font-size:.62rem;color:var(--mu);margin-bottom:12px">Thêm/ẩn nhân viên áp dụng cho TOÀN hệ thống (Hiệu Suất + Báo Cáo Đại Lý). Ẩn nhân viên vẫn GIỮ dữ liệu lịch sử các tháng cũ. Mã nhận diện = chuỗi con trong cột FK của file Excel duyệt đơn.</div>
+    <!-- Form thêm -->
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:12px">
+      <div style="font-size:.66rem;font-weight:800;color:var(--tx);margin-bottom:8px">➕ Thêm nhân viên mới</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <input id="rosterAddName" placeholder="Tên (vd: HUNTER)" style="flex:1;min-width:120px;background:var(--card);border:1px solid var(--border);color:var(--tx);padding:6px 9px;border-radius:6px;font-size:.7rem;font-weight:700">
+        <select id="rosterAddGroup" style="background:var(--card);border:1px solid var(--border);color:var(--tx);padding:6px 9px;border-radius:6px;font-size:.7rem;font-weight:700">
+          <option value="vip">FK ONLINE VIP</option>
+          <option value="onl">FK ONLINE</option>
+        </select>
+        <input id="rosterAddSearch" placeholder="Mã nhận diện Excel (tùy chọn)" style="flex:1;min-width:120px;background:var(--card);border:1px solid var(--border);color:var(--tx);padding:6px 9px;border-radius:6px;font-size:.7rem">
+        <input id="rosterAddCol" type="color" value="#7c3aed" style="width:34px;height:32px;border:1px solid var(--border);border-radius:6px;padding:0;background:none;cursor:pointer">
+        <button onclick="rosterAddMember()" style="background:var(--pu);border:none;color:#fff;border-radius:6px;padding:7px 14px;font-size:.68rem;font-weight:800;cursor:pointer">Thêm</button>
+      </div>
+      <div id="rosterAddMsg" style="font-size:.62rem;margin-top:6px;min-height:14px"></div>
+    </div>
+    <!-- Danh sách -->
+    <div class="mtbl-wrap" style="max-height:46vh;overflow:auto"><table class="mtbl" id="rosterTbl" style="width:100%"></table></div>
+  </div>
+</div>
+
 <!-- ============ TAB: HIỆU SUẤT KO (gộp Duyệt Đơn + Bất Thường) ============ -->
 <div class="pg" id="pg-ko">
   <div class="view-toggle" id="koViewToggle">
@@ -326,7 +354,10 @@
 
   <!-- VIEW: TỔNG QUAN -->
   <div class="ko-view" id="ko-overview">
-    <div style="font-size:.6rem;color:var(--mu);margin-bottom:12px">Ngày làm việc và Ghi chú có thể click để sửa. Khác: chọn trạng thái từ dropdown. Cộng/Trừ tự động tính theo hiệu suất tổng hợp.</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px">
+      <div style="font-size:.6rem;color:var(--mu)">Ngày làm việc và Ghi chú có thể click để sửa. Khác: chọn trạng thái từ dropdown. Cộng/Trừ tự động tính theo hiệu suất tổng hợp.</div>
+      <button id="rosterEditBtn" onclick="rosterOpenModal()" style="display:none;flex:0 0 auto;background:var(--card2);border:1px solid var(--pu);color:var(--pu2);border-radius:7px;padding:5px 12px;font-size:.66rem;font-weight:800;cursor:pointer;white-space:nowrap">👥 Quản lý nhân viên</button>
+    </div>
     <div class="sec-hdr" style="color:var(--vip-c)">FK ONLINE VIP <span class="cnt-badge" id="ovVipCount">0 người</span></div>
     <div class="mtbl-wrap" style="margin-bottom:8px"><table class="mtbl ko-ov-tbl" id="ovVipTbl"></table></div>
     <div class="ko-ov-foot" id="ovVipFoot"></div>
@@ -778,15 +809,7 @@
     <div class="bc-bt-agent" id="bc-bt-agent-info"></div>
     <div style="margin-bottom:14px">
       <span class="bc-bt-lbl">Nhân viên phụ trách (FK):</span>
-      <div class="bc-bt-chips">
-        <div class="bc-bt-chip" onclick="BC.selectFk('JADE')">JADE</div>
-        <div class="bc-bt-chip" onclick="BC.selectFk('CARBON')">CARBON</div>
-        <div class="bc-bt-chip" onclick="BC.selectFk('MEMBER')">MEMBER</div>
-        <div class="bc-bt-chip" onclick="BC.selectFk('ANGEL')">ANGEL</div>
-        <div class="bc-bt-chip" onclick="BC.selectFk('GEON')">GEON</div>
-        <div class="bc-bt-chip" onclick="BC.selectFk('DANTE')">DANTE</div>
-        <div class="bc-bt-chip" onclick="BC.selectFk('PIU')">PIU</div>
-      </div>
+      <div class="bc-bt-chips" id="bcBtChips"></div>
     </div>
     <div style="margin-bottom:14px">
       <span class="bc-bt-lbl">Nội dung kiểm tra:</span>
@@ -806,23 +829,7 @@
     <div class="bc-cu-title">BÁO CÁO CƯỢC BẤT THƯỜNG</div>
     <div style="margin-bottom:14px">
       <span class="bc-bt-lbl">Nhân viên phụ trách (FK):</span>
-      <div class="bc-bt-chips" style="gap:6px">
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('JADE')">JADE</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('CARBON')">CARBON</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('MEMBER')">MEMBER</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('ANGEL')">ANGEL</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('GEON')">GEON</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('DANTE')">DANTE</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('PIU')">PIU</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('CHAMY')">CHAMY</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('LUBY')">LUBY</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('AIMEE')">AIMEE</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('ANTONY')">ANTONY</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('TRUCIA')">TRUCIA</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('MINTY')">MINTY</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('BRENNA')">BRENNA</div>
-        <div class="bc-cu-chip" onclick="BC.selectCuFk('SEREN')">SEREN</div>
-      </div>
+      <div class="bc-bt-chips" style="gap:6px" id="bcCuChips"></div>
     </div>
     <div style="margin-bottom:14px">
       <span class="bc-bt-lbl">Đính kèm file / hình ảnh (tuỳ chọn):</span>

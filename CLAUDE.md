@@ -54,6 +54,13 @@
 
 ## Bản đồ chức năng → hàm (số = dòng bắt đầu)
 
+### Danh sách nhân viên (ROSTER — THÊM/BỚT động, chốt 30/07/2026)
+- **KHÔNG còn hardcode** `FK_KEYS/FK_NAMES/FKVIP/FKONL/FK_COL/FK_SEARCH` (giờ là `let`, rỗng, rebuild bởi `applyRoster()`). Nguồn sự thật = `ROSTER` (mảng member `{key,name,group:'vip'|'onl',col,search,active}`) trong `core.js` cạnh `ROSTER_DEFAULT` (15 người gốc). `applyRoster()` suy ra mọi biến: active-only cho hiển thị/phân công; `FK_NAMES` giữ CẢ người `active:false` để render lịch sử không "undefined". `NAME2FK` cũng rebuild ở đây (đã gỡ khỏi shift-rank.js). `search` = chuỗi con nhận diện FK ở cột note Excel (dùng bởi `mfk`).
+- **Lưu cloud dùng chung toàn hệ thống**: report `type='roster', month='all'` = `{members:ROSTER}`. `bootData`/`loadHistMonth` load rồi `applyRosterFromCloud(roster)` (data-boot.js) → `applyRoster` + `BC.renderFkChips`. `saveRoster(label)` (data-boot.js): applyRoster + `reconcileDataset(D/KMD)` + render chip + upsert cloud + `rAll()`. ⚠ RLS `reports` phải cho phép ghi type 'roster' (user tự chạy SQL nếu bị chặn).
+- `reconcileDataset(ds)` (core.js): thêm fk_data rỗng cho MỌI FK active còn thiếu + đồng bộ `ds.fkvip/fkonl` theo ROSTER → nhân viên MỚI hiện ngay ở tháng cũ mà không vỡ render. Gọi khi load don/km.
+- **UI Tổng Quan** (Admin + Tổ Trưởng, gate `canManageRoster()` + `applyPerms` nút `#rosterEditBtn`): nút "👥 Quản lý nhân viên" mở modal `#rosterModal` (class `dr-modal`, đóng nền/Esc chung). Hàm ở render.js: `rosterOpenModal/rosterCloseModal/rosterRenderList/rosterAddMember/rosterToggleActive`. Thêm = nhập tên+nhóm+màu+mã Excel (key tự sinh `fk<ten>`, duy nhất). Xóa = **ẩn (active:false)**, GIỮ lịch sử (không xóa hẳn).
+- **BC chip nhân viên phụ trách** render động từ roster: `BC.renderFkChips()` (bc.js) fill `#bcBtChips` (bất thường = nhóm VIP) + `#bcCuChips` (cược = tất cả active); gọi trong `openBtModal`/`openCuModal`. HTML chip cứng cũ đã thay bằng container rỗng.
+
 ### Tiện ích chung
 `ha` 1006 (hex→rgba) · `nn` 1007 (số VN) · `hesc` 1009 (escape HTML) · `co/coL` 1045/1046 (config Chart.js) · `m31x24` 2308 · `hrs` 1044 (dải giờ).
 
@@ -102,6 +109,7 @@ Lịch sử tháng: `toggleHistMenu` 1995, `loadHistMonth` 2025.
 
 ### TAB Phân Ca / Công Việc
 `rShift` 3676, `rShiftPanel` 3328, `sshv` 3344. Phân công: `WORK` 3355, `rWork` 3363, `wkSet` 3656, `wkAutoAssign` 3491, `wkAssignCore` 3438, `wkRebalanceFrom` 3502. OFF: `wkOffOpen` 3516, `wkOffConfirm` 3533. Dán Excel: `openPasteModal` 3580, `applyPaste` 3596.
+- **Mã SN (sinh nhật OFF — chốt 30/07/2026)**: `WK_CODES` thêm `SN` (hồng #ec4899); `isOffish(v)` = OFF||SN. SN = nghỉ trọn ngày, xử lý y hệt OFF: `wkAssignCore` giữ nguyên (không xóa) + loại khỏi `avail`; `wkRebalanceFrom` không tính SN là "có plan"; thống kê `rWork` đếm SN **gộp vào cột OFF**; `wkTotalDays` không tính (chỉ KM/DD/HT). Dán Excel nhận SN tự động (qua `WK_CODES[v]`). SN KHÔNG dùng cho luồng "báo cáo OFF đột xuất/chuyển ngày" (đó vẫn set 'OFF').
 
 ### TAB Xếp Hạng
 `rRank` 3726 (ẩn tên ngày 1–25 tháng hiện tại), `sFk` 3755, `rDC` 3756. Màu FK: `toggleFKColorPicker` 3769, `updateFKColor` 3779.
@@ -124,7 +132,7 @@ Lịch sử tháng: `toggleHistMenu` 1995, `loadHistMonth` 2025.
 - `supabase_update4.sql` — `can_edit`, `can_write_report`, RLS ghi theo quyền.
 - `supabase/functions/tg-webhook/index.ts` — deploy tên **`super-function`**. Xử lý: webhook callback (cộng điểm, rid dùng-1-lần), `send_report` (multipart, server chấm điểm), `reset_2fa`. Token ở secret `TG_BOT_TOKEN`.
 
-Bảng `reports(type,month,data JSON)`. type: `don, km, shift, anomaly, work, limits, ov, suspects, whiteip, rids, bc`.
+Bảng `reports(type,month,data JSON)`. type: `don, km, shift, anomaly, work, limits, ov, suspects, whiteip, rids, bc, roster`. **`roster`**: month cố định `'all'`, data `{members:[...]}` = danh sách nhân viên dùng chung (xem "Danh sách nhân viên (ROSTER)").
 
 ## Việc đang dở / chờ user
 - ~~Gửi Nghi Ngờ → Google Sheet~~: **XONG** — user đã deploy Apps Script, URL đã điền vào `BC.GS_WEBAPP_URL`, endpoint test OK. (Nếu user sửa code .gs phải deploy lại: Deploy → Manage deployments → Edit → New version.)

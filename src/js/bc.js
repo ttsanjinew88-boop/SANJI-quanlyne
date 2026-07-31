@@ -721,6 +721,14 @@ const BC={
   // ---- Báo cáo đại lý bất thường ----
   _selFk: null,
 
+  // Render chip nhân viên phụ trách TỪ ROSTER (động): bất thường = nhóm VIP; cược = tất cả nhân viên active.
+  renderFkChips(){
+    const bt=document.getElementById('bcBtChips');
+    if(bt)bt.innerHTML=FKVIP.map(fk=>`<div class="bc-bt-chip" onclick="BC.selectFk('${FK_NAMES[fk]}')">${FK_NAMES[fk]}</div>`).join('');
+    const cu=document.getElementById('bcCuChips');
+    if(cu)cu.innerHTML=FK_KEYS.map(fk=>`<div class="bc-cu-chip" onclick="BC.selectCuFk('${FK_NAMES[fk]}')">${FK_NAMES[fk]}</div>`).join('');
+  },
+
   openBtModal(){
     if(CUR_PROFILE&&!canEdit('bc')){alert('Bạn chỉ có quyền XEM, không được gửi báo cáo.');return;}
     const name=document.getElementById('bc-agent-select').value;
@@ -729,6 +737,7 @@ const BC={
     document.getElementById('bc-bt-agent-info').innerHTML=
       `<b>Đại lý: ${name}</b> &nbsp;·&nbsp; KH hợp lệ: ${ag?ag.khach_hop_le:0} &nbsp;·&nbsp; Tổng thành viên: ${ag?ag.tong_thanh_vien:0}`;
     BC._selFk=null;
+    BC.renderFkChips();
     document.querySelectorAll('.bc-bt-chip').forEach(c=>c.classList.remove('sel'));
     document.getElementById('bc-bt-content').value='';
     document.getElementById('bc-bt-status').textContent='';
@@ -860,6 +869,7 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
   openCuModal(){
     if(CUR_PROFILE&&!canEdit('bc')){alert('Bạn chỉ có quyền XEM, không được gửi báo cáo.');return;}
     BC._selCuFk=null;BC._cuFiles=[];
+    BC.renderFkChips();
     document.querySelectorAll('.bc-cu-chip').forEach(c=>c.classList.remove('sel'));
     document.getElementById('bc-cu-content').value='';
     document.getElementById('bc-cu-file').value='';
