@@ -201,6 +201,14 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:3;text
 .wk-gay td{background:rgba(239,68,68,.18)!important}
 .wk-trung td{background:rgba(124,58,237,.22)!important}
 .wk-none td{background:rgba(100,116,139,.12)!important}
+/* Tab Phân Ca: đóng băng 2 cột CA + NHÂN VIÊN khi lăn ngang (nền ĐỤC để che phân công) */
+#wkTbl th.sticky-col,#wkTbl td.sticky-col{left:0;width:66px;min-width:66px;max-width:66px;z-index:4}
+#wkTbl th.sticky-col2,#wkTbl td.sticky-col2{position:sticky;left:66px;z-index:3;width:104px;min-width:104px;max-width:104px;text-align:left;font-weight:700;padding-left:9px}
+#wkTbl th.sticky-col2{top:0;z-index:5;background:var(--card2)}
+#wkTbl .wk-sang td.sticky-col,#wkTbl .wk-sang td.sticky-col2{background:#152238!important}
+#wkTbl .wk-gay td.sticky-col,#wkTbl .wk-gay td.sticky-col2{background:#2a1620!important}
+#wkTbl .wk-trung td.sticky-col,#wkTbl .wk-trung td.sticky-col2{background:#1d1633!important}
+#wkTbl .wk-none td.sticky-col,#wkTbl .wk-none td.sticky-col2{background:#141824!important}
 .fk-chip.free{color:var(--mu)}
 .fk-chip:hover{border-color:var(--pu)}
 

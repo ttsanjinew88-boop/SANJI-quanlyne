@@ -55,7 +55,7 @@ function rWork(){
   ];
   document.getElementById('wk_month').textContent='Tháng '+dispMonth(CUR_MONTH||curMonthKey());
   document.getElementById('wk_chips').innerHTML=Object.entries(WK_CODES).map(([k,c])=>`<span style="background:${ha(c.col,.18)};color:${c.col};border:1px solid ${c.col};border-radius:10px;padding:1px 9px;font-size:.6rem;font-weight:800">${k}</span>`).join('');
-  let h='<thead><tr><th class="sticky-col">CA</th><th>NHÂN VIÊN</th>';
+  let h='<thead><tr><th class="sticky-col">CA</th><th class="sticky-col2">NHÂN VIÊN</th>';
   for(let d=1;d<=nD;d++)h+='<th>'+d+'</th>';
   h+='</tr></thead><tbody>';
   groups.forEach(g=>{
@@ -64,7 +64,7 @@ function rWork(){
     fks.forEach((fk,i)=>{
       h+=`<tr class="wk-${g.key||'none'}">`;
       if(i===0)h+=`<td class="sticky-col" rowspan="${fks.length}" style="color:${g.col};font-weight:800;vertical-align:middle;text-align:center">${g.label}</td>`;
-      h+=`<td style="font-weight:700;text-align:left;padding-left:9px">${FK_NAMES[fk]}</td>`;
+      h+=`<td class="sticky-col2">${FK_NAMES[fk]}</td>`;
       for(let d=1;d<=nD;d++){
         const v=(WORK[fk]||{})[d]||'';
         const c=WK_CODES[v];
