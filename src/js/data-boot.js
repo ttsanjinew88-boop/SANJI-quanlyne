@@ -137,6 +137,24 @@ async function saveRoster(actionLabel){
   }
   if(typeof rAll==='function')rAll();
 }
+// Đổi tên 1 nhân viên (theo key) trên MỌI bản roster đã lưu (tất cả tháng + bản 'all' cũ) -> tháng cũ cũng hiện tên mới.
+// key/mã Excel/điểm số không đổi. Các tháng CHƯA có bản riêng sẽ tự lấy tên mới qua kế thừa.
+async function renameMemberEverywhere(key,newName){
+  if(!SB.ready())return;
+  const reps=await SB.listReports();
+  const months=[...new Set((reps||[]).filter(r=>r.type==='roster').map(r=>r.month))];
+  for(const mo of months){
+    if(mo===CUR_MONTH)continue; // tháng đang mở sẽ được saveRoster ghi lại
+    try{
+      const rep=await SB.loadReport('roster',mo);
+      if(rep&&Array.isArray(rep.members)){
+        let changed=false;
+        rep.members.forEach(m=>{if(String(m.key)===key&&m.name!==newName){m.name=newName;changed=true;}});
+        if(changed)await SB.saveReport('roster',mo,{members:rep.members});
+      }
+    }catch(e){console.error('renameMemberEverywhere',mo,e);}
+  }
+}
 // "06/2026" hoặc "6/2026" -> "2026-06" (định dạng lưu DB, sort được)
 function normMonth(m){const p=/^(\d{1,2})\/(\d{4})$/.exec(String(m||'').trim());return p?p[2]+'-'+p[1].padStart(2,'0'):String(m||'').trim();}
 // "2026-06" -> "06/2026" (định dạng hiển thị)
