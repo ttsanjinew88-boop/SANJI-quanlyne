@@ -5177,8 +5177,8 @@ const BC={
     if(s.has(k)){s.delete(k);td.classList.remove('bc-mk','bc-mk-ad');}
     else{s.add(k);td.classList.add(f==='am_duong'?'bc-mk-ad':'bc-mk');}
   },
-  // Thứ tự field khớp 23 cột của genExcel/Google Sheet ('' = cột trống Cổng/Khu vực)
-  XLS_FIELDS:['','dai_ly','id','cap_bac','ho_ten','khach','chi_tieu','','tien_nap','lan_nap','tien_rut','lan_rut','am_duong','cuoc_hop_le','ngan_hang','chi_nhanh','stk','ip','','link_dk','link_dn','thiet_bi','game'],
+  // Thứ tự field khớp 21 cột của genExcel = ĐỒNG BỘ với Google Sheet (bỏ Cổng/Khu vực; Thiết bị lên trước IP đăng ký)
+  XLS_FIELDS:['','dai_ly','id','cap_bac','ho_ten','khach','chi_tieu','tien_nap','lan_nap','tien_rut','lan_rut','am_duong','cuoc_hop_le','ngan_hang','chi_nhanh','stk','ip','thiet_bi','link_dk','link_dn','game'],
 
   loadAgent(){
     const name=document.getElementById('bc-agent-select').value;
@@ -5585,37 +5585,77 @@ const BC={
     }
   },
 
+  // Cấp bậc "đối đầu" (đồng bộ isDoiDau_ của google_sheet_baocao.gs): tự động tô đỏ nhạt
+  _isDoiDau(v){const s=String(v??'').toLowerCase().replace(/\s+/g,' ').trim();return s.indexOf('đổi đầu')>-1||s.indexOf('đối đầu')>-1||s.indexOf('doi dau')>-1||/\[?dd-/.test(s);},
+
   genExcel(rows,agentName,marks){
-    /* SpreadsheetML XML — explicit ss:Type per cell → STK stays text, colors via ss:Interior */
-    const HDRS=['STT','Đại lý','Tên tài khoản','Cấp bậc','Họ tên đăng kí','Khách','Chỉ tiêu','Cổng','Tổng nạp','Lần nạp','Tổng rút','Lần rút','Âm/Dương','Cược hợp lệ','Ngân hàng','Chi nhánh','STK','IP','Khu vực','IP đăng ký','IP đăng nhập','Thiết bị','Sảnh'];
-    const CW=[28,60,80,95,125,40,50,45,70,50,70,50,70,72,75,75,100,82,60,120,120,60,120];
+    /* SpreadsheetML XML — ĐỒNG BỘ 100% với báo cáo Google Sheet (google_sheet_baocao.gs):
+       21 cột (bỏ Cổng/Khu vực), Tahoma 9 đậm, tiền định dạng VN, ô trống "-", Ngân hàng trống "USDT",
+       tiêu đề cam nhạt #F8CBAD, ô Đại lý cam đậm #F4B084 (merge cả khối), tô nghi ngờ vàng đậm #FFE599,
+       Âm/Dương nghi ngờ + Cấp bậc ĐỔI ĐẦU đỏ nhạt #FFC7CE. Viền ngoài khối đậm (medium). */
+    const HDRS=['STT','Đại lý','Tên tài khoản','Cấp bậc','Họ tên đăng kí','Khách','Chỉ tiêu','Tổng nạp','Lần nạp','Tổng rút','Lần rút','Âm/Dương','Cược hợp lệ','Ngân hàng','Chi nhánh','STK','IP','Thiết bị','IP đăng ký','IP đăng nhập','Sảnh'];
+    const CW=[28,60,80,95,125,40,50,70,50,70,50,70,72,75,75,100,82,60,120,120,120];
+    const F=BC.XLS_FIELDS; // 21 field khớp HDRS ('' = cột STT / Đại lý)
+    const MONEY={tien_nap:1,tien_rut:1,am_duong:1,cuoc_hop_le:1};
     const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const B='<Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>';
-    const c=(v,sty,forceStr=false)=>{
+    // Viền ngoài khối đậm: cạnh trái/phải luôn dày; trên chỉ dòng đầu, dưới chỉ dòng cuối
+    const BX=(top,bot)=>`<Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="${bot?2:1}"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="${top?2:1}"/>`;
+    const FONT='<Font ss:Bold="1" ss:Name="Tahoma" ss:Size="9" ss:Color="#000000"/>';
+    // Style theo màu nền + trạng thái viền (t=top đậm, b=bottom đậm)
+    const STY={};
+    let stylesXml='';
+    const style=(bg,t,b)=>{
+      const id=`s_${bg.slice(1)}_${t?1:0}${b?1:0}`;
+      if(!STY[id]){STY[id]=1;stylesXml+=`<Style ss:ID="${id}"><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/><Borders>${BX(t,b)}</Borders>${FONT}<Interior ss:Color="${bg}" ss:Pattern="Solid"/></Style>`;}
+      return id;
+    };
+    const c=(v,sty,forceStr)=>{
       const num=!forceStr&&v!==''&&v!==null&&v!==undefined&&String(v).trim()!==''&&!isNaN(Number(v));
       return`<Cell ss:StyleID="${sty}"><Data ss:Type="${num?'Number':'String'}">${esc(num?v:String(v??''))}</Data></Cell>`;
     };
+    const n=rows.length;
+    // Body: tính XML trước để gom style động, header style tính sau
+    let body='';
+    rows.forEach((r,i)=>{
+      const top=i===0,bot=i===n-1;
+      let row='';
+      F.forEach((f,ci)=>{
+        // Cột Đại lý: merge dọc cả khối → chỉ vẽ ô ở dòng đầu, các dòng sau bỏ ô (dùng ss:Index cho ô kế)
+        if(ci===1){
+          if(top){
+            const sty=style('#F4B084',true,bot);
+            row+=`<Cell ss:StyleID="${sty}"${n>1?` ss:MergeDown="${n-1}"`:''}><Data ss:Type="String">${esc(agentName)}</Data></Cell>`;
+          }
+          return; // dòng >0: bỏ ô (đã bị merge)
+        }
+        // Giá trị hiển thị
+        let val,forceStr=false;
+        if(ci===0){val=i+1;} // STT
+        else if(MONEY[f]){val=BC.fmt(r[f]);if(val==='')val='-';forceStr=true;}
+        else{
+          val=r[f];
+          if(val===''||val===null||val===undefined||String(val).trim()===''){val=f==='ngan_hang'?'USDT':'-';}
+          forceStr=(f==='stk');
+        }
+        // Màu nền
+        let bg='#FFF2CC';
+        if(marks&&f&&marks.has(i+'|'+f))bg=f==='am_duong'?'#FFC7CE':'#FFE599';
+        if(f==='cap_bac'&&BC._isDoiDau(r.cap_bac))bg='#FFC7CE';
+        const sty=style(bg,top,bot);
+        // Dòng >0 & là ô đầu tiên sau cột Đại lý (ci===2): cần ss:Index=3 vì ô Đại lý bị merge bỏ
+        const idx=(!top&&ci===2)?' ss:Index="3"':'';
+        row+=`<Cell ss:StyleID="${sty}"${idx}><Data ss:Type="${(!forceStr&&val!==''&&!isNaN(Number(val))&&String(val).trim()!=='')?'Number':'String'}">${esc(val)}</Data></Cell>`;
+      });
+      body+=`<Row>${row}</Row>`;
+    });
+    const hSty=style('#F8CBAD',true,false); // tiêu đề: cam nhạt, viền trên đậm
     let x=`<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?>
 <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-<Styles>
-<Style ss:ID="h"><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/><Borders>${B}</Borders><Font ss:Bold="1" ss:Name="Arial" ss:Size="10"/><Interior ss:Color="#F4B084" ss:Pattern="Solid"/></Style>
-<Style ss:ID="d"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Borders>${B}</Borders><Font ss:Name="Arial" ss:Size="10"/><Interior ss:Color="#FFF2CC" ss:Pattern="Solid"/></Style>
-<Style ss:ID="a"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Borders>${B}</Borders><Font ss:Name="Arial" ss:Size="10"/><Interior ss:Color="#F4B084" ss:Pattern="Solid"/></Style>
-<Style ss:ID="m"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Borders>${B}</Borders><Font ss:Name="Arial" ss:Size="10" ss:Bold="1"/><Interior ss:Color="#F4B084" ss:Pattern="Solid"/></Style>
-<Style ss:ID="r"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Borders>${B}</Borders><Font ss:Name="Arial" ss:Size="10" ss:Bold="1" ss:Color="#9C0006"/><Interior ss:Color="#FFC7CE" ss:Pattern="Solid"/></Style>
-</Styles>
+<Styles>${stylesXml}</Styles>
 <Worksheet ss:Name="Báo cáo"><Table>
 ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
-<Row ss:AutoFitHeight="1">${HDRS.map(h=>c(h,'h')).join('')}</Row>`;
-    rows.forEach((r,i)=>{
-      const vals=[i+1,r.dai_ly,r.id,r.cap_bac,r.ho_ten,r.khach,r.chi_tieu,'',r.tien_nap,r.lan_nap,r.tien_rut,r.lan_rut,r.am_duong,r.cuoc_hop_le,r.ngan_hang,r.chi_nhanh,r.stk,r.ip,'',r.link_dk,r.link_dn,r.thiet_bi,r.game];
-      x+=`<Row>${vals.map((v,ci)=>{
-        const f=BC.XLS_FIELDS[ci];
-        let sty=ci===1?'a':'d';
-        if(marks&&f&&marks.has(i+'|'+f))sty=f==='am_duong'?'r':'m';
-        return c(v,sty,ci===16);
-      }).join('')}</Row>`;
-    });
+<Row ss:AutoFitHeight="1">${HDRS.map(h=>c(h,hSty,true)).join('')}</Row>${body}`;
     x+=`</Table></Worksheet></Workbook>`;
     return new Blob(['﻿'+x],{type:'application/vnd.ms-excel;charset=utf-8'});
   },
