@@ -803,7 +803,7 @@ const BC={
        tiêu đề cam nhạt #F8CBAD, ô Đại lý cam đậm #F4B084 (merge cả khối), tô nghi ngờ vàng đậm #FFE599,
        Âm/Dương nghi ngờ + Cấp bậc ĐỔI ĐẦU đỏ nhạt #FFC7CE. Viền ngoài khối đậm (medium). */
     const HDRS=['STT','Đại lý','Tên tài khoản','Cấp bậc','Họ tên đăng kí','Khách','Chỉ tiêu','Tổng nạp','Lần nạp','Tổng rút','Lần rút','Âm/Dương','Cược hợp lệ','Ngân hàng','Chi nhánh','STK','IP','Thiết bị','IP đăng ký','IP đăng nhập','Sảnh'];
-    const CW=[28,60,80,95,125,40,50,70,50,70,50,70,72,75,75,100,82,60,120,120,120];
+    const CW=[28,60,80,165,125,40,50,70,50,70,50,70,72,75,75,100,82,60,120,120,120];
     const F=BC.XLS_FIELDS; // 21 field khớp HDRS ('' = cột STT / Đại lý)
     const MONEY={tien_nap:1,tien_rut:1,am_duong:1,cuoc_hop_le:1};
     const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
