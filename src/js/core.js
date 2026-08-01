@@ -10,7 +10,8 @@ const MD = (function(){
   return{month:"",days:Array.from({length:31},(_,i)=>i+1),days_in_month:[],hour_labels_gmt7:lbl,hour_labels_gmt4:lbl,day_scores:z31(),day_counts:z31(),hour_scores_gmt7:z24(),hour_counts_gmt7:z24(),hour_scores_gmt4:z24(),hour_counts_gmt4:z24(),fk_data:fd,fkvip:VIP,fkonl:ONL};
 })();
 const GMT_OFFSET = 11;
-// ===== ROSTER (danh sách nhân viên) — CÓ THỂ THÊM/BỚT, lưu cloud (report type 'roster'/'all') dùng chung TOÀN hệ thống =====
+// ===== ROSTER (danh sách nhân viên) — CÓ THỂ THÊM/BỚT, lưu cloud RIÊNG TỪNG THÁNG (report type 'roster', month 'YYYY-MM') =====
+// Sửa roster tháng nào chỉ ảnh hưởng tháng đó; tháng mới kế thừa roster tháng gần nhất trước đó (xem applyRosterForMonth ở data-boot.js).
 // Mỗi member: {key, name, group:'vip'|'onl', col, search, active}
 //  - key: mã nội bộ (vd 'fkjade') — DUY NHẤT, không đổi sau khi tạo.
 //  - search: chuỗi con để nhận diện FK từ cột note file Excel (mfk()). Mặc định = key.

@@ -43,8 +43,8 @@ async function bootData(){
   CUR_MONTH=mk;
   try{
     setCloudStatus('Đang tải dữ liệu tháng '+dispMonth(mk)+'...');
-    const[don,km,shift,an,wk,lm,ov,roster]=await Promise.all([SB.loadReport('don',mk),SB.loadReport('km',mk),SB.loadReport('shift',mk),SB.loadReport('anomaly',mk),SB.loadReport('work',mk),SB.loadReport('limits',mk),SB.loadReport('ov',mk),SB.loadReport('roster','all')]);
-    applyRosterFromCloud(roster);
+    const[don,km,shift,an,wk,lm,ov]=await Promise.all([SB.loadReport('don',mk),SB.loadReport('km',mk),SB.loadReport('shift',mk),SB.loadReport('anomaly',mk),SB.loadReport('work',mk),SB.loadReport('limits',mk),SB.loadReport('ov',mk)]);
+    await applyRosterForMonth(mk);
     WORK=wk||{};
     LIMITS=lm||{};
     await inheritLimitsIfEmpty(mk);
@@ -82,8 +82,10 @@ async function bootData(){
     setCloudStatus('Lỗi tải dữ liệu cloud',true);
   }
 }
-// ===== ROSTER (danh sách nhân viên) — LƯU CLOUD dùng chung toàn hệ thống =====
-// Áp roster từ cloud (report type 'roster', month 'all'). Không có -> giữ ROSTER_DEFAULT.
+// ===== ROSTER (danh sách nhân viên) — LƯU CLOUD RIÊNG TỪNG THÁNG (report type 'roster', month = 'YYYY-MM') =====
+// Sửa roster ở tháng nào chỉ ảnh hưởng THÁNG ĐÓ. Tháng chưa có roster riêng -> kế thừa tháng gần nhất
+// trước đó (rồi tới bản 'all' cũ để tương thích ngược, cuối cùng ROSTER_DEFAULT). Kế thừa KHÔNG tự lưu.
+// Áp một danh sách member (mảng) vào ROSTER + rebuild biến suy ra. members rỗng/null -> reset về mặc định.
 function applyRosterFromCloud(roster){
   if(roster&&Array.isArray(roster.members)&&roster.members.length){
     ROSTER=roster.members.map(m=>({
@@ -94,20 +96,41 @@ function applyRosterFromCloud(roster){
       search:String(m.search||m.key).toLowerCase(),
       active:m.active!==false
     }));
+  }else{
+    // Không có roster nào áp dụng cho tháng này -> reset về mặc định (tránh rớt roster tháng khác còn trong RAM)
+    ROSTER=ROSTER_DEFAULT.map(m=>({...m,active:true}));
   }
   applyRoster();
   if(typeof BC!=='undefined'&&BC.renderFkChips)BC.renderFkChips();
 }
-// Lưu ROSTER lên cloud + rebuild biến suy ra + reconcile dataset đang mở + render lại.
+// Nạp roster cho tháng mk: bản riêng của tháng -> kế thừa tháng gần nhất trước đó -> bản 'all' cũ -> mặc định.
+async function applyRosterForMonth(mk){
+  let members=null;
+  try{
+    if(SB.ready()){
+      const own=await SB.loadReport('roster',mk);
+      if(own&&Array.isArray(own.members)&&own.members.length)members=own.members;
+      if(!members){
+        const reps=await SB.listReports();
+        const prev=(reps||[]).filter(r=>r.type==='roster'&&/^\d{4}-\d{2}$/.test(r.month)&&r.month<mk).map(r=>r.month).sort().pop();
+        if(prev){const p=await SB.loadReport('roster',prev);if(p&&Array.isArray(p.members)&&p.members.length)members=p.members;}
+      }
+      if(!members){const leg=await SB.loadReport('roster','all');if(leg&&Array.isArray(leg.members)&&leg.members.length)members=leg.members;}
+    }
+  }catch(e){console.error('applyRosterForMonth',e);}
+  applyRosterFromCloud(members?{members}:null);
+}
+// Lưu ROSTER lên cloud (RIÊNG tháng đang mở) + rebuild biến suy ra + reconcile dataset đang mở + render lại.
 async function saveRoster(actionLabel){
   applyRoster();
   if(D)reconcileDataset(D);
   if(KMD)reconcileDataset(KMD);
   if(typeof BC!=='undefined'&&BC.renderFkChips)BC.renderFkChips();
+  const mk=CUR_MONTH||curMonthKey();
   try{
-    await SB.saveReport('roster','all',{members:ROSTER});
-    setCloudStatus('Đã lưu danh sách nhân viên ✓');
-    if(actionLabel)logAction('Chỉnh danh sách nhân viên',actionLabel);
+    await SB.saveReport('roster',mk,{members:ROSTER});
+    setCloudStatus('Đã lưu danh sách nhân viên tháng '+dispMonth(mk)+' ✓');
+    if(actionLabel)logAction('Chỉnh danh sách nhân viên',actionLabel+' (tháng '+dispMonth(mk)+')');
   }catch(e){
     console.error('saveRoster',e);
     setCloudStatus('Lỗi lưu danh sách nhân viên — kiểm tra quyền (RLS type "roster")',true);
@@ -231,6 +254,7 @@ async function loadHistMonth(m){
     setCloudStatus("Đang tải tháng "+dispMonth(m)+"...");
     const[don,km,shift,an,wk,lm,ov]=await Promise.all([SB.loadReport("don",m),SB.loadReport("km",m),SB.loadReport("shift",m),SB.loadReport("anomaly",m),SB.loadReport("work",m),SB.loadReport("limits",m),SB.loadReport("ov",m)]);
     CUR_MONTH=m;
+    await applyRosterForMonth(m);
     WORK=wk||{};
     LIMITS=lm||{};
     await inheritLimitsIfEmpty(m);

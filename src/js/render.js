@@ -366,7 +366,7 @@ function rKoOverview(){
   }
 }
 
-// ===== QUẢN LÝ NHÂN VIÊN (roster) — Admin + Tổ Trưởng; áp dụng TOÀN hệ thống =====
+// ===== QUẢN LÝ NHÂN VIÊN (roster) — Admin + Tổ Trưởng; LƯU RIÊNG THÁNG ĐANG MỞ (CUR_MONTH) =====
 function rosterOpenModal(){
   if(!canManageRoster()){alert('Chỉ ADMIN / Tổ Trưởng được quản lý nhân viên.');return;}
   document.getElementById('rosterAddName').value='';
