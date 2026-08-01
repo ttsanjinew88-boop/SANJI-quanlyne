@@ -137,9 +137,10 @@ async function saveRoster(actionLabel){
   }
   if(typeof rAll==='function')rAll();
 }
-// Đổi tên 1 nhân viên (theo key) trên MỌI bản roster đã lưu (tất cả tháng + bản 'all' cũ) -> tháng cũ cũng hiện tên mới.
-// key/mã Excel/điểm số không đổi. Các tháng CHƯA có bản riêng sẽ tự lấy tên mới qua kế thừa.
-async function renameMemberEverywhere(key,newName){
+// Cập nhật TÊN (+ mã Excel/search nếu truyền) của 1 nhân viên (theo key) trên MỌI bản roster đã lưu
+// (tất cả tháng + bản 'all' cũ) -> tháng cũ cũng đổi theo. key nội bộ & điểm số không đổi.
+// Các tháng CHƯA có bản riêng sẽ tự lấy giá trị mới qua kế thừa.
+async function renameMemberEverywhere(key,newName,newSearch){
   if(!SB.ready())return;
   const reps=await SB.listReports();
   const months=[...new Set((reps||[]).filter(r=>r.type==='roster').map(r=>r.month))];
@@ -149,7 +150,12 @@ async function renameMemberEverywhere(key,newName){
       const rep=await SB.loadReport('roster',mo);
       if(rep&&Array.isArray(rep.members)){
         let changed=false;
-        rep.members.forEach(m=>{if(String(m.key)===key&&m.name!==newName){m.name=newName;changed=true;}});
+        rep.members.forEach(m=>{
+          if(String(m.key)===key){
+            if(m.name!==newName){m.name=newName;changed=true;}
+            if(newSearch&&(m.search||'').toLowerCase()!==newSearch){m.search=newSearch;changed=true;}
+          }
+        });
         if(changed)await SB.saveReport('roster',mo,{members:rep.members});
       }
     }catch(e){console.error('renameMemberEverywhere',mo,e);}

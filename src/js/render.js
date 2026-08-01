@@ -388,7 +388,7 @@ function rosterRenderList(){
       `<td style="font-size:.58rem;color:var(--mu)">${hesc(m.search||m.key)}</td>`+
       `<td style="font-weight:700;color:${act?'#10b981':'#ef4444'}">${act?'Đang làm':'Đã nghỉ'}</td>`+
       `<td style="text-align:center;white-space:nowrap">`+
-        `<button onclick="rosterRename(${i})" style="background:none;border:1px solid var(--bl);color:var(--bl);border-radius:5px;padding:2px 8px;font-size:.58rem;font-weight:700;cursor:pointer;margin-right:4px">✎ Đổi tên</button>`+
+        `<button onclick="rosterRename(${i})" style="background:none;border:1px solid var(--bl);color:var(--bl);border-radius:5px;padding:2px 8px;font-size:.58rem;font-weight:700;cursor:pointer;margin-right:4px">✎ Sửa tên/mã</button>`+
         (act
         ? `<button onclick="rosterToggleActive(${i})" style="background:none;border:1px solid #ef4444;color:#ef4444;border-radius:5px;padding:2px 8px;font-size:.58rem;font-weight:700;cursor:pointer">Ẩn (nghỉ)</button>`
         : `<button onclick="rosterToggleActive(${i})" style="background:none;border:1px solid #10b981;color:#10b981;border-radius:5px;padding:2px 8px;font-size:.58rem;font-weight:700;cursor:pointer">Khôi phục</button>`)+`</td>`+
@@ -418,7 +418,7 @@ function rosterAddMember(){
   document.getElementById('rosterAddName').value='';
   document.getElementById('rosterAddSearch').value='';
 }
-// Đổi tên nhân viên — key/mã Excel/điểm số GIỮ NGUYÊN, chỉ đổi tên hiển thị. Áp cho TẤT CẢ các tháng (cả tháng cũ).
+// Sửa nhân viên — đổi TÊN và/hoặc MÃ EXCEL (search). key nội bộ & điểm số GIỮ NGUYÊN. Áp cho TẤT CẢ các tháng (cả tháng cũ).
 async function rosterRename(i){
   if(!canManageRoster()){alert('Chỉ ADMIN / Tổ Trưởng.');return;}
   const m=ROSTER[i];if(!m)return;
@@ -426,14 +426,20 @@ async function rosterRename(i){
   if(nv===null)return;
   const newName=nv.trim();
   if(!newName){alert('Tên không được để trống.');return;}
-  if(newName===m.name)return;
   if(ROSTER.some((x,j)=>j!==i&&x.name.toUpperCase()===newName.toUpperCase())){alert('Tên "'+newName+'" đã trùng nhân viên khác.');return;}
-  if(!confirm('Đổi tên "'+m.name+'" → "'+newName+'"?\n\nTên mới áp dụng cho TẤT CẢ các tháng (kể cả tháng cũ). Mã Excel và điểm số KHÔNG đổi.'))return;
+  const curSearch=(m.search||m.key);
+  const sv=prompt('Mã Excel (chuỗi nhận diện FK ở cột ghi chú file Excel) của "'+newName+'":',curSearch);
+  if(sv===null)return;
+  const newSearch=sv.trim().toLowerCase();
+  if(!newSearch){alert('Mã Excel không được để trống.');return;}
+  const nameChanged=newName!==m.name, searchChanged=newSearch!==curSearch.toLowerCase();
+  if(!nameChanged&&!searchChanged){alert('Không có thay đổi.');return;}
+  if(!confirm('Cập nhật nhân viên:\n • Tên:  "'+m.name+'"  →  "'+newName+'"\n • Mã Excel:  "'+curSearch+'"  →  "'+newSearch+'"\n\nÁp dụng cho TẤT CẢ các tháng (kể cả tháng cũ). Điểm số KHÔNG đổi.'))return;
   const key=m.key,oldName=m.name;
-  m.name=newName;
-  setCloudStatus('Đang đổi tên trên mọi tháng...');
-  try{await renameMemberEverywhere(key,newName);}catch(e){console.error('rosterRename',e);}
-  await saveRoster('Đổi tên '+oldName+' → '+newName);
+  m.name=newName;m.search=newSearch;
+  setCloudStatus('Đang cập nhật trên mọi tháng...');
+  try{await renameMemberEverywhere(key,newName,newSearch);}catch(e){console.error('rosterRename',e);}
+  await saveRoster('Sửa '+oldName+' → '+newName+' (mã: '+newSearch+')');
   rosterRenderList();
 }
 function rosterToggleActive(i){
