@@ -186,13 +186,11 @@ const SB=(function(){
     return{ok:true};
   }
   async function uploadOriginals(files,type,month){
-    if(!ready()||!files||!files.length)return{skipped:true};
-    for(const f of files){
-      const path=`${type}/${month}/${Date.now()}_${f.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-      const{error}=await cli.storage.from('originals').upload(path,f,{upsert:false});
-      if(error&&!/already exists/i.test(String(error.message||'')))throw error;
-    }
-    return{ok:true};
+    // NGỪNG sao lưu file Excel gốc lên Storage (chốt 02/08/2026): dashboard KHÔNG bao giờ
+    // đọc lại các file này — chỉ cần "thông tin báo cáo" đã xử lý trong bảng `reports`.
+    // Giữ lại file thô chỉ làm bucket `originals` phình vô hạn (~600 MB/tháng, sắp tràn 1 GB Free).
+    // Vô hiệu hóa tại điểm nghẽn duy nhất này để chặn mọi chỗ gọi (don/km/bc). Storage đứng yên.
+    return{skipped:true};
   }
   async function listReports(){
     if(!ready())return[];
