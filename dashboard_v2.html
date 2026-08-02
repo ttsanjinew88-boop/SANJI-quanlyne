@@ -1732,7 +1732,7 @@ async function admLoadUsers(){
       (sec||[]).forEach(x=>{lockMap[x.username]={locked:x.locked,fails:x.fails};});
     }catch(e){}
     const headPerms=isAdmin?PERM_TABS.map(t=>`<th class="tc">${t.label}</th>`).join(''):'';
-    list.innerHTML=`<table class="adm-tbl"><thead><tr><th>Tài khoản</th><th class="tc">Cấp bậc</th>${headPerms}${isAdmin?'<th class="tc">Admin</th>':''}<th class="tc">Khóa TK</th><th class="tc">Reset 2FA</th><th class="tc">Mật khẩu</th></tr></thead><tbody>`+
+    list.innerHTML=`<table class="adm-tbl"><thead><tr><th>Tài khoản</th><th class="tc">Cấp bậc</th>${headPerms}${isAdmin?'<th class="tc">Admin</th>':''}<th class="tc">Khóa TK</th><th class="tc">Reset 2FA</th><th class="tc">Mật khẩu</th>${isAdmin?'<th class="tc">Xóa TK</th>':''}</tr></thead><tbody>`+
       data.map(u=>{
         const perms=u.perms||{};
         const isSelf=u.user_id===CUR_PROFILE.user_id;
@@ -1772,8 +1772,15 @@ async function admLoadUsers(){
         const resetCell=canReset
           ?`<button onclick="admReset2fa('${u.user_id}','${(u.username||'').replace(/'/g,'')}')" style="padding:3px 10px;border-radius:5px;cursor:pointer;font-size:.62rem;font-weight:700;background:rgba(6,182,212,.15);border:1px solid rgba(6,182,212,.4);color:var(--cy)">Reset</button>`
           :'<span style="color:var(--mu)">—</span>';
+        // Xóa TK: chỉ ADMIN, không xóa được chính mình và không xóa admin khác
+        const canDel=isAdmin&&!isSelf&&!u.is_admin;
+        const delCell=isAdmin
+          ?(canDel
+            ?`<button onclick="admDeleteUser('${u.user_id}','${(u.username||'').replace(/'/g,'')}')" style="padding:3px 10px;border-radius:5px;cursor:pointer;font-size:.62rem;font-weight:700;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171">Xóa</button>`
+            :'<span style="color:var(--mu)">—</span>')
+          :'';
         return `<tr><td style="font-weight:700;color:var(--tx)">${(u.username||'').toUpperCase()}${isSelf?' <span style="color:var(--pu2);font-size:.6rem">(bạn)</span>':''}</td>`+
-          `<td class="tc">${roleCell}</td>${permCells}${adminCell}<td class="tc">${lockCell}</td><td class="tc">${resetCell}</td><td class="tc">${pwCell}</td></tr>`;
+          `<td class="tc">${roleCell}</td>${permCells}${adminCell}<td class="tc">${lockCell}</td><td class="tc">${resetCell}</td><td class="tc">${pwCell}</td>${isAdmin?`<td class="tc">${delCell}</td>`:''}</tr>`;
       }).join('')+'</tbody></table>';
   }catch(e){
     console.error('admLoadUsers',e);
@@ -1903,6 +1910,24 @@ async function admReset2fa(uid,uname){
     logAction('Reset 2FA',uname.toUpperCase());
     alert('Đã reset 2FA cho '+uname.toUpperCase()+' ✓\nĐã gỡ '+(res.removed||0)+' thiết bị. Người dùng sẽ thiết lập lại khi đăng nhập lần sau.');
   }catch(e){alert('Lỗi reset 2FA: '+(e.message||e));}
+}
+// Xóa hẳn tài khoản (chỉ ADMIN) — dùng khi nhân viên nghỉ việc. KHÔNG hoàn tác được.
+async function admDeleteUser(uid,uname){
+  if(!CUR_PROFILE||!CUR_PROFILE.is_admin)return;
+  const U=uname.toUpperCase();
+  if(!confirm('XÓA HẲN tài khoản '+U+'?\n\n• Tài khoản này sẽ KHÔNG đăng nhập được nữa.\n• Hành động KHÔNG HOÀN TÁC được.\n\nLưu ý: điểm số / lịch sử đã ghi theo mã nhân viên (roster) VẪN GIỮ — đây chỉ xóa tài khoản đăng nhập.'))return;
+  if(prompt('Để xác nhận, gõ đúng tên tài khoản: '+U)!==U){alert('Tên không khớp — đã hủy xóa.');return;}
+  try{
+    const{data:sess}=await SB.client().auth.getSession();
+    const token=sess&&sess.session&&sess.session.access_token;
+    if(!token){alert('Phiên hết hạn, đăng nhập lại');return;}
+    const r=await fetch(SB_URL+'/functions/v1/super-function',{method:'POST',headers:{'Authorization':'Bearer '+token,'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({action:'delete_user',target:uid})});
+    const res=await r.json();
+    if(!res.ok)throw new Error(res.description||'Lỗi');
+    logAction('Xóa tài khoản',U);
+    alert('Đã xóa tài khoản '+U+' ✓');
+    admLoadUsers();
+  }catch(e){alert('Lỗi xóa tài khoản: '+(e.message||e));}
 }
 
 // ===== WHITE IP (chỉ ADMIN quản lý) =====

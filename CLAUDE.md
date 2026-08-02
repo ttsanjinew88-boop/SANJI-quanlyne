@@ -77,6 +77,7 @@
 
 ### Quản Trị (admin panel)
 `rAdminPanel` 1424, `admLoadUsers` 1455, `admCreateUser` 1799, `admSetRole` 1770, `admSetAdmin` 1784, `admSetPermLevel` 1517, `admChangePw` 1533, `selfChangePw` 1548.
+- **Xóa tài khoản (chốt 02/08/2026)**: cột "Xóa TK" trong bảng Danh sách tài khoản (chỉ ADMIN, ẩn với chính mình & admin khác) → `admDeleteUser(uid,uname)` (admin.js, cạnh `admReset2fa`): confirm + gõ lại đúng tên để xác nhận → POST `{action:'delete_user',target:uid}` tới `super-function`. Server (`handleAction`) chỉ cho ADMIN, chặn tự xóa/xóa admin khác, xóa `auth.users` (`sb.auth.admin.deleteUser`) + `profiles` + `login_security`, ghi audit. **Điểm/lịch sử theo roster KHÔNG mất** (chỉ xóa tài khoản đăng nhập, không đụng ROSTER). Cần deploy lại `super-function`.
 White IP: `admLoadIps` 1644, `admAddIp` 1656, `admDelIp` 1674. Khóa TK: `admToggleLock` 1686.
 Xóa/xuất tháng: `admFillDelMonths` 1696, `admExportMonth` 1707, `admDeleteMonth` 1730.
 

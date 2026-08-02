@@ -163,24 +163,50 @@ async function sendReport(req: Request): Promise<Response> {
   }
 }
 
-// Reset 2FA của 1 tài khoản khác — chỉ ADMIN (hoặc Tổ Trưởng với Nhân viên)
+// Thao tác quản trị trên 1 tài khoản khác:
+//   reset_2fa   — chỉ ADMIN (hoặc Tổ Trưởng với Nhân viên)
+//   delete_user — CHỈ ADMIN, xóa hẳn tài khoản (auth + profile + login_security)
 async function handleAction(req: Request): Promise<Response> {
   const auth = req.headers.get("authorization") || "";
   const jwt = auth.replace(/^Bearer\s+/i, "");
   const { data: uinfo, error: uerr } = await anon.auth.getUser(jwt);
   if (uerr || !uinfo?.user) return new Response(JSON.stringify({ ok: false, description: "Phiên không hợp lệ" }), { status: 401, headers: CORS });
   const body = await req.json().catch(() => ({}));
-  if (body.action !== "reset_2fa") return new Response(JSON.stringify({ ok: false, description: "Hành động không hợp lệ" }), { status: 400, headers: CORS });
+  if (body.action !== "reset_2fa" && body.action !== "delete_user")
+    return new Response(JSON.stringify({ ok: false, description: "Hành động không hợp lệ" }), { status: 400, headers: CORS });
 
   const { data: caller } = await sb.from("profiles").select("is_admin, perms, username").eq("user_id", uinfo.user.id).maybeSingle();
   const callerRole = caller?.is_admin ? "admin" : (caller?.perms?._role === "totruong" ? "totruong" : "nhanvien");
-  if (callerRole !== "admin" && callerRole !== "totruong")
-    return new Response(JSON.stringify({ ok: false, description: "Không có quyền reset 2FA" }), { status: 403, headers: CORS });
 
   const targetId = String(body.target || "");
   const { data: target } = await sb.from("profiles").select("is_admin, perms, username").eq("user_id", targetId).maybeSingle();
   if (!target) return new Response(JSON.stringify({ ok: false, description: "Không tìm thấy tài khoản" }), { status: 404, headers: CORS });
   const targetRole = target.is_admin ? "admin" : (target.perms?._role === "totruong" ? "totruong" : "nhanvien");
+
+  // ----- XÓA TÀI KHOẢN (chỉ ADMIN) -----
+  if (body.action === "delete_user") {
+    if (callerRole !== "admin")
+      return new Response(JSON.stringify({ ok: false, description: "Chỉ ADMIN mới xóa được tài khoản" }), { status: 403, headers: CORS });
+    if (targetId === uinfo.user.id)
+      return new Response(JSON.stringify({ ok: false, description: "Không thể tự xóa tài khoản của chính mình" }), { status: 400, headers: CORS });
+    if (targetRole === "admin")
+      return new Response(JSON.stringify({ ok: false, description: "Không thể xóa một tài khoản ADMIN khác" }), { status: 403, headers: CORS });
+    try {
+      const { error: delErr } = await sb.auth.admin.deleteUser(targetId);
+      if (delErr) throw delErr;
+      // profiles thường có FK on delete cascade tới auth.users, nhưng xóa tường minh cho chắc
+      await sb.from("profiles").delete().eq("user_id", targetId);
+      if (target.username) await sb.from("login_security").delete().eq("username", target.username);
+      await sb.from("audit_log").insert({ user_id: uinfo.user.id, username: caller?.username, action: "Xóa tài khoản", detail: (target.username || "").toUpperCase() });
+      return new Response(JSON.stringify({ ok: true }), { headers: CORS });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, description: String((e as any)?.message || e) }), { headers: CORS });
+    }
+  }
+
+  // ----- RESET 2FA -----
+  if (callerRole !== "admin" && callerRole !== "totruong")
+    return new Response(JSON.stringify({ ok: false, description: "Không có quyền reset 2FA" }), { status: 403, headers: CORS });
   if (callerRole === "totruong" && targetRole !== "nhanvien")
     return new Response(JSON.stringify({ ok: false, description: "Tổ Trưởng chỉ reset được 2FA của Nhân viên" }), { status: 403, headers: CORS });
 
