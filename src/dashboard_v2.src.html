@@ -343,6 +343,18 @@
   </div>
 </div>
 
+<!-- CHUYỂN HẠN MỨC DUYỆT sang tháng khác -->
+<div class="dr-modal" id="limCopyModal">
+  <div class="box" style="max-width:440px;width:100%">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <div style="font-size:1rem;font-weight:800;color:var(--cy)">⇄ Chuyển hạn mức duyệt</div>
+      <button onclick="limCloseTransfer()" style="margin-left:auto;background:none;border:none;color:var(--mu);font-size:16px;cursor:pointer">✕</button>
+    </div>
+    <div id="limCopyDesc" style="font-size:.64rem;color:var(--mu);margin-bottom:12px">Chọn tháng để chuyển toàn bộ hạn mức của tháng hiện tại sang.</div>
+    <div id="limCopyList" style="display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow:auto"></div>
+  </div>
+</div>
+
 <!-- ============ TAB: HIỆU SUẤT KO (gộp Duyệt Đơn + Bất Thường) ============ -->
 <div class="pg" id="pg-ko">
   <div class="view-toggle" id="koViewToggle">
@@ -461,7 +473,7 @@
       <div class="chart-card"><div class="chart-title" style="color:var(--gr)">2. Hiệu suất Khuyến Mãi (điểm tháng)</div><div style="height:190px"><canvas id="lim_km"></canvas></div></div>
       <div class="chart-card"><div class="chart-title" style="color:var(--go)">3. Hiệu suất xử lý Bất Thường (lượt tháng)</div><div style="height:190px"><canvas id="lim_bt"></canvas></div></div>
     </div>
-    <div class="sec-hdr pu" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">Bảng đề xuất hạn mức duyệt <span style="font-size:.58rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— % so với người cao nhất trong nhóm · Tổng đánh giá = trung bình 3 tiêu chí (Đơn + KM + Bất thường)</span><button id="limCopyBtn" class="abtn abtn-cy" style="margin-left:auto" onclick="copyLimitsFromPrev()">⇄ Chuyển Hạn Mức Duyệt</button></div>
+    <div class="sec-hdr pu" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">Bảng đề xuất hạn mức duyệt <span style="font-size:.58rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— % so với người cao nhất trong nhóm · Tổng đánh giá = trung bình 3 tiêu chí (Đơn + KM + Bất thường)</span><button id="limCopyBtn" class="abtn abtn-cy" style="margin-left:auto" onclick="limOpenTransfer()">⇄ Chuyển Hạn Mức Duyệt</button></div>
     <div class="mtbl-wrap"><table class="mtbl" id="limTbl"></table></div>
   </div>
 </div>
