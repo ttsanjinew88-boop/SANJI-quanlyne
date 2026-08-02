@@ -62,7 +62,7 @@ async function admLoadUsers(){
         // Nút đổi mật khẩu: admin đổi tất cả; Tổ Trưởng chỉ đổi Nhân viên; ai cũng đổi được của mình (nút trên chip)
         const canPw=isAdmin||(role.key==='nhanvien'&&!u.is_admin);
         const pwCell=(canPw&&!isSelf)
-          ?`<button onclick="admChangePw('${u.user_id}','${(u.username||'').replace(/'/g,'')}')" style="padding:3px 10px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.35);color:var(--pu2);border-radius:5px;cursor:pointer;font-size:.62rem;font-weight:700">Đổi MK</button>`
+          ?`<button onclick="admChangePw('${u.user_id}','${(u.username||'').replace(/'/g,'')}')" class="abtn abtn-sm abtn-pu">Đổi MK</button>`
           :(isSelf?'<span style="color:var(--mu);font-size:.6rem">(nút Đổi MK trên góc phải)</span>':'<span style="color:var(--mu)">—</span>');
         const permCells=isAdmin
           ?PERM_TABS.map(t=>`<td class="tc">${u.is_admin
@@ -78,19 +78,19 @@ async function admLoadUsers(){
         const lk=lockMap[u.username]||{locked:false,fails:0};
         const canLock=(isAdmin&&!isSelf)||(!isAdmin&&role.key==='nhanvien'&&!u.is_admin);
         const lockCell=canLock
-          ?`<button onclick="admToggleLock('${(u.username||'').replace(/'/g,'')}',${lk.locked?'false':'true'})" style="padding:3px 10px;border-radius:5px;cursor:pointer;font-size:.62rem;font-weight:700;${lk.locked?'background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.35);color:#10b981':'background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:#f87171'}">${lk.locked?'Mở khóa':'Khóa'}</button>`
+          ?`<button onclick="admToggleLock('${(u.username||'').replace(/'/g,'')}',${lk.locked?'false':'true'})" class="abtn abtn-sm ${lk.locked?'abtn-ok':'abtn-danger'}">${lk.locked?'Mở khóa':'Khóa'}</button>`
             +(lk.locked?'<div style="font-size:.55rem;color:#f87171;margin-top:2px;font-weight:800">ĐANG KHÓA</div>':(lk.fails?`<div style="font-size:.55rem;color:var(--mu);margin-top:2px">sai ${lk.fails} lần</div>`:''))
           :(lk.locked?'<span style="color:#f87171;font-size:.6rem;font-weight:800">KHÓA</span>':'<span style="color:var(--mu)">—</span>');
         // Reset 2FA: admin reset mọi người; Tổ Trưởng reset Nhân viên
         const canReset=isAdmin||(role.key==='nhanvien'&&!u.is_admin);
         const resetCell=canReset
-          ?`<button onclick="admReset2fa('${u.user_id}','${(u.username||'').replace(/'/g,'')}')" style="padding:3px 10px;border-radius:5px;cursor:pointer;font-size:.62rem;font-weight:700;background:rgba(6,182,212,.15);border:1px solid rgba(6,182,212,.4);color:var(--cy)">Reset</button>`
+          ?`<button onclick="admReset2fa('${u.user_id}','${(u.username||'').replace(/'/g,'')}')" class="abtn abtn-sm abtn-cy">Reset</button>`
           :'<span style="color:var(--mu)">—</span>';
         // Xóa TK: chỉ ADMIN, không xóa được chính mình và không xóa admin khác
         const canDel=isAdmin&&!isSelf&&!u.is_admin;
         const delCell=isAdmin
           ?(canDel
-            ?`<button onclick="admDeleteUser('${u.user_id}','${(u.username||'').replace(/'/g,'')}')" style="padding:3px 10px;border-radius:5px;cursor:pointer;font-size:.62rem;font-weight:700;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171">Xóa</button>`
+            ?`<button onclick="admDeleteUser('${u.user_id}','${(u.username||'').replace(/'/g,'')}')" class="abtn abtn-sm abtn-danger">Xóa</button>`
             :'<span style="color:var(--mu)">—</span>')
           :'';
         return `<tr><td style="font-weight:700;color:var(--tx)">${(u.username||'').toUpperCase()}${isSelf?' <span style="color:var(--pu2);font-size:.6rem">(bạn)</span>':''}</td>`+

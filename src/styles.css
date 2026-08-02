@@ -22,6 +22,19 @@ html,body{min-height:100vh;background:var(--bg);color:var(--tx);font-family:"Seg
 .hdr-date{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:.78rem;font-weight:700;min-width:140px;text-align:center}
 .upload-btn{background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:.72rem;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(124,58,237,.3);transition:all .2s}
 .upload-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,.45)}
+/* ===== Bộ NÚT CHUẨN (đồng bộ toàn dashboard) ===== */
+.abtn{border:none;border-radius:8px;padding:8px 18px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;color:#fff;line-height:1;display:inline-flex;align-items:center;gap:6px;transition:transform .18s,box-shadow .18s,filter .18s}
+.abtn:hover{transform:translateY(-1px);filter:brightness(1.07)}
+.abtn:active{transform:translateY(0)}
+.abtn:disabled{opacity:.5;cursor:not-allowed;transform:none;filter:none;box-shadow:none}
+.abtn-pu{background:linear-gradient(135deg,var(--pu),var(--bl));box-shadow:0 4px 14px rgba(124,58,237,.3)}
+.abtn-ok{background:linear-gradient(135deg,#10b981,#059669);box-shadow:0 4px 14px rgba(16,185,129,.3)}
+.abtn-danger{background:linear-gradient(135deg,#f43f5e,#dc2626);box-shadow:0 4px 14px rgba(239,68,68,.32)}
+.abtn-cy{background:linear-gradient(135deg,var(--cy),#0891b2);box-shadow:0 4px 14px rgba(6,182,212,.28)}
+.abtn-ghost{background:transparent;border:1px solid var(--border2);color:var(--mu2)}
+.abtn-ghost:hover{border-color:var(--pu);color:var(--tx)}
+/* biến thể nhỏ cho ô trong bảng */
+.abtn-sm{padding:4px 12px;font-size:.62rem;border-radius:6px;gap:4px}
 input#fh{display:none}
 .upload-dd-wrap{position:relative}
 .upload-dd-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:6px;min-width:180px;box-shadow:0 12px 32px rgba(0,0,0,.5);z-index:50}

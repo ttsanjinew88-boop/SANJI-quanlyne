@@ -633,8 +633,8 @@
     <div class="chart-title" style="color:#f87171">Xóa dữ liệu theo tháng — NGUY HIỂM</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <select class="adm-inp" id="admDelMonth" style="cursor:pointer"><option value="">-- Chọn tháng --</option></select>
-      <button onclick="admExportMonth()" style="padding:8px 18px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:#10b981;border-radius:7px;font-weight:800;cursor:pointer;font-size:.72rem">Tải sao lưu JSON</button>
-      <button onclick="admDeleteMonth()" style="padding:8px 18px;background:#dc2626;color:#fff;border:none;border-radius:7px;font-weight:800;cursor:pointer;font-size:.72rem">Xóa toàn bộ tháng này</button>
+      <button onclick="admExportMonth()" class="abtn abtn-ok">Tải sao lưu JSON</button>
+      <button onclick="admDeleteMonth()" class="abtn abtn-danger">Xóa toàn bộ tháng này</button>
     </div>
     <div style="font-size:.62rem;color:var(--mu);margin-top:8px">Xóa vĩnh viễn trên cloud: Duyệt Đơn · Khuyến Mãi · Phân Ca · Bất Thường · Báo cáo đại lý của tháng đã chọn. File Excel gốc trong Storage được GIỮ LẠI để khôi phục khi cần (upload lại là xong).</div>
     <div id="admDelMsg" style="font-size:.7rem;margin-top:8px;min-height:14px;font-weight:600"></div>

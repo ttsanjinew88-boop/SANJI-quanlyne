@@ -36,6 +36,19 @@ html,body{min-height:100vh;background:var(--bg);color:var(--tx);font-family:"Seg
 .hdr-date{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:.78rem;font-weight:700;min-width:140px;text-align:center}
 .upload-btn{background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:.72rem;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(124,58,237,.3);transition:all .2s}
 .upload-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,.45)}
+/* ===== Bộ NÚT CHUẨN (đồng bộ toàn dashboard) ===== */
+.abtn{border:none;border-radius:8px;padding:8px 18px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;color:#fff;line-height:1;display:inline-flex;align-items:center;gap:6px;transition:transform .18s,box-shadow .18s,filter .18s}
+.abtn:hover{transform:translateY(-1px);filter:brightness(1.07)}
+.abtn:active{transform:translateY(0)}
+.abtn:disabled{opacity:.5;cursor:not-allowed;transform:none;filter:none;box-shadow:none}
+.abtn-pu{background:linear-gradient(135deg,var(--pu),var(--bl));box-shadow:0 4px 14px rgba(124,58,237,.3)}
+.abtn-ok{background:linear-gradient(135deg,#10b981,#059669);box-shadow:0 4px 14px rgba(16,185,129,.3)}
+.abtn-danger{background:linear-gradient(135deg,#f43f5e,#dc2626);box-shadow:0 4px 14px rgba(239,68,68,.32)}
+.abtn-cy{background:linear-gradient(135deg,var(--cy),#0891b2);box-shadow:0 4px 14px rgba(6,182,212,.28)}
+.abtn-ghost{background:transparent;border:1px solid var(--border2);color:var(--mu2)}
+.abtn-ghost:hover{border-color:var(--pu);color:var(--tx)}
+/* biến thể nhỏ cho ô trong bảng */
+.abtn-sm{padding:4px 12px;font-size:.62rem;border-radius:6px;gap:4px}
 input#fh{display:none}
 .upload-dd-wrap{position:relative}
 .upload-dd-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:6px;min-width:180px;box-shadow:0 12px 32px rgba(0,0,0,.5);z-index:50}
@@ -1103,8 +1116,8 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
     <div class="chart-title" style="color:#f87171">Xóa dữ liệu theo tháng — NGUY HIỂM</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <select class="adm-inp" id="admDelMonth" style="cursor:pointer"><option value="">-- Chọn tháng --</option></select>
-      <button onclick="admExportMonth()" style="padding:8px 18px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:#10b981;border-radius:7px;font-weight:800;cursor:pointer;font-size:.72rem">Tải sao lưu JSON</button>
-      <button onclick="admDeleteMonth()" style="padding:8px 18px;background:#dc2626;color:#fff;border:none;border-radius:7px;font-weight:800;cursor:pointer;font-size:.72rem">Xóa toàn bộ tháng này</button>
+      <button onclick="admExportMonth()" class="abtn abtn-ok">Tải sao lưu JSON</button>
+      <button onclick="admDeleteMonth()" class="abtn abtn-danger">Xóa toàn bộ tháng này</button>
     </div>
     <div style="font-size:.62rem;color:var(--mu);margin-top:8px">Xóa vĩnh viễn trên cloud: Duyệt Đơn · Khuyến Mãi · Phân Ca · Bất Thường · Báo cáo đại lý của tháng đã chọn. File Excel gốc trong Storage được GIỮ LẠI để khôi phục khi cần (upload lại là xong).</div>
     <div id="admDelMsg" style="font-size:.7rem;margin-top:8px;min-height:14px;font-weight:600"></div>
@@ -1748,7 +1761,7 @@ async function admLoadUsers(){
         // Nút đổi mật khẩu: admin đổi tất cả; Tổ Trưởng chỉ đổi Nhân viên; ai cũng đổi được của mình (nút trên chip)
         const canPw=isAdmin||(role.key==='nhanvien'&&!u.is_admin);
         const pwCell=(canPw&&!isSelf)
-          ?`<button onclick="admChangePw('${u.user_id}','${(u.username||'').replace(/'/g,'')}')" style="padding:3px 10px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.35);color:var(--pu2);border-radius:5px;cursor:pointer;font-size:.62rem;font-weight:700">Đổi MK</button>`
+          ?`<button onclick="admChangePw('${u.user_id}','${(u.username||'').replace(/'/g,'')}')" class="abtn abtn-sm abtn-pu">Đổi MK</button>`
           :(isSelf?'<span style="color:var(--mu);font-size:.6rem">(nút Đổi MK trên góc phải)</span>':'<span style="color:var(--mu)">—</span>');
         const permCells=isAdmin
           ?PERM_TABS.map(t=>`<td class="tc">${u.is_admin
@@ -1764,19 +1777,19 @@ async function admLoadUsers(){
         const lk=lockMap[u.username]||{locked:false,fails:0};
         const canLock=(isAdmin&&!isSelf)||(!isAdmin&&role.key==='nhanvien'&&!u.is_admin);
         const lockCell=canLock
-          ?`<button onclick="admToggleLock('${(u.username||'').replace(/'/g,'')}',${lk.locked?'false':'true'})" style="padding:3px 10px;border-radius:5px;cursor:pointer;font-size:.62rem;font-weight:700;${lk.locked?'background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.35);color:#10b981':'background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:#f87171'}">${lk.locked?'Mở khóa':'Khóa'}</button>`
+          ?`<button onclick="admToggleLock('${(u.username||'').replace(/'/g,'')}',${lk.locked?'false':'true'})" class="abtn abtn-sm ${lk.locked?'abtn-ok':'abtn-danger'}">${lk.locked?'Mở khóa':'Khóa'}</button>`
             +(lk.locked?'<div style="font-size:.55rem;color:#f87171;margin-top:2px;font-weight:800">ĐANG KHÓA</div>':(lk.fails?`<div style="font-size:.55rem;color:var(--mu);margin-top:2px">sai ${lk.fails} lần</div>`:''))
           :(lk.locked?'<span style="color:#f87171;font-size:.6rem;font-weight:800">KHÓA</span>':'<span style="color:var(--mu)">—</span>');
         // Reset 2FA: admin reset mọi người; Tổ Trưởng reset Nhân viên
         const canReset=isAdmin||(role.key==='nhanvien'&&!u.is_admin);
         const resetCell=canReset
-          ?`<button onclick="admReset2fa('${u.user_id}','${(u.username||'').replace(/'/g,'')}')" style="padding:3px 10px;border-radius:5px;cursor:pointer;font-size:.62rem;font-weight:700;background:rgba(6,182,212,.15);border:1px solid rgba(6,182,212,.4);color:var(--cy)">Reset</button>`
+          ?`<button onclick="admReset2fa('${u.user_id}','${(u.username||'').replace(/'/g,'')}')" class="abtn abtn-sm abtn-cy">Reset</button>`
           :'<span style="color:var(--mu)">—</span>';
         // Xóa TK: chỉ ADMIN, không xóa được chính mình và không xóa admin khác
         const canDel=isAdmin&&!isSelf&&!u.is_admin;
         const delCell=isAdmin
           ?(canDel
-            ?`<button onclick="admDeleteUser('${u.user_id}','${(u.username||'').replace(/'/g,'')}')" style="padding:3px 10px;border-radius:5px;cursor:pointer;font-size:.62rem;font-weight:700;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171">Xóa</button>`
+            ?`<button onclick="admDeleteUser('${u.user_id}','${(u.username||'').replace(/'/g,'')}')" class="abtn abtn-sm abtn-danger">Xóa</button>`
             :'<span style="color:var(--mu)">—</span>')
           :'';
         return `<tr><td style="font-weight:700;color:var(--tx)">${(u.username||'').toUpperCase()}${isSelf?' <span style="color:var(--pu2);font-size:.6rem">(bạn)</span>':''}</td>`+
