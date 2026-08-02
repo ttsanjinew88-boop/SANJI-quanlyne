@@ -39,6 +39,13 @@
 `--bg --card --card2 --border --border2 --pu(#7c3aed) --pu2(#9f67ff) --bl(#3b82f6) --bl2 --cy(#06b6d4) --gr --go(#f59e0b) --re --pk --tx --mu --mu2 --vip-c(#06b6d4) --onl-c(#a78bfa)`
 → Khi thêm UI, dùng các biến này (KHÔNG hardcode màu vàng/teal của PROMAX).
 
+### ⚠ QUY ƯỚC NÚT (bắt buộc khi tạo chức năng mới — chốt 02/08/2026)
+**KHÔNG viết inline-style cho nút.** Mọi nút mới PHẢI dùng bộ class chuẩn `.abtn` trong `styles.css` (cạnh `.upload-btn`) để đồng nhất kích cỡ + form chữ toàn dashboard:
+- Base: `.abtn` (padding 8px 18px, .72rem, radius 8px, hover nhấc + brightness). Biến thể nhỏ trong bảng: thêm `.abtn-sm` (4px 12px, .62rem).
+- Màu: `.abtn-pu` (tím-xanh, nút chính) · `.abtn-ok` (xanh lá, lưu/tải) · `.abtn-danger` (đỏ, xóa/khóa) · `.abtn-cy` (xanh ngọc) · `.abtn-ghost` (viền trong suốt, phụ/Đóng).
+- Ví dụ: `<button class="abtn abtn-ok">Lưu</button>`, `<button class="abtn abtn-sm abtn-danger">Xóa</button>`.
+- `.upload-btn` (gradient tím, radius 8px) vẫn dùng cho nút header (Upload Excel, Tháng ▾) — KHÔNG đè inline lên nó (từng làm nút "Tháng ▾" lệch, đã bỏ). Cần thêm màu/biến thể thì bổ sung class `.abtn-*` mới, đừng inline.
+
 ## Các TAB (HTML) và hàm render tương ứng
 Điều hướng tab: `sw(pg,el)` (dòng 2638) → gọi `rAll()` (2795).
 
