@@ -628,6 +628,31 @@ async function _saveLimits(){
     if(koView==='overview')rKoOverview();
   }catch(e){console.error('_saveLimits',e);setCloudStatus('Lỗi lưu hạn mức',true);}
 }
+// Chuyển hạn mức duyệt của tháng gần nhất trước đó SANG tháng đang mở (nút thủ công, lưu luôn vào cloud)
+async function copyLimitsFromPrev(){
+  if(!canEdit('ko')){alert('Bạn chỉ có quyền XEM.');return;}
+  if(!SB.ready()||!CUR_MONTH){alert('Chưa sẵn sàng, thử lại sau.');return;}
+  const btn=document.getElementById('limCopyBtn');
+  try{
+    if(btn){btn.disabled=true;btn.textContent='Đang chuyển…';}
+    const reps=await SB.listReports();
+    const prevMonth=(reps||[]).filter(r=>r.type==='limits'&&r.month<CUR_MONTH).map(r=>r.month).sort().pop();
+    if(!prevMonth){alert('Không tìm thấy tháng nào trước đó có hạn mức để chuyển.');return;}
+    const old=await SB.loadReport('limits',prevMonth);
+    if(!old||!Object.keys(old).length){alert('Tháng '+dispMonth(prevMonth)+' không có dữ liệu hạn mức.');return;}
+    const inh={};let n=0;
+    for(const fk in old){const v=old[fk];if(v&&v.limit){inh[fk]={limit:v.limit};n++;}}
+    if(!n){alert('Tháng '+dispMonth(prevMonth)+' không có hạn mức nào để chuyển.');return;}
+    if(Object.keys(LIMITS).length && !confirm('Tháng '+dispMonth(CUR_MONTH)+' ĐÃ có hạn mức. Ghi đè bằng '+n+' hạn mức từ tháng '+dispMonth(prevMonth)+'?'))return;
+    LIMITS=inh;
+    await SB.saveReport('limits',CUR_MONTH,LIMITS);
+    logAction('Hạn mức duyệt','Chuyển '+n+' hạn mức từ tháng '+dispMonth(prevMonth)+' sang tháng '+dispMonth(CUR_MONTH));
+    setCloudStatus('Đã chuyển '+n+' hạn mức từ tháng '+dispMonth(prevMonth)+' ✓');
+    rKoLimit();
+    if(koView==='overview')rKoOverview();
+  }catch(e){console.error('copyLimitsFromPrev',e);alert('Lỗi khi chuyển hạn mức: '+(e.message||e));}
+  finally{if(btn){btn.disabled=false;btn.textContent='⇄ Chuyển Hạn Mức Duyệt';}}
+}
 // Sao chép hạn mức duyệt từ tháng gần nhất trước đó khi tháng hiện tại CHƯA có (giữ cho tới khi có người chỉnh sửa & lưu)
 async function inheritLimitsIfEmpty(mk){
   try{

@@ -944,7 +944,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
       <div class="chart-card"><div class="chart-title" style="color:var(--gr)">2. Hiệu suất Khuyến Mãi (điểm tháng)</div><div style="height:190px"><canvas id="lim_km"></canvas></div></div>
       <div class="chart-card"><div class="chart-title" style="color:var(--go)">3. Hiệu suất xử lý Bất Thường (lượt tháng)</div><div style="height:190px"><canvas id="lim_bt"></canvas></div></div>
     </div>
-    <div class="sec-hdr pu">Bảng đề xuất hạn mức duyệt <span style="font-size:.58rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— % so với người cao nhất trong nhóm · Tổng đánh giá = trung bình 3 tiêu chí (Đơn + KM + Bất thường)</span></div>
+    <div class="sec-hdr pu" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">Bảng đề xuất hạn mức duyệt <span style="font-size:.58rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— % so với người cao nhất trong nhóm · Tổng đánh giá = trung bình 3 tiêu chí (Đơn + KM + Bất thường)</span><button id="limCopyBtn" class="abtn abtn-cy" style="margin-left:auto" onclick="copyLimitsFromPrev()">⇄ Chuyển Hạn Mức Duyệt</button></div>
     <div class="mtbl-wrap"><table class="mtbl" id="limTbl"></table></div>
   </div>
 </div>
@@ -4170,6 +4170,31 @@ async function _saveLimits(){
     if(det)logAction('Hạn mức duyệt','Tháng '+dispMonth(CUR_MONTH)+' · '+det.slice(0,600));
     if(koView==='overview')rKoOverview();
   }catch(e){console.error('_saveLimits',e);setCloudStatus('Lỗi lưu hạn mức',true);}
+}
+// Chuyển hạn mức duyệt của tháng gần nhất trước đó SANG tháng đang mở (nút thủ công, lưu luôn vào cloud)
+async function copyLimitsFromPrev(){
+  if(!canEdit('ko')){alert('Bạn chỉ có quyền XEM.');return;}
+  if(!SB.ready()||!CUR_MONTH){alert('Chưa sẵn sàng, thử lại sau.');return;}
+  const btn=document.getElementById('limCopyBtn');
+  try{
+    if(btn){btn.disabled=true;btn.textContent='Đang chuyển…';}
+    const reps=await SB.listReports();
+    const prevMonth=(reps||[]).filter(r=>r.type==='limits'&&r.month<CUR_MONTH).map(r=>r.month).sort().pop();
+    if(!prevMonth){alert('Không tìm thấy tháng nào trước đó có hạn mức để chuyển.');return;}
+    const old=await SB.loadReport('limits',prevMonth);
+    if(!old||!Object.keys(old).length){alert('Tháng '+dispMonth(prevMonth)+' không có dữ liệu hạn mức.');return;}
+    const inh={};let n=0;
+    for(const fk in old){const v=old[fk];if(v&&v.limit){inh[fk]={limit:v.limit};n++;}}
+    if(!n){alert('Tháng '+dispMonth(prevMonth)+' không có hạn mức nào để chuyển.');return;}
+    if(Object.keys(LIMITS).length && !confirm('Tháng '+dispMonth(CUR_MONTH)+' ĐÃ có hạn mức. Ghi đè bằng '+n+' hạn mức từ tháng '+dispMonth(prevMonth)+'?'))return;
+    LIMITS=inh;
+    await SB.saveReport('limits',CUR_MONTH,LIMITS);
+    logAction('Hạn mức duyệt','Chuyển '+n+' hạn mức từ tháng '+dispMonth(prevMonth)+' sang tháng '+dispMonth(CUR_MONTH));
+    setCloudStatus('Đã chuyển '+n+' hạn mức từ tháng '+dispMonth(prevMonth)+' ✓');
+    rKoLimit();
+    if(koView==='overview')rKoOverview();
+  }catch(e){console.error('copyLimitsFromPrev',e);alert('Lỗi khi chuyển hạn mức: '+(e.message||e));}
+  finally{if(btn){btn.disabled=false;btn.textContent='⇄ Chuyển Hạn Mức Duyệt';}}
 }
 // Sao chép hạn mức duyệt từ tháng gần nhất trước đó khi tháng hiện tại CHƯA có (giữ cho tới khi có người chỉnh sửa & lưu)
 async function inheritLimitsIfEmpty(mk){
