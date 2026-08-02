@@ -240,7 +240,7 @@ Deno.serve(async (req) => {
     const CONFIRMERS = await loadConfirmers();
     if (CONFIRMERS.size > 0 && !CONFIRMERS.has(uid)) {
       const uname = cq.from?.username ? "@" + cq.from.username : (cq.from?.first_name || "?");
-      await answer("⛔ Bạn không có quyền xác nhận. Chỉ người được chỉ định mới thao tác được.");
+      await answer("⛔ Bạn không có quyền này ⛔");
       await sb.from("audit_log").insert({
         username: "telegram:" + uname,
         action: "Từ chối xác nhận (Telegram)",
