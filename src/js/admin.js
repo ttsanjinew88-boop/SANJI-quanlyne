@@ -10,6 +10,8 @@ function rAdminPanel(){
   if(delCard){delCard.style.display=isAdmin?'':'none';if(isAdmin)admFillDelMonths();}
   const ipCard=document.getElementById('admIpCard');
   if(ipCard){ipCard.style.display=isAdmin?'':'none';if(isAdmin)admLoadIps();}
+  const tgCard=document.getElementById('admTgCard');
+  if(tgCard){tgCard.style.display=isAdmin?'':'none';if(isAdmin)admLoadTgIds();}
   const pf=document.getElementById('au-perms');
   if(isAdmin&&!pf.dataset.built){
     pf.innerHTML=PERM_TABS.map(t=>
@@ -259,6 +261,46 @@ async function admDelIp(ip){
     logAction('White IP','Xóa '+ip);
     admLoadIps();
   }catch(e){alert('Lỗi lưu White IP: '+(e.message||e));}
+}
+// ===== ID Telegram được xác nhận (chỉ ADMIN quản lý) =====
+// Lưu cloud: report type='tgadmins', month='all', data={list:[{id,name}]}.
+// Edge Function đọc danh sách này để chặn người không có quyền bấm nút.
+let TG_CONFIRMERS=[];
+async function admLoadTgIds(){
+  try{
+    const r=await SB.loadReport('tgadmins','all');
+    const list=r&&r.list;
+    TG_CONFIRMERS=Array.isArray(list)?list.map(x=>typeof x==='string'?{id:x,name:''}:x):[];
+  }catch(e){TG_CONFIRMERS=[];}
+  const el=document.getElementById('admTgList');
+  if(!el)return;
+  el.innerHTML=TG_CONFIRMERS.length
+    ?TG_CONFIRMERS.map(o=>`<span style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:var(--pu2);border-radius:14px;padding:4px 12px;font-size:.68rem;font-weight:700;display:flex;align-items:center;gap:7px">${o.name?hesc(o.name)+' · ':''}${hesc(o.id)}<b style="cursor:pointer;color:#f87171" title="Xóa ID" onclick="admDelTgId('${hesc(o.id)}')">✕</b></span>`).join('')
+    :'<span style="color:var(--mu);font-size:.68rem">Danh sách trống — mọi thành viên trong nhóm đều bấm xác nhận được</span>';
+}
+async function admAddTgId(){
+  if(!CUR_PROFILE||!CUR_PROFILE.is_admin)return;
+  const inp=document.getElementById('admTgIdInput'),nInp=document.getElementById('admTgNameInput');
+  const id=inp.value.trim();
+  if(!/^\d{5,}$/.test(id)){alert('ID Telegram không hợp lệ (chỉ gồm chữ số, VD: 123456789)');return;}
+  if(TG_CONFIRMERS.some(o=>o.id===id)){alert('ID này đã có trong danh sách');return;}
+  try{
+    TG_CONFIRMERS.push({id,name:(nInp.value||'').trim().slice(0,40)});
+    await SB.saveReport('tgadmins','all',{list:TG_CONFIRMERS});
+    logAction('ID Telegram xác nhận','Thêm '+id);
+    inp.value='';nInp.value='';
+    admLoadTgIds();
+  }catch(e){alert('Lỗi lưu danh sách: '+(e.message||e));}
+}
+async function admDelTgId(id){
+  if(!CUR_PROFILE||!CUR_PROFILE.is_admin)return;
+  if(!confirm('Xóa ID '+id+' khỏi danh sách được xác nhận?'))return;
+  try{
+    TG_CONFIRMERS=TG_CONFIRMERS.filter(o=>o.id!==id);
+    await SB.saveReport('tgadmins','all',{list:TG_CONFIRMERS});
+    logAction('ID Telegram xác nhận','Xóa '+id);
+    admLoadTgIds();
+  }catch(e){alert('Lỗi lưu danh sách: '+(e.message||e));}
 }
 // Khóa / mở khóa tài khoản (ADMIN + Tổ Trưởng; server kiểm tra quyền lần nữa)
 async function admToggleLock(uname,val){

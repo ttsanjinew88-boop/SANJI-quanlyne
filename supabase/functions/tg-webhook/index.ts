@@ -14,6 +14,11 @@
 //    TG_G1        = ID nhóm hậu đài (cược bất thường - chỉ text)
 //    TG_G2        = ID nhóm xử lý bất thường (text + file/ảnh)
 //    TG_G3        = ID nhóm đại lý ngoài (file báo cáo đại lý)
+//    TG_CONFIRMERS= (tùy chọn, dự phòng) các Telegram user-ID được phép bấm
+//                   nút Xác Nhận/Theo dõi/Hủy, cách nhau bởi dấu phẩy.
+//                   Nguồn chính giờ là bảng reports type='tgadmins' month='all'
+//                   (Admin quản lý qua dashboard -> tab Quản Trị). RỖNG cả hai
+//                   nguồn = cho phép tất cả (như trước).
 // ============================================================
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -55,6 +60,26 @@ const CORS = {
 const G1 = Deno.env.get("TG_G1") ?? "";   // nhóm hậu đài: chỉ nhận text (cược bất thường)
 const G2 = Deno.env.get("TG_G2") ?? "";   // nhóm xử lý bất thường: text + file/ảnh + inline keyboard
 const G3 = Deno.env.get("TG_G3") ?? "";   // nhóm đại lý ngoài: nhận file báo cáo đại lý
+
+// Danh sách Telegram user-ID ĐƯỢC PHÉP bấm nút Xác Nhận / Theo dõi / Hủy.
+// Nguồn 1 (chính): bảng reports type='tgadmins' month='all' — Admin quản lý qua dashboard.
+// Nguồn 2 (dự phòng): secret TG_CONFIRMERS (các ID cách nhau bởi dấu phẩy).
+// RỖNG ở CẢ HAI nguồn = cho phép tất cả (giữ tương thích ngược).
+const CONFIRMERS_SECRET = (Deno.env.get("TG_CONFIRMERS") ?? "")
+  .split(/[,\s]+/).map((s) => s.trim()).filter(Boolean);
+
+async function loadConfirmers(): Promise<Set<string>> {
+  const ids = new Set<string>(CONFIRMERS_SECRET);
+  try {
+    const { data } = await sb.from("reports").select("data")
+      .eq("type", "tgadmins").eq("month", "all").maybeSingle();
+    for (const o of (data?.data?.list ?? [])) {
+      const id = String(typeof o === "string" ? o : o?.id ?? "").trim();
+      if (id) ids.add(id);
+    }
+  } catch (_e) { /* ignore -> chỉ dùng secret */ }
+  return ids;
+}
 const anon = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
 
 async function sendReport(req: Request): Promise<Response> {
@@ -207,6 +232,20 @@ Deno.serve(async (req) => {
     }
     if (!["cf", "wt", "dm"].includes(act)) {
       await answer("Nút không hợp lệ");
+      return new Response("ok");
+    }
+
+    // CHỈ những Telegram-ID chỉ định mới được bấm nút (nếu danh sách có phần tử).
+    const uid = String(cq.from?.id || "");
+    const CONFIRMERS = await loadConfirmers();
+    if (CONFIRMERS.size > 0 && !CONFIRMERS.has(uid)) {
+      const uname = cq.from?.username ? "@" + cq.from.username : (cq.from?.first_name || "?");
+      await answer("⛔ Bạn không có quyền xác nhận. Chỉ người được chỉ định mới thao tác được.");
+      await sb.from("audit_log").insert({
+        username: "telegram:" + uname,
+        action: "Từ chối xác nhận (Telegram)",
+        detail: `ID ${uid} không nằm trong danh sách được phép · nút ${act}`,
+      });
       return new Response("ok");
     }
 

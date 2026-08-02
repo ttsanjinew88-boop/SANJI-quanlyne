@@ -648,6 +648,16 @@
     </div>
     <div id="admIpList" style="display:flex;gap:8px;flex-wrap:wrap"></div>
   </div>
+  <div class="chart-card" id="admTgCard" style="margin-top:16px;border:1px solid rgba(124,58,237,.4)">
+    <div class="chart-title" style="color:var(--pu2)">ID Telegram được xác nhận — chỉ ID trong danh sách mới bấm được nút Xác Nhận/Hủy</div>
+    <div style="font-size:.65rem;color:var(--mu2);margin-bottom:10px">Lấy ID: cho người đó nhắn bot <b style="color:var(--cy)">@userinfobot</b> trên Telegram để nhận ID dạng số · Danh sách TRỐNG = <b style="color:var(--go)">TẮT kiểm tra (ai trong nhóm cũng bấm được)</b>.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+      <input class="adm-inp" id="admTgIdInput" placeholder="ID số, VD: 123456789">
+      <input class="adm-inp" id="admTgNameInput" placeholder="Tên gợi nhớ (tùy chọn)" style="min-width:170px">
+      <button class="upload-btn" onclick="admAddTgId()">Thêm ID</button>
+    </div>
+    <div id="admTgList" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+  </div>
 </div>
 
 
