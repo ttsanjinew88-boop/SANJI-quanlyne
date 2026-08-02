@@ -3795,7 +3795,13 @@ function ovFootHtml(fkList){
 function onOvBlur(el){
   const fk=el.dataset.fk,f=el.dataset.f;
   let val=el.textContent.trim();
-  if(f==="wd"){val=val.replace(/[^\d]/g,"");ovSet(fk,f,val===""?null:Number(val));}
+  if(f==="wd"){
+    // cho phép số thập phân (nửa ca): 22,5 hoặc 22.5 → 22.5; chỉ giữ chữ số + 1 dấu chấm
+    val=val.replace(",",".").replace(/[^\d.]/g,"");
+    const p=val.split(".");if(p.length>2)val=p[0]+"."+p.slice(1).join("");
+    const num=val===""?null:Number(val);
+    ovSet(fk,f,num!=null&&isFinite(num)?num:null);
+  }
   else if(f==="note"){ovSet(fk,f,val);}
   rKoOverview();
 }
