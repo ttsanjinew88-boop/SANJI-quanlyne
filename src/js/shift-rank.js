@@ -36,11 +36,15 @@ const WK_CODES={
   KM:{full:'Kiểm tra nhóm và duyệt khuyến mãi',col:'#f59e0b'},
   HT:{full:'Hỗ trợ hoặc làm công việc cấp trên giao',col:'#3b82f6'},
   OFF:{full:'Nghỉ / không trực',col:'#ef4444'},
-  SN:{full:'Sinh nhật — nghỉ trọn ngày (xử lý như OFF)',col:'#ec4899'}
+  SN:{full:'Sinh nhật — nghỉ trọn ngày (xử lý như OFF)',col:'#ec4899'},
+  HV:{full:'Học việc — nhân viên đang học việc (không tính ngày công, không tự phân công)',col:'#14b8a6'}
 };
 // Các mã "nghỉ trọn ngày": không tính ngày công, bị loại khỏi tự động phân công.
 const WK_OFFISH=['OFF','SN'];
 function isOffish(v){return v==='OFF'||v==='SN';}
+// Nhân viên Học Việc: xác định qua cột "Khác" ở Tổng Quan (KO_OV.khac==='Học Việc').
+// Mặc định cả tháng là HV, bị loại khỏi tự động phân công (không nhận DD/KM/HT).
+function isTrainee(fk){return typeof ovGet==='function'&&ovGet(fk).khac==='Học Việc';}
 function daysInViewMonth(){const p=(CUR_MONTH||curMonthKey()).split('-');return new Date(+p[0],+p[1],0).getDate();}
 function rWork(){
   const tbl=document.getElementById('wkTbl');
@@ -64,9 +68,11 @@ function rWork(){
     fks.forEach((fk,i)=>{
       h+=`<tr class="wk-${g.key||'none'}">`;
       if(i===0)h+=`<td class="sticky-col" rowspan="${fks.length}" style="color:${g.col};font-weight:800;vertical-align:middle;text-align:center">${g.label}</td>`;
-      h+=`<td class="sticky-col2">${FK_NAMES[fk]}</td>`;
+      const trainee=isTrainee(fk);
+      h+=`<td class="sticky-col2">${FK_NAMES[fk]}${trainee?' <span style="font-size:.5rem;background:'+ha(WK_CODES.HV.col,.18)+';color:'+WK_CODES.HV.col+';border-radius:4px;padding:1px 5px">Học Việc</span>':''}</td>`;
       for(let d=1;d<=nD;d++){
-        const v=(WORK[fk]||{})[d]||'';
+        // Nhân viên Học Việc: mặc định cả tháng là HV nếu chưa điền ô nào.
+        const v=(WORK[fk]||{})[d]||(trainee?'HV':'');
         const c=WK_CODES[v];
         if(canFix){
           h+=`<td style="padding:2px 1px"><select onchange="wkSet('${fk}',${d},this.value)" style="background:${c?ha(c.col,.22):'var(--card2)'};color:${c?c.col:'var(--mu)'};border:1px solid ${c?c.col:'var(--border)'};border-radius:5px;font-size:.58rem;font-weight:800;padding:2px 0;cursor:pointer;outline:none">`+
@@ -83,20 +89,23 @@ function rWork(){
   h+='</tbody>';
   tbl.innerHTML=h;
   // Bảng thống kê công bằng: đếm số ngày mỗi loại công việc
-  let s='<thead><tr><th style="text-align:left">NHÂN VIÊN</th><th style="color:#f59e0b">KM</th><th style="color:#10b981">DD</th><th style="color:#3b82f6">HT</th><th style="color:#ef4444">OFF</th><th>Tổng ngày làm</th></tr></thead><tbody>';
+  let s='<thead><tr><th style="text-align:left">NHÂN VIÊN</th><th style="color:#f59e0b">KM</th><th style="color:#10b981">DD</th><th style="color:#3b82f6">HT</th><th style="color:#ef4444">OFF</th><th style="color:'+WK_CODES.HV.col+'">HV</th><th>Tổng ngày làm</th></tr></thead><tbody>';
   FK_KEYS.forEach(fk=>{
     const m=WORK[fk]||{};
-    const cnt={KM:0,DD:0,HT:0,OFF:0};
+    const trainee=isTrainee(fk);
+    const cnt={KM:0,DD:0,HT:0,OFF:0,HV:0};
     // SN (sinh nhật) đếm gộp vào cột OFF — cùng bản chất "nghỉ trọn ngày".
-    Object.keys(m).forEach(d=>{const v=m[d];if(v==='SN')cnt.OFF++;else if(cnt[v]!==undefined)cnt[v]++;});
+    // Học Việc: ô chưa điền mặc định HV cả tháng → đếm theo giá trị hiệu lực.
+    for(let d=1;d<=nD;d++){const v=m[d]||(trainee?'HV':'');if(v==='SN')cnt.OFF++;else if(cnt[v]!==undefined)cnt[v]++;}
     const half=wkHalfCount(fk);
     const total=wkTotalDays(fk);
-    if(!total&&!cnt.OFF&&!half)return;
+    if(!total&&!cnt.OFF&&!half&&!cnt.HV)return;
     s+=`<tr><td style="text-align:left;font-weight:700">${FK_NAMES[fk]}</td>`+
       `<td style="color:#f59e0b;font-weight:800">${cnt.KM||'-'}</td>`+
       `<td style="color:#10b981;font-weight:800">${cnt.DD||'-'}</td>`+
       `<td style="color:#3b82f6;font-weight:800">${cnt.HT||'-'}</td>`+
       `<td style="color:#ef4444;font-weight:800">${(cnt.OFF+half*0.5)||'-'}</td>`+
+      `<td style="color:${WK_CODES.HV.col};font-weight:800">${cnt.HV||'-'}</td>`+
       `<td style="font-weight:800;color:var(--pu2)">${total||'-'}</td></tr>`;
   });
   s+='</tbody>';
@@ -138,7 +147,8 @@ function wkAssignCore(startDay){
     for(let d=startDay;d<=nD;d++){if(m2[d]&&!isOffish(m2[d]))delete m2[d];}
   });
   ['sang','gay','trung'].forEach(ca=>{
-    const members=FK_KEYS.filter(fk=>shAssign[fk]===ca);
+    // Loại nhân viên Học Việc khỏi tự động phân công — họ mặc định HV cả tháng.
+    const members=FK_KEYS.filter(fk=>shAssign[fk]===ca&&!isTrainee(fk));
     if(!members.length)return;
     for(let d=startDay;d<=nD;d++){
       const avail=members.filter(fk=>!isOffish((WORK[fk]||{})[d]));
