@@ -66,7 +66,8 @@ function rWork(){
     const fks=FK_KEYS.filter(fk=>(shAssign[fk]||null)===g.key);
     if(!fks.length)return;
     fks.forEach((fk,i)=>{
-      h+=`<tr class="wk-${g.key||'none'}">`;
+      // Dòng đầu mỗi ca = wk-grp-start → viền xanh trên phân cách với ca trước (số ca linh hoạt).
+      h+=`<tr class="wk-${g.key||'none'}${i===0?' wk-grp-start':''}">`;
       if(i===0)h+=`<td class="sticky-col" rowspan="${fks.length}" style="color:${g.col};font-weight:800;vertical-align:middle;text-align:center">${g.label}</td>`;
       const trainee=isTrainee(fk);
       h+=`<td class="sticky-col2">${FK_NAMES[fk]}${trainee?' <span style="font-size:.5rem;background:'+ha(WK_CODES.HV.col,.18)+';color:'+WK_CODES.HV.col+';border-radius:4px;padding:1px 5px">Học Việc</span>':''}</td>`;
