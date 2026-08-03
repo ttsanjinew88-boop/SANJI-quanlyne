@@ -58,7 +58,7 @@ function rWork(){
     {key:null,label:'CHƯA PHÂN CA',col:'#64748b'}
   ];
   document.getElementById('wk_month').textContent='Tháng '+dispMonth(CUR_MONTH||curMonthKey());
-  document.getElementById('wk_chips').innerHTML=Object.entries(WK_CODES).map(([k,c])=>`<span style="background:${ha(c.col,.18)};color:${c.col};border:1px solid ${c.col};border-radius:10px;padding:1px 9px;font-size:.6rem;font-weight:800">${k}</span>`).join('');
+  document.getElementById('wk_chips').innerHTML=Object.entries(WK_CODES).map(([k,c])=>`<span class="wk-code" style="background:${ha(c.col,.18)};color:${c.col};border:1px solid ${c.col};padding:1px 9px">${k}</span>`).join('');
   let h='<thead><tr><th class="sticky-col">CA</th><th class="sticky-col2">NHÂN VIÊN</th>';
   for(let d=1;d<=nD;d++)h+='<th>'+d+'</th>';
   h+='</tr></thead><tbody>';
@@ -75,12 +75,12 @@ function rWork(){
         const v=(WORK[fk]||{})[d]||(trainee?'HV':'');
         const c=WK_CODES[v];
         if(canFix){
-          h+=`<td style="padding:2px 1px"><select onchange="wkSet('${fk}',${d},this.value)" style="background:${c?ha(c.col,.22):'var(--card2)'};color:${c?c.col:'var(--mu)'};border:1px solid ${c?c.col:'var(--border)'};border-radius:5px;font-size:.58rem;font-weight:800;padding:2px 0;cursor:pointer;outline:none">`+
+          h+=`<td style="padding:2px 1px"><select class="wk-code" onchange="wkSet('${fk}',${d},this.value)" style="background:${c?ha(c.col,.22):'var(--card2)'};color:${c?c.col:'var(--mu)'};border:1px solid ${c?c.col:'var(--border)'};padding:2px 0">`+
             `<option value="" ${!v?'selected':''} style="background:#131830;color:#64748b">–</option>`+
             Object.keys(WK_CODES).map(k=>`<option value="${k}" ${v===k?'selected':''} style="background:${ha(WK_CODES[k].col,.25)};color:${WK_CODES[k].col};font-weight:800">${k}</option>`).join('')+
           `</select></td>`;
         }else{
-          h+=`<td>${c?`<span style="background:${ha(c.col,.18)};color:${c.col};border-radius:8px;padding:1px 6px;font-size:.56rem;font-weight:800">${v}</span>`:'<span style="color:var(--mu)">–</span>'}</td>`;
+          h+=`<td>${c?`<span class="wk-code" style="background:${ha(c.col,.18)};color:${c.col};padding:1px 6px">${v}</span>`:'<span style="color:var(--mu)">–</span>'}</td>`;
         }
       }
       h+='</tr>';

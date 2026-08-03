@@ -224,6 +224,9 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:3;text
 #wkTbl .wk-none td.sticky-col,#wkTbl .wk-none td.sticky-col2{background:#141824!important}
 .fk-chip.free{color:var(--mu)}
 .fk-chip:hover{border-color:var(--pu)}
+/* Mã phân công việc (DD/KM/HT/OFF/SN/HV) — form chữ chuẩn theo .fk-chip; màu đặt inline theo WK_CODES */
+.wk-code{font-family:inherit;font-size:.65rem;font-weight:700;line-height:1;border-radius:5px}
+select.wk-code{cursor:pointer;outline:none}
 
 /* RATIO */
 .ratio-bar{height:20px;border-radius:10px;overflow:hidden;display:flex;margin:6px 0 4px}
