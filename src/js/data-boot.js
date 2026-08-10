@@ -489,4 +489,16 @@ function gsc(b,a,s){
   // 'tuchoi': 0 điểm nhưng vẫn đếm đơn (lọc dòng lạ nằm ở processChunks)
   return v;
 }
-function mfk(note){const n=note.toLowerCase();for(const fk of FK_KEYS)if(n.includes(FK_SEARCH[fk]))return fk;return null;}
+// Nhận diện FK từ ghi chú: chọn mã KHỚP DÀI NHẤT (tránh mã ngắn của người này "ăn" đơn của người kia,
+// vd 'sam' nằm trong 'fkolsam'); trước đây lấy người đầu tiên khớp theo thứ tự roster.
+function mfk(note){
+  const n=note.toLowerCase();let best=null,bl=0;
+  for(const fk of FK_KEYS){const s=FK_SEARCH[fk];if(s&&s.length>bl&&n.includes(s)){best=fk;bl=s.length;}}
+  return best;
+}
+// Gom các mã "fk..." trong ghi chú KHÔNG khớp nhân viên nào -> cảnh báo cuối lần upload (tránh mất đơn âm thầm)
+function noteUnknownFk(nd,note){
+  const m=String(note||"").toLowerCase().match(/fk\s*[a-z0-9]{2,}/g);
+  if(!m||!nd._unk)return;
+  m.forEach(c=>{const k=c.replace(/\s+/g,"");nd._unk[k]=(nd._unk[k]||0)+1;});
+}

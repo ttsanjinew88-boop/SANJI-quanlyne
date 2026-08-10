@@ -131,6 +131,7 @@ function initAccum(){
     _daySet:new Set(), _mSet:new Set(),
     _day7Raw:new Array(31).fill(0), day_counts_d7:new Array(31).fill(0), _d7Set:new Set(),
     _hbd7:m31x24(), cbd7:m31x24(), // điểm & số đơn theo [ngày][giờ GMT+7] — cho view Theo Ngày
+    _unk:{}, // mã "fk..." trong ghi chú không khớp nhân viên nào -> cảnh báo cuối lần upload
     kmstat:{ok:new Array(31).fill(0),rej:new Array(31).fill(0),reward:new Array(31).fill(0),promos:{}} // KM: thành công/từ chối/tiền thưởng theo ngày + theo từng mã KM
   };
   FK_KEYS.forEach(fk=>{
@@ -183,7 +184,7 @@ function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
         nd.kmstat.reward[day-1]+=reward;P.reward+=reward;
       }
       fk=mfk(String(row[17]||""));
-      if(!fk)continue;
+      if(!fk){noteUnknownFk(nd,row[17]);continue;}
       sc=1;
       hbdDay=day_gmt7; // KM: view Theo Ngày dùng ngày GMT+7
       nd._day7Raw[day_gmt7-1]+=sc; nd.day_counts_d7[day_gmt7-1]++; nd._d7Set.add(day_gmt7);
@@ -205,7 +206,7 @@ function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
       nd._daySet.add(day);
       nd._mSet.add((pd.getMonth()+1)+"/"+pd.getFullYear());
       fk=mfk(note);
-      if(!fk)continue;
+      if(!fk){noteUnknownFk(nd,note);continue;}
       sc=gsc(colB,amt,status);
       hbdDay=day; // DON: view Theo Ngày dùng ngày GMT-4 (đồng nhất day_scores)
     }
@@ -253,6 +254,7 @@ function mergeAccum(base,add){
     for(let i=0;i<24;i++){bf._hr7Raw[i]+=af._hr7Raw[i];bf.hour_counts_gmt7[i]+=af.hour_counts_gmt7[i];bf._hr4Raw[i]+=af._hr4Raw[i];}
     for(let d=0;d<31;d++)for(let h=0;h<24;h++){bf._hbd7[d][h]+=af._hbd7[d][h];bf._cbd7[d][h]+=af._cbd7[d][h];}
   });
+  if(add._unk){if(!base._unk)base._unk={};Object.entries(add._unk).forEach(([k,v])=>{base._unk[k]=(base._unk[k]||0)+v;});}
   add._daySet.forEach(d=>base._daySet.add(d));
   add._mSet.forEach(m=>base._mSet.add(m));
   add._d7Set.forEach(d=>base._d7Set.add(d));
@@ -357,11 +359,17 @@ async function applyAddMode(target,nd){
       setCloudStatus('Đã thêm dữ liệu tháng '+dispMonth(month)+' ✓');
       return;
     }
-    const legacy=!base.cbd7||!base.fk_data||!base.fk_data[FK_KEYS[0]]||!base.fk_data[FK_KEYS[0]].cbd7||(type==="don"&&!base.roundV2);
+    // Kiểm "dữ liệu cũ" dựa trên bản ghi, KHÔNG dựa vào 1 FK cụ thể (FK_KEYS[0] có thể là người mới thêm
+    // -> chưa có trong bản ghi cloud, sẽ báo nhầm là dữ liệu cũ).
+    const anyFk=base.fk_data?Object.values(base.fk_data).some(f=>f&&f.cbd7):false;
+    const legacy=!base.cbd7||!base.fk_data||!anyFk||(type==="don"&&!base.roundV2);
     if(legacy){
       alert('Dữ liệu '+lbl+' tháng '+dispMonth(month)+' được tạo TRƯỚC bản cập nhật (cách làm tròn cũ) nên chưa cộng dồn được.\n\nHãy upload lại 1 lần ở chế độ "Thay thế cả tháng" cho tháng này, sau đó mới dùng "Thêm ngày".');
       return;
     }
+    // Bổ sung ô trống cho nhân viên có trong danh sách nhưng chưa có trong bản ghi cloud
+    // (thêm sau lần upload đầu của tháng) — nếu không, dsAddInto sẽ BỎ QUA toàn bộ đơn của họ.
+    reconcileDataset(base);
     const baseDays=dsDaysPresent(base),newDays=dsDaysPresent(nd);
     const overlap=newDays.filter(d=>baseDays.includes(d));
     if(overlap.length){
@@ -435,6 +443,19 @@ function finalizeResult(nd,target){
       hideProg();
       alert("❌ Không nhận diện được dữ liệu nào trong file.\n\nVui lòng kiểm tra lại:\n— File có đúng định dạng/cột như mẫu không?\n— Bạn có đang chọn đúng loại tải lên (Duyệt Đơn / Khuyến Mãi) không?\n\nDữ liệu hiện có KHÔNG bị thay đổi.");
       return;
+    }
+    hideProg();
+    // CẢNH BÁO: ghi chú có mã "FK..." nhưng KHÔNG khớp nhân viên nào trong danh sách của tháng
+    // (nhân viên bị ẩn / mới thêm / sai "Mã Excel") -> những đơn này bị bỏ hoàn toàn, không tính cho ai.
+    const unk=Object.entries(nd._unk||{}).filter(([k,v])=>v>=10).sort((a,b)=>b[1]-a[1]);
+    delete nd._unk;
+    if(unk.length){
+      const lst=unk.slice(0,10).map(([k,v])=>"   • "+k.toUpperCase()+" — "+v.toLocaleString("vi")+" đơn").join("\n");
+      const tot=unk.reduce((s,x)=>s+x[1],0);
+      if(!confirm("⚠ CÓ "+tot.toLocaleString("vi")+" ĐƠN KHÔNG TÍNH CHO AI\n\nGhi chú của các đơn này có mã FK nhưng KHÔNG khớp nhân viên nào trong danh sách tháng đang mở:\n\n"+lst+"\n\nNguyên nhân thường gặp: nhân viên đang bị ẩn (nghỉ), chưa được thêm vào danh sách tháng này, hoặc \"Mã Excel\" trong 👥 Quản lý nhân viên không trùng với ghi chú.\n\n— OK: vẫn lưu (số đơn trên sẽ MẤT)\n— Cancel: hủy để sửa danh sách nhân viên rồi upload lại")){
+        setCloudStatus("Đã hủy upload — hãy sửa Mã Excel / danh sách nhân viên rồi tải lại",true);
+        return;
+      }
     }
     hideProg();
     if(window._uploadMode==='add'){

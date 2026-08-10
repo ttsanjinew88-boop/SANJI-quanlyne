@@ -58,6 +58,9 @@ function reconcileDataset(ds){
   FK_KEYS.forEach(fk=>{
     if(!ds.fk_data[fk])ds.fk_data[fk]={name:FK_NAMES[fk],group:FKVIP.includes(fk)?'vip':'onl',total_score:0,total_count:0,day_scores:z31(),day_counts:z31(),hour_scores_gmt7:z24(),hour_counts_gmt7:z24(),hour_scores_gmt4:z24()};
     else{ds.fk_data[fk].name=FK_NAMES[fk];ds.fk_data[fk].group=FKVIP.includes(fk)?'vip':'onl';}
+    // Ô ngày-giờ THÔ: bắt buộc phải có thì cộng dồn (dsAddInto) mới ghi được -> nhân viên thêm sau
+    // lần upload đầu của tháng không còn bị bỏ qua âm thầm.
+    if(ds.cbd7){const f=ds.fk_data[fk];if(!f.hbd7)f.hbd7=m31x24();if(!f.cbd7)f.cbd7=m31x24();}
   });
   ds.fkvip=FKVIP.slice();ds.fkonl=FKONL.slice();
   return ds;
