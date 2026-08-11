@@ -12,8 +12,12 @@ function emptyDataset(mk){
   return{month:dispMonth(mk),empty:true,days:Array.from({length:31},(_,i)=>i+1),days_in_month:[],hour_labels_gmt7:lbl,hour_labels_gmt4:lbl,day_scores:z31(),day_counts:z31(),hour_scores_gmt7:z24(),hour_counts_gmt7:z24(),hour_scores_gmt4:z24(),hour_counts_gmt4:z24(),fk_data:fd,fkvip:FKVIP,fkonl:FKONL};
 }
 // Áp dữ liệu phân ca đã lưu (gán FK + khung giờ)
+// Luôn gọi khi đổi tháng, KỂ CẢ khi tháng đó chưa có phân ca (sd rỗng) — nếu không, phân ca của
+// tháng trước còn nguyên trong RAM và bị hiểu nhầm là của tháng đang xem (và có thể bị lưu đè sang tháng mới).
 function applyShiftData(sd){
-  if(sd&&sd.assign)FK_KEYS.forEach(fk=>{shAssign[fk]=sd.assign[fk]||null;});
+  const as=(sd&&sd.assign)||{};
+  Object.keys(shAssign).forEach(fk=>{shAssign[fk]=null;});
+  FK_KEYS.forEach(fk=>{shAssign[fk]=as[fk]||null;});
   if(sd&&sd.hours)['sf','st','tf','tt','g1f','g1t','g2f','g2t'].forEach(k=>{if(sd.hours[k]!=null){const el=document.getElementById(k);if(el)el.value=sd.hours[k];}});
 }
 // Lưu phân ca lên cloud theo tháng đang xem (debounce để gom nhiều click thành 1 lần lưu)
@@ -57,7 +61,7 @@ async function bootData(){
     }
     D=reconcileDataset(don)||emptyDataset(mk);
     KMD=reconcileDataset(km);
-    if(shift)applyShiftData(shift);
+    applyShiftData(shift);
     _shiftReady=true;
     if(an&&an.abuse){
       KO_AN=an;
@@ -285,7 +289,7 @@ async function loadHistMonth(m){
     KO_OV=(ov&&Object.keys(ov).length)?ov:{};
     D=reconcileDataset(don)||emptyDataset(m);
     KMD=reconcileDataset(km);
-    if(shift)applyShiftData(shift);
+    applyShiftData(shift);
     KO_AN=(an&&an.abuse)?an:{abuse:{},mkt:{}};
     setMonthLabel(m,!don);
     selDay=null;
@@ -372,8 +376,12 @@ let PENDING_URL={action:null};
   const rid=p.get("rid");
   const fk=p.get("confirm_anomaly"),date=p.get("date"),cat=p.get("cat")==="mkt"?"mkt":"abuse",cnt=Number(p.get("count")||1);
   const fkw=p.get("watch_anomaly"),fkd=p.get("dismiss_anomaly");
-  if(fk&&FK_KEYS.includes(fk)&&date)PENDING_URL.action={type:'confirm',fk,date,cat,cnt,rid};
-  else if(fkw&&FK_KEYS.includes(fkw))PENDING_URL.action={type:'watch',fk:fkw,date:p.get("date")||'',rid};
+  // Lúc này roster của tháng CHƯA nạp xong (FK_KEYS còn là danh sách mặc định) -> chỉ kiểm ĐỊNH DẠNG mã,
+  // kiểm mã có thật để lúc processUrlAction (sau khi nạp roster). Trước đây lọc theo FK_KEYS ở đây làm
+  // nút Xác Nhận trên Telegram của nhân viên MỚI thêm bị bỏ qua âm thầm.
+  const okKey=k=>/^fk[a-z0-9_]+$/i.test(String(k||''));
+  if(fk&&okKey(fk)&&date)PENDING_URL.action={type:'confirm',fk,date,cat,cnt,rid};
+  else if(fkw&&okKey(fkw))PENDING_URL.action={type:'watch',fk:fkw,date:p.get("date")||'',rid};
   else if(fkd)PENDING_URL.action={type:'dismiss',fk:fkd,date:p.get("date")||'',rid};
   if(PENDING_URL.action)history.replaceState(null,"",location.pathname);
 })();
@@ -415,6 +423,7 @@ async function processUrlAction(){
       if((rids.list||[]).includes(a.rid)){showUrlToast({type:'used',fk:a.fk,date:a.date});return;}
     }
     if(a.type==='confirm'){
+      if(!FK_NAMES[a.fk]){showUrlToast({type:'err',msg:'Không tìm thấy nhân viên "'+a.fk+'" trong danh sách — kiểm tra 👥 Quản lý nhân viên'});return;}
       if(!canEdit('ko')){showUrlToast({type:'err',msg:'Tài khoản của bạn không có quyền SỬA tab Hiệu Suất KO — không thể cộng điểm'});return;}
       const mk=a.date.slice(0,7);
       const day=Number(a.date.slice(-2));

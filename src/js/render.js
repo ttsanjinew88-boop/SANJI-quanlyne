@@ -197,6 +197,20 @@ function perfEdit(el){
   fd.day_scores[d-1]=to;
   fd.total_score=fd.day_scores.reduce((a,b)=>a+(b||0),0);
   if(Array.isArray(ds.day_scores))ds.day_scores[d-1]=Math.max(0,(ds.day_scores[d-1]||0)+(to-from));
+  // DON (roundV2): mọi số đều được suy lại từ ô THÔ hbd7 mỗi lần cộng dồn -> phải ghi số chỉnh tay
+  // vào hbd7, nếu không lần upload "Thêm ngày" kế tiếp sẽ XÓA MẤT phần chỉnh tay này.
+  if(src==='don'&&ds.hbd7&&fd.hbd7&&fd.hbd7[d-1]){
+    const row=fd.hbd7[d-1],cur=row.reduce((a,b)=>a+(b||0),0);
+    if(cur>0){
+      const k=to/cur;let mx=0;
+      for(let h=0;h<24;h++){row[h]=(row[h]||0)*k;if(row[h]>row[mx])mx=h;} // giữ nguyên phân bố theo giờ
+      row[mx]+=to-row.reduce((a,b)=>a+b,0);                              // bù sai số dấu chấm động -> tổng ĐÚNG bằng số nhập
+    }
+    else row[12]=to;                                                     // ngày chưa có giờ nào -> dồn 1 ô
+    // ô ngày-giờ của cả tháng = tổng các nhân viên (đúng như lúc parse file)
+    for(let h=0;h<24;h++){let s=0;FK_KEYS.forEach(k2=>{const f2=ds.fk_data[k2];if(f2&&f2.hbd7&&f2.hbd7[d-1])s+=f2.hbd7[d-1][h]||0;});ds.hbd7[d-1][h]=s;}
+    dsRecalcScores(ds);dsRecalcDays(ds);
+  }
   savePerfEdit(src,fk,d,from,to);
   rKoDaily();
 }
