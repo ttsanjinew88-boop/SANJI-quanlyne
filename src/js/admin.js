@@ -348,6 +348,58 @@ async function admFillDelMonths(){
     if(cur)sel.value=cur;
   }catch(e){console.error('admFillDelMonths',e);}
 }
+// Đổi tháng -> nạp lại danh sách NGÀY đang có dữ liệu (gộp Duyệt Đơn + Khuyến Mãi)
+async function admDelMonthChanged(){
+  const sel=document.getElementById('admDelDay');
+  if(!sel)return;
+  const m=document.getElementById('admDelMonth').value;
+  if(!m){sel.innerHTML='<option value="">-- Chọn tháng trước --</option>';return;}
+  sel.innerHTML='<option value="">-- Đang tải ngày --</option>';
+  try{
+    let don=null,km=null;
+    try{don=await SB.loadReport('don',m);}catch(e){}
+    try{km=await SB.loadReport('km',m);}catch(e){}
+    const dDon=don?dsDaysPresent(don):[],dKm=km?dsDaysPresent(km):[];
+    const days=[...new Set([...dDon,...dKm])].sort((a,b)=>a-b);
+    if(!days.length){sel.innerHTML='<option value="">-- Tháng này chưa có dữ liệu ngày --</option>';return;}
+    sel.innerHTML='<option value="">-- Chọn ngày --</option>'+days.map(d=>{
+      const src=[dDon.includes(d)?'Duyệt Đơn':'',dKm.includes(d)?'Khuyến Mãi':''].filter(Boolean).join(' + ');
+      return `<option value="${d}">Ngày ${d} — ${src}</option>`;
+    }).join('');
+  }catch(e){console.error('admDelMonthChanged',e);sel.innerHTML='<option value="">-- Lỗi tải ngày --</option>';}
+}
+// Xóa dữ liệu của ĐÚNG 1 ngày trong tháng (Duyệt Đơn + Khuyến Mãi) — dùng khi upload nhầm ngày
+async function admDeleteDay(){
+  if(!CUR_PROFILE||!CUR_PROFILE.is_admin)return;
+  const m=document.getElementById('admDelMonth').value;
+  const day=parseInt(document.getElementById('admDelDay').value,10);
+  const msg=document.getElementById('admDelMsg');
+  if(!m){msg.style.color='var(--re)';msg.textContent='Chưa chọn tháng';return;}
+  if(!day){msg.style.color='var(--re)';msg.textContent='Chưa chọn ngày cần xóa';return;}
+  if(!confirm('XÓA dữ liệu NGÀY '+day+'/'+dispMonth(m)+' (Duyệt Đơn + Khuyến Mãi) trên cloud?\n\nCác ngày khác của tháng GIỮ NGUYÊN.\nSau khi xóa có thể upload lại ngày này ở chế độ "Thêm ngày (cộng dồn)".\n\nHành động KHÔNG THỂ hoàn tác!'))return;
+  try{
+    msg.style.color='var(--mu2)';msg.textContent='Đang xóa ngày '+day+'...';
+    const done=[];
+    for(const type of ['don','km']){
+      let ds=null;
+      try{ds=await SB.loadReport(type,m);}catch(e){}
+      if(!ds||!ds.cbd7||!dsDaysPresent(ds).includes(day))continue;
+      dsSubtractDay(ds,day); // duyệt theo fk_data của chính bản ghi -> không phụ thuộc roster đang mở
+      if(type==='don'&&ds.roundV2)dsRecalcScores(ds);
+      dsRecalcDays(ds);
+      await SB.saveReport(type,m,ds);
+      done.push(type==='don'?'Duyệt Đơn':'Khuyến Mãi');
+    }
+    if(!done.length){msg.style.color='var(--go)';msg.textContent='Ngày '+day+' không có dữ liệu nào để xóa.';return;}
+    logAction('XÓA DỮ LIỆU NGÀY','Ngày '+day+'/'+dispMonth(m)+' — '+done.join(' + '));
+    msg.style.color='var(--gr)';msg.textContent='Đã xóa dữ liệu ngày '+day+'/'+dispMonth(m)+' ('+done.join(' + ')+') ✓ — upload lại bằng chế độ "Thêm ngày (cộng dồn)"';
+    admDelMonthChanged();
+    if(m===CUR_MONTH)bootData();
+  }catch(e){
+    console.error('admDeleteDay',e);
+    msg.style.color='var(--re)';msg.textContent='Lỗi xóa ngày: '+(e.message||e);
+  }
+}
 // Tải toàn bộ dữ liệu 1 tháng ra file JSON (sao lưu tay, phòng gói free không backup tự động)
 async function admExportMonth(){
   if(!CUR_PROFILE||!CUR_PROFILE.is_admin)return;
@@ -386,7 +438,7 @@ async function admDeleteMonth(){
     if(error)throw error;
     logAction('XÓA DỮ LIỆU THÁNG','Tháng '+dispMonth(m)+' — toàn bộ báo cáo trên cloud');
     msg.style.color='var(--gr)';msg.textContent='Đã xóa sạch dữ liệu tháng '+dispMonth(m)+' trên cloud ✓ (file Excel gốc vẫn còn trong Storage)';
-    admFillDelMonths();
+    admFillDelMonths();admDelMonthChanged();
     if(m===CUR_MONTH)bootData(); // đang xem đúng tháng vừa xóa -> tải lại thành trống
   }catch(e){
     console.error('admDeleteMonth',e);

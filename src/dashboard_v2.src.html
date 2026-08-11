@@ -642,11 +642,17 @@
   <div class="chart-card" id="admDeleteCard" style="margin-top:16px;border:1px solid rgba(239,68,68,.4)">
     <div class="chart-title" style="color:#f87171">Xóa dữ liệu theo tháng — NGUY HIỂM</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-      <select class="adm-inp" id="admDelMonth" style="cursor:pointer"><option value="">-- Chọn tháng --</option></select>
+      <select class="adm-inp" id="admDelMonth" style="cursor:pointer" onchange="admDelMonthChanged()"><option value="">-- Chọn tháng --</option></select>
       <button onclick="admExportMonth()" class="abtn abtn-ok">Tải sao lưu JSON</button>
       <button onclick="admDeleteMonth()" class="abtn abtn-danger">Xóa toàn bộ tháng này</button>
     </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;padding-top:10px;border-top:1px dashed rgba(239,68,68,.3)">
+      <span style="font-size:.65rem;color:var(--mu2);font-weight:600">Hoặc xóa 1 ngày:</span>
+      <select class="adm-inp" id="admDelDay" style="cursor:pointer"><option value="">-- Chọn tháng trước --</option></select>
+      <button onclick="admDeleteDay()" class="abtn abtn-danger">Xóa dữ liệu ngày này</button>
+    </div>
     <div style="font-size:.62rem;color:var(--mu);margin-top:8px">Xóa vĩnh viễn trên cloud: Duyệt Đơn · Khuyến Mãi · Phân Ca · Bất Thường · Báo cáo đại lý của tháng đã chọn. File Excel gốc trong Storage được GIỮ LẠI để khôi phục khi cần (upload lại là xong).</div>
+    <div style="font-size:.62rem;color:var(--mu);margin-top:4px">Xóa 1 ngày: chỉ gỡ điểm/đơn của ĐÚNG ngày đó khỏi Duyệt Đơn &amp; Khuyến Mãi (các ngày khác giữ nguyên) — dùng khi upload nhầm, xóa xong upload lại ngày đó ở chế độ "Thêm ngày (cộng dồn)".</div>
     <div id="admDelMsg" style="font-size:.7rem;margin-top:8px;min-height:14px;font-weight:600"></div>
   </div>
   <div class="chart-card" id="admIpCard" style="margin-top:16px;border:1px solid rgba(6,182,212,.35)">

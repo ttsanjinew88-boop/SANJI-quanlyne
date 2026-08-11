@@ -299,7 +299,9 @@ function dsSubtractDay(ds,day){
   ds.day_scores[di]=0;ds.day_counts[di]=0;
   if(ds.day_scores_d7)ds.day_scores_d7[di]=0;
   if(ds.kmstat){ds.kmstat.ok[di]=0;ds.kmstat.rej[di]=0;ds.kmstat.reward[di]=0;}
-  FK_KEYS.forEach(fk=>{
+  // Duyệt theo KEY CÓ TRONG BẢN GHI (không dùng FK_KEYS): xóa ngày ở tháng khác / nhân viên đã ẩn
+  // vẫn phải trừ đúng, nếu không tổng tháng về 0 mà ô của FK đó còn số.
+  Object.keys(ds.fk_data||{}).forEach(fk=>{
     const b=ds.fk_data[fk];if(!b||!b.hbd7||!b.cbd7)return;
     let ss=0,cc=0;
     for(let h=0;h<24;h++){const s=b.hbd7[di][h]||0,c=b.cbd7[di][h]||0;ss+=s;cc+=c;b.hour_scores_gmt7[h]-=s;b.hour_counts_gmt7[h]-=c;}
@@ -318,7 +320,7 @@ function dsRecalcScores(ds){
   for(let d=0;d<31;d++){let s=0,c=0;for(let h=0;h<24;h++){s+=ds.hbd7[d][h]||0;c+=ds.cbd7[d][h]||0;}ds.day_scores[d]=Math.ceil(s);ds.day_counts[d]=c;}
   for(let h=0;h<24;h++){let s=0,c=0;for(let d=0;d<31;d++){s+=ds.hbd7[d][h]||0;c+=ds.cbd7[d][h]||0;}ds.hour_scores_gmt7[h]=Math.ceil(s);ds.hour_counts_gmt7[h]=c;}
   for(let h4=0;h4<24;h4++){const h7=rot(h4);let s=0,c=0;for(let d=0;d<31;d++){s+=ds.hbd7[d][h7]||0;c+=ds.cbd7[d][h7]||0;}ds.hour_scores_gmt4[h4]=Math.ceil(s);ds.hour_counts_gmt4[h4]=c;}
-  FK_KEYS.forEach(fk=>{
+  Object.keys(ds.fk_data||{}).forEach(fk=>{
     const b=ds.fk_data[fk];if(!b||!b.hbd7||!b.cbd7)return;
     let tot=0,cnt=0;
     for(let d=0;d<31;d++){let s=0,c=0;for(let h=0;h<24;h++){s+=b.hbd7[d][h]||0;c+=b.cbd7[d][h]||0;}b.day_scores[d]=Math.ceil(s);b.day_counts[d]=c;tot+=Math.ceil(s);cnt+=c;}
