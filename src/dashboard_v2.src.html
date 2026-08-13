@@ -128,6 +128,7 @@
   <div class="hdr-right">
     <div class="user-chip" id="userChip" style="display:none"><span id="userChipName"></span><button class="lo-btn" style="background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3);color:var(--pu2)" onclick="selfChangePw()">Đổi MK</button><button class="lo-btn" onclick="AUTH.logout()">Đăng xuất</button></div>
     <span id="cloudStatus" style="font-size:.62rem;color:var(--mu2);min-width:0"></span>
+    <button type="button" class="upload-btn" id="btnLang" data-noi18n onclick="i18nToggle()" title="Switch to English">EN</button>
     <div class="upload-dd-wrap">
       <button type="button" class="upload-btn" id="btnMonth" onclick="toggleHistMenu(event)">Tháng ▾</button>
       <div class="upload-dd-menu" id="histDdMenu" style="min-width:250px"></div>
@@ -678,6 +679,7 @@
 
 
 <script>
+//#include js/i18n.js
 //#include js/core.js
 //#include js/auth.js
 //#include js/admin.js
@@ -706,6 +708,7 @@
     <div style="font-size:.65rem;color:var(--mu2);margin-top:2px">SANJI</div>
   </div>
   <div class="topbar-sub">Điều kiện: Nạp ≥ 1,000 · Cược ≥ 3,000 · Đại lý ≥ 3 KH hợp lệ</div>
+  <button type="button" class="upload-btn" id="btnLang2" data-noi18n onclick="i18nToggle()" title="Switch to English">EN</button>
 </div>
 
 <div class="upload-section">

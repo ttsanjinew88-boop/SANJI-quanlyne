@@ -9,6 +9,7 @@ $enc  = [System.Text.UTF8Encoding]::new($false)   # UTF-8 khong BOM
 
 $includes = @(
   @('/*#include styles.css*/',  'styles.css'),
+  @('//#include js/i18n.js',        'js/i18n.js'),
   @('//#include js/core.js',        'js/core.js'),
   @('//#include js/auth.js',        'js/auth.js'),
   @('//#include js/admin.js',       'js/admin.js'),

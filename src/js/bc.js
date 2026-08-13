@@ -752,6 +752,12 @@ const BC={
     document.querySelectorAll('.bc-bt-chip').forEach(c=>c.classList.toggle('sel',c.textContent===fk));
   },
 
+  // TÊN hiển thị -> key roster. BẮT BUỘC dùng khi gửi báo cáo: server cộng điểm thẳng vào mã này,
+  // nên nếu ghép 'fk'+tên thì đổi tên nhân viên là điểm rơi vào mã lạ, không ai hiển thị (vụ CHAMY→SOLIS 05/08/2026).
+  _fkKey(name){
+    return NAME2FK[String(name||'').toUpperCase()]||('fk'+String(name||'').toLowerCase().replace(/[^a-z0-9]/g,''));
+  },
+
   // Gửi báo cáo QUA EDGE FUNCTION — token bot nằm bí mật ở server, điểm cộng do server quyết định
   async callSendReport(mode,fk,content,agent,files){
     if(!SB.ready())throw new Error('Chưa cấu hình cloud');
@@ -780,7 +786,7 @@ const BC={
       const dd=d.getDate().toString().padStart(2,'0'),mm=(d.getMonth()+1).toString().padStart(2,'0');
       const file=new File([blob],`BaoCao_${agentName}_${BC._selFk}_${dd}${mm}.xls`,{type:'application/vnd.ms-excel'});
       status.textContent='Đang gửi Telegram...';
-      const res=await BC.callSendReport('dai_ly','fk'+BC._selFk.toLowerCase(),content,agentName,[file]);
+      const res=await BC.callSendReport('dai_ly',BC._fkKey(BC._selFk),content,agentName,[file]);
       if(res.ok){
         status.style.color='#22c55e';status.textContent='Gửi thành công!';
         setTimeout(()=>BC.closeBtModal(),1600);
@@ -974,7 +980,7 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
     btn.disabled=true;
     status.style.color='#888';status.textContent='Đang gửi...';
     try{
-      const res=await BC.callSendReport('cuoc','fk'+BC._selCuFk.toLowerCase(),content,'',files);
+      const res=await BC.callSendReport('cuoc',BC._fkKey(BC._selCuFk),content,'',files);
       if(res.ok){
         status.style.color='#22c55e';status.textContent='Đã gửi thành công!';
         setTimeout(()=>BC.closeCuModal(),1800);

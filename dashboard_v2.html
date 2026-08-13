@@ -614,6 +614,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
   <div class="hdr-right">
     <div class="user-chip" id="userChip" style="display:none"><span id="userChipName"></span><button class="lo-btn" style="background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3);color:var(--pu2)" onclick="selfChangePw()">Đổi MK</button><button class="lo-btn" onclick="AUTH.logout()">Đăng xuất</button></div>
     <span id="cloudStatus" style="font-size:.62rem;color:var(--mu2);min-width:0"></span>
+    <button type="button" class="upload-btn" id="btnLang" data-noi18n onclick="i18nToggle()" title="Switch to English">EN</button>
     <div class="upload-dd-wrap">
       <button type="button" class="upload-btn" id="btnMonth" onclick="toggleHistMenu(event)">Tháng ▾</button>
       <div class="upload-dd-menu" id="histDdMenu" style="min-width:250px"></div>
@@ -1164,6 +1165,998 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 
 
 <script>
+/* ===== I18N — CHUYỂN ĐỔI GIAO DIỆN TIẾNG VIỆT ↔ ENGLISH =====
+   Nguyên tắc: KHÔNG sửa logic render. Từ điển lấy KHÓA = chính chuỗi tiếng Việt đang có
+   trong HTML/JS; engine dịch ở tầng DOM (text node + placeholder/title) nên mọi bảng/thẻ
+   do các hàm r*() sinh ra đều được dịch mà không phải đụng vào code cũ.
+   - Mặc định: Tiếng Việt (localStorage 'ui_lang'). Nút VI/EN ở header (#btnLang).
+   - Mỗi text node giữ bản gốc ở n.__vi -> đổi về VI là khôi phục nguyên văn.
+   - MutationObserver dịch tiếp nội dung mới render (chỉ chạy khi đang EN).
+   - Nhãn biểu đồ (canvas) dịch qua plugin Chart.js 'i18nLbl'.
+   - Chuỗi có số/biến (vd "1.234 đơn · 12 lần đầu") khớp bằng I18N.RX (regex + $1).
+   Thêm chữ mới: chỉ cần thêm 1 dòng vào I18N.EN — không cần sửa nơi khác. */
+const I18N={
+  lang:(localStorage.getItem('ui_lang')==='en')?'en':'vi',
+  busy:0,
+  on(){return this.lang==='en';},
+  /* ---- Từ điển: 'tiếng Việt trong giao diện' : 'English (thuật ngữ casino trực tuyến)' ---- */
+  EN:{
+  /* Khung chung: thanh công cụ, header, tab */
+  "HIỆU SUẤT NHÂN VIÊN":"STAFF PERFORMANCE",
+  "Hiệu Suất Nhân Viên":"Staff Performance",
+  "Dashboard Hiệu Suất Nhân Viên":"Staff Performance Dashboard",
+  "BÁO CÁO ĐẠI LÝ - GỬI FILE":"AFFILIATE REPORT - SEND FILE",
+  "Đổi MK":"Change PW",
+  "Đăng xuất":"Log out",
+  "Tháng ▾":"Month ▾",
+  "Dữ Liệu":"Data",
+  "Hiệu Suất KO":"KO Performance",
+  "Phân Ca":"Shifts",
+  "Phân ca":"Shifts",
+  "Xếp Hạng":"Leaderboard",
+  "Lịch Sử":"Audit Log",
+  "Quản Trị":"Admin",
+  "Đang xử lý file Excel...":"Processing Excel file...",
+  "Đang xử lý dữ liệu...":"Processing data...",
+  "Chuẩn bị...":"Preparing...",
+  "Đang tải...":"Loading...",
+  "Đang tải danh sách tháng…":"Loading month list…",
+  "Đang đọc":"Reading",
+  "Đóng":"Close",
+  "Hủy":"Cancel",
+  "Áp dụng":"Apply",
+  "Cập nhật":"Update",
+  "Làm mới":"Refresh",
+  "Sửa":"Edit",
+  "Thêm":"Add",
+  "Về mặc định":"Reset to default",
+  "Khôi phục":"Restore",
+  "Quay lại":"Back",
+  "Chọn file…":"Choose file…",
+  "Dán từ Excel":"Paste from Excel",
+  "Tùy chỉnh màu":"Customize colors",
+  "Chi tiết ▸":"Details ▸",
+  "⬇ Xuất CSV":"⬇ Export CSV",
+  "Không có thay đổi.":"No changes.",
+  "Bạn chỉ có quyền XEM.":"You have VIEW-only permission.",
+  "Chưa sẵn sàng, thử lại sau.":"Not ready yet, please try again.",
+  "Chưa có dữ liệu":"No data yet",
+  "Không rõ":"Unknown",
+  "Không có đơn":"No orders",
+  "Không có đơn.":"No orders.",
+  "(không có)":"(none)",
+  "(chưa gán)":"(unassigned)",
+  "TRỐNG":"EMPTY",
+  "trống":"empty",
+
+  /* Đăng nhập + bảo mật 2 lớp */
+  "ĐĂNG NHẬP HỆ THỐNG":"SYSTEM LOGIN",
+  "Kỷ luật - Minh bạch - Bứt phá":"Discipline - Transparency - Breakthrough",
+  "Tên đăng nhập":"Username",
+  "Mật khẩu":"Password",
+  "Đăng nhập":"Log in",
+  "Xác minh":"Verify",
+  "Nhập mã":"Enter code",
+  "6 số":"6-digit",
+  "từ ứng dụng":"from the app",
+  "BẢO MẬT 2 LỚP (2FA)":"TWO-FACTOR AUTHENTICATION (2FA)",
+  "✓ Tài khoản của bạn ĐÃ BẬT 2FA":"✓ Your account HAS 2FA ENABLED",
+  "Tắt 2FA":"Disable 2FA",
+  "Bật 2FA — Google Authenticator":"Enable 2FA — Google Authenticator",
+  "Bật 2FA để mỗi lần đăng nhập cần thêm mã 6 số từ điện thoại — an toàn hơn nhiều.":"Enable 2FA so each login also requires a 6-digit code from your phone — much safer.",
+  "1. Mở":"1. Open",
+  "→ bấm":"→ tap",
+  "Quét mã QR":"Scan QR code",
+  "Hoặc nhập tay mã bí mật (ID) này:":"Or enter this secret key (ID) manually:",
+  "Hoặc nhập tay mã bí mật (ID):":"Or enter the secret key (ID) manually:",
+  "2. Nhập mã 6 số đang hiện trong app để xác nhận:":"2. Enter the 6-digit code shown in the app to confirm:",
+  "2. Nhập mã 6 số đang hiện trong app:":"2. Enter the 6-digit code shown in the app:",
+  "Xác nhận bật 2FA":"Confirm 2FA",
+  "Tài khoản BẮT BUỘC bật bảo mật 2 lớp trước khi vào hệ thống.":"This account MUST enable two-factor authentication before entering the system.",
+  "Xác nhận & vào hệ thống":"Confirm & enter system",
+
+  /* TAB DỮ LIỆU — Theo Ngày / Theo Tháng / Thời gian cao điểm */
+  "Thời Gian Cao Điểm":"Peak Hours",
+  "Báo Cáo Đơn Rút":"Withdrawal Report",
+  "Theo Ngày":"By Day",
+  "Theo Tháng":"By Month",
+  "Theo từng FK":"By staff (FK)",
+  "Tổng điểm ngày":"Daily score",
+  "Tổng đơn ngày":"Daily orders",
+  "Tổng điểm tháng":"Monthly score",
+  "Tổng đơn":"Total orders",
+  "đơn xử lý":"orders processed",
+  "đơn trong tháng":"orders this month",
+  "Giờ cao điểm (GMT+7)":"Peak hour (GMT+7)",
+  "Ngày cao điểm":"Peak day",
+  "FK dẫn đầu VIP":"Top VIP staff",
+  "FK dẫn đầu ONL":"Top ONL staff",
+  "Điểm theo giờ — GMT−4 và GMT+7":"Score by hour — GMT−4 and GMT+7",
+  "Top 3 giờ (GMT+7)":"Top 3 hours (GMT+7)",
+  "Màu đại diện từng FK (2 chart bên dưới)":"Color per staff (both charts below)",
+  "FKVIP theo giờ":"FKVIP by hour",
+  "FKONL theo giờ":"FKONL by hour",
+  "Điểm theo ngày":"Score by day",
+  "TB thời gian cao điểm trong tháng (GMT+7) — điểm trung bình mỗi giờ / ngày":"Average peak hours this month (GMT+7) — average score per hour / day",
+  "TB điểm/giờ/ngày":"Avg score/hour/day",
+  "Điểm":"Score",
+  "điểm":"pts",
+  "Đơn":"Orders",
+  "đơn":"orders",
+  "Điểm:":"Score:",
+  "Đơn:":"Orders:",
+  "Số đơn":"Orders",
+  "Số đơn:":"Orders:",
+  "Giá trị":"Value",
+  "Ngày":"Date",
+  "ngày":"days",
+  "Tháng":"Month",
+  "Loại":"Type",
+  "Nhóm":"Group",
+  "Tên":"Name",
+  "Màu":"Color",
+  "Cấp độ":"Tier",
+  "Trạng thái":"Status",
+  "Ghi chú":"Note",
+  "TỔNG":"TOTAL",
+  "Tổng":"Total",
+
+  /* Thống kê Khuyến Mãi */
+  "Thống Kê Khuyến Mãi":"Promotion Statistics",
+  "— chia ngày theo GMT−4":"— days split by GMT−4",
+  "Theo từng khuyến mãi":"By promotion",
+  "Theo ngày (GMT−4)":"By day (GMT−4)",
+  "Ngày (GMT−4)":"Date (GMT−4)",
+  "KM thành công":"Promos approved",
+  "KM từ chối":"Promos rejected",
+  "đơn được duyệt (cột Lý do từ chối trống)":"orders approved (Rejection reason column empty)",
+  "đơn bị từ chối (có lý do)":"orders rejected (with reason)",
+  "Tỷ lệ thành công":"Approval rate",
+  "Tiền thưởng đã phát":"Bonus paid out",
+  "tổng cột Điểm thưởng của đơn thành công":"sum of the Bonus column for approved orders",
+  "Mã khuyến mãi":"Promo code",
+  "Thành công":"Approved",
+  "Từ chối":"Rejected",
+  "Tỷ lệ TC":"Rate",
+  "Chưa có dữ liệu ngày nào.":"No daily data yet.",
+  "Chưa có dữ liệu Khuyến Mãi — bấm":"No promotion data yet — click",
+  "Upload Excel ▾ → Duyệt Khuyến Mãi":"Upload Excel ▾ → Promotion Approvals",
+  "ở góc trên để tải lên.":"at the top to upload.",
+  "Dữ liệu KM này được lưu trước khi có tính năng thống kê —":"This promotion data was saved before statistics existed —",
+  "upload lại file Khuyến Mãi":"re-upload the Promotion file",
+  "để xem đầy đủ.":"to see everything.",
+
+  /* Upload */
+  "Duyệt Đơn":"Withdrawal Approvals",
+  "Duyệt đơn":"Withdrawal approvals",
+  "Khuyến Mãi":"Promotions",
+  "Duyệt Khuyến Mãi":"Promotion Approvals",
+  "Thêm ngày (cộng dồn)":"Add day (cumulative)",
+  "Thêm ngày":"Add day",
+  "Tải file dữ liệu mới":"Upload new data file",
+  "(hỗ trợ gộp nhiều file · kéo thả hoặc bấm chọn)":"(supports merging multiple files · drag & drop or click to choose)",
+  "Kéo thả hoặc bấm chọn":"Drag & drop or click to choose",
+  "Không đọc được file.":"Could not read the file.",
+  "Không đọc được file:":"Could not read the file:",
+  "Không tìm thấy dòng dữ liệu nào — kiểm tra lại file/dữ liệu dán.":"No data rows found — check the file / pasted data.",
+  "Lỗi xử lý dữ liệu:":"Data processing error:",
+
+  /* Báo Cáo Đơn Rút (Withdrawal report) */
+  "— dùng 1 lần, F5 là mất. Thả/dán file Excel Duyệt Đơn riêng cho báo cáo này; không lưu cloud.":"— one-off, lost on refresh (F5). Drop/paste a separate Withdrawal Excel file for this report; nothing is saved to the cloud.",
+  "Thả file Excel vào đây, dán (Ctrl+V) dữ liệu Excel, hoặc bấm Chọn file":"Drop an Excel file here, paste (Ctrl+V) Excel data, or click Choose file",
+  "Dữ liệu chỉ nằm trong phiên này — tải lại trang (F5) sẽ mất. Không gửi lên cloud.":"Data lives in this session only — reloading (F5) clears it. Nothing is sent to the cloud.",
+  "Xin ý kiến TT (Telegram)":"Team Leader sign-off (Telegram)",
+  "Đối chiếu":"Cross-check",
+  "Mốc tiền toàn hệ thống":"Amount tiers — system wide",
+  "(số tiền xuất khoản — cột P)":"(payout amount — column P)",
+  "✎ Sửa mốc tiền":"✎ Edit amount tiers",
+  "✎ SỬA MỐC TIỀN":"✎ EDIT AMOUNT TIERS",
+  "· bấm thẻ để mở cấp độ & mốc tiền":"· click a card to open tiers & amount brackets",
+  "Lần đầu":"First-time",
+  "lần đầu":"first-time",
+  "· lần đầu":"· first-time",
+  "Mỗi dòng một mốc dạng":"One tier per line, in the form",
+  "từ - đến":"from - to",
+  ", ví dụ 200 - 5000":", e.g. 200 - 5000",
+  "(ví dụ":"(e.g.",
+  "). Viết 5.000 hay 5000 đều được. Bấm":"). Either 5,000 or 5000 works. Click",
+  "để tính lại toàn bộ theo mốc mới.":"to recalculate everything with the new tiers.",
+  "Mốc":"Tier",
+  ": số đầu phải ≤ số sau":": the first number must be ≤ the second",
+  "Chưa có mốc nào — nhập ít nhất 1 dòng.":"No tiers yet — enter at least one line.",
+  "Không hiểu dòng:":"Cannot parse line:",
+  "— cần dạng":"— expected form",
+  "Số không hợp lệ ở dòng:":"Invalid number on line:",
+  "Mốc tiền (bấm để xem đơn từng mốc)":"Amount tiers (click to see the orders in each tier)",
+  "Cấp độ thành viên":"Player VIP tier",
+  "Cấp độ TV":"Player tier",
+  "Hội viên":"Player",
+  "Hội viên (ID)":"Player (ID)",
+  "ID đăng nhập":"Login ID",
+  "Số thứ tự":"Order No.",
+  "Số tiền":"Amount",
+  "Số tiền duyệt":"Approved amount",
+  "FK duyệt":"Approved by",
+  "Đơn rút FK duyệt":"Withdrawals approved",
+  "Đơn rút lần đầu":"First-time withdrawals",
+  "FK có duyệt":"Staff with approvals",
+  "FK có đơn / tổng FK":"staff with orders / total staff",
+  "Xử lý":"Processed",
+  "Ngoài khoảng":"Out of range",
+  "> mốc cao nhất":"> highest tier",
+  "mốc cao nhất":"highest tier",
+  "Không có FK khớp tìm kiếm.":"No staff match the search.",
+  "Chưa có dữ liệu — thả file Excel trước.":"No data yet — drop an Excel file first.",
+  "Chưa dán text.":"No text pasted.",
+  "Không tìm thấy mã Số thứ tự (số) nào trong text.":"No Order No. found in the pasted text.",
+  "Không có đơn nào >150.000 trong file để đối chiếu.":"No orders above 150,000 in the file to cross-check.",
+  "Đối chiếu xin ý kiến TT — đơn >150.000":"Team Leader sign-off check — orders above 150,000",
+  "✔ đã xin ý kiến":"✔ signed off",
+  "⚠ CHƯA XIN Ý KIẾN":"⚠ NO SIGN-OFF",
+  "CHƯA xin ý kiến":"NO sign-off",
+  "tất cả đã xin ý kiến ✓":"all orders signed off ✓",
+  "Vượt Hạn Mức":"Over Limit",
+  "Vượt hạn mức duyệt":"Over approval limit",
+  "⚠ Cảnh báo vượt hạn mức duyệt":"⚠ Approval limit exceeded",
+  "xem cảnh báo bên dưới ▾":"see the warning below ▾",
+  "không có đơn vượt":"no orders over limit",
+  "— đơn có số tiền LỚN HƠN hạn mức của FK (đặt ở Hiệu Suất KO → Đề Xuất Hạn Mức Duyệt): hội viên + số tiền + FK duyệt":"— orders LARGER than the staff member's limit (set in KO Performance → Approval Limit Proposal): player + amount + approver",
+  "Hạn mức":"Limit",
+  "Hạn mức:":"Limit:",
+  "Tìm FK hoặc cấp độ...":"Search staff or tier...",
+  "Dán text nhóm Telegram (có mã Số thứ tự đơn) vào đây...":"Paste the Telegram group text (containing order numbers) here...",
+  "Dán dữ liệu copy từ Excel vào đây (Ctrl+V)":"Paste data copied from Excel here (Ctrl+V)",
+  "Tên (vd: HUNTER)":"Name (e.g. HUNTER)",
+  "Mã nhận diện Excel (tùy chọn)":"Excel match code (optional)",
+  "Bấm để copy":"Click to copy",
+  "chỉ có ở nguồn Duyệt Đơn":"available only for the Withdrawal Approvals source",
+  "đầu":"first",
+
+  /* TAB HIỆU SUẤT KO — Tổng Quan */
+  "Tổng Quan":"Overview",
+  "Bất Thường":"Anomalies",
+  "Đề Xuất Hạn Mức Duyệt":"Approval Limit Proposal",
+  "(chỉnh trong view Đề Xuất Hạn Mức Duyệt)":"(edit in the Approval Limit Proposal view)",
+  "Ngày làm việc và Ghi chú có thể click để sửa. Khác: chọn trạng thái từ dropdown. Cộng/Trừ tự động tính theo hiệu suất tổng hợp.":"Working days and Note are click-to-edit. Other: pick a status from the dropdown. Bonus/Penalty is computed automatically from overall performance.",
+  "Quản lý nhân viên":"Manage staff",
+  "FK ONLINE VIP":"FK ONLINE VIP",
+  "FK ONLINE":"FK ONLINE",
+  "Hạn mức duyệt đơn — Phê duyệt PCQ":"Withdrawal approval limit — PCQ approved",
+  "Hạn mức duyệt đơn":"Withdrawal approval limit",
+  "Hạn mức duyệt":"Approval limit",
+  "Hạn mức đang duyệt":"Current approval limit",
+  "Phê duyệt PCQ":"PCQ approved",
+  "Tiêu chí cộng thưởng, phạt":"Bonus & penalty criteria",
+  "Tiêu chí thưởng":"Bonus criteria",
+  "Điểm thưởng":"Bonus points",
+  "Tiêu chí phạt":"Penalty criteria",
+  "Điểm phạt":"Penalty points",
+  "Hạng 1 hiệu suất":"Performance rank 1",
+  "Hạng 2 hiệu suất":"Performance rank 2",
+  "Hạng 3 hiệu suất":"Performance rank 3",
+  "TB ngày thấp nhất nhóm (≥15% dưới TB)":"Lowest daily average in group (≥15% below average)",
+  "TB ngày thấp thứ 2 (≥8% dưới TB)":"2nd lowest daily average (≥8% below average)",
+  "Miễn phạt nếu hạng xử lý bất thường Top 3":"Penalty waived if anomaly-handling rank is Top 3",
+  "Thưởng hiệu suất yêu cầu hạng xử lý bất thường (kiểm tra khách)":"Performance bonus requires an anomaly-handling (player check) rank of",
+  "Top 4 trở lên":"Top 4 or better",
+  "· Năng suất phải đi đôi với chất lượng — năng suất tốt nhưng chất lượng không đảm bảo thì cũng như không.":"· Output must come with quality — high output without quality counts for nothing.",
+  "Qui tắc tính hiệu suất duyệt đơn":"Withdrawal approval scoring rules",
+  "Đơn lần 1: 50 – 500":"1st withdrawal: 50 – 500",
+  "Đơn lần 1: 501 – 4.999":"1st withdrawal: 501 – 4,999",
+  "Đơn lần 1: 5.000 – 49.999":"1st withdrawal: 5,000 – 49,999",
+  "Đơn lần 1: 50.000 – 500.000":"1st withdrawal: 50,000 – 500,000",
+  "Đơn rút tiền thành công (lần thứ, < 100.000)":"Successful withdrawal (repeat, < 100,000)",
+  "Đơn rút tiền ≥ 100.000":"Withdrawal ≥ 100,000",
+  "Đơn khuyến mãi thành công + từ chối":"Promotion order approved + rejected",
+  "Đơn trả lại":"Returned order",
+  "1 điểm":"1 pt",
+  "1.5 điểm":"1.5 pts",
+  "2 điểm":"2 pts",
+  "3 điểm":"3 pts",
+  "4 điểm":"4 pts",
+  "5 điểm":"5 pts",
+  "Ngày làm việc":"Working days",
+  "Tổng ngày làm":"Total working days",
+  "Khác":"Other",
+  "Cộng":"Bonus",
+  "Trừ":"Penalty",
+  "Chỉ tiêu":"Target",
+  "Tỷ trọng":"Weight",
+  "Học Việc":"Trainee",
+  "Nghỉ Việc":"Resigned",
+  "Về Phép":"On leave",
+  "C.Bộ Phận":"Dept. transfer",
+  "Đang làm":"Active",
+  "Đã nghỉ":"Left",
+  "NHÂN VIÊN":"STAFF",
+  "Nhân viên":"Staff",
+  "TÊN NHÂN VIÊN":"STAFF NAME",
+  "Tổng (đơn+KM)":"Total (orders+promos)",
+  "BXH":"Rank",
+  "TB ngày":"Daily avg",
+  "Tổng TB / người":"Average total / person",
+  "Hiệu suất đơn":"Order performance",
+  "Hiệu suất KM":"Promo performance",
+  "Hiệu suất bất thường":"Anomaly performance",
+  "Hiệu suất TB (tỷ trọng đều)":"Average performance (equal weights)",
+  "Chỉ tài khoản có quyền SỬA tab Hiệu Suất KO mới xem được mục này.":"Only accounts with EDIT permission on the KO Performance tab can see this section.",
+
+  /* KO — Hiệu Suất Duyệt Đơn / Khuyến Mãi */
+  "Hiệu Suất Duyệt Đơn":"Withdrawal Approval Performance",
+  "Hiệu Suất Duyệt Khuyến Mãi":"Promotion Approval Performance",
+  "Chưa có dữ liệu khuyến mãi tháng này — bấm":"No promotion data this month — click",
+  "Upload Excel Khuyến Mãi":"Upload Promotion Excel",
+  "Chưa có dữ liệu Khuyến Mãi tháng này — upload file KM trước.":"No promotion data this month — upload the promotion file first.",
+  "Chỉnh tay điểm":"Manual score edit",
+  "Đang lưu chỉnh tay...":"Saving manual edit...",
+  "Đã lưu chỉnh tay ✓":"Manual edit saved ✓",
+  "Lỗi lưu chỉnh tay":"Failed to save manual edit",
+  "Dán điểm từ Excel":"Paste scores from Excel",
+  "Đã lưu điểm dán từ Excel ✓":"Pasted scores saved ✓",
+  "Lỗi lưu điểm dán":"Failed to save pasted scores",
+
+  /* KO — Bất Thường */
+  "Tổng lượt bất thường tháng":"Total anomalies this month",
+  "Cược + Đại lý ngoài (tổng hợp)":"Betting + external affiliates (combined)",
+  "FK ghi nhận nhiều nhất":"Staff with most records",
+  "FKVIP dẫn đầu BT":"Top FKVIP (anomalies)",
+  "FKONL dẫn đầu BT":"Top FKONL (anomalies)",
+  "Click vào ô số theo ngày để sửa trực tiếp — tự lưu & tính lại tổng/xếp hạng ngay (giống thao tác trên bảng tính)":"Click a daily number cell to edit it in place — it saves and recalculates totals/ranking immediately (like a spreadsheet)",
+  "CƯỢC BẤT THƯỜNG — LẠM DỤNG":"IRREGULAR BETTING — ABUSE",
+  "(Tổng = Cược + Đại lý ngoài)":"(Total = Betting + External affiliates)",
+  "ĐẠI LÝ NGOÀI — MKT BẤT THƯỜNG":"EXTERNAL AFFILIATES — MKT ANOMALIES",
+  "lượt":"cases",
+
+  /* KO — Hạn mức */
+  "1. Hiệu suất Duyệt Đơn (điểm tháng)":"1. Withdrawal approval performance (monthly score)",
+  "2. Hiệu suất Khuyến Mãi (điểm tháng)":"2. Promotion approval performance (monthly score)",
+  "3. Hiệu suất xử lý Bất Thường (lượt tháng)":"3. Anomaly handling performance (cases this month)",
+  "Bảng đề xuất hạn mức duyệt":"Approval limit proposal table",
+  "— % so với người cao nhất trong nhóm · Tổng đánh giá = trung bình 3 tiêu chí (Đơn + KM + Bất thường)":"— % of the group's top performer · Overall = average of the 3 criteria (Orders + Promos + Anomalies)",
+  "⇄ Chuyển Hạn Mức Duyệt":"⇄ Transfer Approval Limits",
+  "⇄ Chuyển hạn mức duyệt":"⇄ Transfer approval limits",
+  "Chọn tháng để chuyển toàn bộ hạn mức của tháng hiện tại sang.":"Pick the month to transfer all of this month's limits into.",
+  "Tổng đánh giá":"Overall",
+  "đã có hạn mức":"limits already set",
+  "Không có tháng nào để chọn.":"No month available to choose.",
+  "Không có hạn mức để chuyển.":"No limits to transfer.",
+  "Đã lưu hạn mức duyệt ✓":"Approval limits saved ✓",
+  "Lỗi lưu hạn mức":"Failed to save limits",
+  "Chưa có hạn mức nào — nhập trong view Đề Xuất Hạn Mức Duyệt":"No limits yet — enter them in the Approval Limit Proposal view",
+
+  /* Quản lý nhân viên (roster) */
+  "Thêm/ẩn nhân viên áp dụng cho TOÀN hệ thống (Hiệu Suất + Báo Cáo Đại Lý). Ẩn nhân viên vẫn GIỮ dữ liệu lịch sử các tháng cũ. Mã nhận diện = chuỗi con trong cột FK của file Excel duyệt đơn.":"Adding/hiding staff applies to the WHOLE system (Performance + Affiliate Report). Hiding a staff member KEEPS their history in past months. The match code is a substring of the FK column in the withdrawal Excel file.",
+  "➕ Thêm nhân viên mới":"➕ Add new staff",
+  "Mã Excel":"Excel code",
+  "✎ Sửa tên/mã":"✎ Edit name/code",
+  "Ẩn (nghỉ)":"Hide (inactive)",
+  "Ẩn (đánh dấu nghỉ) nhân viên":"Hide (mark inactive) staff member",
+  "Đổi tên nhân viên":"Rename staff member",
+  "Nhập tên nhân viên.":"Enter the staff name.",
+  "Tên không được để trống.":"Name cannot be empty.",
+  "Tên đã tồn tại.":"That name already exists.",
+  "Mã Excel không được để trống.":"Excel code cannot be empty.",
+  "Đã thêm":"Added",
+  "Đang cập nhật trên mọi tháng...":"Updating across all months...",
+  "Chỉ ADMIN / Tổ Trưởng được quản lý nhân viên.":"Only ADMIN / Team Leader can manage staff.",
+
+  /* TAB PHÂN CA + CÔNG VIỆC */
+  "Click để gán / bỏ gán FK":"Click to assign / unassign staff",
+  "Giờ (GMT+7):":"Hours (GMT+7):",
+  "Ca Sáng:":"Day Shift:",
+  "Ca Trung:":"Night Shift:",
+  "Ca Gãy:":"Split Shift:",
+  "(qua đêm)":"(overnight)",
+  "CA SÁNG":"DAY SHIFT",
+  "Ca Sáng":"Day Shift",
+  "CA TRUNG (ĐÊM)":"NIGHT SHIFT",
+  "Ca Trung":"Night Shift",
+  "CA GÃY (2 KHUNG)":"SPLIT SHIFT (2 BLOCKS)",
+  "CA GÃY":"SPLIT SHIFT",
+  "Ca Gãy":"Split Shift",
+  "CHƯA PHÂN CA":"UNASSIGNED",
+  "Chưa phân ca:":"Not assigned to a shift:",
+  "Kết quả":"Results",
+  "Công Việc Mỗi Ngày":"Daily Duties",
+  "Công việc mỗi ngày":"Daily duties",
+  "Số đơn mỗi ca theo giờ":"Orders per shift by hour",
+  "Số KM mỗi ca theo giờ":"Promos per shift by hour",
+  "Tỷ lệ các ca":"Shift share",
+  "Tỷ lệ các ca (KM)":"Shift share (promos)",
+  "Ca Sáng — Điểm FK":"Day Shift — staff score",
+  "Ca Trung — Điểm FK":"Night Shift — staff score",
+  "Ca Gãy — Điểm FK":"Split Shift — staff score",
+  "Ca Sáng — Đơn KM":"Day Shift — promo orders",
+  "Ca Trung — Đơn KM":"Night Shift — promo orders",
+  "Ca Gãy — Đơn KM":"Split Shift — promo orders",
+  "Ca dẫn đầu":"Leading shift",
+  "Chưa có dữ liệu Khuyến Mãi — hãy upload file KM trước.":"No promotion data — upload the promotion file first.",
+  "Công việc hằng ngày FK —":"Daily staff duties —",
+  "Tự Động Phân Công":"Auto-assign",
+  "Tự Động Phân Công toàn tháng":"Auto-assign the whole month",
+  "Xóa Phân Công":"Clear assignments",
+  "Xóa toàn bộ phân công":"Clear all assignments",
+  "Số ngày công việc — thống kê công bằng":"Duty days — fairness overview",
+  "Báo cáo OFF / Chuyển ngày":"Report OFF / move day",
+  "Báo cáo OFF / chuyển ngày gần đây":"Recent OFF reports / moved days",
+  "Chú thích công việc":"Duty legend",
+  "Tổng ngày làm = KM + DD + HT − 0.5 × số lần OFF nửa ngày · Tổng này tự cập nhật vào cột \"Ngày làm việc\" ở Tổng Quan.":"Total working days = KM + DD + HT − 0.5 × half-day OFF reports · This total feeds the \"Working days\" column in Overview.",
+  "Chưa có báo cáo nào trong tháng.":"No reports this month.",
+  "Báo cáo OFF đột xuất / Chuyển ngày OFF":"Unplanned OFF report / Move OFF day",
+  "OFF đột xuất 0.5 ngày (không đổi bảng phân công, chỉ trừ Tổng ngày làm)":"Unplanned OFF 0.5 day (assignment grid unchanged, only deducts from total working days)",
+  "OFF đột xuất 1 ngày (cập nhật bảng + tự cân bằng lại từ ngày đó)":"Unplanned OFF 1 day (updates the grid + rebalances from that day)",
+  "Chuyển ngày OFF (đổi ngày OFF sang ngày khác + tự cân bằng)":"Move OFF day (shift the OFF day + rebalance)",
+  "Ngày OFF:":"OFF day:",
+  "Ngày đang OFF:":"Current OFF day:",
+  "Chuyển OFF sang ngày:":"Move OFF to day:",
+  "Xác nhận báo cáo":"Confirm report",
+  "Chưa chọn nhân viên":"No staff selected",
+  "Chưa chọn ngày":"No day selected",
+  "Chưa chọn ngày chuyển tới":"No target day selected",
+  "Ngày chuyển tới phải khác ngày đang OFF":"The target day must differ from the current OFF day",
+  "Đã ghi nhận báo cáo OFF ✓":"OFF report recorded ✓",
+  "Đã lưu công việc ngày tháng":"Daily duties saved",
+  "Lỗi lưu công việc ngày":"Failed to save daily duties",
+  "Bạn cần quyền xem tab Phân Ca.":"You need view permission for the Shifts tab.",
+  "Bạn chỉ có quyền XEM phân ca":"You have VIEW-only permission on shifts",
+  "Chỉ ADMIN / Tổ Trưởng được xóa toàn bộ phân công.":"Only ADMIN / Team Leader can clear all assignments.",
+  "Chỉ ADMIN / Tổ Trưởng.":"ADMIN / Team Leader only.",
+  "Hỗ trợ hoặc làm công việc cấp trên giao":"Support or tasks assigned by a supervisor",
+  "Kiểm tra nhóm và duyệt khuyến mãi":"Group checks and promotion approvals",
+  "Nghỉ / không trực":"Off / not on duty",
+  "nghỉ trọn ngày":"full day off",
+  "Sinh nhật — nghỉ trọn ngày (xử lý như OFF)":"Birthday — full day off (treated as OFF)",
+  "Học việc — nhân viên đang học việc (không tính ngày công, không tự phân công)":"Trainee — staff in training (no working-day credit, excluded from auto-assign)",
+  "Copy vùng dữ liệu trong Excel (bôi đen → Ctrl+C) rồi dán vào ô bên dưới (Ctrl+V).":"Copy the data range in Excel (select → Ctrl+C) then paste into the box below (Ctrl+V).",
+  "Dán phân công từ Excel — Công Việc Mỗi Ngày":"Paste assignments from Excel — Daily Duties",
+
+  /* TAB XẾP HẠNG */
+  "Xếp hạng —":"Leaderboard —",
+  "★ Vinh Danh FKVIP ★":"★ FKVIP Hall of Fame ★",
+  "★ Vinh Danh FKONL ★":"★ FKONL Hall of Fame ★",
+  "— tên vinh danh sẽ hiển thị từ ngày 26 hàng tháng":"— honored names appear from the 26th of each month",
+
+  /* Lịch sử thao tác */
+  "LỊCH SỬ THAO TÁC (GMT+7)":"AUDIT LOG (GMT+7)",
+  "300 thao tác gần nhất":"Last 300 actions",
+  "Thời gian (GMT+7)":"Time (GMT+7)",
+  "Thao tác":"Action",
+  "Chi tiết":"Details",
+  "Chưa có thao tác nào được ghi nhận.":"No actions recorded yet.",
+  "Lỗi tải lịch sử:":"Failed to load the audit log:",
+  "(Bạn đã chạy file supabase_update2.sql chưa?)":"(Have you run supabase_update2.sql yet?)",
+
+  /* ===== GIAI ĐOẠN 2 ===== */
+  /* TAB QUẢN TRỊ — tài khoản */
+  "QUẢN TRỊ TÀI KHOẢN":"ACCOUNT ADMINISTRATION",
+  "Tạo tài khoản mới":"Create new account",
+  "Tên đăng nhập (3-20 ký tự)":"Username (3-20 characters)",
+  "Mật khẩu (tối thiểu 6 ký tự)":"Password (min. 6 characters)",
+  "Cấp bậc: Nhân viên":"Role: Staff",
+  "Cấp bậc: Tổ Trưởng":"Role: Team Leader",
+  "Quyền xem":"View permissions",
+  "Tạo tài khoản":"Create account",
+  "Danh sách tài khoản":"Account list",
+  "— tích/bỏ tích là lưu ngay":"— ticking / unticking saves immediately",
+  "Tài khoản":"Account",
+  "Cấp bậc":"Role",
+  "Tổ Trưởng":"Team Leader",
+  "Khóa TK":"Lock",
+  "Xóa TK":"Delete",
+  "Mở khóa":"Unlock",
+  "Khóa":"Lock",
+  "Xóa":"Delete",
+  "ĐANG KHÓA":"LOCKED",
+  "(bạn)":"(you)",
+  "(nút Đổi MK trên góc phải)":"(use the Change PW button at top right)",
+  "Lỗi tải danh sách:":"Failed to load the list:",
+  "Lỗi lưu quyền:":"Failed to save permissions:",
+  "Lỗi lưu cấp bậc:":"Failed to save the role:",
+  "Nhập MẬT KHẨU MỚI cho tài khoản":"Enter a NEW PASSWORD for account",
+  "(tối thiểu 6 ký tự):":"(min. 6 characters):",
+  "Tên đăng nhập 3-20 ký tự, chỉ chữ/số/gạch dưới":"Username must be 3-20 characters: letters, digits or underscore",
+  "Đang tạo tài khoản...":"Creating account...",
+  "Tên đăng nhập đã tồn tại":"That username already exists",
+  "Lỗi tạo tài khoản:":"Failed to create the account:",
+  "Cấp quyền ADMIN cho tài khoản này? Admin có toàn quyền, kể cả tạo tài khoản.":"Grant ADMIN to this account? Admins have full rights, including creating accounts.",
+  "Gỡ quyền ADMIN của tài khoản này?":"Remove ADMIN from this account?",
+  "Để xác nhận, gõ đúng tên tài khoản:":"To confirm, type the exact account name:",
+  "Tên không khớp — đã hủy xóa.":"Name does not match — deletion cancelled.",
+  "Lỗi xóa tài khoản:":"Failed to delete the account:",
+  "Phiên hết hạn, đăng nhập lại":"Session expired, please log in again",
+  "không xác định":"unknown",
+  "Lỗi:":"Error:",
+  "Lỗi":"Error",
+  "Báo Cáo Đại Lý":"Affiliate Report",
+  "(chỉ xem) |":"(view only) |",
+  "(xem + chỉnh sửa)":"(view + edit)",
+  "(giá trị true cũ = chỉ xem)":"(legacy value true = view only)",
+  /* Quản Trị — 2FA */
+  "Lỗi tạo mã 2FA (kiểm tra MFA đã bật trong Supabase chưa)":"Failed to create the 2FA code (check that MFA is enabled in Supabase)",
+  "Nhập đúng mã 6 số":"Enter the correct 6-digit code",
+  "Mã không đúng — thử lại":"Wrong code — try again",
+  "Đã BẬT 2FA thành công!":"2FA enabled successfully!",
+  "Từ lần đăng nhập sau, bạn sẽ cần nhập mã 6 số từ Google Authenticator.":"From your next login you will need the 6-digit code from Google Authenticator.",
+  "Lỗi xác nhận":"Confirmation error",
+  "Tắt 2FA?":"Disable 2FA?",
+  "Đăng nhập sẽ không cần mã 6 số nữa.":"Logging in will no longer require the 6-digit code.",
+  "Đã tắt 2FA.":"2FA disabled.",
+  "Lỗi tắt 2FA (cần đã đăng nhập bằng 2FA phiên này)":"Failed to disable 2FA (this session must have logged in with 2FA)",
+  "Đã copy mã bí mật 2FA":"2FA secret copied",
+  "Thiết bị Google Authenticator cũ sẽ bị gỡ. Lần đăng nhập kế tiếp, tài khoản này sẽ được yêu cầu quét MÃ QR MỚI để thiết lập lại.":"The old Google Authenticator device will be removed. On the next login this account must scan a NEW QR CODE to set it up again.",
+  "Lỗi reset 2FA:":"Failed to reset 2FA:",
+  "thiết bị. Người dùng sẽ thiết lập lại khi đăng nhập lần sau.":"device(s). The user will set it up again at their next login.",
+  /* Quản Trị — xóa dữ liệu tháng / ngày */
+  "Xóa dữ liệu theo tháng — NGUY HIỂM":"Delete data by month — DANGEROUS",
+  "-- Chọn tháng --":"-- Select month --",
+  "-- Chọn tháng trước --":"-- Select a month first --",
+  "-- Đang tải ngày --":"-- Loading days --",
+  "-- Tháng này chưa có dữ liệu ngày --":"-- No daily data this month --",
+  "-- Chọn ngày --":"-- Select day --",
+  "-- Lỗi tải ngày --":"-- Failed to load days --",
+  "Tải sao lưu JSON":"Download JSON backup",
+  "Xóa toàn bộ tháng này":"Delete this entire month",
+  "Hoặc xóa 1 ngày:":"Or delete a single day:",
+  "Xóa dữ liệu ngày này":"Delete this day's data",
+  "Xóa vĩnh viễn trên cloud: Duyệt Đơn · Khuyến Mãi · Phân Ca · Bất Thường · Báo cáo đại lý của tháng đã chọn. File Excel gốc trong Storage được GIỮ LẠI để khôi phục khi cần (upload lại là xong).":"Permanently deletes from the cloud: Withdrawal Approvals · Promotions · Shifts · Anomalies · Affiliate report for the selected month. The original Excel files in Storage are KEPT so you can restore by re-uploading.",
+  "Xóa 1 ngày: chỉ gỡ điểm/đơn của ĐÚNG ngày đó khỏi Duyệt Đơn & Khuyến Mãi (các ngày khác giữ nguyên) — dùng khi upload nhầm, xóa xong upload lại ngày đó ở chế độ \"Thêm ngày (cộng dồn)\".":"Delete one day: removes the score/orders of THAT day only from Withdrawal Approvals & Promotions (other days untouched) — use it after a wrong upload, then re-upload that day in \"Add day (cumulative)\" mode.",
+  "Chưa chọn tháng":"No month selected",
+  "Chưa chọn ngày cần xóa":"No day selected to delete",
+  "Chưa chọn tháng để sao lưu":"No month selected for backup",
+  "Đang xóa...":"Deleting...",
+  "Đang tải dữ liệu tháng":"Loading data for month",
+  "Lỗi tải sao lưu:":"Failed to download the backup:",
+  "Lỗi xóa:":"Delete failed:",
+  "Lỗi xóa ngày:":"Failed to delete the day:",
+  "Các ngày khác của tháng GIỮ NGUYÊN.":"All other days of the month are KEPT.",
+  "Hành động KHÔNG THỂ hoàn tác!":"This action CANNOT be undone!",
+  "Gồm: Duyệt Đơn · Khuyến Mãi · Phân Ca · Bất Thường · Báo cáo đại lý":"Includes: Withdrawal Approvals · Promotions · Shifts · Anomalies · Affiliate report",
+  "Chuỗi xác nhận không khớp — đã hủy, không xóa gì.":"Confirmation text does not match — cancelled, nothing was deleted.",
+  /* Quản Trị — White IP + ID Telegram */
+  "White IP — chỉ IP trong danh sách mới đăng nhập được":"White IP — only listed IPs can log in",
+  "IP hiện tại của bạn:":"Your current IP:",
+  "đang kiểm tra...":"checking...",
+  "· Danh sách TRỐNG = White IP đang TẮT (ai cũng đăng nhập được) ·":"· EMPTY list = White IP is OFF (anyone can log in) ·",
+  "Hãy thêm IP của chính bạn TRƯỚC TIÊN để không tự khóa mình.":"Add your own IP FIRST so you don't lock yourself out.",
+  "VD: 37.157.216.185":"e.g. 37.157.216.185",
+  "Thêm IP":"Add IP",
+  "Danh sách trống — White IP đang TẮT":"List empty — White IP is OFF",
+  "IP không hợp lệ (định dạng: x.x.x.x)":"Invalid IP (format: x.x.x.x)",
+  "IP đã có trong danh sách":"That IP is already in the list",
+  "Lỗi lưu White IP:":"Failed to save White IP:",
+  "ID Telegram được xác nhận — chỉ ID trong danh sách mới bấm được nút Xác Nhận/Hủy":"Approved Telegram IDs — only listed IDs can press the Confirm/Cancel buttons",
+  "Lấy ID: cho người đó nhắn bot":"To get an ID, have the person message",
+  "trên Telegram để nhận ID dạng số · Danh sách TRỐNG =":"on Telegram to receive their numeric ID · EMPTY list =",
+  "TẮT kiểm tra (ai trong nhóm cũng bấm được)":"check DISABLED (anyone in the group can press)",
+  "ID số, VD: 123456789":"Numeric ID, e.g. 123456789",
+  "Tên gợi nhớ (tùy chọn)":"Label (optional)",
+  "Thêm ID":"Add ID",
+  "Danh sách trống — mọi thành viên trong nhóm đều bấm xác nhận được":"List empty — every member of the group can confirm",
+  "ID Telegram không hợp lệ (chỉ gồm chữ số, VD: 123456789)":"Invalid Telegram ID (digits only, e.g. 123456789)",
+  "ID này đã có trong danh sách":"That ID is already in the list",
+  "Lỗi lưu danh sách:":"Failed to save the list:",
+
+  /* Đăng nhập — thông báo trạng thái */
+  "IP KHÔNG ĐƯỢC PHÉP":"IP NOT ALLOWED",
+  "Thiết bị của bạn (IP:":"Your device (IP:",
+  "không nằm trong danh sách White IP.":"is not in the White IP list.",
+  "Liên hệ ADMIN để được thêm IP này.":"Contact an ADMIN to have this IP added.",
+  "Chưa cấu hình cloud (SB_URL/SB_KEY)":"Cloud not configured (SB_URL/SB_KEY)",
+  "Chưa cấu hình cloud":"Cloud not configured",
+  "Chưa đăng nhập":"Not logged in",
+  "Phiên đăng nhập đã hết hạn (12h) — vui lòng đăng nhập lại":"Session expired (12h) — please log in again",
+  "Phiên đăng nhập đã hết hạn (12 giờ) — hệ thống sẽ đăng xuất.":"Session expired (12 hours) — you will be logged out.",
+  "Nhập tên đăng nhập và mật khẩu":"Enter your username and password",
+  "Đang đăng nhập...":"Logging in...",
+  "Đang xác nhận...":"Confirming...",
+  "Đang xác minh...":"Verifying...",
+  "Tài khoản đã bị KHÓA (đăng nhập sai quá 5 lần hoặc bị khóa thủ công) — liên hệ ADMIN/Tổ Trưởng để mở khóa":"Account LOCKED (more than 5 failed logins, or locked manually) — contact an ADMIN/Team Leader to unlock",
+  "Sai tên đăng nhập hoặc mật khẩu":"Wrong username or password",
+  "Sai quá 5 lần — tài khoản đã bị KHÓA. Liên hệ ADMIN/Tổ Trưởng để mở khóa.":"More than 5 failed attempts — account LOCKED. Contact an ADMIN/Team Leader to unlock.",
+  "Lỗi kết nối, thử lại":"Connection error, please try again",
+  "Lỗi kết nối:":"Connection error:",
+  "Lỗi tạo 2FA:":"Failed to create 2FA:",
+  "Lỗi thiết lập 2FA":"2FA setup error",
+  "Lỗi xác nhận 2FA":"2FA confirmation error",
+  "Lỗi xác minh 2FA":"2FA verification error",
+  "Không tìm thấy thiết bị 2FA":"No 2FA device found",
+  "Mã không đúng hoặc đã hết hạn — thử lại":"Wrong or expired code — try again",
+  "Google Authenticator (bắt buộc lúc đăng nhập)":"Google Authenticator (required at login)",
+  "Tài khoản chưa có hồ sơ quyền — liên hệ admin":"This account has no permission profile — contact an admin",
+  "Lỗi tải hồ sơ người dùng":"Failed to load the user profile",
+  "Đã đồng bộ điểm bất thường mới từ Telegram ✓":"New anomaly scores synced from Telegram ✓",
+
+  /* Cảnh báo khi upload (từng dòng của alert/confirm) */
+  "Bạn có chắc muốn tiếp tục?":"Are you sure you want to continue?",
+  "Đồng ý?":"Proceed?",
+  "NGUY HIỂM — SẼ MẤT DỮ LIỆU!":"DANGER — DATA WILL BE LOST!",
+  "(Có thể bạn quên chọn đủ file từ đầu tháng?)":"(Did you forget to include the files from the start of the month?)",
+  "Bạn có CHẮC CHẮN muốn thay thế không?":"Are you SURE you want to replace it?",
+  "CẢNH BÁO TRÙNG DỮ LIỆU":"DUPLICATE DATA WARNING",
+  "Bạn có muốn THAY THẾ dữ liệu cũ bằng dữ liệu vừa upload không?":"Do you want to REPLACE the old data with what you just uploaded?",
+  "Bạn có muốn THAY THẾ không?":"Do you want to REPLACE it?",
+  "— OK: ghi đè dữ liệu cũ":"— OK: overwrite the old data",
+  "— Cancel: giữ nguyên dữ liệu cũ trên cloud":"— Cancel: keep the old data in the cloud",
+  "— OK: thay lại các ngày trùng":"— OK: replace the overlapping days",
+  "— Cancel: hủy, không lưu gì":"— Cancel: abort, save nothing",
+  "— OK: vẫn lưu (số đơn trên sẽ MẤT)":"— OK: save anyway (those orders will be LOST)",
+  "— Cancel: hủy để sửa danh sách nhân viên rồi upload lại":"— Cancel: abort, fix the staff list, then upload again",
+  "❌ Không nhận diện được dữ liệu nào trong file.":"❌ No recognizable data in the file.",
+  "Vui lòng kiểm tra lại:":"Please check:",
+  "— File có đúng định dạng/cột như mẫu không?":"— Does the file match the expected format/columns?",
+  "— Bạn có đang chọn đúng loại tải lên (Duyệt Đơn / Khuyến Mãi) không?":"— Did you pick the right upload type (Withdrawal Approvals / Promotions)?",
+  "Dữ liệu hiện có KHÔNG bị thay đổi.":"Your existing data was NOT changed.",
+  "Nguyên nhân thường gặp: nhân viên đang bị ẩn (nghỉ), chưa được thêm vào danh sách tháng này, hoặc \"Mã Excel\" trong 👥 Quản lý nhân viên không trùng với ghi chú.":"Common causes: the staff member is hidden (inactive), was never added to this month's list, or their \"Excel code\" in 👥 Manage staff does not match the note.",
+  "Bạn chỉ có quyền XEM tab Hiệu Suất KO.":"You have VIEW-only permission on the KO Performance tab.",
+
+  /* ===== T2 — BÁO CÁO ĐẠI LÝ (BC) ===== */
+  "Báo Cáo Tổng Hợp Đại Lý":"Affiliate Summary Report",
+  "Điều kiện: Nạp ≥ 1,000 · Cược ≥ 3,000 · Đại lý ≥ 3 KH hợp lệ":"Criteria: Deposits ≥ 1,000 · Valid bets ≥ 3,000 · Affiliate needs ≥ 3 qualified players",
+  "Xuất dữ liệu thành viên":"Player data export",
+  "Ngân hàng · STK · IP · Link đăng ký":"Bank · Account no. · IP · Sign-up link",
+  "Báo cáo thành viên":"Player report",
+  "Nạp · Rút · Cược hợp lệ · Cấp bậc":"Deposits · Withdrawals · Valid bets · Tier",
+  "Báo cáo nhà cung cấp":"Provider report",
+  "Sảnh trò chơi · Cược per game":"Game lobby · Bets per game",
+  "Tính toán":"Calculate",
+  "Xóa Dữ Liệu":"Clear data",
+  "TỔNG HỢP":"SUMMARY",
+  "DANH SÁCH ĐẠI LÝ":"AFFILIATE LIST",
+  "KIỂM TRA ĐẠI LÝ":"AFFILIATE CHECK",
+  "NGHI NGỜ":"FLAGGED",
+  "Tổng Hợp Toàn Bộ":"Full Summary",
+  "Chỉ tính thành viên đủ điều kiện (nạp ≥ 1,000 & cược ≥ 3,000) · Đại lý cần ≥ 3 KH hợp lệ":"Counts qualified players only (deposits ≥ 1,000 & valid bets ≥ 3,000) · An affiliate needs ≥ 3 qualified players",
+  "Tìm ID, Họ tên, Đại lý, Ngân hàng...":"Search ID, full name, affiliate, bank...",
+  "Tìm tên đại lý...":"Search affiliate name...",
+  "Danh Sách Đại Lý Đủ Điều Kiện":"Qualified Affiliates",
+  "Đại lý có ≥ 3 KH hợp lệ":"Affiliates with ≥ 3 qualified players",
+  "Kiểm Tra Theo Đại Lý":"Check by Affiliate",
+  "Bấm vào Ô trong bảng để tô/bỏ tô điểm nghi ngờ (cam · riêng Âm/Dương đỏ) — file Excel gửi Telegram sẽ tô đúng các ô này · F5 là mất đánh dấu":"Click a cell in the table to highlight/unhighlight a suspicious value (orange · red for Net win/loss) — the Excel file sent to Telegram highlights exactly these cells · refreshing (F5) clears the marks",
+  "-- Chọn đại lý --":"-- Select affiliate --",
+  "Chọn đại lý để xem chi tiết":"Select an affiliate to see the details",
+  "Báo cáo đại lý bất thường":"Report affiliate anomaly",
+  "Báo cáo cược bất thường":"Report irregular betting",
+  "BÁO CÁO ĐẠI LÝ BẤT THƯỜNG":"AFFILIATE ANOMALY REPORT",
+  "BÁO CÁO CƯỢC BẤT THƯỜNG":"IRREGULAR BETTING REPORT",
+  "Nhân viên phụ trách (FK):":"Staff in charge (FK):",
+  "Nội dung kiểm tra:":"What was checked:",
+  "Nội dung báo cáo:":"Report content:",
+  "Nhập nội dung đã kiểm tra, ghi chú bất thường...":"Describe what you checked and any anomalies...",
+  "Nhập nội dung cược bất thường, mô tả chi tiết...":"Describe the irregular betting in detail...",
+  "Đính kèm file / hình ảnh (tuỳ chọn):":"Attach a file / image (optional):",
+  "Kéo thả file / hình ảnh vào đây":"Drag & drop a file / image here",
+  "hoặc dán ảnh bằng":"or paste an image with",
+  "· hoặc bấm để chọn file":"· or click to choose a file",
+  "Bạn muốn THAY LẠI các ngày này bằng dữ liệu mới không? (các ngày khác giữ nguyên, KHÔNG cộng đôi)":"Do you want to REPLACE those days with the new data? (other days stay as they are, nothing is double-counted)",
+  "Ghi chú của các đơn này có mã FK nhưng KHÔNG khớp nhân viên nào trong danh sách tháng đang mở:":"The notes on these orders carry an FK code that matches NO staff member in the current month's list:",
+  "File này chứa nhiều ngày:":"This file contains several days:",
+  "Sau khi xóa có thể upload lại ngày này ở chế độ \"Thêm ngày (cộng dồn)\".":"After deleting you can re-upload that day in \"Add day (cumulative)\" mode.",
+  "Xác nhận lần cuối — gõ chính xác:":"Final confirmation — type exactly:",
+  "• Tài khoản này sẽ KHÔNG đăng nhập được nữa.":"• This account will NO LONGER be able to log in.",
+  "• Hành động KHÔNG HOÀN TÁC được.":"• This action CANNOT be undone.",
+  "Lưu ý: điểm số / lịch sử đã ghi theo mã nhân viên (roster) VẪN GIỮ — đây chỉ xóa tài khoản đăng nhập.":"Note: scores / history recorded under the staff code (roster) are KEPT — this only deletes the login account.",
+  "Gửi Báo Cáo":"Send report",
+  "✕ Hủy bỏ":"✕ Cancel",
+  "Vui lòng chọn đại lý!":"Please select an affiliate!",
+  "Vui lòng chọn đại lý trước!":"Please select an affiliate first!",
+  "Vui lòng chọn nhân viên phụ trách (FK)!":"Please select the staff member in charge (FK)!",
+  "Bạn chỉ có quyền XEM, không được gửi báo cáo.":"You have VIEW-only permission and cannot send reports.",
+  "Bạn chỉ có quyền XEM báo cáo đại lý.":"You have VIEW-only permission on the affiliate report.",
+  "Bạn chỉ có quyền XEM báo cáo đại lý, không được tính toán dữ liệu mới.":"You have VIEW-only permission on the affiliate report and cannot compute new data.",
+  "Đang tạo file Excel...":"Generating the Excel file...",
+  "Đang gửi Telegram...":"Sending to Telegram...",
+  "Gửi thành công!":"Sent successfully!",
+  "Đang gửi...":"Sending...",
+  "Đã gửi thành công!":"Sent successfully!",
+  "Đang đọc file...":"Reading the file...",
+  "Đang tải danh sách...":"Loading the list...",
+  "Chưa có báo cáo nào trên cloud":"No report in the cloud yet",
+  "Lỗi tải danh sách cloud":"Failed to load the cloud list",
+  "từ cloud...":"from the cloud...",
+  "⚠ Chỉ chấp nhận file .xlsx":"⚠ Only .xlsx files are accepted",
+  "❌ Chưa có file nào!":"❌ No file selected!",
+  "⚠ File rỗng":"⚠ Empty file",
+  "❌ Lỗi:":"❌ Error:",
+  "Đã có:":"Already added:",
+  "Đã thêm:":"Added:",
+  "Đã chọn":"Selected",
+  "file (thêm tiếp được)":"file(s) (you can add more)",
+  "↺ Đã xóa. Upload file mới để tính toán.":"↺ Cleared. Upload new files to calculate.",
+  "ĐÃ CÓ báo cáo đại lý trên cloud.":"ALREADY has an affiliate report in the cloud.",
+  "Bạn có muốn THAY THẾ báo cáo cũ bằng kết quả vừa tính không?":"Do you want to REPLACE the old report with the result you just calculated?",
+  "☁ Đang lưu lên cloud...":"☁ Saving to the cloud...",
+  "☁ Lỗi lưu cloud:":"☁ Cloud save failed:",
+  "☁ Lỗi tải cloud:":"☁ Cloud load failed:",
+  /* BC — cột bảng & thẻ tổng hợp */
+  "ĐL":"AFF",
+  "Tên tài khoản":"Account name",
+  "Họ tên đăng kí":"Registered full name",
+  "Khách":"Player",
+  "Mới":"New",
+  "Cũ":"Existing",
+  "KH mới":"New players",
+  "KH cũ":"Existing players",
+  "KH hợp lệ":"Qualified players",
+  "KH hợp lệ:":"Qualified players:",
+  "Đạt":"Met",
+  "Chưa":"Not met",
+  "Chưa đạt":"Not met",
+  "Tiền nạp":"Deposit amount",
+  "Lần nạp":"Deposits",
+  "Tiền rút":"Withdrawal amount",
+  "Lần rút":"Withdrawals",
+  "Âm/Dương":"Net win/loss",
+  "Cược hợp lệ":"Valid bets",
+  "Cược HL":"Valid bets",
+  "Cược sảnh":"Lobby bets",
+  "Ngân hàng":"Bank",
+  "Chi nhánh":"Branch",
+  "Thiết bị":"Device",
+  "Điện thoại":"Mobile",
+  "Máy Tính":"Desktop",
+  "Máy tính":"Desktop",
+  "ĐT":"Phone",
+  "LINK đăng ký":"Sign-up LINK",
+  "LINK đăng nhập":"Login LINK",
+  "IP đăng ký":"Sign-up IP",
+  "IP đăng nhập":"Login IP",
+  "Sảnh":"Lobby",
+  "Tên đại lý":"Affiliate name",
+  "Tổng TV":"Total players",
+  "Tổng nạp":"Total deposits",
+  "Tổng nạp:":"Total deposits:",
+  "Tổng rút":"Total withdrawals",
+  "Tổng rút:":"Total withdrawals:",
+  "Tổng tiền nạp":"Total deposit amount",
+  "Tổng tiền rút":"Total withdrawal amount",
+  "Tổng cược HL":"Total valid bets",
+  "Đại lý đủ điều kiện":"Qualified affiliates",
+  "Tổng KH hợp lệ":"Total qualified players",
+  "đại lý":"affiliates",
+  "Nghi ngờ":"Flag",
+  /* BC — Nghi Ngờ */
+  "Đại Lý Nghi Ngờ":"Flagged Affiliates",
+  "Tích ô \"Nghi ngờ\" ở cột Đại Lý (tab Tổng Hợp) để đưa vào đây · bấm vào Ô trong bảng Chi tiết KH để tô/bỏ tô điểm nghi ngờ (lưu cloud) · lưu trên cloud":"Tick \"Flag\" in the Affiliate column (Summary tab) to add one here · click a cell in the player detail table to highlight/unhighlight a suspicious value (saved to the cloud) · stored in the cloud",
+  "➕ Phân cách giai đoạn":"➕ Add phase divider",
+  "Báo Cáo Đại Lý Bất Thường ⇢ Google Sheet":"Affiliate Anomaly Report ⇢ Google Sheet",
+  "Cột hiển thị":"Visible columns",
+  "Giai Đoạn 1":"Phase 1",
+  "Giai Đoạn Cuối":"Final Phase",
+  "Giai Đoạn":"Phase",
+  "— PHÂN CÁCH GIAI ĐOẠN —":"— PHASE DIVIDER —",
+  "✕ Xóa phân cách":"✕ Remove divider",
+  "Bỏ nghi ngờ":"Unflag",
+  "Bỏ nghi ngờ đại lý":"Unflag affiliate",
+  "Đánh dấu nghi ngờ đại lý":"Flag affiliate",
+  "Kiểm tra lại":"Re-check",
+  "Không có dữ liệu khách":"No player data",
+  "Chưa có đại lý nào bị đánh dấu nghi ngờ.":"No affiliate has been flagged yet.",
+  "Giai đoạn này chưa có đại lý.":"This phase has no affiliates yet.",
+  "Chỉ ADMIN / Tổ Trưởng xem được mục này.":"Only ADMIN / Team Leader can see this section.",
+  "Chỉ tài khoản ADMIN mới dùng được chức năng Nghi Ngờ.":"Only ADMIN accounts can use the flagging feature.",
+  "Chỉ tài khoản ADMIN mới chèn được phân cách giai đoạn.":"Only ADMIN accounts can insert a phase divider.",
+  "Chỉ tài khoản ADMIN mới xóa được phân cách giai đoạn.":"Only ADMIN accounts can remove a phase divider.",
+  "Chưa có đại lý nghi ngờ nào — hãy đánh dấu đại lý trước khi phân cách giai đoạn.":"No flagged affiliates yet — flag one before adding a phase divider.",
+  "Phần cuối danh sách đã là một phân cách — hãy thêm đại lý cho giai đoạn mới trước khi phân cách tiếp.":"The list already ends with a divider — add affiliates to the new phase before adding another.",
+  "Bạn chỉ có quyền XEM, không tô được điểm nghi ngờ.":"You have VIEW-only permission and cannot highlight cells.",
+  "Lỗi lưu nghi ngờ:":"Failed to save the flag:",
+  "Lỗi lưu phân cách:":"Failed to save the divider:",
+  "Lỗi xóa phân cách:":"Failed to remove the divider:",
+  "Lỗi lưu tô nghi ngờ:":"Failed to save the highlight:",
+  "(không có số liệu tổng — đánh dấu lúc chưa tính toán)":"(no totals — flagged before the data was calculated)",
+  /* BC — gửi Google Sheet */
+  "Chức năng này chỉ dành cho Tổ Trưởng trở lên.":"This feature is for Team Leader and above only.",
+  "Chưa có đại lý nghi ngờ nào để gửi.":"No flagged affiliates to send.",
+  "Chọn giai đoạn để gửi:":"Choose the phase to send:",
+  "Tất cả giai đoạn":"All phases",
+  "Đang gửi Google Sheet...":"Sending to Google Sheet...",
+  "Lỗi kết nối Google Sheet:":"Google Sheet connection error:",
+  "Gửi không thành công":"Send failed",
+  "— kiểm tra lại deploy Apps Script (Web app · Anyone).":"— check the Apps Script deployment (Web app · Anyone).",
+  "Chưa cấu hình Google Sheet.":"Google Sheet is not configured.",
+  "Cần deploy file google_sheet_baocao.gs (Apps Script) rồi dán URL Web App vào BC.GS_WEBAPP_URL trong dashboard_v2.html.":"Deploy google_sheet_baocao.gs (Apps Script), then paste the Web App URL into BC.GS_WEBAPP_URL in dashboard_v2.html."
+  },
+  /* ---- Chuỗi có số/biến: khớp bằng regex, giữ nguyên phần $1/$2 ---- */
+  RX:[
+    /* ⚠ THỨ TỰ QUAN TRỌNG: luật CỤ THỂ phải đứng trước luật tổng quát (vd ^Tháng (.+)$) */
+    /* Quản Trị: xóa tháng/ngày, tài khoản, 2FA, Telegram ID */
+    [/^XÓA VĨNH VIỄN toàn bộ dữ liệu tháng (.+) trên cloud\?$/,"PERMANENTLY DELETE all data for month $1 in the cloud?"],
+    [/^XÓA dữ liệu NGÀY (.+) \(Duyệt Đơn \+ Khuyến Mãi\) trên cloud\?$/,"DELETE the data for DAY $1 (Withdrawal Approvals + Promotions) in the cloud?"],
+    [/^Đã xóa sạch dữ liệu tháng (.+) trên cloud ✓ \(file Excel gốc vẫn còn trong Storage\)$/,"All data for month $1 deleted from the cloud ✓ (the original Excel files remain in Storage)"],
+    [/^Đã xóa dữ liệu ngày (.+) \((.+)\) ✓ — upload lại bằng chế độ "Thêm ngày \(cộng dồn\)"$/,"Data for day $1 deleted ($2) ✓ — re-upload using \"Add day (cumulative)\" mode"],
+    [/^Đang xóa ngày (\d+)\.\.\.$/,"Deleting day $1..."],
+    [/^Ngày (\d+) không có dữ liệu nào để xóa\.$/,"Day $1 has no data to delete."],
+    [/^Đã tải file sao lưu tháng (.+) ✓$/,"Backup for month $1 downloaded ✓"],
+    [/^Đang tải dữ liệu tháng (.+)\.\.\.$/,"Loading data for month $1..."],
+    [/^RESET 2FA cho tài khoản (.+)\?$/,"Reset 2FA for account $1?"],
+    [/^Đã reset 2FA cho (.+) ✓$/,"2FA reset for $1 ✓"],
+    [/^Đã gỡ (\d+) thiết bị\. Người dùng sẽ thiết lập lại khi đăng nhập lần sau\.$/,"$1 device(s) removed. The user will set it up again at their next login."],
+    [/^XÓA HẲN tài khoản (.+)\?$/,"PERMANENTLY DELETE account $1?"],
+    [/^Đã xóa tài khoản (.+) ✓$/,"Account $1 deleted ✓"],
+    [/^Đã tạo tài khoản (.+) ✓ \(mật khẩu bạn vừa đặt, hãy gửi cho nhân viên\)$/,"Account $1 created ✓ (use the password you just set and pass it to the staff member)"],
+    [/^Xóa ID (.+) khỏi danh sách được xác nhận\?$/,"Remove ID $1 from the approved list?"],
+    [/^sai (\d+) lần$/,"$1 failed attempts"],
+    [/^Sai tên đăng nhập hoặc mật khẩu — còn (\d+) lần thử trước khi bị khóa$/,"Wrong username or password — $1 attempt(s) left before lockout"],
+    [/^Ngày (\d+) — (.+)$/,"Day $1 — $2"],
+    /* Upload: cảnh báo trùng ngày / mất dữ liệu / đơn không tính cho ai */
+    [/^Tháng (.+) ĐÃ CÓ dữ liệu (.+) trên cloud \((\d+) ngày\)\. Bản mới có (\d+) ngày\.$/,"Month $1 ALREADY has $2 data in the cloud ($3 days). The new upload has $4 days."],
+    [/^Tháng (.+) ĐÃ CÓ dữ liệu (.+) trên cloud\.$/,"Month $1 ALREADY has $2 data in the cloud."],
+    [/^Tháng (.+) ĐÃ CÓ báo cáo đại lý trên cloud\.$/,"Month $1 ALREADY has an affiliate report in the cloud."],
+    [/^Bản upload mới chỉ có (\d+) ngày dữ liệu\.$/,"The new upload only has $1 day(s) of data."],
+    [/^Bản trên cloud của tháng (.+) đang có (\d+) ngày\.$/,"The cloud copy of month $1 currently has $2 day(s)."],
+    [/^Thay thế sẽ MẤT (\d+) ngày dữ liệu!$/,"Replacing it will LOSE $1 day(s) of data!"],
+    [/^Các ngày \[(.+)\] ĐÃ CÓ dữ liệu trên cloud\.$/,"Days [$1] ALREADY have data in the cloud."],
+    [/^Dữ liệu vừa upload thuộc THÁNG CŨ \((.+)\), không phải tháng hiện tại \((.+)\)\.$/,"The upload belongs to an EARLIER MONTH ($1), not the current month ($2)."],
+    [/^Lưu vào tháng (.+) trên cloud\?$/,"Save it to month $1 in the cloud?"],
+    [/^Dữ liệu (.+) tháng (.+) được tạo TRƯỚC bản cập nhật \(cách làm tròn cũ\) nên chưa cộng dồn được\.$/,"The $1 data for month $2 was created BEFORE the update (old rounding) so it cannot be accumulated."],
+    [/^⚠ CÓ (.+) ĐƠN KHÔNG TÍNH CHO AI$/,"⚠ $1 ORDERS ARE CREDITED TO NOBODY"],
+    [/^Tổng (\d+) đơn lẻ sẽ bị loại để không lẫn sang ngày khác\.$/,"$1 straggler order(s) will be dropped so they don't bleed into another day."],
+    [/^• GIỮ: (.+)$/,"• KEEP: $1"],
+    [/^• BỎ \(lẻ ở ranh giới nửa đêm\): (.+)$/,"• DROP (stragglers at the midnight boundary): $1"],
+    [/^Lỗi đọc file: (.+)$/,"File read error: $1"],
+    /* Báo Cáo Đại Lý (BC) */
+    [/^✅ \[Game\] (\d+) dòng$/,"✅ [Game] $1 rows"],
+    [/^✅ \[Báo cáo\] (\d+) dòng$/,"✅ [Report] $1 rows"],
+    [/^📅 Tháng hiện tại: (.+)$/,"📅 Current month: $1"],
+    [/^✅ Đại lý đủ điều kiện: (\d+)$/,"✅ Qualified affiliates: $1"],
+    [/^📊 Tổng KH hợp lệ: (.+)$/,"📊 Total qualified players: $1"],
+    [/^(\d[\d.,]*) kết quả$/,"$1 results"],
+    [/^(\d[\d.,]*) đại lý$/,"$1 affiliates"],
+    [/^\((\d+) đại lý\)$/,"($1 affiliates)"],
+    [/^(.+) \((\d+) KH hợp lệ\)$/,"$1 ($2 qualified players)"],
+    [/^Đại lý: (.+)$/,"Affiliate: $1"],
+    [/^Chi tiết KH \((\d+)\)$/,"Player details ($1)"],
+    [/^KH mới \((.*)\)$/,"New players ($1)"],
+    [/^Giai Đoạn (\d+)$/,"Phase $1"],
+    [/^Đánh dấu: (.+) · bởi (.+)$/,"Flagged: $1 · by $2"],
+    [/^·\s*KH hợp lệ:\s*(\d+)\s*·\s*Tổng thành viên:\s*(\d+)$/,"· Qualified players: $1 · Total players: $2"],
+    [/^☁ Đã lưu cloud: báo cáo \+ (\d+) file gốc ✓$/,"☁ Saved to cloud: report + $1 source file(s) ✓"],
+    [/^☁ Đã tải tháng (.+) từ cloud ✓$/,"☁ Month $1 loaded from the cloud ✓"],
+    [/^☁ Không có dữ liệu tháng (.+)$/,"☁ No data for month $1"],
+    [/^☁ Không lưu — giữ nguyên báo cáo cũ tháng (.+) trên cloud\.$/,"☁ Not saved — the previous report for month $1 stays in the cloud."],
+    [/^Đang tải tháng (.+) từ cloud\.\.\.$/,"Loading month $1 from the cloud..."],
+    [/^Đã dán (.+) dòng \((.+) đại lý · (.+)\) vào Google Sheet ✓$/,"Pasted $1 rows ($2 affiliates · $3) into the Google Sheet ✓"],
+    [/^Gửi (\d+) đại lý nghi ngờ \((.+), kèm màu tô\) sang Google Sheet\?$/,"Send $1 flagged affiliate(s) ($2, including highlights) to the Google Sheet?"],
+    [/^Đã chọn (\d+) file \(thêm tiếp được\)$/,"$1 file(s) selected (you can add more)"],
+    [/^Ngày (\d+) \/ Tháng (.+)$/,"Day $1 / Month $2"],
+    [/^Ngày (\d+)$/,"Day $1"],
+    [/^Tháng (.+)$/,"Month $1"],
+    [/^([\d.,]+) đơn\/h · ngày (\d+)$/,"$1 orders/h · day $2"],
+    [/^([\d.,]+) đơn\/h \(cả tháng — upload lại file để xem theo ngày\)$/,"$1 orders/h (whole month — re-upload the file to view by day)"],
+    [/^([\d.,]+) đơn\/h$/,"$1 orders/h"],
+    [/^([\d.,]+) điểm · ([\d.,]+) đơn$/,"$1 pts · $2 orders"],
+    [/^([\d.,]+) đơn TB$/,"$1 orders avg"],
+    [/^([\d.,]+) đơn$/,"$1 orders"],
+    [/^([\d.,]+) điểm$/,"$1 pts"],
+    [/^([\d.,]+) lượt$/,"$1 cases"],
+    [/^(\d+) người$/,"$1 people"],
+    [/^(\d+) FK \((\d+) tổng\)$/,"$1 staff ($2 total)"],
+    [/^(\d[\d.,]*) \/ ([\d.,]+) đơn$/,"$1 / $2 orders"],
+    [/^tổng (.+) dòng · (.+) có note FK$/,"total $1 rows · $2 with FK note"],
+    [/^✔ (.+) dòng · (.+) đơn có note FK · (.+) đơn rút lần đầu\.$/,"✔ $1 rows · $2 orders with FK note · $3 first-time withdrawals."],
+    [/^(\d+)% tổng đơn FK$/,"$1% of staff orders"],
+    [/^· (.+) đơn · (.+) lần đầu$/,"· $1 orders · $2 first-time"],
+    [/^(.+) lần đầu$/,"$1 first-time"],
+    [/^(\d+) đơn vượt$/,"$1 over limit"],
+    [/^Tất cả đơn \((.+)\) — kèm ID đăng nhập & cấp độ$/,"All orders ($1) — with login ID & tier"],
+    [/^(.+) đơn >150k · (.+) đã xin ý kiến · (.+) CHƯA xin ý kiến$/,"$1 orders >150k · $2 signed off · $3 with NO sign-off"],
+    [/^(.+) đơn CHƯA xin ý kiến \(đỏ, xếp trên cùng\)$/,"$1 orders with NO sign-off (red, listed first)"],
+    [/^— khớp Số thứ tự đơn với mã trong text tin nhắn\.(.*)$/,"— matches order numbers against the codes in the message text.$1"],
+    [/^Ngày (\d+) đã là ngày OFF sẵn$/,"Day $1 is already an OFF day"],
+    [/^(\d+(?:\.\d+)?) ngày$/,"$1 days"],
+    [/^Đã tự động phân công tháng (.+)$/,"Auto-assigned duties for month $1"],
+    [/^Đã xóa toàn bộ phân công tháng (.+)$/,"Cleared all assignments for month $1"]
+  ]
+};
+/* Dịch 1 chuỗi (giữ nguyên khoảng trắng 2 đầu). Trả về chính nó nếu chưa có trong từ điển. */
+function trs(s){
+  if(!I18N.on()||!s||typeof s!=="string")return s;
+  const t=s.trim();if(!t)return s;
+  let v=I18N.EN[t];
+  if(v===undefined){for(const r of I18N.RX){if(r[0].test(t)){v=t.replace(r[0],r[1]);break;}}}
+  if(v===undefined||v===t)return s;
+  return s.slice(0,s.length-s.trimStart().length)+v+s.slice(s.trimEnd().length);
+}
+/* Chiều ngược EN -> VI: dùng khi code cũ lưu lại chữ ĐÃ DỊCH rồi ghi trả vào DOM
+   (vd bc.js lưu nhãn nút trước khi gửi Google Sheet). Không có nó thì ô đó kẹt tiếng Anh khi bấm về VI. */
+function i18nRev(s){
+  if(!s||typeof s!=="string")return s;
+  if(!I18N._rev){I18N._rev={};for(const k in I18N.EN){const v=I18N.EN[k];if(v&&I18N._rev[v]===undefined)I18N._rev[v]=k;}}
+  const t=s.trim();if(!t)return s;
+  const v=I18N._rev[t];
+  if(v===undefined||v===t)return s;
+  return s.slice(0,s.length-s.trimStart().length)+v+s.slice(s.trimEnd().length);
+}
+/* Bỏ qua vùng không được dịch: <script>/<style>/<textarea> và [data-noi18n].
+   Dùng closest() (native, 1 lần/element) thay vì tự lặp lên tổ tiên cho TỪNG text node
+   -> quét bảng lớn (Tổng Hợp đại lý vài nghìn dòng) nhanh hơn hẳn. */
+function i18nSkip(el){
+  const tg=el.nodeName;
+  if(tg==="SCRIPT"||tg==="STYLE"||tg==="TEXTAREA")return true;
+  return !!(el.closest&&el.closest("script,style,textarea,[data-noi18n]"));
+}
+function i18nNode(n){
+  if(!n.parentElement||i18nSkip(n.parentElement))return;
+  if(n.__vi===undefined)n.__vi=n.nodeValue;
+  const out=I18N.on()?trs(n.__vi):i18nRev(n.__vi);
+  if(n.nodeValue!==out){I18N.busy++;n.nodeValue=out;I18N.busy--;}
+  n.__out=n.nodeValue; // dấu vết bản do i18n ghi ra -> observer phân biệt được với chữ mới của app
+}
+// Thuộc tính: chỉ bỏ qua vùng [data-noi18n] — placeholder của <textarea> VẪN dịch (chỉ nội dung người dùng gõ là không đụng tới)
+function i18nEl(el){
+  if(!el.getAttribute||(el.closest&&el.closest("[data-noi18n]")))return;
+  ["placeholder","title","alt"].forEach(a=>{
+    if(!el.hasAttribute(a))return;
+    const k="__vi_"+a;
+    if(el[k]===undefined)el[k]=el.getAttribute(a);
+    const out=I18N.on()?trs(el[k]):el[k];
+    if(el.getAttribute(a)!==out){I18N.busy++;el.setAttribute(a,out);I18N.busy--;}
+  });
+}
+function i18nWalk(root){
+  if(!root)return;
+  if(root.nodeType===3){i18nNode(root);return;}
+  if(root.nodeType!==1&&root.nodeType!==9&&root.nodeType!==11)return;
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>(/\S/.test(n.nodeValue)?1:2)});
+  const list=[];while(w.nextNode())list.push(w.currentNode);
+  list.forEach(i18nNode);
+  if(root.nodeType===1)i18nEl(root);
+  (root.querySelectorAll?root.querySelectorAll("[placeholder],[title],[alt]"):[]).forEach(i18nEl);
+}
+/* Nút VI/EN ở header: nhãn = ngôn ngữ SẼ chuyển sang */
+function i18nSyncBtn(){
+  ["btnLang","btnLang2"].forEach(id=>{
+    const b=document.getElementById(id);
+    if(b){b.textContent=I18N.on()?"VI":"EN";b.title=I18N.on()?"Chuyển về Tiếng Việt":"Switch to English";}
+  });
+}
+function setLang(l){
+  I18N.lang=(l==="en")?"en":"vi";
+  try{localStorage.setItem("ui_lang",I18N.lang);}catch(e){}
+  document.documentElement.lang=I18N.lang;
+  document.title=I18N.on()?"Staff Performance Dashboard":"Dashboard Hiệu Suất Nhân Viên";
+  i18nWalk(document.body);
+  i18nSyncBtn();
+  // Vẽ lại phần sinh bằng JS (chart/canvas không nằm trong DOM text) — bọc try để không chặn việc đổi ngôn ngữ
+  try{if(typeof rAll==="function"&&typeof D!=="undefined"&&D)rAll();}catch(e){}
+  try{if(window.BC&&BC.rows&&BC.rows.length&&typeof BC.renderAll==="function")BC.renderAll();}catch(e){}
+}
+function i18nToggle(){setLang(I18N.on()?"vi":"en");}
+/* Nội dung render sau này (bảng, thẻ, modal) — dịch ngay khi được chèn vào DOM */
+function i18nObserve(){
+  new MutationObserver(ms=>{
+    if(I18N.busy||!I18N.on())return;
+    for(const m of ms){
+      // characterData: bỏ qua chính bản dịch mình vừa ghi; chữ MỚI của app thì quên bản gốc cũ rồi dịch lại
+      if(m.type==="characterData"){const n=m.target;if(n.__out===n.nodeValue)continue;n.__vi=undefined;i18nNode(n);continue;}
+      if(m.type==="attributes"){i18nEl(m.target);continue;}
+      m.addedNodes.forEach(n=>{if(n.nodeType===3||n.nodeType===1)i18nWalk(n);});
+    }
+  }).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:["placeholder","title","alt"]});
+}
+/* Nhãn biểu đồ nằm trong canvas -> dịch ở tầng config Chart.js */
+if(window.Chart&&Chart.register)Chart.register({id:"i18nLbl",beforeInit(c){
+  try{
+    const d=c.config&&c.config.data;if(!d)return;
+    (d.datasets||[]).forEach(x=>{if(typeof x.label==="string")x.label=trs(x.label);});
+    if(Array.isArray(d.labels))d.labels=d.labels.map(x=>typeof x==="string"?trs(x):x);
+    const ti=c.config.options&&c.config.options.plugins&&c.config.options.plugins.title;
+    if(ti&&typeof ti.text==="string")ti.text=trs(ti.text);
+  }catch(e){}
+}});
+/* alert/confirm/prompt: dịch theo TỪNG DÒNG (câu nào chưa có trong từ điển thì giữ tiếng Việt) */
+["alert","confirm","prompt"].forEach(fn=>{
+  const orig=window[fn];
+  window[fn]=function(msg){
+    if(I18N.on()&&typeof msg==="string")msg=msg.split("\n").map(trs).join("\n");
+    return orig.apply(window,[msg].concat([].slice.call(arguments,1)));
+  };
+});
+document.addEventListener("DOMContentLoaded",()=>{
+  i18nSyncBtn();
+  if(I18N.on())setLang("en");
+  i18nObserve();
+});
 // ===== EMBEDDED DATA (rỗng — dữ liệu thật tải từ cloud sau khi đăng nhập) =====
 const MD = (function(){
   const NM={fkjade:"JADE",fkcarbon:"CARBON",fkmember:"MEMBER",fkangel:"ANGEL",fkgeon:"GEON",fkdante:"DANTE",fkpiu:"PIU",fkchamy:"CHAMY",fkluby:"LUBY",fkaimee:"AIMEE",fkantony:"ANTONY",fktrucia:"TRUCIA",fkminty:"MINTY",fkbrenna:"BRENNA",fkseren:"SEREN"};
@@ -4901,6 +5894,7 @@ rAll();
     <div style="font-size:.65rem;color:var(--mu2);margin-top:2px">SANJI</div>
   </div>
   <div class="topbar-sub">Điều kiện: Nạp ≥ 1,000 · Cược ≥ 3,000 · Đại lý ≥ 3 KH hợp lệ</div>
+  <button type="button" class="upload-btn" id="btnLang2" data-noi18n onclick="i18nToggle()" title="Switch to English">EN</button>
 </div>
 
 <div class="upload-section">
@@ -5833,6 +6827,12 @@ const BC={
     document.querySelectorAll('.bc-bt-chip').forEach(c=>c.classList.toggle('sel',c.textContent===fk));
   },
 
+  // TÊN hiển thị -> key roster. BẮT BUỘC dùng khi gửi báo cáo: server cộng điểm thẳng vào mã này,
+  // nên nếu ghép 'fk'+tên thì đổi tên nhân viên là điểm rơi vào mã lạ, không ai hiển thị (vụ CHAMY→SOLIS 05/08/2026).
+  _fkKey(name){
+    return NAME2FK[String(name||'').toUpperCase()]||('fk'+String(name||'').toLowerCase().replace(/[^a-z0-9]/g,''));
+  },
+
   // Gửi báo cáo QUA EDGE FUNCTION — token bot nằm bí mật ở server, điểm cộng do server quyết định
   async callSendReport(mode,fk,content,agent,files){
     if(!SB.ready())throw new Error('Chưa cấu hình cloud');
@@ -5861,7 +6861,7 @@ const BC={
       const dd=d.getDate().toString().padStart(2,'0'),mm=(d.getMonth()+1).toString().padStart(2,'0');
       const file=new File([blob],`BaoCao_${agentName}_${BC._selFk}_${dd}${mm}.xls`,{type:'application/vnd.ms-excel'});
       status.textContent='Đang gửi Telegram...';
-      const res=await BC.callSendReport('dai_ly','fk'+BC._selFk.toLowerCase(),content,agentName,[file]);
+      const res=await BC.callSendReport('dai_ly',BC._fkKey(BC._selFk),content,agentName,[file]);
       if(res.ok){
         status.style.color='#22c55e';status.textContent='Gửi thành công!';
         setTimeout(()=>BC.closeBtModal(),1600);
@@ -6055,7 +7055,7 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
     btn.disabled=true;
     status.style.color='#888';status.textContent='Đang gửi...';
     try{
-      const res=await BC.callSendReport('cuoc','fk'+BC._selCuFk.toLowerCase(),content,'',files);
+      const res=await BC.callSendReport('cuoc',BC._fkKey(BC._selCuFk),content,'',files);
       if(res.ok){
         status.style.color='#22c55e';status.textContent='Đã gửi thành công!';
         setTimeout(()=>BC.closeCuModal(),1800);
