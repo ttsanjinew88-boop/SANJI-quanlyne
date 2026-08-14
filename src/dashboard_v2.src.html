@@ -103,6 +103,7 @@
 <div class="tool-sw">
   <button class="tool-sw-btn on" id="tsb1" onclick="switchTool('t1')">HIỆU SUẤT NHÂN VIÊN</button>
   <button class="tool-sw-btn" id="tsb2" onclick="switchTool('t2')">BÁO CÁO ĐẠI LÝ - GỬI FILE</button>
+  <button class="tool-sw-btn" id="tsb3" onclick="switchTool('t3')">LỌC FILE NTK</button>
 </div>
 
 <div id="t1">
@@ -886,8 +887,52 @@
 
 </div><!-- /t2 -->
 
+<!-- ============ T3 — LỌC FILE NTK (session-only, RAM, F5 là mất) ============ -->
+<div id="t3" style="display:none" class="pg active">
+  <div class="sec-hdr pu">Lọc File NTK — Nhiều Tài Khoản
+    <span style="font-size:.56rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— gom nhóm theo Tên thật + IP; nhóm từ 2 tài khoản khác nhau trở lên là nghi ngờ. Dùng 1 lần, F5 là mất, không lưu cloud.</span>
+  </div>
+
+  <div id="ntkDrop" class="chart-card" style="border:2px dashed var(--border2);display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:14px">
+    <span style="font-size:22px">🗂️</span>
+    <div style="flex:1;min-width:220px">
+      <b style="font-size:.74rem">Thả file Excel vào đây, dán (Ctrl+V) dữ liệu, hoặc bấm Chọn file</b>
+      <div style="color:var(--mu);font-size:.6rem;margin-top:3px">Cần các cột: ID · Thời gian nạp tiền · Tên thật · IP · Cấp độ thành viên (Tiền nạp và Chi nhánh là tùy chọn).</div>
+    </div>
+    <button id="ntkPick" class="abtn abtn-pu">Chọn file…</button>
+    <button class="abtn abtn-ghost" onclick="NTK.clearAll()">Xóa dữ liệu</button>
+    <input type="file" id="ntkFile" accept=".xlsx,.xls,.csv" style="display:none">
+    <div id="ntkProg" style="display:none;width:100%">
+      <div style="height:7px;background:var(--card2);border-radius:5px;overflow:hidden">
+        <div id="ntkProgFill" style="height:100%;width:0;background:linear-gradient(90deg,var(--pu),var(--bl));transition:width .2s"></div>
+      </div>
+      <div id="ntkProgTxt" style="font-size:.58rem;color:var(--mu);margin-top:4px"></div>
+    </div>
+    <div id="ntkStatus" style="width:100%;font-size:.62rem"></div>
+  </div>
+
+  <div id="ntkBody" style="display:none">
+    <div class="stats-row" id="ntkCards"></div>
+    <div class="chart-card" id="ntkDropStat" style="margin-bottom:16px"></div>
+    <div class="chart-card">
+      <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <span style="color:var(--go)">Nhóm nghi ngờ nhiều tài khoản <span id="ntkCount" style="color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400"></span></span>
+        <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input id="ntkSearch" type="text" placeholder="Tìm ID / Tên thật / IP…" oninput="NTK.search(this.value)" spellcheck="false"
+                 style="background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:7px;padding:6px 10px;font-size:.64rem;outline:none;min-width:180px">
+          <button class="abtn abtn-sm abtn-ghost" id="ntkSortBtn" onclick="NTK.toggleSort()">⇅ Nhóm đông trước</button>
+          <button class="abtn abtn-sm abtn-ok" onclick="NTK.exportCsv()">⬇ Tải CSV</button>
+        </span>
+      </div>
+      <div id="ntkList" style="overflow-x:auto"></div>
+      <div id="ntkPager" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px"></div>
+    </div>
+  </div>
+</div><!-- /t3 -->
+
 <script>
 //#include js/bc.js
+//#include js/ntk.js
 </script>
 </body>
 </html>

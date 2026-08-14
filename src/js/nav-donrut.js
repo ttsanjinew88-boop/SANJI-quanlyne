@@ -411,6 +411,8 @@ function drResetBr(){DR.brackets=DR_DEFAULT_BR.map(p=>[...p]);document.getElemen
   drop.addEventListener('drop',e=>{const f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f)DR.loadFile(f);});
   document.addEventListener('paste',e=>{
     // Chỉ nhận dán khi đang ở sub-tab Báo Cáo Đơn Rút
+    // t1 phải đang hiện: nếu không, tab lớn khác (vd Lọc File NTK) mới là nơi nhận dán
+    if(document.getElementById('t1').style.display==='none')return;
     if(!(dataSrc==='don'&&donSub==='donrut'&&document.getElementById('pg-data').classList.contains('active')))return;
     if(e.target&&(e.target.id==='donrutSearch'||e.target.id==='drTgText'))return;
     const items=e.clipboardData&&e.clipboardData.items;

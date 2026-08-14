@@ -1,9 +1,12 @@
 // ===== TOOL SWITCHER =====
+// Tổng quát hóa theo danh sách tab lớn -> thêm tab thứ 4 chỉ cần nối thêm vào TOOLS
+const TOOLS=['t1','t2','t3'];
 function switchTool(id){
-  document.getElementById('t1').style.display=id==='t1'?'':'none';
-  document.getElementById('t2').style.display=id==='t2'?'':'none';
-  document.getElementById('tsb1').classList.toggle('on',id==='t1');
-  document.getElementById('tsb2').classList.toggle('on',id==='t2');
+  TOOLS.forEach((t,i)=>{
+    const pane=document.getElementById(t),btn=document.getElementById('tsb'+(i+1));
+    if(pane)pane.style.display=(t===id)?'':'none';
+    if(btn)btn.classList.toggle('on',t===id);
+  });
 }
 
 // ===== BC NAMESPACE =====
