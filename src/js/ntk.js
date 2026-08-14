@@ -261,7 +261,8 @@ const NTK={
       const first=arr[0],after=arr.slice(1).map(x=>x.id).sort(NTK.cmpId);
       const cmd=first.id+', '+after.join(', ')+' là cùng 1 người → Đưa các TK nạp sau: '+
         after.join(', ')+' vào nhóm nhiều tài khoản → Đã xử lý';
-      out.push({first:first.id,name:first.name,ip:first.ip,cmd:cmd,accs:arr});
+      // key ổn định (tên chuẩn hóa + IP) — dùng để nhớ lựa chọn CHUYỂN TAY qua các lần phân loại lại
+      out.push({key:NTK.norm(first.name)+'||'+first.ip,first:first.id,name:first.name,ip:first.ip,cmd:cmd,accs:arr});
     });
 
     st.groups=out.length;
@@ -269,6 +270,7 @@ const NTK={
     st.distinct=0;groups.forEach(g=>{st.distinct+=g.size;});
 
     NTK.groups=out;NTK.stats=st;NTK.page=1;NTK.q='';
+    NTK.manual={};   // file mới -> bỏ mọi lựa chọn chuyển tay của file cũ
     NTK.classify();
     const qEl=document.getElementById('ntkSearch');if(qEl)qEl.value='';
     NTK.setProg(-1);
@@ -284,6 +286,16 @@ const NTK={
      hiện thành nhãn để người xử lý nhìn ra ngay, và dùng để xếp thứ tự nhóm đáng ngờ lên trước. */
   MAX_SPREAD:0.20,
   MIN_ACCS:5,
+  manual:{},   // key nhóm -> true (ép Lạm Dụng) / false (ép về Nhiều TK); do người dùng bấm tay
+
+  // Chuyển tay 1 nhóm giữa 2 tab. Bấm lại lần nữa ở tab kia là trả về đúng kết quả tự động.
+  move(encKey,toAbuse){
+    const key=decodeURIComponent(encKey),g=NTK.groups.find(x=>x.key===key);
+    if(!g)return;
+    if(g.auto===toAbuse)delete NTK.manual[key];  // trùng với kết quả tự động -> bỏ ghi đè cho gọn
+    else NTK.manual[key]=toAbuse;
+    NTK.classify();NTK.render();
+  },
 
   money(v){
     const s=String(v==null?'':v).replace(/[^\d.,-]/g,'').replace(/,/g,'');
@@ -385,7 +397,12 @@ const NTK={
       g.marks=marks;
 
       // ---- phân loại ----
-      g.abuse=(n>NTK.MIN_ACCS)&&(g.spread!==null)&&(g.spread<=NTK.MAX_SPREAD);
+      const auto=(n>NTK.MIN_ACCS)&&(g.spread!==null)&&(g.spread<=NTK.MAX_SPREAD);
+      // Người dùng chuyển tay ĐÈ lên kết quả tự động, và giữ nguyên khi đổi ngưỡng
+      const man=NTK.manual[g.key];
+      g.auto=auto;
+      g.moved=(man!==undefined&&man!==auto);
+      g.abuse=(man!==undefined)?man:auto;
     });
     NTK.stats.abuseGroups=NTK.groups.filter(g=>g.abuse).length;
     NTK.stats.ntkGroups=NTK.groups.length-NTK.stats.abuseGroups;
@@ -405,6 +422,23 @@ const NTK={
 
   /* ================= HIỂN THỊ ================= */
   view:'ntk',
+  ROWS:200,   // số DÒNG tối đa mỗi trang (0 = xem tất cả); người dùng chọn ở ô "Hiển thị"
+
+  // Cắt trang theo số DÒNG nhưng KHÔNG xé lẻ một nhóm: nhóm nào vượt quá thì đẩy sang trang sau.
+  pageSlices(list){
+    const lim=NTK.ROWS;
+    if(!lim||lim<=0)return [list];
+    const out=[];let cur=[],c=0;
+    list.forEach(g=>{
+      const n=g.accs.length;
+      if(cur.length&&c+n>lim){out.push(cur);cur=[];c=0;}
+      cur.push(g);c+=n;
+    });
+    if(cur.length)out.push(cur);
+    return out.length?out:[[]];
+  },
+  setRows(v){NTK.ROWS=parseInt(v,10)||0;NTK.page=1;NTK.render();},
+
   filtered(){
     const q=NTK.norm(NTK.q),qr=NTK.q.trim();
     let g=NTK.groups.filter(x=>NTK.view==='abuse'?x.abuse:!x.abuse);
@@ -455,10 +489,11 @@ const NTK={
       (d[1]?'var(--go)':'var(--mu)')+'">'+nn(d[1])+'</td></tr>').join('')+'</tbody></table>';
 
     // ---- Danh sách nhóm ----
-    const all=NTK.filtered(),tot=Math.max(1,Math.ceil(all.length/NTK.PS));
+    const all=NTK.filtered(),pages=NTK.pageSlices(all),tot=pages.length;
     if(NTK.page>tot)NTK.page=tot;
-    const pageItems=all.slice((NTK.page-1)*NTK.PS,NTK.page*NTK.PS);
-    document.getElementById('ntkCount').textContent=nn(all.length)+' nhóm';
+    const pageItems=pages[NTK.page-1]||[];
+    const totRows=all.reduce((s,g)=>s+g.accs.length,0);
+    document.getElementById('ntkCount').textContent=nn(all.length)+' nhóm · '+nn(totRows)+' dòng';
 
     if(!all.length){
       document.getElementById('ntkList').innerHTML=
@@ -484,9 +519,13 @@ const NTK={
           // 2 cột tổng hợp của cả nhóm -> gộp ô theo chiều dọc
           (idx===0?'<td rowspan="'+nAcc+'" style="font-weight:800;color:'+
             (g.spread!==null&&g.spread<=NTK.MAX_SPREAD?'var(--re)':'var(--mu2)')+'">'+pct(g.spread)+'</td>':'')+
-          (idx===0?'<td rowspan="'+nAcc+'" style="white-space:normal;min-width:150px">'+
+          (idx===0?'<td rowspan="'+nAcc+'" style="white-space:normal;min-width:170px">'+
             (g.marks.length?g.marks.map(m=>'<span class="ntk-mark">'+m+'</span>').join(' '):
-             '<span style="color:var(--mu)">—</span>')+'</td>':'')+
+             '<span style="color:var(--mu)">—</span>')+
+            (g.moved?'<div><span class="ntk-mark" style="background:rgba(6,182,212,.16);border-color:rgba(6,182,212,.45);color:#67e8f9">Chuyển tay</span></div>':'')+
+            '<div style="margin-top:6px"><button class="abtn abtn-sm '+(NTK.view==='abuse'?'abtn-ghost':'abtn-danger')+'" '+
+            'onclick="NTK.move(\''+encodeURIComponent(g.key)+'\','+(NTK.view==='abuse'?'false':'true')+')">'+
+            (NTK.view==='abuse'?'↩ Trả về Nhiều TK':'⇢ Chuyển nhóm LD')+'</button></div></td>':'')+
           '</tr>');
       });
       rows.push('<tr class="ntk-gap"><td colspan="11"></td></tr>');
@@ -538,7 +577,7 @@ const NTK={
 
   clearAll(){
     if(NTK.groups.length&&!confirm('Xóa toàn bộ dữ liệu NTK đang có trong phiên này?'))return;
-    NTK.rows=[];NTK.groups=[];NTK.stats=null;NTK.page=1;NTK.q='';NTK.fileName='';
+    NTK.rows=[];NTK.groups=[];NTK.stats=null;NTK.page=1;NTK.q='';NTK.fileName='';NTK.manual={};
     const b=document.getElementById('ntkBody');if(b)b.style.display='none';
     const s=document.getElementById('ntkSearch');if(s)s.value='';
     NTK.setProg(-1);NTK.setStatus('Đã xóa dữ liệu. Thả file mới để bắt đầu lại.');

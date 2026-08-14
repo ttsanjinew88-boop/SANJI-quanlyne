@@ -857,7 +857,12 @@ const I18N={
   "Chi nhánh viết thường không dấu":"Branch in lowercase without diacritics",
   "Chi nhánh in hoa toàn bộ":"Branch in all caps",
   "Chữ cái lặp bất thường":"Unusual repeated letters",
-  "Trùng chuỗi con trong ID":"Shared substring across IDs"
+  "Trùng chuỗi con trong ID":"Shared substring across IDs",
+  "Hiển thị":"Show",
+  "Tất cả":"All",
+  "⇢ Chuyển nhóm LD":"⇢ Move to Abuse",
+  "↩ Trả về Nhiều TK":"↩ Move back to Multi-Account",
+  "Chuyển tay":"Moved manually"
   },
   /* ---- Chuỗi có số/biến: khớp bằng regex, giữ nguyên phần $1/$2 ---- */
   RX:[
@@ -865,6 +870,8 @@ const I18N={
     /* T3 — Lọc File NTK */
     [/^Trang (\d+) \/ (\d+)$/,"Page $1 / $2"],
     [/^([\d.,]+) nhóm$/,"$1 groups"],
+    [/^([\d.,]+) nhóm · ([\d.,]+) dòng$/,"$1 groups · $2 rows"],
+    [/^(\d+) dòng$/,"$1 rows"],
     [/^Nhóm Nhiều Tài Khoản \(([\d.,]+)\)$/,"Multi-Account Groups ($1)"],
     [/^Nhóm Lạm Dụng \(([\d.,]+)\)$/,"Abuse Groups ($1)"],
     [/^Cùng tiền tố \((\d+) ký tự\)$/,"Same prefix ($1 chars)"],

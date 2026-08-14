@@ -933,6 +933,15 @@
         <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input id="ntkSearch" type="text" placeholder="Tìm ID / Tên thật / IP…" oninput="NTK.search(this.value)" spellcheck="false"
                  style="background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:7px;padding:6px 10px;font-size:.64rem;outline:none;min-width:180px">
+          <label style="font-size:.62rem;color:var(--mu2);display:flex;align-items:center;gap:5px">Hiển thị
+            <select id="ntkRows" onchange="NTK.setRows(this.value)"
+                    style="background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:6px;padding:4px 8px;font-size:.62rem;outline:none">
+              <option value="200" selected>200 dòng</option>
+              <option value="500">500 dòng</option>
+              <option value="1000">1000 dòng</option>
+              <option value="2000">2000 dòng</option>
+              <option value="0">Tất cả</option>
+            </select></label>
           <button class="abtn abtn-sm abtn-ghost" id="ntkSortBtn" onclick="NTK.toggleSort()">⇅ Nhóm đông trước</button>
           <button class="abtn abtn-sm abtn-ok" onclick="NTK.exportCsv()">⬇ Tải CSV</button>
         </span>
