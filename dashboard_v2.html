@@ -504,6 +504,11 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .ntk-tbl th{background:var(--card2);color:var(--go);padding:7px 9px;text-align:left;border:1px solid var(--border);font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0;z-index:2}
 .ntk-tbl td{padding:6px 9px;border:1px solid #0d1020;vertical-align:top}
 .ntk-tbl tbody tr:hover td{background:rgba(124,58,237,.07)}
+.ntk-tbl th,.ntk-tbl td{text-align:center;vertical-align:middle}
+.ntk-tbl tr.ntk-first td{background:rgba(124,58,237,.1)}
+.ntk-tbl tr.ntk-gap td{height:10px;padding:0;border:none;background:transparent}
+.ntk-tbl tr.ntk-gap:hover td{background:transparent}
+.ntk-mark{display:inline-block;background:rgba(244,63,94,.16);border:1px solid rgba(244,63,94,.4);color:#fda4af;border-radius:5px;padding:2px 7px;font-size:.55rem;font-weight:700;margin:1px}
 </style>
 </head>
 <body>
@@ -2010,7 +2015,27 @@ const I18N={
   "✕ Không đọc được file:":"✕ Could not read the file:",
   "✕ Bảng dữ liệu trống.":"✕ The data table is empty.",
   "Bảng bên dưới vẫn là kết quả của file trước.":"The table below still shows the previous file's results.",
-  "Xóa dữ liệu":"Clear data"
+  "Xóa dữ liệu":"Clear data",
+  "Danh sách nhóm":"Group list",
+  "Nhóm nhiều tài khoản":"Multi-account groups",
+  "Nhóm lạm dụng":"Abuse groups",
+  "Ngưỡng nhận diện lạm dụng":"Abuse detection thresholds",
+  "Chênh lệch tiền nạp ≤":"Deposit spread ≤",
+  "và số tài khoản trong nhóm >":"and accounts per group >",
+  "Đổi số là phân loại lại ngay, không phải nạp lại file.":"Changing a value reclassifies immediately — no need to reload the file.",
+  "Chênh lệch":"Spread",
+  "Đặc điểm":"Signals",
+  "Nạp Trước":"First",
+  "Nạp Sau":"Later",
+  "Cùng cấu trúc ID":"Same ID structure",
+  "Đuôi số thứ tự":"Numeric suffix",
+  "Đuôi số liên tiếp":"Sequential suffix",
+  "Ký tự lộn xộn":"Random-looking characters",
+  "Chi nhánh giống hệt":"Identical branch",
+  "Chi nhánh viết thường không dấu":"Branch in lowercase without diacritics",
+  "Chi nhánh in hoa toàn bộ":"Branch in all caps",
+  "Chữ cái lặp bất thường":"Unusual repeated letters",
+  "Trùng chuỗi con trong ID":"Shared substring across IDs"
   },
   /* ---- Chuỗi có số/biến: khớp bằng regex, giữ nguyên phần $1/$2 ---- */
   RX:[
@@ -2018,6 +2043,9 @@ const I18N={
     /* T3 — Lọc File NTK */
     [/^Trang (\d+) \/ (\d+)$/,"Page $1 / $2"],
     [/^([\d.,]+) nhóm$/,"$1 groups"],
+    [/^Nhóm Nhiều Tài Khoản \(([\d.,]+)\)$/,"Multi-Account Groups ($1)"],
+    [/^Nhóm Lạm Dụng \(([\d.,]+)\)$/,"Abuse Groups ($1)"],
+    [/^Cùng tiền tố \((\d+) ký tự\)$/,"Same prefix ($1 chars)"],
     [/^Đang lọc & gom nhóm… ([\d.,]+) \/ ([\d.,]+) dòng$/,"Filtering & grouping… $1 / $2 rows"],
     [/^— tiêu đề nhận ở dòng (\d+)$/,"— header detected on row $1"],
     [/^— ([\d.,]+) dòng dữ liệu, tìm được$/,"— $1 data rows, found"],
@@ -6165,9 +6193,22 @@ rAll();
   <div id="ntkBody" style="display:none">
     <div class="stats-row" id="ntkCards"></div>
     <div class="chart-card" id="ntkDropStat" style="margin-bottom:16px"></div>
+
+    <div class="view-toggle" id="ntkViews"></div>
+    <div class="chart-card" style="margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <span style="font-size:.62rem;color:var(--mu2);font-weight:700;text-transform:uppercase;letter-spacing:.1em">Ngưỡng nhận diện lạm dụng</span>
+      <label style="font-size:.64rem;color:var(--tx);display:flex;align-items:center;gap:6px">Chênh lệch tiền nạp ≤
+        <input id="ntkSpread" type="number" min="0" max="100" step="1" value="20" onchange="NTK.setThresh()"
+               style="width:64px;background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:6px;padding:4px 8px;font-size:.64rem;text-align:center;outline:none">%</label>
+      <label style="font-size:.64rem;color:var(--tx);display:flex;align-items:center;gap:6px">và số tài khoản trong nhóm &gt;
+        <input id="ntkMinAcc" type="number" min="1" max="99" step="1" value="5" onchange="NTK.setThresh()"
+               style="width:56px;background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:6px;padding:4px 8px;font-size:.64rem;text-align:center;outline:none"></label>
+      <span style="font-size:.58rem;color:var(--mu)">Đổi số là phân loại lại ngay, không phải nạp lại file.</span>
+    </div>
+
     <div class="chart-card">
       <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-        <span style="color:var(--go)">Nhóm nghi ngờ nhiều tài khoản <span id="ntkCount" style="color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400"></span></span>
+        <span style="color:var(--go)">Danh sách nhóm <span id="ntkCount" style="color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400"></span></span>
         <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input id="ntkSearch" type="text" placeholder="Tìm ID / Tên thật / IP…" oninput="NTK.search(this.value)" spellcheck="false"
                  style="background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:7px;padding:6px 10px;font-size:.64rem;outline:none;min-width:180px">
@@ -7455,6 +7496,7 @@ const NTK={
     st.distinct=0;groups.forEach(g=>{st.distinct+=g.size;});
 
     NTK.groups=out;NTK.stats=st;NTK.page=1;NTK.q='';
+    NTK.classify();
     const qEl=document.getElementById('ntkSearch');if(qEl)qEl.value='';
     NTK.setProg(-1);
     NTK.setStatus('✓ Đã xử lý <b>'+hesc(srcLabel||'')+'</b> — '+nn(st.total)+' dòng dữ liệu, tìm được <b>'+
@@ -7462,13 +7504,144 @@ const NTK={
     NTK.render();
   },
 
+  /* ================= CHẤM ĐIỂM LẠM DỤNG =================
+     Điều kiện TÁCH sang tab Nhóm Lạm Dụng (chốt với user 14/08/2026, chỉnh được trên giao diện):
+       số tài khoản > MIN_ACCS (mặc định 5, tức từ 6 TK)  VÀ  chênh lệch tiền nạp <= MAX_SPREAD (20%).
+     Các "đặc điểm" (mẫu ID do tool sinh, chi nhánh bất thường) KHÔNG tự tách nhóm — chúng được
+     hiện thành nhãn để người xử lý nhìn ra ngay, và dùng để xếp thứ tự nhóm đáng ngờ lên trước. */
+  MAX_SPREAD:0.20,
+  MIN_ACCS:5,
+
+  money(v){
+    const s=String(v==null?'':v).replace(/[^\d.,-]/g,'').replace(/,/g,'');
+    const n=parseFloat(s);
+    return isFinite(n)?n:null;
+  },
+  // Dấu vân tay cấu trúc: chữ -> a, số -> 9, còn lại -> _  (vd 'Trangiuu122' -> 'a8_9 3' dạng nén)
+  shapeOf(id){
+    const raw=String(id).toLowerCase().replace(/[a-z]/g,'a').replace(/[0-9]/g,'9').replace(/[^a9]/g,'_');
+    let out='',i=0;
+    while(i<raw.length){let j=i;while(j<raw.length&&raw[j]===raw[i])j++;out+=raw[i]+(j-i);i=j;}
+    return out;
+  },
+  // ID "ký tự lộn xộn": có chuỗi >=4 phụ âm liền nhau, hoặc phần chữ gần như không có nguyên âm
+  messyId(id){
+    const s=String(id).toLowerCase().replace(/[^a-z]/g,'');
+    if(s.length<4)return false;
+    if(/[bcdfghjklmnpqrstvwxz]{4,}/.test(s))return true;
+    const vow=(s.match(/[aeiouy]/g)||[]).length;
+    return vow/s.length<0.2;
+  },
+  // Chi nhánh: không dấu (bỏ dấu xong vẫn y nguyên) — dấu hiệu gõ ẩu/tool điền
+  noDiacritic(s){
+    const t=String(s);
+    if(!/[a-zA-Z]/.test(t))return false;
+    return t.normalize('NFD').replace(/[\u0300-\u036f]/g,'')===t;
+  },
+
+  // Tính đặc điểm + phân loại cho MỌI nhóm. Rẻ (chỉ chạy trên các nhóm đã gom), gọi lại được khi đổi ngưỡng.
+  classify(){
+    NTK.groups.forEach(g=>{
+      const accs=g.accs,n=accs.length;
+      // ---- chênh lệch tiền nạp ----
+      const ms=accs.map(a=>NTK.money(a.money)).filter(v=>v!==null&&v>0);
+      if(ms.length===n&&n>0){
+        const mn=Math.min.apply(null,ms),mx=Math.max.apply(null,ms);
+        g.mMin=mn;g.mMax=mx;g.spread=mx>0?(mx-mn)/mx:0;
+      }else{g.mMin=null;g.mMax=null;g.spread=null;}  // thiếu tiền -> không đủ dữ liệu để kết luận
+
+      // ---- đặc điểm mẫu ID ----
+      const marks=[],ids=accs.map(a=>String(a.id));
+      const shapes={};ids.forEach(i=>{const s=NTK.shapeOf(i);shapes[s]=(shapes[s]||0)+1;});
+      const topShape=Math.max.apply(null,Object.values(shapes));
+      if(n>=3&&topShape/n>=0.6)marks.push('Cùng cấu trúc ID');
+      // tiền tố chung >=3 ký tự cho >=60% ID
+      const low=ids.map(i=>i.toLowerCase()).slice().sort();
+      let pref=0;
+      for(let L=3;L<=12;L++){
+        const cnt={};low.forEach(i=>{if(i.length>=L){const p=i.slice(0,L);cnt[p]=(cnt[p]||0)+1;}});
+        const best=Object.values(cnt).length?Math.max.apply(null,Object.values(cnt)):0;
+        if(best/n>=0.6)pref=L;else break;
+      }
+      if(pref>=3)marks.push('Cùng tiền tố ('+pref+' ký tự)');
+      // Đuôi số: CHỈ gắn nhãn khi các số đuôi nằm sát nhau (dãy thứ tự do tool sinh).
+      // Nhãn "kết thúc bằng số" chung chung đã bỏ: nó bắn trên ~70% nhóm (tên người Việt
+      // vốn hay kèm số) nên không phân biệt được gì, chỉ làm loãng các nhãn thật sự đáng chú ý.
+      const tails=ids.map(i=>(i.match(/(\d+)$/)||[])[1]).filter(Boolean);
+      if(tails.length/n>=0.6){
+        const nums=tails.map(Number).filter(isFinite);
+        if(nums.length>=3){
+          const mn=Math.min.apply(null,nums),mx=Math.max.apply(null,nums);
+          if(mx-mn<=nums.length*3)marks.push('Đuôi số liên tiếp');
+        }
+      }
+      if(ids.filter(NTK.messyId).length/n>=0.5)marks.push('Ký tự lộn xộn');
+      // Chữ cái lặp liền (nn, aaa, ii, zz): tên đăng nhập người thật hiếm khi có, tool sinh thì đầy
+      if(ids.filter(i=>/([a-z])\1/i.test(String(i).replace(/\d/g,''))).length/n>=0.5)
+        marks.push('Chữ cái lặp bất thường');
+      // Trùng chuỗi con >=4 ký tự giữa các ID trong nhóm (vd 'sonn', 'tranvan', 'depzai')
+      if(n>=2){
+        const gram={};
+        ids.forEach(i=>{
+          const s=String(i).toLowerCase().replace(/[^a-z]/g,''),seen=new Set();
+          for(let k=0;k+4<=s.length;k++)seen.add(s.substr(k,4));
+          seen.forEach(x=>{gram[x]=(gram[x]||0)+1;});
+        });
+        const shared=new Set(Object.keys(gram).filter(k=>gram[k]>=2));
+        if(shared.size){
+          const hit=ids.filter(i=>{
+            const s=String(i).toLowerCase().replace(/[^a-z]/g,'');
+            for(let k=0;k+4<=s.length;k++)if(shared.has(s.substr(k,4)))return true;
+            return false;
+          }).length;
+          if(hit/n>=0.5)marks.push('Trùng chuỗi con trong ID');
+        }
+      }
+
+      // ---- đặc điểm chi nhánh ----
+      const brs=accs.map(a=>String(a.branch||'').trim()).filter(Boolean);
+      if(brs.length===n&&n>1){
+        const uniq=new Set(brs.map(b=>b.toLowerCase()));
+        if(uniq.size===1)marks.push('Chi nhánh giống hệt');
+        const letters=b=>/[a-zA-ZÀ-ỹ]/.test(b);
+        const lowNo=brs.filter(b=>letters(b)&&b===b.toLowerCase()&&NTK.noDiacritic(b)).length;
+        if(lowNo/n>=0.6)marks.push('Chi nhánh viết thường không dấu');
+        const up=brs.filter(b=>letters(b)&&b===b.toUpperCase()).length;
+        if(up/n>=0.6)marks.push('Chi nhánh in hoa toàn bộ');
+      }
+      g.marks=marks;
+
+      // ---- phân loại ----
+      g.abuse=(n>NTK.MIN_ACCS)&&(g.spread!==null)&&(g.spread<=NTK.MAX_SPREAD);
+    });
+    NTK.stats.abuseGroups=NTK.groups.filter(g=>g.abuse).length;
+    NTK.stats.ntkGroups=NTK.groups.length-NTK.stats.abuseGroups;
+  },
+
+  // Đổi ngưỡng trên giao diện -> phân loại lại, KHÔNG phải đọc lại file
+  setThresh(){
+    const sp=parseFloat(document.getElementById('ntkSpread').value),
+          mi=parseInt(document.getElementById('ntkMinAcc').value,10);
+    if(isFinite(sp)&&sp>=0&&sp<=100)NTK.MAX_SPREAD=sp/100;
+    if(isFinite(mi)&&mi>=1)NTK.MIN_ACCS=mi;
+    if(!NTK.stats)return;
+    NTK.classify();NTK.page=1;NTK.render();
+  },
+
+  setView(v){NTK.view=v;NTK.page=1;NTK.render();},
+
   /* ================= HIỂN THỊ ================= */
+  view:'ntk',
   filtered(){
-    const q=NTK.norm(NTK.q);
-    let g=NTK.groups;
-    if(q)g=g.filter(x=>NTK.norm(x.name).indexOf(q)!==-1||x.ip.indexOf(NTK.q.trim())!==-1||
-      x.accs.some(a=>a.id.indexOf(NTK.q.trim())!==-1));
-    g=g.slice().sort((a,b)=>NTK.sortDesc?b.accs.length-a.accs.length:a.accs.length-b.accs.length);
+    const q=NTK.norm(NTK.q),qr=NTK.q.trim();
+    let g=NTK.groups.filter(x=>NTK.view==='abuse'?x.abuse:!x.abuse);
+    if(q)g=g.filter(x=>NTK.norm(x.name).indexOf(q)!==-1||x.ip.indexOf(qr)!==-1||
+      x.accs.some(a=>a.id.indexOf(qr)!==-1));
+    // cùng số TK thì nhóm nhiều "đặc điểm" hơn lên trước
+    g=g.slice().sort((a,b)=>{
+      const d=NTK.sortDesc?b.accs.length-a.accs.length:a.accs.length-b.accs.length;
+      return d!==0?d:(b.marks.length-a.marks.length);
+    });
     return g;
   },
 
@@ -7485,8 +7658,13 @@ const NTK={
       card('Dòng dữ liệu đọc',nn(st.total))+
       card('Dòng hợp lệ sau lọc',nn(st.kept),'var(--gr)')+
       card('Tài khoản phân biệt',nn(st.distinct))+
-      card('Nhóm nghi ngờ NTK',nn(st.groups),'var(--go)')+
-      card('Tài khoản trong nhóm',nn(st.accsInGroups),'var(--re)');
+      card('Nhóm nhiều tài khoản',nn(st.ntkGroups),'var(--go)')+
+      card('Nhóm lạm dụng',nn(st.abuseGroups),'var(--re)');
+
+    // ---- 2 tab nhỏ ----
+    document.getElementById('ntkViews').innerHTML=
+      '<div class="vt-btn'+(NTK.view==='ntk'?' active':'')+'" onclick="NTK.setView(\'ntk\')">Nhóm Nhiều Tài Khoản ('+nn(st.ntkGroups)+')</div>'+
+      '<div class="vt-btn'+(NTK.view==='abuse'?' active':'')+'" onclick="NTK.setView(\'abuse\')">Nhóm Lạm Dụng ('+nn(st.abuseGroups)+')</div>';
 
     // ---- Bảng minh bạch phần bị loại ----
     const drop=[
@@ -7516,31 +7694,34 @@ const NTK={
       return;
     }
 
-    const rows=[];
+    const rows=[],pct=v=>v===null?'—':(Math.round(v*1000)/10).toString().replace('.',',')+'%';
     pageItems.forEach(g=>{
+      const nAcc=g.accs.length;
       g.accs.forEach((a,idx)=>{
-        rows.push('<tr'+(idx===0?' style="background:rgba(124,58,237,.1)"':'')+'>'+
+        rows.push('<tr'+(idx===0?' class="ntk-first"':'')+'>'+
           '<td style="color:var(--pu2);font-weight:700">'+(idx===0?hesc(a.id):'')+'</td>'+
           '<td style="color:var(--go);font-weight:700">'+(idx===0?'':hesc(a.id))+'</td>'+
           '<td>'+hesc(a.level)+'</td>'+
           '<td style="font-weight:600">'+hesc(a.name)+'</td>'+
-          '<td style="text-align:right">'+hesc(a.money)+'</td>'+
+          '<td>'+hesc(a.money)+'</td>'+
           '<td>'+hesc(a.branch)+'</td>'+
           '<td style="color:var(--cy);font-family:monospace">'+hesc(a.ip)+'</td>'+
           '<td>'+hesc(a.id)+'</td>'+
           '<td style="font-size:.58rem;color:var(--mu2)">'+NTK.fmtDate(a.time)+'</td>'+
+          // 2 cột tổng hợp của cả nhóm -> gộp ô theo chiều dọc
+          (idx===0?'<td rowspan="'+nAcc+'" style="font-weight:800;color:'+
+            (g.spread!==null&&g.spread<=NTK.MAX_SPREAD?'var(--re)':'var(--mu2)')+'">'+pct(g.spread)+'</td>':'')+
+          (idx===0?'<td rowspan="'+nAcc+'" style="white-space:normal;min-width:150px">'+
+            (g.marks.length?g.marks.map(m=>'<span class="ntk-mark">'+m+'</span>').join(' '):
+             '<span style="color:var(--mu)">—</span>')+'</td>':'')+
           '</tr>');
       });
-      rows.push('<tr><td colspan="9" style="background:var(--card2);padding:8px 10px">'+
-        '<div style="display:flex;gap:10px;align-items:flex-start">'+
-        '<button class="abtn abtn-sm abtn-pu" onclick="NTK.copyCmd(\''+encodeURIComponent(g.first)+'\')">📋 Copy câu lệnh</button>'+
-        // data-noi18n: câu lệnh là NỘI DUNG NGHIỆP VỤ dán sang hệ thống xử lý — dịch sang tiếng Anh là hỏng
-        '<div data-noi18n style="flex:1;font-size:.62rem;line-height:1.6;color:var(--tx)">'+hesc(g.cmd)+'</div></div></td></tr>');
+      rows.push('<tr class="ntk-gap"><td colspan="11"></td></tr>');
     });
 
     document.getElementById('ntkList').innerHTML=
       '<table class="ntk-tbl"><thead><tr>'+
-      ['Tài khoản nạp đầu','Những tài khoản nạp sau','Cấp độ thành viên','Tên thật','Tiền nạp','Chi nhánh','IP','Tài khoản','Thời gian nạp']
+      ['Nạp Trước','Nạp Sau','Cấp độ thành viên','Tên thật','Tiền nạp','Chi nhánh','IP','Tài khoản','Thời gian nạp','Chênh lệch','Đặc điểm']
         .map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>';
 
     // ---- Phân trang ----
@@ -7560,32 +7741,24 @@ const NTK={
     if(b)b.textContent=NTK.sortDesc?'⇅ Nhóm đông trước':'⇅ Nhóm ít trước';
     NTK.page=1;NTK.render();},
 
-  copyCmd(encFirst){
-    const first=decodeURIComponent(encFirst);
-    const g=NTK.groups.find(x=>x.first===first);
-    if(!g)return;
-    const done=()=>{setCloudStatus&&setCloudStatus('Đã copy câu lệnh NTK ✓');};
-    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(g.cmd).then(done,()=>{});
-    else{const t=document.createElement('textarea');t.value=g.cmd;document.body.appendChild(t);t.select();
-      try{document.execCommand('copy');done();}catch(e){}t.remove();}
-  },
-
-  /* ---- Xuất CSV: với hàng chục nghìn dòng thì CSV an toàn hơn hẳn XML SpreadsheetML ---- */
+  /* ---- Xuất CSV theo TAB ĐANG XEM. Câu lệnh chỉ còn ở đây (đã bỏ khỏi bảng theo yêu cầu). ---- */
   exportCsv(){
-    if(!NTK.groups.length){alert('Chưa có dữ liệu để tải.');return;}
+    const list=NTK.filtered();
+    if(!list.length){alert('Chưa có dữ liệu để tải.');return;}
     const esc=v=>{const s=(v===null||v===undefined)?'':String(v);
       return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
-    const lines=[['Tài khoản nạp đầu','Những tài khoản nạp sau','Cấp độ thành viên','Tên thật',
-      'Tiền nạp','Chi nhánh','IP','Tài khoản','Thời gian nạp','Câu lệnh NTK'].join(',')];
-    NTK.filtered().forEach(g=>{
+    const pct=v=>v===null?'':(Math.round(v*1000)/10).toString().replace('.',',')+'%';
+    const lines=[['Nạp Trước','Nạp Sau','Cấp độ thành viên','Tên thật',
+      'Tiền nạp','Chi nhánh','IP','Tài khoản','Thời gian nạp','Chênh lệch','Đặc điểm','Câu lệnh NTK'].join(',')];
+    list.forEach(g=>{
       g.accs.forEach((a,idx)=>{
         lines.push([idx===0?g.first:'',idx===0?'':a.id,a.level,a.name,a.money,a.branch,a.ip,a.id,
-          NTK.fmtDate(a.time),g.cmd].map(esc).join(','));
+          NTK.fmtDate(a.time),idx===0?pct(g.spread):'',idx===0?g.marks.join(' · '):'',g.cmd].map(esc).join(','));
       });
     });
     const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
     const url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download='Lenh_NTK_'+new Date().toISOString().slice(0,10)+'.csv';
+    a.href=url;a.download=(NTK.view==='abuse'?'Nhom_Lam_Dung_':'Lenh_NTK_')+new Date().toISOString().slice(0,10)+'.csv';
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),2000);
   },

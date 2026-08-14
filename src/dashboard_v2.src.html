@@ -914,9 +914,22 @@
   <div id="ntkBody" style="display:none">
     <div class="stats-row" id="ntkCards"></div>
     <div class="chart-card" id="ntkDropStat" style="margin-bottom:16px"></div>
+
+    <div class="view-toggle" id="ntkViews"></div>
+    <div class="chart-card" style="margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <span style="font-size:.62rem;color:var(--mu2);font-weight:700;text-transform:uppercase;letter-spacing:.1em">Ngưỡng nhận diện lạm dụng</span>
+      <label style="font-size:.64rem;color:var(--tx);display:flex;align-items:center;gap:6px">Chênh lệch tiền nạp ≤
+        <input id="ntkSpread" type="number" min="0" max="100" step="1" value="20" onchange="NTK.setThresh()"
+               style="width:64px;background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:6px;padding:4px 8px;font-size:.64rem;text-align:center;outline:none">%</label>
+      <label style="font-size:.64rem;color:var(--tx);display:flex;align-items:center;gap:6px">và số tài khoản trong nhóm &gt;
+        <input id="ntkMinAcc" type="number" min="1" max="99" step="1" value="5" onchange="NTK.setThresh()"
+               style="width:56px;background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:6px;padding:4px 8px;font-size:.64rem;text-align:center;outline:none"></label>
+      <span style="font-size:.58rem;color:var(--mu)">Đổi số là phân loại lại ngay, không phải nạp lại file.</span>
+    </div>
+
     <div class="chart-card">
       <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-        <span style="color:var(--go)">Nhóm nghi ngờ nhiều tài khoản <span id="ntkCount" style="color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400"></span></span>
+        <span style="color:var(--go)">Danh sách nhóm <span id="ntkCount" style="color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400"></span></span>
         <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input id="ntkSearch" type="text" placeholder="Tìm ID / Tên thật / IP…" oninput="NTK.search(this.value)" spellcheck="false"
                  style="background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:7px;padding:6px 10px;font-size:.64rem;outline:none;min-width:180px">

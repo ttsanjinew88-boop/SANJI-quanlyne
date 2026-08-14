@@ -490,3 +490,8 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .ntk-tbl th{background:var(--card2);color:var(--go);padding:7px 9px;text-align:left;border:1px solid var(--border);font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0;z-index:2}
 .ntk-tbl td{padding:6px 9px;border:1px solid #0d1020;vertical-align:top}
 .ntk-tbl tbody tr:hover td{background:rgba(124,58,237,.07)}
+.ntk-tbl th,.ntk-tbl td{text-align:center;vertical-align:middle}
+.ntk-tbl tr.ntk-first td{background:rgba(124,58,237,.1)}
+.ntk-tbl tr.ntk-gap td{height:10px;padding:0;border:none;background:transparent}
+.ntk-tbl tr.ntk-gap:hover td{background:transparent}
+.ntk-mark{display:inline-block;background:rgba(244,63,94,.16);border:1px solid rgba(244,63,94,.4);color:#fda4af;border-radius:5px;padding:2px 7px;font-size:.55rem;font-weight:700;margin:1px}

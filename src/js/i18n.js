@@ -837,7 +837,27 @@ const I18N={
   "✕ Không đọc được file:":"✕ Could not read the file:",
   "✕ Bảng dữ liệu trống.":"✕ The data table is empty.",
   "Bảng bên dưới vẫn là kết quả của file trước.":"The table below still shows the previous file's results.",
-  "Xóa dữ liệu":"Clear data"
+  "Xóa dữ liệu":"Clear data",
+  "Danh sách nhóm":"Group list",
+  "Nhóm nhiều tài khoản":"Multi-account groups",
+  "Nhóm lạm dụng":"Abuse groups",
+  "Ngưỡng nhận diện lạm dụng":"Abuse detection thresholds",
+  "Chênh lệch tiền nạp ≤":"Deposit spread ≤",
+  "và số tài khoản trong nhóm >":"and accounts per group >",
+  "Đổi số là phân loại lại ngay, không phải nạp lại file.":"Changing a value reclassifies immediately — no need to reload the file.",
+  "Chênh lệch":"Spread",
+  "Đặc điểm":"Signals",
+  "Nạp Trước":"First",
+  "Nạp Sau":"Later",
+  "Cùng cấu trúc ID":"Same ID structure",
+  "Đuôi số thứ tự":"Numeric suffix",
+  "Đuôi số liên tiếp":"Sequential suffix",
+  "Ký tự lộn xộn":"Random-looking characters",
+  "Chi nhánh giống hệt":"Identical branch",
+  "Chi nhánh viết thường không dấu":"Branch in lowercase without diacritics",
+  "Chi nhánh in hoa toàn bộ":"Branch in all caps",
+  "Chữ cái lặp bất thường":"Unusual repeated letters",
+  "Trùng chuỗi con trong ID":"Shared substring across IDs"
   },
   /* ---- Chuỗi có số/biến: khớp bằng regex, giữ nguyên phần $1/$2 ---- */
   RX:[
@@ -845,6 +865,9 @@ const I18N={
     /* T3 — Lọc File NTK */
     [/^Trang (\d+) \/ (\d+)$/,"Page $1 / $2"],
     [/^([\d.,]+) nhóm$/,"$1 groups"],
+    [/^Nhóm Nhiều Tài Khoản \(([\d.,]+)\)$/,"Multi-Account Groups ($1)"],
+    [/^Nhóm Lạm Dụng \(([\d.,]+)\)$/,"Abuse Groups ($1)"],
+    [/^Cùng tiền tố \((\d+) ký tự\)$/,"Same prefix ($1 chars)"],
     [/^Đang lọc & gom nhóm… ([\d.,]+) \/ ([\d.,]+) dòng$/,"Filtering & grouping… $1 / $2 rows"],
     [/^— tiêu đề nhận ở dòng (\d+)$/,"— header detected on row $1"],
     [/^— ([\d.,]+) dòng dữ liệu, tìm được$/,"— $1 data rows, found"],
