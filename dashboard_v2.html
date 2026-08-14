@@ -7205,13 +7205,13 @@ const NTK={
 
   /* ---- Tên cột chấp nhận (khớp chính xác trước, sau đó khớp CHỨA để chịu được hậu tố kiểu "(GMT+8)") ---- */
   CAND:{
-    id:['id','so tai khoan','số tài khoản','tai khoan','account','tài khoản'],
-    time:['thoi gian nap tien','thoi gian nap','thoi gian','thời gian nạp tiền','thời gian nạp','time','deposit time','time deposit','created at','joined at'],
+    id:['id','so tai khoan','số tài khoản','tai khoan','account','tài khoản','ten dang nhap','tên đăng nhập'],
+    time:['thoi gian nap tien','thoi gian nap','thoi gian','thời gian nạp tiền','thời gian nạp','time','deposit time','time deposit','created at','joined at','thời gian gửi tiền','thoi gian gui tien','thời gian gửi','thoi gian gui'],
     name:['ten that','ten','tên thật','name','full name','ho ten','ho va ten','họ tên'],
-    ip:['ip','dia chi ip','địa chỉ ip','ip address'],
+    ip:['ip','dia chi ip','địa chỉ ip','ip address','ip dang nhap','ip đăng nhập','ip dang nhap lan cuoi','ip đăng nhập lần cuối','last login ip','login ip'],
     level:['cap do thanh vien','cấp độ thành viên','level','rank'],
-    money:['tien nap','tiền nạp','so tien','money','amount','số tiền'],
-    branch:['chi nhanh','chi nhánh','branch']
+    money:['tien nap','tiền nạp','so tien','money','amount','số tiền','so tien gui','số tiền gửi','tien gui','tiền gửi'],
+    branch:['chi nhanh','chi nhánh','branch','khu vuc','khu vực']
   },
   /* ---- Cấp độ bị loại. Khớp bằng MÃ trong 【】 (O(1) qua Set) + dự phòng khớp chuỗi ---- */
   BANNED_RAW:['【LD-1】LAM DỤNG NHẸ','【LD-2】LAM DỤNG NẶNG','【CC-1】CẤM CHƠI','【KHTV-1】KO KM -HTRA',
@@ -7248,8 +7248,10 @@ const NTK={
     for(let i=0;i<hdr.length;i++){
       if(!hdr[i])continue;
       for(const c of cands){
-        // chỉ nhận biến thể đủ dài để tránh 'id'/'ip' ăn nhầm những cột khác
-        if(c.length>=3&&hdr[i].indexOf(c)!==-1&&c.length>bestLen){best=i;bestLen=c.length;}
+        // Biến thể ngắn ('ip','id') chỉ nhận khi tiêu đề BẮT ĐẦU bằng nó + khoảng trắng
+        // (vd "IP đăng nhập lần cuối") — chứa ở giữa thì bỏ, tránh ăn nhầm cột khác.
+        const hit=c.length>=3?hdr[i].indexOf(c)!==-1:hdr[i].indexOf(c+' ')===0;
+        if(hit&&c.length>bestLen){best=i;bestLen=c.length;}
       }
     }
     return best;
