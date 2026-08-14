@@ -104,10 +104,14 @@ async function sendReport(req: Request): Promise<Response> {
 
   // rid + điểm do SERVER quyết định — frontend KHÔNG thể giả mạo điểm cộng
   const rid = Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
-  const now = new Date();
-  const dd = String(now.getDate()).padStart(2, "0"), mm = String(now.getMonth() + 1).padStart(2, "0"), yy = now.getFullYear();
+  // NGÀY/GIỜ theo GMT+7 (giờ Việt Nam). Deno Deploy chạy múi giờ UTC nên phải cộng tay 7h
+  // rồi đọc bằng getUTC* — không phụ thuộc múi giờ máy chủ. Trước đây dùng new Date() +
+  // getDate() (= UTC): báo cáo gửi 00:00-06:59 giờ VN bị đóng dấu ngày hôm trước, rơi vào
+  // ngày 1 thì điểm lạc sang THÁNG TRƯỚC và biến mất khỏi bảng hiệu suất tháng này.
+  const now = new Date(Date.now() + 7 * 3600000);
+  const dd = String(now.getUTCDate()).padStart(2, "0"), mm = String(now.getUTCMonth() + 1).padStart(2, "0"), yy = now.getUTCFullYear();
   const isoDate = `${yy}-${mm}-${dd}`;
-  const dateStr = `${dd}/${mm}/${yy} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const dateStr = `${dd}/${mm}/${yy} ${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}`;
 
   const cnt = mode === "dai_ly" ? 3 : 1;
   const cat = mode === "dai_ly" ? "m" : "a";
