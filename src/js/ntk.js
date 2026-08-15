@@ -553,24 +553,67 @@ const NTK={
     if(b)b.textContent=NTK.sortDesc?'⇅ Nhóm đông trước':'⇅ Nhóm ít trước';
     NTK.page=1;NTK.render();},
 
-  /* ---- Xuất CSV theo TAB ĐANG XEM. Câu lệnh chỉ còn ở đây (đã bỏ khỏi bảng theo yêu cầu). ---- */
+  /* ---- Xuất EXCEL theo TAB ĐANG XEM ----
+     Dùng SpreadsheetML (không phải CSV): CSV là văn bản thuần, KHÔNG mang được căn giữa
+     hay độ rộng cột. File .xls này Excel mở trực tiếp, giữ nguyên định dạng.
+     - Tab Nhiều Tài Khoản: 9 cột, căn giữa tất cả, RIÊNG cột Câu lệnh NTK căn trái.
+       (Đã bỏ 3 cột Thời gian nạp / Chênh lệch / Đặc điểm theo yêu cầu — chúng chỉ còn trên giao diện.)
+     - Tab Lạm Dụng: chỉ 2 cột Tài khoản (kèm dấu phẩy) + 1 câu lệnh cố định cho mọi dòng.
+     Độ rộng cột tự co theo nội dung dài nhất của chính cột đó. */
+  ABUSE_CMD:'Nhóm lạm dụng khuyến mãi - đưa vào lạm dụng và lạm dụng hoàn trả - Đã xử lý',
+
   exportCsv(){
     const list=NTK.filtered();
     if(!list.length){alert('Chưa có dữ liệu để tải.');return;}
-    const esc=v=>{const s=(v===null||v===undefined)?'':String(v);
-      return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
-    const pct=v=>v===null?'':(Math.round(v*1000)/10).toString().replace('.',',')+'%';
-    const lines=[['Nạp Trước','Nạp Sau','Cấp độ thành viên','Tên thật',
-      'Tiền nạp','Chi nhánh','IP','Tài khoản','Thời gian nạp','Chênh lệch','Đặc điểm','Câu lệnh NTK'].join(',')];
+    const abuse=NTK.view==='abuse';
+    const hdr=abuse?['Tài khoản','Câu lệnh Lạm dụng']
+      :['Nạp Trước','Nạp Sau','Cấp độ thành viên','Tên thật','Tiền nạp','Chi nhánh','IP','Tài khoản','Câu lệnh NTK'];
+    // cột căn TRÁI (cột câu lệnh); còn lại căn giữa
+    const leftCol=hdr.length-1;
+    const body=[];
     list.forEach(g=>{
       g.accs.forEach((a,idx)=>{
-        lines.push([idx===0?g.first:'',idx===0?'':a.id,a.level,a.name,a.money,a.branch,a.ip,a.id,
-          NTK.fmtDate(a.time),idx===0?pct(g.spread):'',idx===0?g.marks.join(' · '):'',g.cmd].map(esc).join(','));
+        body.push(abuse?[a.id+',',NTK.ABUSE_CMD]
+          :[idx===0?g.first:'',idx===0?'':a.id,a.level,a.name,a.money,a.branch,a.ip,a.id,g.cmd]);
       });
     });
-    const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+    if(body.length>60000&&!confirm('File có '+nn(body.length)+' dòng — mở bằng Excel sẽ chậm. Vẫn tải?'))return;
+
+    const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    // Độ rộng: theo ký tự dài nhất của cột (Tahoma 9 ~5,6pt/ký tự), có chặn trên/dưới
+    const width=i=>{
+      let mx=String(hdr[i]).length;
+      for(const r of body){const L=String(r[i]==null?'':r[i]).length;if(L>mx)mx=L;}
+      return Math.max(55,Math.min(i===leftCol?620:260,Math.round(mx*5.6+16)));
+    };
+    const FONT='<Font ss:Name="Tahoma" ss:Size="9" ss:Color="#000000"/>';
+    const BD='<Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>'+
+      '<Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>'+
+      '<Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>'+
+      '<Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders>';
+    const styles='<Styles>'+
+      '<Style ss:ID="h"><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>'+BD+
+        '<Font ss:Bold="1" ss:Name="Tahoma" ss:Size="9" ss:Color="#000000"/><Interior ss:Color="#F8CBAD" ss:Pattern="Solid"/></Style>'+
+      '<Style ss:ID="c"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/>'+BD+FONT+'</Style>'+
+      '<Style ss:ID="l"><Alignment ss:Horizontal="Left" ss:Vertical="Center"/>'+BD+FONT+'</Style>'+
+      '</Styles>';
+    const cell=(v,i)=>{
+      const sty=(i===leftCol)?'l':'c';
+      // chỉ cột Tiền nạp mới để kiểu Số (để Excel cộng được); còn lại giữ Chuỗi kẻo mất số 0 đầu
+      const isMoney=!abuse&&i===4&&/^\d+(\.\d+)?$/.test(String(v));
+      return '<Cell ss:StyleID="'+sty+'"><Data ss:Type="'+(isMoney?'Number':'String')+'">'+esc(v)+'</Data></Cell>';
+    };
+    const xml='<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?>'+
+      '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'+
+      styles+'<Worksheet ss:Name="'+(abuse?'Nhom Lam Dung':'Lenh NTK')+'"><Table>'+
+      hdr.map((h,i)=>'<Column ss:AutoFitWidth="0" ss:Width="'+width(i)+'"/>').join('')+
+      '<Row>'+hdr.map(h=>'<Cell ss:StyleID="h"><Data ss:Type="String">'+esc(h)+'</Data></Cell>').join('')+'</Row>'+
+      body.map(r=>'<Row>'+r.map(cell).join('')+'</Row>').join('')+
+      '</Table></Worksheet></Workbook>';
+
+    const blob=new Blob(['﻿'+xml],{type:'application/vnd.ms-excel;charset=utf-8'});
     const url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download=(NTK.view==='abuse'?'Nhom_Lam_Dung_':'Lenh_NTK_')+new Date().toISOString().slice(0,10)+'.csv';
+    a.href=url;a.download=(abuse?'Nhom_Lam_Dung_':'Lenh_NTK_')+new Date().toISOString().slice(0,10)+'.xls';
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),2000);
   },

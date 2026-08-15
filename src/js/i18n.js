@@ -799,7 +799,7 @@ const I18N={
   "Nhóm nghi ngờ nhiều tài khoản":"Suspected multi-account groups",
   "⇅ Nhóm đông trước":"⇅ Largest groups first",
   "⇅ Nhóm ít trước":"⇅ Smallest groups first",
-  "⬇ Tải CSV":"⬇ Download CSV",
+  "⬇ Tải Excel":"⬇ Download Excel",
   "📋 Copy câu lệnh":"📋 Copy command",
   "Không có nhóm nào khớp.":"No matching groups.",
   "‹ Trước":"‹ Prev",
