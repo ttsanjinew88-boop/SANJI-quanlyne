@@ -6295,7 +6295,9 @@ const TOOLS=['t1','t2','t3'];
 function switchTool(id){
   TOOLS.forEach((t,i)=>{
     const pane=document.getElementById(t),btn=document.getElementById('tsb'+(i+1));
-    if(pane)pane.style.display=(t===id)?'':'none';
+    // #t3 mang class .pg (CSS .pg{display:none}) nên sw() của T1 gỡ mất .active
+    // -> display:'' rơi về none = trang đen. Ép lại .active khi mở tab lớn.
+    if(pane){pane.style.display=(t===id)?'':'none';pane.classList.toggle('active',t===id);}
     if(btn)btn.classList.toggle('on',t===id);
   });
 }
