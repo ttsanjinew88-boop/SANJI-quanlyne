@@ -862,7 +862,16 @@ const I18N={
   "Tất cả":"All",
   "⇢ Chuyển nhóm LD":"⇢ Move to Abuse",
   "↩ Trả về Nhiều TK":"↩ Move back to Multi-Account",
-  "Chuyển tay":"Moved manually"
+  "Chuyển tay":"Moved manually",
+  "↩ Trả về Check":"↩ Move back to Review",
+  "Chờ check theo IP":"Pending IP review",
+  "Tiêu chí tab Check Lạm Dụng":"Abuse review tab criteria",
+  "Cùng IP · chênh lệch trong ngưỡng · ID kiểu tool":"Same IP · spread within threshold · tool-like IDs",
+  "Như trên, nhưng phải có từ 2 đặc điểm ID":"Same as above, but requires 2+ ID signals",
+  "Khác tên · cùng IP":"Different names · same IP",
+  "Khác tên · cùng IP · cùng chi nhánh":"Different names · same IP · same branch",
+  "Số tài khoản tối thiểu":"Minimum accounts",
+  "Gom theo IP (không cần cùng tên) — diện nghi ngờ, nhân viên check rồi tự chuyển sang tab Lạm Dụng.":"Grouped by IP (names need not match) — suspects for staff to review, then move to the Abuse tab."
   },
   /* ---- Chuỗi có số/biến: khớp bằng regex, giữ nguyên phần $1/$2 ---- */
   RX:[
@@ -874,6 +883,8 @@ const I18N={
     [/^(\d+) dòng$/,"$1 rows"],
     [/^Nhóm Nhiều Tài Khoản \(([\d.,]+)\)$/,"Multi-Account Groups ($1)"],
     [/^Nhóm Lạm Dụng \(([\d.,]+)\)$/,"Abuse Groups ($1)"],
+    [/^Check Lạm Dụng \(([\d.,]+)\)$/,"Abuse Review ($1)"],
+    [/^(\d+) tên khác nhau$/,"$1 different names"],
     [/^Cùng tiền tố \((\d+) ký tự\)$/,"Same prefix ($1 chars)"],
     [/^Đang lọc & gom nhóm… ([\d.,]+) \/ ([\d.,]+) dòng$/,"Filtering & grouping… $1 / $2 rows"],
     [/^— tiêu đề nhận ở dòng (\d+)$/,"— header detected on row $1"],

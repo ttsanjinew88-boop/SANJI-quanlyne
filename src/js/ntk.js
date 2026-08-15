@@ -210,6 +210,7 @@ const NTK={
       noMoney:iMoney<0,noBranch:iBr<0,hdrRow:hs.index+1};
     // Gom trực tiếp vào Map lồng: key nhóm -> Map(id -> bản ghi sớm nhất) — vừa gom vừa khử trùng ID (sửa lỗi 2+5)
     const groups=new Map();
+    const ipMap=new Map();   // gom THEO IP (không cần cùng tên) — nguồn cho tab Check Lạm Dụng
 
     for(let i=hs.index+1;i<values.length;i++){
       if((i&1023)===0){
@@ -232,6 +233,15 @@ const NTK={
       const rec={id:id,time:NTK.toDate(r[iTime]),name:name,ip:ip,level:lv,
         money:iMoney>=0?NTK.str(r[iMoney]):'',branch:iBr>=0?NTK.str(r[iBr]):'',row:i+1};
       const key=NTK.norm(name)+'||'+ip;
+      // theo IP cũng khử trùng ID (giữ bản ghi sớm nhất) y như gom theo tên+IP
+      let ipG=ipMap.get(ip);if(!ipG){ipG=new Map();ipMap.set(ip,ipG);}
+      const oldIp=ipG.get(id);
+      if(!oldIp)ipG.set(id,rec);
+      else{
+        const x=oldIp.time instanceof Date?oldIp.time.getTime():Infinity;
+        const y=rec.time instanceof Date?rec.time.getTime():Infinity;
+        if(y<x||(x===Infinity&&y===Infinity&&rec.row<oldIp.row))ipG.set(id,rec);
+      }
       let g=groups.get(key);if(!g){g=new Map();groups.set(key,g);}
       const old=g.get(id);
       if(!old){g.set(id,rec);}
@@ -269,6 +279,25 @@ const NTK={
     st.accsInGroups=out.reduce((s,g)=>s+g.accs.length,0);
     st.distinct=0;groups.forEach(g=>{st.distinct+=g.size;});
 
+    // Nhóm theo IP (>=2 TK khác nhau trên cùng 1 IP) — nguồn cho tab Check Lạm Dụng
+    const ipOut=[];
+    ipMap.forEach((m,ip)=>{
+      if(m.size<2)return;
+      const arr=Array.from(m.values()).sort((a,b)=>{
+        const A=a.time instanceof Date?a.time.getTime():null,B=b.time instanceof Date?b.time.getTime():null;
+        if(A!==null&&B!==null)return A-B;
+        if(A!==null)return -1;
+        if(B!==null)return 1;
+        return a.row-b.row;
+      });
+      const first=arr[0],after=arr.slice(1).map(x=>x.id).sort(NTK.cmpId);
+      ipOut.push({key:'ip||'+ip,first:first.id,name:first.name,ip:ip,accs:arr,
+        cmd:first.id+', '+after.join(', ')+' là cùng 1 người → Đưa các TK nạp sau: '+
+            after.join(', ')+' vào nhóm nhiều tài khoản → Đã xử lý'});
+    });
+    NTK.ipGroups=ipOut;
+    st.ipGroupsTotal=ipOut.length;
+
     NTK.groups=out;NTK.stats=st;NTK.page=1;NTK.q='';
     NTK.manual={};   // file mới -> bỏ mọi lựa chọn chuyển tay của file cũ
     NTK.classify();
@@ -290,9 +319,14 @@ const NTK={
 
   // Chuyển tay 1 nhóm giữa 2 tab. Bấm lại lần nữa ở tab kia là trả về đúng kết quả tự động.
   move(encKey,toAbuse){
-    const key=decodeURIComponent(encKey),g=NTK.groups.find(x=>x.key===key);
+    const key=decodeURIComponent(encKey);
+    const g=NTK.groups.find(x=>x.key===key)||NTK.ipGroups.find(x=>x.key===key);
     if(!g)return;
-    if(g.auto===toAbuse)delete NTK.manual[key];  // trùng với kết quả tự động -> bỏ ghi đè cho gọn
+    // Nhóm theo IP không có phân loại tự động -> chỉ có mặt ở tab Lạm Dụng khi được chuyển tay
+    if(key.indexOf('ip||')===0){
+      if(toAbuse)NTK.manual[key]=true;else delete NTK.manual[key];
+    }
+    else if(g.auto===toAbuse)delete NTK.manual[key];  // trùng kết quả tự động -> bỏ ghi đè cho gọn
     else NTK.manual[key]=toAbuse;
     NTK.classify();NTK.render();
   },
@@ -324,9 +358,10 @@ const NTK={
     return t.normalize('NFD').replace(/[\u0300-\u036f]/g,'')===t;
   },
 
-  // Tính đặc điểm + phân loại cho MỌI nhóm. Rẻ (chỉ chạy trên các nhóm đã gom), gọi lại được khi đổi ngưỡng.
-  classify(){
-    NTK.groups.forEach(g=>{
+  // Tính chênh lệch tiền + các đặc điểm cho MỘT nhóm. Dùng chung cho nhóm theo tên+IP
+  // (2 tab đầu) và nhóm theo IP (tab Check Lạm Dụng) nên hai bên luôn chấm giống hệt nhau.
+  analyze(g){
+    {
       const accs=g.accs,n=accs.length;
       // ---- chênh lệch tiền nạp ----
       const ms=accs.map(a=>NTK.money(a.money)).filter(v=>v!==null&&v>0);
@@ -395,8 +430,18 @@ const NTK={
         if(up/n>=0.6)marks.push('Chi nhánh in hoa toàn bộ');
       }
       g.marks=marks;
+      g.idMarks=marks.filter(m=>m.indexOf('Chi nhánh')!==0);   // riêng nhóm đặc điểm về ID
+      // số TÊN THẬT khác nhau + chi nhánh có đồng nhất không (dùng cho tiêu chí tab Check)
+      g.namesCount=new Set(accs.map(a=>NTK.norm(a.name))).size;
+      g.sameBranch=(brs.length===n&&n>1&&new Set(brs.map(b=>NTK.norm(b))).size===1);
+    }
+  },
 
-      // ---- phân loại ----
+  // Tính đặc điểm + phân loại cho MỌI nhóm. Rẻ (chỉ duyệt các nhóm đã gom), gọi lại được khi đổi ngưỡng.
+  classify(){
+    NTK.groups.forEach(g=>{
+      NTK.analyze(g);
+      const n=g.accs.length;
       // Chênh lệch ĐÚNG 0% (mọi TK nạp y hệt nhau) -> luôn là lạm dụng, KHÔNG cần đủ số lượng TK.
       // Ngoài ra mới xét theo cặp điều kiện số TK + ngưỡng chênh lệch.
       const auto=(g.spread!==null)&&(g.spread===0||((n>NTK.MIN_ACCS)&&g.spread<=NTK.MAX_SPREAD));
@@ -406,16 +451,50 @@ const NTK={
       g.moved=(man!==undefined&&man!==auto);
       g.abuse=(man!==undefined)?man:auto;
     });
-    NTK.stats.abuseGroups=NTK.groups.filter(g=>g.abuse).length;
-    NTK.stats.ntkGroups=NTK.groups.length-NTK.stats.abuseGroups;
+    // ---- Nhóm theo IP cho tab Check Lạm Dụng ----
+    // Bỏ những IP mà toàn bộ tài khoản đã nằm gọn trong MỘT nhóm tên+IP đang ở tab Lạm Dụng
+    // -> tránh hiện lại việc đã xử lý.
+    const abuseKeys=new Set(NTK.groups.filter(g=>g.abuse).map(g=>g.key));
+    NTK.ipGroups.forEach(g=>{
+      NTK.analyze(g);
+      const nameKeys=new Set(g.accs.map(a=>NTK.norm(a.name)+'||'+a.ip));
+      g.dupOfAbuse=(nameKeys.size===1&&abuseKeys.has(nameKeys.values().next().value));
+      g.match=NTK.checkMatch(g);
+      const man=NTK.manual[g.key];
+      g.abuse=(man===true);
+      g.moved=g.abuse;
+    });
+    NTK.stats.abuseGroups=NTK.groups.filter(g=>g.abuse).length+NTK.ipGroups.filter(g=>g.abuse).length;
+    NTK.stats.ntkGroups=NTK.groups.length-NTK.groups.filter(g=>g.abuse).length;
+    NTK.stats.checkGroups=NTK.ipGroups.filter(g=>g.match&&!g.abuse&&!g.dupOfAbuse).length;
+  },
+
+  /* Tiêu chí tab Check Lạm Dụng — chọn trên giao diện (#ntkCrit), ngưỡng số TK ở #ntkCheckMin:
+       a = khác tên, cùng IP
+       b = khác tên, cùng IP, cùng chi nhánh
+       c = cùng IP, chênh lệch tiền <= ngưỡng, ID mang dấu hiệu tool  (mặc định — chặt nhất)
+       c2 = như c nhưng đòi từ 2 đặc điểm ID trở lên */
+  CRIT:'c',
+  CHECK_MIN:5,
+  checkMatch(g){
+    if(g.accs.length<NTK.CHECK_MIN)return false;
+    if(NTK.CRIT==='a')return g.namesCount>=2;
+    if(NTK.CRIT==='b')return g.namesCount>=2&&g.sameBranch;
+    const okMoney=(g.spread!==null&&g.spread<=NTK.MAX_SPREAD);
+    if(NTK.CRIT==='c2')return okMoney&&g.idMarks.length>=2;
+    return okMoney&&g.idMarks.length>=1;
   },
 
   // Đổi ngưỡng trên giao diện -> phân loại lại, KHÔNG phải đọc lại file
   setThresh(){
     const sp=parseFloat(document.getElementById('ntkSpread').value),
-          mi=parseInt(document.getElementById('ntkMinAcc').value,10);
+          mi=parseInt(document.getElementById('ntkMinAcc').value,10),
+          cm=parseInt(document.getElementById('ntkCheckMin').value,10),
+          cr=document.getElementById('ntkCrit').value;
     if(isFinite(sp)&&sp>=0&&sp<=100)NTK.MAX_SPREAD=sp/100;
     if(isFinite(mi)&&mi>=1)NTK.MIN_ACCS=mi;
+    if(isFinite(cm)&&cm>=2)NTK.CHECK_MIN=cm;
+    if(cr)NTK.CRIT=cr;
     if(!NTK.stats)return;
     NTK.classify();NTK.page=1;NTK.render();
   },
@@ -424,6 +503,7 @@ const NTK={
 
   /* ================= HIỂN THỊ ================= */
   view:'ntk',
+  ipGroups:[],
   ROWS:200,   // số DÒNG tối đa mỗi trang (0 = xem tất cả); người dùng chọn ở ô "Hiển thị"
 
   // Cắt trang theo số DÒNG nhưng KHÔNG xé lẻ một nhóm: nhóm nào vượt quá thì đẩy sang trang sau.
@@ -443,7 +523,13 @@ const NTK={
 
   filtered(){
     const q=NTK.norm(NTK.q),qr=NTK.q.trim();
-    let g=NTK.groups.filter(x=>NTK.view==='abuse'?x.abuse:!x.abuse);
+    let g;
+    if(NTK.view==='abuse')
+      g=NTK.groups.filter(x=>x.abuse).concat(NTK.ipGroups.filter(x=>x.abuse));
+    else if(NTK.view==='check')
+      g=NTK.ipGroups.filter(x=>x.match&&!x.abuse&&!x.dupOfAbuse);
+    else
+      g=NTK.groups.filter(x=>!x.abuse);
     if(q)g=g.filter(x=>NTK.norm(x.name).indexOf(q)!==-1||x.ip.indexOf(qr)!==-1||
       x.accs.some(a=>a.id.indexOf(qr)!==-1));
     // cùng số TK thì nhóm nhiều "đặc điểm" hơn lên trước
@@ -468,12 +554,14 @@ const NTK={
       card('Dòng hợp lệ sau lọc',nn(st.kept),'var(--gr)')+
       card('Tài khoản phân biệt',nn(st.distinct))+
       card('Nhóm nhiều tài khoản',nn(st.ntkGroups),'var(--go)')+
-      card('Nhóm lạm dụng',nn(st.abuseGroups),'var(--re)');
+      card('Nhóm lạm dụng',nn(st.abuseGroups),'var(--re)')+
+      card('Chờ check theo IP',nn(st.checkGroups),'var(--cy)');
 
-    // ---- 2 tab nhỏ ----
+    // ---- 3 tab nhỏ ----
     document.getElementById('ntkViews').innerHTML=
       '<div class="vt-btn'+(NTK.view==='ntk'?' active':'')+'" onclick="NTK.setView(\'ntk\')">Nhóm Nhiều Tài Khoản ('+nn(st.ntkGroups)+')</div>'+
-      '<div class="vt-btn'+(NTK.view==='abuse'?' active':'')+'" onclick="NTK.setView(\'abuse\')">Nhóm Lạm Dụng ('+nn(st.abuseGroups)+')</div>';
+      '<div class="vt-btn'+(NTK.view==='abuse'?' active':'')+'" onclick="NTK.setView(\'abuse\')">Nhóm Lạm Dụng ('+nn(st.abuseGroups)+')</div>'+
+      '<div class="vt-btn'+(NTK.view==='check'?' active':'')+'" onclick="NTK.setView(\'check\')">Check Lạm Dụng ('+nn(st.checkGroups)+')</div>';
 
     // ---- Bảng minh bạch phần bị loại ----
     const drop=[
@@ -525,9 +613,12 @@ const NTK={
             (g.marks.length?g.marks.map(m=>'<span class="ntk-mark">'+m+'</span>').join(' '):
              '<span style="color:var(--mu)">—</span>')+
             (g.moved?'<div><span class="ntk-mark" style="background:rgba(6,182,212,.16);border-color:rgba(6,182,212,.45);color:#67e8f9">Chuyển tay</span></div>':'')+
+            (NTK.view==='check'?'<div><span class="ntk-mark" style="background:rgba(6,182,212,.16);border-color:rgba(6,182,212,.45);color:#67e8f9">'+
+              g.namesCount+' tên khác nhau</span></div>':'')+
             '<div style="margin-top:6px"><button class="abtn abtn-sm '+(NTK.view==='abuse'?'abtn-ghost':'abtn-danger')+'" '+
             'onclick="NTK.move(\''+encodeURIComponent(g.key)+'\','+(NTK.view==='abuse'?'false':'true')+')">'+
-            (NTK.view==='abuse'?'↩ Trả về Nhiều TK':'⇢ Chuyển nhóm LD')+'</button></div></td>':'')+
+            (NTK.view==='abuse'?(g.key.indexOf('ip||')===0?'↩ Trả về Check':'↩ Trả về Nhiều TK'):'⇢ Chuyển nhóm LD')+
+            '</button></div></td>':'')+
           '</tr>');
       });
       rows.push('<tr class="ntk-gap"><td colspan="11"></td></tr>');
@@ -607,7 +698,7 @@ const NTK={
     };
     const xml='<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?>'+
       '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'+
-      styles+'<Worksheet ss:Name="'+(abuse?'Nhom Lam Dung':'Lenh NTK')+'"><Table>'+
+      styles+'<Worksheet ss:Name="'+(abuse?'Nhom Lam Dung':(NTK.view==='check'?'Check Lam Dung':'Lenh NTK'))+'"><Table>'+
       hdr.map((h,i)=>'<Column ss:AutoFitWidth="0" ss:Width="'+width(i)+'"/>').join('')+
       '<Row>'+hdr.map(h=>'<Cell ss:StyleID="h"><Data ss:Type="String">'+esc(h)+'</Data></Cell>').join('')+'</Row>'+
       body.map(r=>'<Row>'+r.map(cell).join('')+'</Row>').join('')+
@@ -615,14 +706,15 @@ const NTK={
 
     const blob=new Blob(['﻿'+xml],{type:'application/vnd.ms-excel;charset=utf-8'});
     const url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download=(abuse?'Nhom_Lam_Dung_':'Lenh_NTK_')+new Date().toISOString().slice(0,10)+'.xls';
+    a.href=url;a.download=(abuse?'Nhom_Lam_Dung_':(NTK.view==='check'?'Check_Lam_Dung_':'Lenh_NTK_'))+
+      new Date().toISOString().slice(0,10)+'.xls';
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),2000);
   },
 
   clearAll(){
     if(NTK.groups.length&&!confirm('Xóa toàn bộ dữ liệu NTK đang có trong phiên này?'))return;
-    NTK.rows=[];NTK.groups=[];NTK.stats=null;NTK.page=1;NTK.q='';NTK.fileName='';NTK.manual={};
+    NTK.rows=[];NTK.groups=[];NTK.ipGroups=[];NTK.stats=null;NTK.page=1;NTK.q='';NTK.fileName='';NTK.manual={};
     const b=document.getElementById('ntkBody');if(b)b.style.display='none';
     const s=document.getElementById('ntkSearch');if(s)s.value='';
     NTK.setProg(-1);NTK.setStatus('Đã xóa dữ liệu. Thả file mới để bắt đầu lại.');

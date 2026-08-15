@@ -927,6 +927,21 @@
       <span style="font-size:.58rem;color:var(--mu)">Đổi số là phân loại lại ngay, không phải nạp lại file.</span>
     </div>
 
+    <div class="chart-card" style="margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <span style="font-size:.62rem;color:var(--cy);font-weight:700;text-transform:uppercase;letter-spacing:.1em">Tiêu chí tab Check Lạm Dụng</span>
+      <select id="ntkCrit" onchange="NTK.setThresh()"
+              style="background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:6px;padding:4px 8px;font-size:.62rem;outline:none">
+        <option value="c" selected>Cùng IP · chênh lệch trong ngưỡng · ID kiểu tool</option>
+        <option value="c2">Như trên, nhưng phải có từ 2 đặc điểm ID</option>
+        <option value="a">Khác tên · cùng IP</option>
+        <option value="b">Khác tên · cùng IP · cùng chi nhánh</option>
+      </select>
+      <label style="font-size:.64rem;color:var(--tx);display:flex;align-items:center;gap:6px">Số tài khoản tối thiểu
+        <input id="ntkCheckMin" type="number" min="2" max="99" step="1" value="5" onchange="NTK.setThresh()"
+               style="width:56px;background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:6px;padding:4px 8px;font-size:.62rem;text-align:center;outline:none"></label>
+      <span style="font-size:.58rem;color:var(--mu)">Gom theo IP (không cần cùng tên) — diện nghi ngờ, nhân viên check rồi tự chuyển sang tab Lạm Dụng.</span>
+    </div>
+
     <div class="chart-card">
       <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
         <span style="color:var(--go)">Danh sách nhóm <span id="ntkCount" style="color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400"></span></span>
