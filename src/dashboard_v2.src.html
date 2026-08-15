@@ -756,7 +756,7 @@
   <div class="ph"><div><div class="ph-title">Tổng Hợp Toàn Bộ</div><div class="ph-sub">Chỉ tính thành viên đủ điều kiện (nạp ≥ 1,000 & cược ≥ 3,000) · Đại lý cần ≥ 3 KH hợp lệ</div></div></div>
   <div class="cards" id="bc-summary-cards"></div>
   <div class="tbl-toolbar">
-    <input type="text" id="bc-s-all" placeholder="Tìm ID, Họ tên, Đại lý, Ngân hàng..." oninput="BC.filterAll()">
+    <input type="text" id="bc-s-all" placeholder="Tìm ID, Họ tên, Đại lý, Ngân hàng... (dán nhiều đại lý: a, b, c)" oninput="BC.filterAll()" style="width:340px">
     <span class="bc-badge" id="bc-cnt-all"></span>
     <button class="export-btn" onclick="BC.exportCSV('all')">⬇ Xuất CSV</button>
   </div>
@@ -797,6 +797,8 @@
   <div class="ph"><div><div class="ph-title">Kiểm Tra Theo Đại Lý</div><div class="ph-sub">Bấm vào Ô trong bảng để tô/bỏ tô điểm nghi ngờ (cam · riêng Âm/Dương đỏ) — file Excel gửi Telegram sẽ tô đúng các ô này · F5 là mất đánh dấu</div></div></div>
   <div class="agent-sel-bar">
     <select id="bc-agent-select" onchange="BC.loadAgent()"><option value="">-- Chọn đại lý --</option></select>
+    <input type="text" id="bc-agent-text" list="bc-agent-list" placeholder="Hoặc dán tên đại lý..." oninput="BC.pickAgentText(this,1)" onchange="BC.pickAgentText(this,0)">
+    <datalist id="bc-agent-list"></datalist>
     <button class="bc-bt-trigger" onclick="BC.openBtModal()">Báo cáo đại lý bất thường</button>
     <button class="bc-cu-trigger" onclick="BC.openCuModal()">Báo cáo cược bất thường</button>
   </div>

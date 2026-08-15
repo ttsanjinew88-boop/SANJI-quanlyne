@@ -410,6 +410,8 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .bc-tool .agent-sel-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .bc-tool .agent-sel-bar select{padding:7px 12px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-weight:bold;color:var(--tx);min-width:240px;cursor:pointer;background:var(--card2);outline:none}
 .bc-tool .agent-sel-bar select:focus{border-color:var(--pu)}
+.bc-tool .agent-sel-bar input{padding:7px 12px;border:1px solid var(--border2);border-radius:6px;font-size:12px;color:var(--tx);min-width:220px;background:var(--card2);outline:none}
+.bc-tool .agent-sel-bar input:focus{border-color:var(--pu)}
 .bc-tool .info-bar{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
 .bc-tool .info-item .lbl{font-size:10px;color:var(--mu2)}
 .bc-tool .info-item .val{font-size:14px;font-weight:bold;color:var(--pu2)}
@@ -418,6 +420,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .bc-tool .pg-btn.on{background:var(--pu);color:white;border-color:var(--pu)}
 .bc-tool .pg-btn:hover:not(.on){background:rgba(124,58,237,.1)}
 .bc-tool .pg-info{font-size:10px;color:var(--mu);margin:0 5px}
+.bc-tool .pg-sel{padding:3px 6px;border:1px solid var(--border2);border-radius:3px;font-size:10px;background:var(--card2);color:var(--tx);cursor:pointer;margin-right:6px}
 .bc-tool .ph{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .bc-tool .ph-title{font-size:15px;font-weight:bold;color:var(--pu2)}
 .bc-tool .ph-sub{font-size:10px;color:var(--mu)}

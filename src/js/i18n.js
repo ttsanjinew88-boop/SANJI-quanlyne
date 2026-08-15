@@ -640,6 +640,8 @@ const I18N={
   "Tổng Hợp Toàn Bộ":"Full Summary",
   "Chỉ tính thành viên đủ điều kiện (nạp ≥ 1,000 & cược ≥ 3,000) · Đại lý cần ≥ 3 KH hợp lệ":"Counts qualified players only (deposits ≥ 1,000 & valid bets ≥ 3,000) · An affiliate needs ≥ 3 qualified players",
   "Tìm ID, Họ tên, Đại lý, Ngân hàng...":"Search ID, full name, affiliate, bank...",
+  "Tìm ID, Họ tên, Đại lý, Ngân hàng... (dán nhiều đại lý: a, b, c)":"Search ID, full name, affiliate, bank... (paste many affiliates: a, b, c)",
+  "Hoặc dán tên đại lý...":"Or paste affiliate name...",
   "Tìm tên đại lý...":"Search affiliate name...",
   "Danh Sách Đại Lý Đủ Điều Kiện":"Qualified Affiliates",
   "Đại lý có ≥ 3 KH hợp lệ":"Affiliates with ≥ 3 qualified players",

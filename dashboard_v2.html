@@ -424,6 +424,8 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .bc-tool .agent-sel-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .bc-tool .agent-sel-bar select{padding:7px 12px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-weight:bold;color:var(--tx);min-width:240px;cursor:pointer;background:var(--card2);outline:none}
 .bc-tool .agent-sel-bar select:focus{border-color:var(--pu)}
+.bc-tool .agent-sel-bar input{padding:7px 12px;border:1px solid var(--border2);border-radius:6px;font-size:12px;color:var(--tx);min-width:220px;background:var(--card2);outline:none}
+.bc-tool .agent-sel-bar input:focus{border-color:var(--pu)}
 .bc-tool .info-bar{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
 .bc-tool .info-item .lbl{font-size:10px;color:var(--mu2)}
 .bc-tool .info-item .val{font-size:14px;font-weight:bold;color:var(--pu2)}
@@ -432,6 +434,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .bc-tool .pg-btn.on{background:var(--pu);color:white;border-color:var(--pu)}
 .bc-tool .pg-btn:hover:not(.on){background:rgba(124,58,237,.1)}
 .bc-tool .pg-info{font-size:10px;color:var(--mu);margin:0 5px}
+.bc-tool .pg-sel{padding:3px 6px;border:1px solid var(--border2);border-radius:3px;font-size:10px;background:var(--card2);color:var(--tx);cursor:pointer;margin-right:6px}
 .bc-tool .ph{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .bc-tool .ph-title{font-size:15px;font-weight:bold;color:var(--pu2)}
 .bc-tool .ph-sub{font-size:10px;color:var(--mu)}
@@ -1818,6 +1821,8 @@ const I18N={
   "Tổng Hợp Toàn Bộ":"Full Summary",
   "Chỉ tính thành viên đủ điều kiện (nạp ≥ 1,000 & cược ≥ 3,000) · Đại lý cần ≥ 3 KH hợp lệ":"Counts qualified players only (deposits ≥ 1,000 & valid bets ≥ 3,000) · An affiliate needs ≥ 3 qualified players",
   "Tìm ID, Họ tên, Đại lý, Ngân hàng...":"Search ID, full name, affiliate, bank...",
+  "Tìm ID, Họ tên, Đại lý, Ngân hàng... (dán nhiều đại lý: a, b, c)":"Search ID, full name, affiliate, bank... (paste many affiliates: a, b, c)",
+  "Hoặc dán tên đại lý...":"Or paste affiliate name...",
   "Tìm tên đại lý...":"Search affiliate name...",
   "Danh Sách Đại Lý Đủ Điều Kiện":"Qualified Affiliates",
   "Đại lý có ≥ 3 KH hợp lệ":"Affiliates with ≥ 3 qualified players",
@@ -6067,7 +6072,7 @@ rAll();
   <div class="ph"><div><div class="ph-title">Tổng Hợp Toàn Bộ</div><div class="ph-sub">Chỉ tính thành viên đủ điều kiện (nạp ≥ 1,000 & cược ≥ 3,000) · Đại lý cần ≥ 3 KH hợp lệ</div></div></div>
   <div class="cards" id="bc-summary-cards"></div>
   <div class="tbl-toolbar">
-    <input type="text" id="bc-s-all" placeholder="Tìm ID, Họ tên, Đại lý, Ngân hàng..." oninput="BC.filterAll()">
+    <input type="text" id="bc-s-all" placeholder="Tìm ID, Họ tên, Đại lý, Ngân hàng... (dán nhiều đại lý: a, b, c)" oninput="BC.filterAll()" style="width:340px">
     <span class="bc-badge" id="bc-cnt-all"></span>
     <button class="export-btn" onclick="BC.exportCSV('all')">⬇ Xuất CSV</button>
   </div>
@@ -6108,6 +6113,8 @@ rAll();
   <div class="ph"><div><div class="ph-title">Kiểm Tra Theo Đại Lý</div><div class="ph-sub">Bấm vào Ô trong bảng để tô/bỏ tô điểm nghi ngờ (cam · riêng Âm/Dương đỏ) — file Excel gửi Telegram sẽ tô đúng các ô này · F5 là mất đánh dấu</div></div></div>
   <div class="agent-sel-bar">
     <select id="bc-agent-select" onchange="BC.loadAgent()"><option value="">-- Chọn đại lý --</option></select>
+    <input type="text" id="bc-agent-text" list="bc-agent-list" placeholder="Hoặc dán tên đại lý..." oninput="BC.pickAgentText(this,1)" onchange="BC.pickAgentText(this,0)">
+    <datalist id="bc-agent-list"></datalist>
     <button class="bc-bt-trigger" onclick="BC.openBtModal()">Báo cáo đại lý bất thường</button>
     <button class="bc-cu-trigger" onclick="BC.openCuModal()">Báo cáo cược bất thường</button>
   </div>
@@ -6623,13 +6630,26 @@ const BC={
       i2=j;
     }
     document.getElementById('bc-body-all').innerHTML=html;
-    document.getElementById('bc-cnt-all').textContent=BC.filtAll.length+' kết quả';
+    document.getElementById('bc-cnt-all').textContent=BC.filtAll.length+' kết quả'+(BC.multiInfo||'');
     BC.renderPg('bc-pg-all',BC.filtAll.length,BC.pgAll,p=>{BC.pgAll=p;BC.renderAll();});
   },
 
+  /* CHỈ tab Tổng Hợp: dán nhiều tên đại lý (ngăn bằng dấu phẩy / xuống dòng / tab / chấm phẩy)
+     -> lọc theo ĐÚNG tên đại lý, dán bao nhiêu hiện bấy nhiêu. 1 từ khoá = tìm thường như cũ. */
   filterAll(){
-    const q=document.getElementById('bc-s-all').value.toLowerCase();
-    BC.filtAll=q?BC.ROWS.filter(r=>r.id.toLowerCase().includes(q)||r.ho_ten.toLowerCase().includes(q)||r.dai_ly.toLowerCase().includes(q)||(r.ngan_hang||'').toLowerCase().includes(q)):[...BC.ROWS];
+    const raw=document.getElementById('bc-s-all').value.trim();
+    const parts=raw.split(/[,;\n\r\t]+/).map(s=>s.trim()).filter(Boolean);
+    BC.multiInfo='';
+    if(parts.length>1){
+      const want=new Set(parts.map(s=>s.toLowerCase()));
+      BC.filtAll=BC.ROWS.filter(r=>want.has((r.dai_ly||'').toLowerCase()));
+      const found=new Set(BC.filtAll.map(r=>(r.dai_ly||'').toLowerCase()));
+      const miss=parts.filter(p=>!found.has(p.toLowerCase()));
+      BC.multiInfo=` · ${found.size}/${want.size} đại lý`+(miss.length?` · không thấy: ${miss.join(', ')}`:'');
+    }else{
+      const q=raw.toLowerCase();
+      BC.filtAll=q?BC.ROWS.filter(r=>r.id.toLowerCase().includes(q)||r.ho_ten.toLowerCase().includes(q)||r.dai_ly.toLowerCase().includes(q)||(r.ngan_hang||'').toLowerCase().includes(q)):[...BC.ROWS];
+    }
     BC.pgAll=1;BC.renderAll();
   },
 
@@ -6690,7 +6710,7 @@ const BC={
     ].map(([l,v])=>`<div class="info-item"><div class="lbl">${l}</div><div class="val">${v}</div></div>`).join('');
     const A=(i,f,cls)=>BC.mkAttr(name,i,f,cls);
     document.getElementById('bc-body-detail').innerHTML=rows.map((r,i)=>{
-      const tb=r.thiet_bi==='Điện thoại'?'<span class="b-dt">ĐT</span>':'<span class="b-mt">MT</span>';
+      const tb=r.thiet_bi==='Điện thoại'?'<span class="b-dt">Điện Thoại</span>':'<span class="b-mt">Máy Tính</span>';
       const kh=r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>';
       const ct=r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-chua">Chưa</span>';
       return`<tr><td class="tc stt">${i+1}</td><td ${A(i,'id')}>${hesc(r.id)}</td>
@@ -6708,7 +6728,21 @@ const BC={
     }).join('');
   },
 
-  goAgent(name){document.getElementById('bc-agent-select').value=name;BC.loadAgent();BC.showPanel('detail');},
+  goAgent(name){const s=document.getElementById('bc-agent-select');s.value=name;const t=document.getElementById('bc-agent-text');if(t){t.value=name;t.style.borderColor='';}BC.loadAgent();BC.showPanel('detail');},
+
+  /* Ô dán tên đại lý ở tab Kiểm Tra: gõ/dán -> khớp đúng tên thì mở luôn; Enter/rời ô thì chấp nhận khớp một phần */
+  pickAgentText(el,strict){
+    const q=(el.value||'').trim().toLowerCase();
+    el.style.borderColor='';
+    if(!q){return;}
+    const names=BC.AGENTS.map(a=>a.dai_ly);
+    let hit=names.find(n=>n.toLowerCase()===q);
+    if(!hit&&!strict)hit=names.find(n=>n.toLowerCase().includes(q));
+    if(!hit){if(!strict)el.style.borderColor='#ef4444';return;}
+    const sel=document.getElementById('bc-agent-select');
+    if(sel.value===hit)return;
+    sel.value=hit;BC.loadAgent();
+  },
 
   initCards(){
     const tn=BC.ROWS.reduce((s,r)=>s+r.tien_nap,0);
@@ -6731,14 +6765,22 @@ const BC={
     const sel=document.getElementById('bc-agent-select');
     sel.innerHTML='<option value="">-- Chọn đại lý --</option>';
     BC.AGENTS.forEach(a=>{const o=document.createElement('option');o.value=a.dai_ly;o.textContent=`${a.dai_ly} (${a.khach_hop_le} KH hợp lệ)`;sel.appendChild(o);});
+    const dl=document.getElementById('bc-agent-list');
+    if(dl)dl.innerHTML=BC.AGENTS.map(a=>`<option value="${hesc(a.dai_ly)}"></option>`).join('');
+    const at=document.getElementById('bc-agent-text');
+    if(at){at.value='';at.style.borderColor='';}
     document.getElementById('bc-body-detail').innerHTML='<tr><td colspan="20" class="empty">Chọn đại lý để xem chi tiết</td></tr>';
     document.getElementById('bc-info-bar').style.display='none';
   },
 
   renderPg(id,total,cur,onClick){
-    const pages=Math.ceil(total/BC.PS);
-    if(pages<=1){document.getElementById(id).innerHTML='';return;}
-    let h=`<span class="pg-info">Trang ${cur}/${pages}</span>`;
+    const pages=Math.max(1,Math.ceil(total/BC.PS));
+    if(cur>pages)cur=pages;
+    /* Ô chọn số dòng mỗi trang (dùng chung BC.PS cho mọi bảng); 0 = tất cả */
+    const opts=[100,200,500,1000].map(n=>`<option value="${n}"${n===BC.PS?' selected':''}>${n} dòng/trang</option>`).join('')
+      +`<option value="0"${BC.PS>=1e9?' selected':''}>Tất cả</option>`;
+    let h=`<select class="pg-sel" onchange="BC.PS=(+this.value||1e9);(${onClick})(1)">${opts}</select>`;
+    h+=`<span class="pg-info">Trang ${cur}/${pages}</span>`;
     if(cur>1)h+=`<button class="pg-btn" onclick="(${onClick})(${cur-1})">‹</button>`;
     for(let p=Math.max(1,cur-2);p<=Math.min(pages,cur+2);p++)
       h+=`<button class="pg-btn ${p===cur?'on':''}" onclick="(${onClick})(${p})">${p}</button>`;
