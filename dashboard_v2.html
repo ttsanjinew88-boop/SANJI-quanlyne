@@ -7640,7 +7640,9 @@ const NTK={
       g.marks=marks;
 
       // ---- phân loại ----
-      const auto=(n>NTK.MIN_ACCS)&&(g.spread!==null)&&(g.spread<=NTK.MAX_SPREAD);
+      // Chênh lệch ĐÚNG 0% (mọi TK nạp y hệt nhau) -> luôn là lạm dụng, KHÔNG cần đủ số lượng TK.
+      // Ngoài ra mới xét theo cặp điều kiện số TK + ngưỡng chênh lệch.
+      const auto=(g.spread!==null)&&(g.spread===0||((n>NTK.MIN_ACCS)&&g.spread<=NTK.MAX_SPREAD));
       // Người dùng chuyển tay ĐÈ lên kết quả tự động, và giữ nguyên khi đổi ngưỡng
       const man=NTK.manual[g.key];
       g.auto=auto;
