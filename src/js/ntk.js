@@ -459,6 +459,7 @@ const NTK={
       NTK.analyze(g);
       const nameKeys=new Set(g.accs.map(a=>NTK.norm(a.name)+'||'+a.ip));
       g.dupOfAbuse=(nameKeys.size===1&&abuseKeys.has(nameKeys.values().next().value));
+      g.hits=NTK.critHits(g);
       g.match=NTK.checkMatch(g);
       NTK.verdict(g);
       const man=NTK.manual[g.key];
@@ -477,8 +478,18 @@ const NTK={
        b = khác tên, cùng IP, cùng chi nhánh
        c = cùng IP, chênh lệch tiền <= ngưỡng, ID mang dấu hiệu tool  (mặc định — chặt nhất)
        c2 = như c nhưng đòi từ 2 đặc điểm ID trở lên */
-  CRIT:'c',
+  CRIT:'all',
   CHECK_MIN:5,
+
+  // Nhóm khớp những tiêu chí nào (để hiện nhãn, và để chế độ "gộp" biết vì sao nhóm lọt vào)
+  critHits(g){
+    const h=[];
+    if(g.namesCount>=2)h.push('Khác tên cùng IP');
+    if(g.namesCount>=2&&g.sameBranch)h.push('Cùng chi nhánh');
+    if(g.spread!==null&&g.spread<=NTK.MAX_SPREAD&&g.idMarks.length>=1)
+      h.push(g.idMarks.length>=2?'ID kiểu tool (≥2 dấu hiệu)':'ID kiểu tool');
+    return h;
+  },
 
   /* Kết luận GỢI Ý cho nhóm ở tab Check (nhân viên vẫn là người quyết định).
      Chấm điểm minh bạch, mỗi điểm đều nhìn thấy được trên bảng:
@@ -500,6 +511,7 @@ const NTK={
   },
   checkMatch(g){
     if(g.accs.length<NTK.CHECK_MIN)return false;
+    if(NTK.CRIT==='all')return g.hits.length>0;   // gộp: khớp BẤT KỲ tiêu chí nào là vào
     if(NTK.CRIT==='a')return g.namesCount>=2;
     if(NTK.CRIT==='b')return g.namesCount>=2&&g.sameBranch;
     const okMoney=(g.spread!==null&&g.spread<=NTK.MAX_SPREAD);
@@ -578,14 +590,14 @@ const NTK={
       card('Dòng hợp lệ sau lọc',nn(st.kept),'var(--gr)')+
       card('Tài khoản phân biệt',nn(st.distinct))+
       card('Nhóm nhiều tài khoản',nn(st.ntkGroups),'var(--go)')+
-      card('Nhóm lạm dụng',nn(st.abuseGroups),'var(--re)')+
-      card('Chờ check theo IP',nn(st.checkGroups),'var(--cy)');
+      card('Chờ check theo IP',nn(st.checkGroups),'var(--cy)')+
+      card('Nhóm lạm dụng',nn(st.abuseGroups),'var(--re)');
 
-    // ---- 3 tab nhỏ ----
+    // ---- 3 tab nhỏ (thứ tự: Nhiều TK -> Check -> Lạm Dụng, theo luồng xử lý của nhân viên) ----
     document.getElementById('ntkViews').innerHTML=
       '<div class="vt-btn'+(NTK.view==='ntk'?' active':'')+'" onclick="NTK.setView(\'ntk\')">Nhóm Nhiều Tài Khoản ('+nn(st.ntkGroups)+')</div>'+
-      '<div class="vt-btn'+(NTK.view==='abuse'?' active':'')+'" onclick="NTK.setView(\'abuse\')">Nhóm Lạm Dụng ('+nn(st.abuseGroups)+')</div>'+
-      '<div class="vt-btn'+(NTK.view==='check'?' active':'')+'" onclick="NTK.setView(\'check\')">Check Lạm Dụng ('+nn(st.checkGroups)+')</div>';
+      '<div class="vt-btn'+(NTK.view==='check'?' active':'')+'" onclick="NTK.setView(\'check\')">Check Lạm Dụng ('+nn(st.checkGroups)+')</div>'+
+      '<div class="vt-btn'+(NTK.view==='abuse'?' active':'')+'" onclick="NTK.setView(\'abuse\')">Nhóm Lạm Dụng ('+nn(st.abuseGroups)+')</div>';
 
     // ---- Bảng minh bạch phần bị loại ----
     const drop=[
@@ -639,7 +651,8 @@ const NTK={
              '<span style="color:var(--mu)">—</span>')+
             (g.moved?'<div><span class="ntk-mark" style="background:rgba(6,182,212,.16);border-color:rgba(6,182,212,.45);color:#67e8f9">Chuyển tay</span></div>':'')+
             (NTK.view==='check'?'<div><span class="ntk-mark" style="background:rgba(6,182,212,.16);border-color:rgba(6,182,212,.45);color:#67e8f9">'+
-              g.namesCount+' tên khác nhau</span></div>'+
+              g.namesCount+' tên khác nhau</span>'+
+              g.hits.map(h=>'<span class="ntk-mark" style="background:rgba(124,58,237,.18);border-color:rgba(124,58,237,.45);color:#c4b5fd">'+h+'</span>').join('')+'</div>'+
               '<div style="margin-top:5px;font-weight:800;font-size:.62rem;color:'+g.vColor+'">'+
               g.verdict+' <span style="color:var(--mu);font-weight:400">('+g.score+' điểm)</span></div>':'')+
             '<div style="margin-top:6px"><button class="abtn abtn-sm '+(NTK.view==='abuse'?'abtn-ghost':'abtn-danger')+'" '+
