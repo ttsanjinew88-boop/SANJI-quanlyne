@@ -460,13 +460,16 @@ const NTK={
       const nameKeys=new Set(g.accs.map(a=>NTK.norm(a.name)+'||'+a.ip));
       g.dupOfAbuse=(nameKeys.size===1&&abuseKeys.has(nameKeys.values().next().value));
       g.match=NTK.checkMatch(g);
+      NTK.verdict(g);
       const man=NTK.manual[g.key];
       g.abuse=(man===true);
       g.moved=g.abuse;
     });
     NTK.stats.abuseGroups=NTK.groups.filter(g=>g.abuse).length+NTK.ipGroups.filter(g=>g.abuse).length;
     NTK.stats.ntkGroups=NTK.groups.length-NTK.groups.filter(g=>g.abuse).length;
-    NTK.stats.checkGroups=NTK.ipGroups.filter(g=>g.match&&!g.abuse&&!g.dupOfAbuse).length;
+    const chk=NTK.ipGroups.filter(g=>g.match&&!g.abuse&&!g.dupOfAbuse);
+    NTK.stats.checkGroups=chk.length;
+    NTK.stats.checkSuggest=chk.filter(g=>g.score>=6).length;   // số nhóm hệ thống khuyên đưa sang Lạm Dụng
   },
 
   /* Tiêu chí tab Check Lạm Dụng — chọn trên giao diện (#ntkCrit), ngưỡng số TK ở #ntkCheckMin:
@@ -476,6 +479,25 @@ const NTK={
        c2 = như c nhưng đòi từ 2 đặc điểm ID trở lên */
   CRIT:'c',
   CHECK_MIN:5,
+
+  /* Kết luận GỢI Ý cho nhóm ở tab Check (nhân viên vẫn là người quyết định).
+     Chấm điểm minh bạch, mỗi điểm đều nhìn thấy được trên bảng:
+       tiền nạp y hệt nhau            +3
+       tiền nạp trong ngưỡng          +2
+       mỗi đặc điểm ID (tối đa 3)     +1
+       chi nhánh khai giống hệt       +1
+       số TK gấp đôi ngưỡng           +1  */
+  verdict(g){
+    let s=0;
+    if(g.spread===0)s+=3;
+    else if(g.spread!==null&&g.spread<=NTK.MAX_SPREAD)s+=2;
+    s+=Math.min(3,g.idMarks?g.idMarks.length:0);
+    if(g.sameBranch)s+=1;
+    if(g.accs.length>=NTK.CHECK_MIN*2)s+=1;
+    g.score=s;
+    g.verdict=s>=6?'Nên đưa vào Lạm Dụng':(s>=4?'Nghi ngờ cao':'Cần xem thêm');
+    g.vColor=s>=6?'var(--re)':(s>=4?'var(--go)':'var(--mu2)');
+  },
   checkMatch(g){
     if(g.accs.length<NTK.CHECK_MIN)return false;
     if(NTK.CRIT==='a')return g.namesCount>=2;
@@ -532,8 +554,10 @@ const NTK={
       g=NTK.groups.filter(x=>!x.abuse);
     if(q)g=g.filter(x=>NTK.norm(x.name).indexOf(q)!==-1||x.ip.indexOf(qr)!==-1||
       x.accs.some(a=>a.id.indexOf(qr)!==-1));
-    // cùng số TK thì nhóm nhiều "đặc điểm" hơn lên trước
+    // Tab Check: xếp theo ĐIỂM KẾT LUẬN giảm dần để nhóm đáng ngờ nhất nằm trên cùng.
+    // Hai tab kia: theo số TK, cùng số TK thì nhóm nhiều "đặc điểm" hơn lên trước.
     g=g.slice().sort((a,b)=>{
+      if(NTK.view==='check'&&b.score!==a.score)return b.score-a.score;
       const d=NTK.sortDesc?b.accs.length-a.accs.length:a.accs.length-b.accs.length;
       return d!==0?d:(b.marks.length-a.marks.length);
     });
@@ -583,7 +607,8 @@ const NTK={
     if(NTK.page>tot)NTK.page=tot;
     const pageItems=pages[NTK.page-1]||[];
     const totRows=all.reduce((s,g)=>s+g.accs.length,0);
-    document.getElementById('ntkCount').textContent=nn(all.length)+' nhóm · '+nn(totRows)+' dòng';
+    document.getElementById('ntkCount').textContent=nn(all.length)+' nhóm · '+nn(totRows)+' dòng'+
+      (NTK.view==='check'?' · '+nn(st.checkSuggest)+' nhóm nên chuyển':'');
 
     if(!all.length){
       document.getElementById('ntkList').innerHTML=
@@ -614,7 +639,9 @@ const NTK={
              '<span style="color:var(--mu)">—</span>')+
             (g.moved?'<div><span class="ntk-mark" style="background:rgba(6,182,212,.16);border-color:rgba(6,182,212,.45);color:#67e8f9">Chuyển tay</span></div>':'')+
             (NTK.view==='check'?'<div><span class="ntk-mark" style="background:rgba(6,182,212,.16);border-color:rgba(6,182,212,.45);color:#67e8f9">'+
-              g.namesCount+' tên khác nhau</span></div>':'')+
+              g.namesCount+' tên khác nhau</span></div>'+
+              '<div style="margin-top:5px;font-weight:800;font-size:.62rem;color:'+g.vColor+'">'+
+              g.verdict+' <span style="color:var(--mu);font-weight:400">('+g.score+' điểm)</span></div>':'')+
             '<div style="margin-top:6px"><button class="abtn abtn-sm '+(NTK.view==='abuse'?'abtn-ghost':'abtn-danger')+'" '+
             'onclick="NTK.move(\''+encodeURIComponent(g.key)+'\','+(NTK.view==='abuse'?'false':'true')+')">'+
             (NTK.view==='abuse'?(g.key.indexOf('ip||')===0?'↩ Trả về Check':'↩ Trả về Nhiều TK'):'⇢ Chuyển nhóm LD')+
