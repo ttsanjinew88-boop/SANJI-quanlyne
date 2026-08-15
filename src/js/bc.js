@@ -304,10 +304,12 @@ const BC={
       const chk=(CUR_PROFILE&&CUR_PROFILE.is_admin)
         ?`<label style="display:flex;align-items:center;justify-content:center;gap:4px;font-size:9px;color:${flagged?'#f87171':'var(--mu2)'};cursor:pointer;font-weight:700"><input type="checkbox" ${flagged?'checked':''} onchange="BC.toggleSuspect('${ag}',this)" style="accent-color:#ef4444;cursor:pointer">Nghi ngờ</label>`
         :'';
+      /* Đại lý đã đưa vào tab Nghi Ngờ -> nhãn xanh "Đã Xử Lý" (mọi vai trò đều thấy, kể cả khi không có ô tích) */
+      const done=flagged?'<span class="bc-done" title="Đại lý đã được đưa vào danh sách Nghi Ngờ để xử lý">Đã Xử Lý</span>':'';
       agCell=`<td rowspan="${agSpan||1}" style="vertical-align:middle">
         <div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:2px">
           <b style="cursor:pointer;color:#9f67ff;text-decoration:underline" title="Bấm để kiểm tra đại lý" onclick="BC.goAgent('${ag}')">${hesc(r.dai_ly)}</b>
-          ${chk}
+          ${chk}${done}
         </div>
       </td>`;
     }
@@ -472,6 +474,8 @@ const BC={
   },
 
   rebuildAll(){
+    /* Nạp lại danh sách nghi ngờ từ cloud để nhãn "Đã Xử Lý" luôn mới, không cần F5 */
+    BC.loadSuspects().then(()=>BC.renderAll()).catch(()=>{});
     BC.initCards();BC.renderAll();BC.renderAgents();
     const sel=document.getElementById('bc-agent-select');
     sel.innerHTML='<option value="">-- Chọn đại lý --</option>';

@@ -412,6 +412,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .bc-tool .tc{text-align:center}.bc-tool .tl{text-align:left}
 .bc-tool .stt{color:var(--mu);font-size:10px}
 .bc-tool .b-dat{background:#22c55e;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
+.bc-tool .bc-done{background:#16a34a;color:#fff;padding:2px 8px;border-radius:9px;font-size:9px;font-weight:700;white-space:nowrap}
 .bc-tool .b-chua{background:#ef4444;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
 .bc-tool .b-moi{background:#3b82f6;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
 .bc-tool .b-cu{background:#475569;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
@@ -1823,6 +1824,7 @@ const I18N={
   "Tìm ID, Họ tên, Đại lý, Ngân hàng...":"Search ID, full name, affiliate, bank...",
   "Tìm ID, Họ tên, Đại lý, Ngân hàng... (dán nhiều đại lý: a, b, c)":"Search ID, full name, affiliate, bank... (paste many affiliates: a, b, c)",
   "Hoặc dán tên đại lý...":"Or paste affiliate name...",
+  "Đã Xử Lý":"Handled",
   "Tìm tên đại lý...":"Search affiliate name...",
   "Danh Sách Đại Lý Đủ Điều Kiện":"Qualified Affiliates",
   "Đại lý có ≥ 3 KH hợp lệ":"Affiliates with ≥ 3 qualified players",
@@ -6593,10 +6595,12 @@ const BC={
       const chk=(CUR_PROFILE&&CUR_PROFILE.is_admin)
         ?`<label style="display:flex;align-items:center;justify-content:center;gap:4px;font-size:9px;color:${flagged?'#f87171':'var(--mu2)'};cursor:pointer;font-weight:700"><input type="checkbox" ${flagged?'checked':''} onchange="BC.toggleSuspect('${ag}',this)" style="accent-color:#ef4444;cursor:pointer">Nghi ngờ</label>`
         :'';
+      /* Đại lý đã đưa vào tab Nghi Ngờ -> nhãn xanh "Đã Xử Lý" (mọi vai trò đều thấy, kể cả khi không có ô tích) */
+      const done=flagged?'<span class="bc-done" title="Đại lý đã được đưa vào danh sách Nghi Ngờ để xử lý">Đã Xử Lý</span>':'';
       agCell=`<td rowspan="${agSpan||1}" style="vertical-align:middle">
         <div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:2px">
           <b style="cursor:pointer;color:#9f67ff;text-decoration:underline" title="Bấm để kiểm tra đại lý" onclick="BC.goAgent('${ag}')">${hesc(r.dai_ly)}</b>
-          ${chk}
+          ${chk}${done}
         </div>
       </td>`;
     }
@@ -6761,6 +6765,8 @@ const BC={
   },
 
   rebuildAll(){
+    /* Nạp lại danh sách nghi ngờ từ cloud để nhãn "Đã Xử Lý" luôn mới, không cần F5 */
+    BC.loadSuspects().then(()=>BC.renderAll()).catch(()=>{});
     BC.initCards();BC.renderAll();BC.renderAgents();
     const sel=document.getElementById('bc-agent-select');
     sel.innerHTML='<option value="">-- Chọn đại lý --</option>';

@@ -642,6 +642,7 @@ const I18N={
   "Tìm ID, Họ tên, Đại lý, Ngân hàng...":"Search ID, full name, affiliate, bank...",
   "Tìm ID, Họ tên, Đại lý, Ngân hàng... (dán nhiều đại lý: a, b, c)":"Search ID, full name, affiliate, bank... (paste many affiliates: a, b, c)",
   "Hoặc dán tên đại lý...":"Or paste affiliate name...",
+  "Đã Xử Lý":"Handled",
   "Tìm tên đại lý...":"Search affiliate name...",
   "Danh Sách Đại Lý Đủ Điều Kiện":"Qualified Affiliates",
   "Đại lý có ≥ 3 KH hợp lệ":"Affiliates with ≥ 3 qualified players",
