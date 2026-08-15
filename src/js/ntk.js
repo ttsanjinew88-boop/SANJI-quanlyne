@@ -614,6 +614,10 @@ const NTK={
       '<table class="ntk-tbl"><tbody>'+drop.map(d=>'<tr><td>'+d[0]+'</td><td style="text-align:right;font-weight:700;color:'+
       (d[1]?'var(--go)':'var(--mu)')+'">'+nn(d[1])+'</td></tr>').join('')+'</tbody></table>';
 
+    // Tab Check là diện NGHI NGỜ chưa kết luận -> không cho xuất file (chuyển sang tab Lạm Dụng rồi tải)
+    const exBtn=document.getElementById('ntkExportBtn');
+    if(exBtn)exBtn.style.display=(NTK.view==='check')?'none':'';
+
     // ---- Danh sách nhóm ----
     const all=NTK.filtered(),pages=NTK.pageSlices(all),tot=pages.length;
     if(NTK.page>tot)NTK.page=tot;
@@ -699,24 +703,28 @@ const NTK={
     const list=NTK.filtered();
     if(!list.length){alert('Chưa có dữ liệu để tải.');return;}
     const abuse=NTK.view==='abuse';
-    const hdr=abuse?['Tài khoản','Câu lệnh Lạm dụng']
+    const hdr=abuse?['Tài khoản','Cấp độ thành viên','Tên thật','Tiền nạp','Chi nhánh','IP','Câu lệnh NTK']
       :['Nạp Trước','Nạp Sau','Cấp độ thành viên','Tên thật','Tiền nạp','Chi nhánh','IP','Tài khoản','Câu lệnh NTK'];
     // cột căn TRÁI (cột câu lệnh); còn lại căn giữa
     const leftCol=hdr.length-1;
+    const moneyCol=abuse?3:4;
     const body=[];
-    list.forEach(g=>{
+    list.forEach((g,gi)=>{
+      // mỗi tài khoản 1 dòng; tab Lạm Dụng dùng CHUNG một câu lệnh cố định cho mọi dòng
       g.accs.forEach((a,idx)=>{
-        body.push(abuse?[a.id+',',NTK.ABUSE_CMD]
+        body.push(abuse?[a.id,a.level,a.name,a.money,a.branch,a.ip,NTK.ABUSE_CMD]
           :[idx===0?g.first:'',idx===0?'':a.id,a.level,a.name,a.money,a.branch,a.ip,a.id,g.cmd]);
       });
+      if(abuse&&gi<list.length-1)body.push(null);   // dòng trống ngăn cách giữa các nhóm
     });
     if(body.length>60000&&!confirm('File có '+nn(body.length)+' dòng — mở bằng Excel sẽ chậm. Vẫn tải?'))return;
+    if(NTK.view==='check'){alert('Tab Check Lạm Dụng không xuất file. Chuyển nhóm sang tab Nhóm Lạm Dụng rồi tải ở đó.');return;}
 
     const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     // Độ rộng: theo ký tự dài nhất của cột (Tahoma 9 ~5,6pt/ký tự), có chặn trên/dưới
     const width=i=>{
       let mx=String(hdr[i]).length;
-      for(const r of body){const L=String(r[i]==null?'':r[i]).length;if(L>mx)mx=L;}
+      for(const r of body){if(!r)continue;const L=String(r[i]==null?'':r[i]).length;if(L>mx)mx=L;}
       return Math.max(55,Math.min(i===leftCol?620:260,Math.round(mx*5.6+16)));
     };
     const FONT='<Font ss:Name="Tahoma" ss:Size="9" ss:Color="#000000"/>';
@@ -733,21 +741,20 @@ const NTK={
     const cell=(v,i)=>{
       const sty=(i===leftCol)?'l':'c';
       // chỉ cột Tiền nạp mới để kiểu Số (để Excel cộng được); còn lại giữ Chuỗi kẻo mất số 0 đầu
-      const isMoney=!abuse&&i===4&&/^\d+(\.\d+)?$/.test(String(v));
+      const isMoney=i===moneyCol&&/^\d+(\.\d+)?$/.test(String(v));
       return '<Cell ss:StyleID="'+sty+'"><Data ss:Type="'+(isMoney?'Number':'String')+'">'+esc(v)+'</Data></Cell>';
     };
     const xml='<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?>'+
       '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'+
-      styles+'<Worksheet ss:Name="'+(abuse?'Nhom Lam Dung':(NTK.view==='check'?'Check Lam Dung':'Lenh NTK'))+'"><Table>'+
+      styles+'<Worksheet ss:Name="'+(abuse?'Nhom Lam Dung':'Lenh NTK')+'"><Table>'+
       hdr.map((h,i)=>'<Column ss:AutoFitWidth="0" ss:Width="'+width(i)+'"/>').join('')+
       '<Row>'+hdr.map(h=>'<Cell ss:StyleID="h"><Data ss:Type="String">'+esc(h)+'</Data></Cell>').join('')+'</Row>'+
-      body.map(r=>'<Row>'+r.map(cell).join('')+'</Row>').join('')+
+      body.map(r=>r?('<Row>'+r.map(cell).join('')+'</Row>'):'<Row/>').join('')+
       '</Table></Worksheet></Workbook>';
 
     const blob=new Blob(['﻿'+xml],{type:'application/vnd.ms-excel;charset=utf-8'});
     const url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download=(abuse?'Nhom_Lam_Dung_':(NTK.view==='check'?'Check_Lam_Dung_':'Lenh_NTK_'))+
-      new Date().toISOString().slice(0,10)+'.xls';
+    a.href=url;a.download=(abuse?'Nhom_Lam_Dung_':'Lenh_NTK_')+new Date().toISOString().slice(0,10)+'.xls';
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),2000);
   },

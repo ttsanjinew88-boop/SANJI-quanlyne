@@ -870,6 +870,7 @@ const I18N={
   "Chờ check theo IP":"Pending IP review",
   "Tiêu chí tab Check Lạm Dụng":"Abuse review tab criteria",
   "Tất cả tiêu chí (gộp)":"All criteria (combined)",
+  "Tab Check Lạm Dụng không xuất file. Chuyển nhóm sang tab Nhóm Lạm Dụng rồi tải ở đó.":"The Abuse Review tab does not export. Move the group to the Abuse Groups tab and download there.",
   "Cùng IP · chênh lệch trong ngưỡng · ID kiểu tool":"Same IP · spread within threshold · tool-like IDs",
   "Khác tên cùng IP":"Different names, same IP",
   "Cùng chi nhánh":"Same branch",
