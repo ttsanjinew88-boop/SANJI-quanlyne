@@ -36,12 +36,14 @@ html,body{min-height:100vh;background:var(--bg);color:var(--tx);font-family:"Seg
 .hdr-date{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:.78rem;font-weight:700;min-width:140px;text-align:center}
 .upload-btn{background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:.72rem;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(124,58,237,.3);transition:all .2s}
 .upload-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,.45)}
-/* ===== Chuyển ngôn ngữ VI/EN kèm CỜ (dùng chung cho CẢ 3 tab lớn) ===== */
-.lang-sw{display:inline-flex;align-items:center;gap:2px;background:var(--card2);border:1px solid var(--border2);border-radius:9px;padding:2px;flex:none}
-.lang-opt{display:inline-flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;color:var(--mu);font-family:inherit;font-size:.66rem;font-weight:800;letter-spacing:.04em;padding:4px 8px;border-radius:7px;line-height:1;transition:background .18s,color .18s}
-.lang-opt:hover{color:var(--tx);background:rgba(124,58,237,.14)}
-.lang-opt.on{color:#fff;background:linear-gradient(135deg,var(--pu),var(--bl));box-shadow:0 3px 10px rgba(124,58,237,.32);cursor:default}
-.lang-flag{width:18px;height:12px;border-radius:2px;display:block;flex:none;box-shadow:0 0 0 1px rgba(255,255,255,.2)}
+/* ===== Chuyển ngôn ngữ VI/EN kèm CỜ (dùng chung cho CẢ 3 tab lớn) =====
+   ⚠ NHÂN ĐÔI class (.lang-sw.lang-sw) là CỐ Ý: khối T2 có reset `.bc-tool *{margin:0;padding:0}`
+   nằm SAU trong file, cùng độ ưu tiên -> sẽ ăn mất padding, làm nút ở tab Báo Cáo Đại Lý bé tí. */
+.lang-sw.lang-sw{display:inline-flex;align-items:center;gap:2px;background:var(--card2);border:1px solid var(--border2);border-radius:9px;padding:2px;flex:none}
+.lang-opt.lang-opt{display:inline-flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;color:var(--mu);font-family:inherit;font-size:.66rem;font-weight:800;letter-spacing:.04em;padding:4px 8px;border-radius:7px;line-height:1;transition:background .18s,color .18s}
+.lang-opt.lang-opt:hover{color:var(--tx);background:rgba(124,58,237,.14)}
+.lang-opt.lang-opt.on{color:#fff;background:linear-gradient(135deg,var(--pu),var(--bl));box-shadow:0 3px 10px rgba(124,58,237,.32);cursor:default}
+.lang-flag.lang-flag{width:18px;height:12px;border-radius:2px;display:block;flex:none;box-shadow:0 0 0 1px rgba(255,255,255,.2)}
 .lang-opt:not(.on) .lang-flag{filter:saturate(.5);opacity:.72}
 .sec-hdr .lang-sw{order:1}/* đẩy ra SAU đường kẻ ::after -> nằm sát mép phải (tab T3) */
 /* ===== Bộ NÚT CHUẨN (đồng bộ toàn dashboard) ===== */
