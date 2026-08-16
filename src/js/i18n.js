@@ -1052,11 +1052,20 @@ function i18nWalk(root){
   if(root.nodeType===1)i18nEl(root);
   (root.querySelectorAll?root.querySelectorAll("[placeholder],[title],[alt]"):[]).forEach(i18nEl);
 }
-/* Nút VI/EN ở header: nhãn = ngôn ngữ SẼ chuyển sang */
+/* Cờ SVG inline (không gọi mạng, không phụ thuộc font emoji của máy) */
+const I18N_FLAG={
+  vi:'<svg class="lang-flag" viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#da251d"/><path d="M15,4.5 16.29,8.22 20.23,8.3 17.09,10.68 18.23,14.45 15,12.2 11.77,14.45 12.91,10.68 9.77,8.3 13.71,8.22Z" fill="#ff0"/></svg>',
+  en:'<svg class="lang-flag" viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#012169"/><path d="M0,0 30,20 M30,0 0,20" stroke="#fff" stroke-width="4"/><path d="M0,0 30,20 M30,0 0,20" stroke="#c8102e" stroke-width="2"/><path d="M15,0 V20 M0,10 H30" stroke="#fff" stroke-width="6.5"/><path d="M15,0 V20 M0,10 H30" stroke="#c8102e" stroke-width="4"/></svg>'
+};
+/* Nút chuyển ngôn ngữ (cờ VN + cờ Anh) — dựng bằng JS để 3 tab lớn dùng CHUNG một markup */
 function i18nSyncBtn(){
-  ["btnLang","btnLang2"].forEach(id=>{
+  const en=I18N.on();
+  const html=
+    '<button type="button" class="lang-opt'+(en?"":" on")+'" onclick="setLang(\'vi\')" title="Tiếng Việt">'+I18N_FLAG.vi+'<span>VI</span></button>'+
+    '<button type="button" class="lang-opt'+(en?" on":"")+'" onclick="setLang(\'en\')" title="English">'+I18N_FLAG.en+'<span>EN</span></button>';
+  ["btnLang","btnLang2","btnLang3"].forEach(id=>{
     const b=document.getElementById(id);
-    if(b){b.textContent=I18N.on()?"VI":"EN";b.title=I18N.on()?"Chuyển về Tiếng Việt":"Switch to English";}
+    if(b)b.innerHTML=html;
   });
 }
 function setLang(l){

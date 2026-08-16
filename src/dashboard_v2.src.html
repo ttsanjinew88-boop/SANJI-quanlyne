@@ -129,7 +129,7 @@
   <div class="hdr-right">
     <div class="user-chip" id="userChip" style="display:none"><span id="userChipName"></span><button class="lo-btn" style="background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3);color:var(--pu2)" onclick="selfChangePw()">Đổi MK</button><button class="lo-btn" onclick="AUTH.logout()">Đăng xuất</button></div>
     <span id="cloudStatus" style="font-size:.62rem;color:var(--mu2);min-width:0"></span>
-    <button type="button" class="upload-btn" id="btnLang" data-noi18n onclick="i18nToggle()" title="Switch to English">EN</button>
+    <div class="lang-sw" id="btnLang" data-noi18n></div>
     <div class="upload-dd-wrap">
       <button type="button" class="upload-btn" id="btnMonth" onclick="toggleHistMenu(event)">Tháng ▾</button>
       <div class="upload-dd-menu" id="histDdMenu" style="min-width:250px"></div>
@@ -709,7 +709,7 @@
     <div style="font-size:.65rem;color:var(--mu2);margin-top:2px">SANJI</div>
   </div>
   <div class="topbar-sub">Điều kiện: Nạp ≥ 1,000 · Cược ≥ 3,000 · Đại lý ≥ 3 KH hợp lệ</div>
-  <button type="button" class="upload-btn" id="btnLang2" data-noi18n onclick="i18nToggle()" title="Switch to English">EN</button>
+  <div class="lang-sw" id="btnLang2" data-noi18n></div>
 </div>
 
 <div class="upload-section">
@@ -893,6 +893,7 @@
 <div id="t3" style="display:none" class="pg active">
   <div class="sec-hdr pu">Lọc File NTK — Nhiều Tài Khoản
     <span style="font-size:.56rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— gom nhóm theo Tên thật + IP; nhóm từ 2 tài khoản khác nhau trở lên là nghi ngờ. Dùng 1 lần, F5 là mất, không lưu cloud.</span>
+    <div class="lang-sw" id="btnLang3" data-noi18n></div>
   </div>
 
   <div id="ntkDrop" class="chart-card" style="border:2px dashed var(--border2);display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:14px">
