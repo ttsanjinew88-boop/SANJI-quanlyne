@@ -624,6 +624,9 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-tbl{width:100%;border-collapse:collapse;font-size:.72rem}
 .sop-tbl th,.sop-tbl td{border:1px solid var(--border2);padding:7px 10px;text-align:center}
 .sop-tbl th{background:var(--card);color:var(--mu2);font-weight:800;font-size:.62rem;letter-spacing:.05em;text-transform:uppercase}
+.sop-tbl.edit th,.sop-tbl.edit td{cursor:text;min-width:70px}
+.sop-tbl.edit th:focus,.sop-tbl.edit td:focus{outline:2px solid var(--pu);outline-offset:-2px;background:rgba(124,58,237,.10)}
+.sop-tbl.edit td:empty::after{content:"—";color:var(--mu)}
 .sop-note{border-radius:0 8px 8px 0;padding:11px 14px;font-size:.75rem;line-height:1.75;border-left:3px solid;margin-bottom:12px}
 .sop-note.info{background:rgba(59,130,246,.10);border-color:var(--bl)}
 .sop-note.warn{background:rgba(245,158,11,.10);border-color:var(--go)}
@@ -648,6 +651,14 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-lvl.hi{background:rgba(239,68,68,.16);color:#fca5a5;border:1px solid rgba(239,68,68,.35)}
 .sop-lvl.go{background:rgba(245,158,11,.15);color:#fcd34d;border:1px solid rgba(245,158,11,.34)}
 .sop-lvl.mu{background:rgba(148,163,184,.13);color:var(--mu2);border:1px solid var(--border2)}
+/* Hộp thoại chung T4 (thay confirm/prompt trình duyệt) */
+.sop-dlg{max-width:400px;padding:20px 22px}
+.sop-dlg-t{font-size:.92rem;font-weight:800;margin-bottom:8px}
+.sop-dlg-m{font-size:.75rem;line-height:1.75;color:var(--mu2);margin-bottom:14px}
+.sop-dlg .sop-eh{font-size:.78rem;font-weight:600;color:var(--tx);margin-bottom:14px}
+.sop-dlg-b{display:flex;gap:8px;justify-content:flex-end}
+.sop-dlg-opts{display:flex;flex-direction:column;gap:6px}
+.sop-dlg-opt{width:100%;justify-content:center}
 #sopLb .box{max-width:96vw;width:auto;padding:10px;background:var(--card)}
 #sopLbImg{max-width:92vw;max-height:78vh;display:block;transform-origin:center center;transition:transform .15s;border-radius:8px}
 .sop-lbbar{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:10px;flex-wrap:wrap}
@@ -6575,6 +6586,20 @@ rAll();
   <input type="file" id="sopFile" accept="image/*" multiple style="display:none">
   <input type="file" id="sopTransFile" accept=".json,application/json" style="display:none">
 
+  <!-- Hộp thoại chung của T4 (thay confirm/prompt của trình duyệt) -->
+  <div class="dr-modal" id="sopDlg">
+    <div class="box sop-dlg">
+      <div class="sop-dlg-t" id="sopDlgT"></div>
+      <div class="sop-dlg-m" id="sopDlgM" data-noi18n></div>
+      <input class="sop-eh" id="sopDlgI" style="display:none">
+      <div class="sop-dlg-opts" id="sopDlgOpts"></div>
+      <div class="sop-dlg-b" id="sopDlgB">
+        <button class="abtn abtn-ghost abtn-sm" onclick="SOP.dlgClose(null)">Huỷ</button>
+        <button class="abtn abtn-pu abtn-sm" id="sopDlgOK">Đồng ý</button>
+      </div>
+    </div>
+  </div>
+
   <div class="dr-modal" id="sopLb">
     <div class="box" data-noi18n>
       <img id="sopLbImg" alt="">
@@ -8465,12 +8490,12 @@ const SOP={
   },
   async saveIndex(){
     try{await SB.saveReport('sop_index','all',SOP.idx);SOP.flash();}
-    catch(e){alert('Không lưu được mục lục: '+(e.message||e));}
+    catch(e){SOP.dlg({title:'Lỗi lưu mục lục',msg:String(e.message||e),okText:'Đã hiểu'});}
   },
   async saveItem(){
     if(!SOP.cur)return;
     try{await SB.saveReport('sop_item',SOP.curId,SOP.cur);SOP.flash();}
-    catch(e){alert('Không lưu được nội dung: '+(e.message||e));}
+    catch(e){SOP.dlg({title:'Lỗi lưu nội dung',msg:String(e.message||e),okText:'Đã hiểu'});}
   },
   flash(){
     const el=document.getElementById('sopSaved');if(!el)return;
@@ -8743,7 +8768,14 @@ const SOP={
       const rows=b.rows||[];
       return `<div class="sop-blk">${tools}
         ${b.h?`<div class="sop-bh" data-noi18n>${hesc(SOP.tx(b,'h'))}</div>`:''}
-        <div style="overflow-x:auto"><table class="sop-tbl" data-noi18n>${rows.map((r,ri)=>`<tr>${r.map(c=>ri?`<td>${hesc(c)}</td>`:`<th>${hesc(c)}</th>`).join('')}</tr>`).join('')}</table></div></div>`;
+        <div style="overflow-x:auto"><table class="sop-tbl${ed?' edit':''}" data-noi18n>${rows.map((r,ri)=>`<tr>${r.map((c,ci)=>{
+          const a=ed?` contenteditable="true" spellcheck="false" onblur="SOP.tblCell('${scope}',${i},${ri},${ci},this)"`:'';
+          return ri?`<td${a}>${hesc(c)}</td>`:`<th${a}>${hesc(c)}</th>`;}).join('')}</tr>`).join('')}</table></div>
+        ${ed?`<div class="sop-imgctl"><span>Bấm thẳng vào ô để sửa.</span>
+          <button class="abtn abtn-ghost abtn-sm" onclick="SOP.tblRow('${scope}',${i},1)">＋ Dòng</button>
+          <button class="abtn abtn-ghost abtn-sm" onclick="SOP.tblRow('${scope}',${i},-1)">－ Dòng</button>
+          <button class="abtn abtn-ghost abtn-sm" onclick="SOP.tblCol('${scope}',${i},1)">＋ Cột</button>
+          <button class="abtn abtn-ghost abtn-sm" onclick="SOP.tblCol('${scope}',${i},-1)">－ Cột</button></div>`:''}</div>`;
     }
     // note: info / warn / ban
     const kind=b.t==='ban'?'ban':(b.t==='warn'?'warn':'info');
@@ -8761,38 +8793,82 @@ const SOP={
   },
   para(s){return hesc(s||'').split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>`<p>${l}</p>`).join('')||'<p class="sop-mu">(trống)</p>';},
 
+  // ---------- HỘP THOẠI CHUNG (thay confirm/prompt của trình duyệt) ----------
+  // Trả Promise: xác nhận -> true/null · nhập chữ -> chuỗi/null · chọn -> giá trị/null
+  dlg(o){
+    const m=document.getElementById('sopDlg');if(!m)return Promise.resolve(null);
+    document.getElementById('sopDlgT').textContent=o.title||'';
+    const msg=document.getElementById('sopDlgM');
+    msg.innerHTML=o.msg?hesc(o.msg).replace(/\n/g,'<br>'):'';
+    msg.style.display=o.msg?'':'none';
+    const inp=document.getElementById('sopDlgI');
+    inp.style.display=o.input?'':'none';
+    inp.value=o.value||'';inp.placeholder=o.placeholder||'';
+    const opts=document.getElementById('sopDlgOpts'),bar=document.getElementById('sopDlgB');
+    opts.innerHTML='';opts.style.display=o.options?'':'none';
+    bar.style.display=o.options?'none':'';
+    if(o.options){
+      o.options.forEach(op=>{
+        const b=document.createElement('button');
+        b.className='abtn abtn-ghost abtn-sm sop-dlg-opt';b.textContent=op.label;
+        b.onclick=()=>SOP.dlgClose(op.v);
+        opts.appendChild(b);
+      });
+    }else{
+      const ok=document.getElementById('sopDlgOK');
+      ok.textContent=o.okText||'Đồng ý';
+      ok.className='abtn abtn-sm '+(o.danger?'abtn-danger':(o.input?'abtn-ok':'abtn-pu'));
+      ok.onclick=()=>SOP.dlgClose(o.input?(inp.value||''):true);
+    }
+    m.classList.add('show');
+    setTimeout(()=>{(o.input?inp:document.getElementById('sopDlgOK')||inp).focus();
+      if(o.input&&inp.setSelectionRange)inp.setSelectionRange(inp.value.length,inp.value.length);},30);
+    return new Promise(res=>{SOP._dlgRes=res;});
+  },
+  dlgClose(v){
+    const m=document.getElementById('sopDlg');if(m)m.classList.remove('show');
+    const r=SOP._dlgRes;SOP._dlgRes=null;if(r)r(v);
+  },
+  confirmBox(msg,opt){
+    return SOP.dlg({title:(opt&&opt.title)||'Xác nhận',msg,okText:(opt&&opt.okText)||'Xoá',danger:!(opt&&opt.safe)})
+      .then(v=>v===true);
+  },
+  promptBox(title,value,placeholder){
+    return SOP.dlg({title,input:true,value:value||'',placeholder:placeholder||'',okText:'Lưu'})
+      .then(v=>(v===null?null:String(v).trim()));
+  },
+
   // ---------- SỬA MỤC LỤC ----------
   async addGroup(){
-    const n=prompt('Tên nhóm mới:');if(!n||!n.trim())return;
-    SOP.groups().push({gid:SOP.uid('g'),name:n.trim(),items:[]});
+    const n=await SOP.promptBox('Tên nhóm mới','','vd: Duyệt đơn cơ bản');if(!n)return;
+    SOP.groups().push({gid:SOP.uid('g'),name:n,items:[]});
     await SOP.saveIndex();SOP.renderRail();
   },
   async renameGroup(gi){
     const g=SOP.groups()[gi];if(!g)return;
-    const n=prompt('Tên nhóm:',g.name);if(!n||!n.trim())return;
-    g.name=n.trim();await SOP.saveIndex();SOP.renderRail();
+    const n=await SOP.promptBox('Tên nhóm',g.name);if(!n)return;
+    g.name=n;await SOP.saveIndex();SOP.renderRail();
   },
   async delGroup(gi){
     const g=SOP.groups()[gi];if(!g)return;
-    if((g.items||[]).length&&!confirm(`Xoá nhóm "${g.name}" cùng ${g.items.length} mục bên trong?`))return;
-    if(!(g.items||[]).length&&!confirm(`Xoá nhóm "${g.name}"?`))return;
+    const n=(g.items||[]).length;
+    if(!await SOP.confirmBox(n?`Xoá nhóm "${g.name}" cùng ${n} mục bên trong?`:`Xoá nhóm "${g.name}"?`,{title:'Xoá nhóm'}))return;
     SOP.groups().splice(gi,1);await SOP.saveIndex();
     logAction('SOP xoá nhóm',SOP.view+' · '+g.name);
     await SOP.openFirst();
   },
   async addItem(){
     const gs=SOP.groups();
-    if(!gs.length){alert('Hãy tạo Nhóm trước.');return;}
     const d=SOP.tabDef();
-    const n=prompt(d.unit+' mới — nhập tên:');if(!n||!n.trim())return;
+    if(!gs.length){await SOP.dlg({title:'Chưa có nhóm',msg:'Hãy tạo Nhóm trước rồi mới thêm '+d.unit.toLowerCase()+'.',okText:'Đã hiểu'});return;}
+    const n=await SOP.promptBox(d.unit+' mới');if(!n)return;
     let gi=0;
     if(gs.length>1){
-      const pick=prompt('Thuộc nhóm nào? Nhập số:\n'+gs.map((g,i)=>(i+1)+'. '+g.name).join('\n'),'1');
-      if(pick===null)return;
-      gi=Math.max(0,Math.min(gs.length-1,(parseInt(pick,10)||1)-1));
+      const v=await SOP.dlg({title:'Thuộc nhóm nào?',options:gs.map((g,i)=>({label:g.name,v:i}))});
+      if(v===null)return;gi=v;
     }
-    const it={id:SOP.uid('i'),name:n.trim()};
-    if(SOP.view==='ld'||SOP.view==='game')it.level=SOP.askLevel()||'mu';
+    const it={id:SOP.uid('i'),name:n};
+    if(SOP.view==='ld'||SOP.view==='game')it.level=(await SOP.askLevel())||'mu';
     (gs[gi].items=gs[gi].items||[]).push(it);
     await SOP.saveIndex();
     SOP.cur={id:it.id,tab:SOP.view,name:it.name,subs:[],blocks:[],upd:SOP.today()};
@@ -8801,19 +8877,18 @@ const SOP={
   },
   askLevel(){
     const L=SOP.view==='game'?SOP.GLEVELS:SOP.LEVELS;
-    const v=prompt(`Mức độ:\n1. ${L.hi}\n2. ${L.go}\n3. ${L.mu}`,'3');
-    return {1:'hi',2:'go',3:'mu'}[parseInt(v,10)]||null;
+    return SOP.dlg({title:'Chọn mức độ',options:[{label:L.hi,v:'hi'},{label:L.go,v:'go'},{label:L.mu,v:'mu'}]});
   },
   async renameItem(){
     const f=SOP.findItem(SOP.curId);if(!f)return;
-    const n=prompt('Tên:',f.it.name);if(!n||!n.trim())return;
-    f.it.name=n.trim();SOP.cur.name=n.trim();
-    if(SOP.view==='ld'||SOP.view==='game'){const lv=SOP.askLevel();if(lv)f.it.level=lv;}
+    const n=await SOP.promptBox('Tên',f.it.name);if(!n)return;
+    f.it.name=n;SOP.cur.name=n;
+    if(SOP.view==='ld'||SOP.view==='game'){const lv=await SOP.askLevel();if(lv)f.it.level=lv;}
     await SOP.saveIndex();await SOP.saveItem();SOP.render();
   },
   async delItem(id){
     const f=SOP.findItem(id);if(!f)return;
-    if(!confirm(`Xoá "${f.it.name}"? Không khôi phục được.`))return;
+    if(!await SOP.confirmBox(`Xoá "${f.it.name}"? Không khôi phục được.`,{title:'Xoá '+SOP.tabDef().unit.toLowerCase()}))return;
     f.g.items.splice(f.g.items.indexOf(f.it),1);
     await SOP.saveIndex();
     logAction('SOP xoá mục',SOP.view+' · '+f.it.name);
@@ -8831,23 +8906,27 @@ const SOP={
   // ---------- BƯỚC / TRÒ CHƠI ----------
   async addSub(){
     const d=SOP.tabDef();if(!d.subs||!SOP.cur)return;
-    const n=prompt(d.subName+' mới — nhập tên:');if(!n||!n.trim())return;
-    const s={id:SOP.uid('s'),name:n.trim(),blocks:[]};
-    if(d.subs==='acc'){s.level=SOP.askLevel()||'mu';s.code=(prompt('Mã game (bỏ trống nếu không có):','')||'').trim();s.from=(prompt('Áp dụng từ ngày (vd 01/08/2026):','')||'').trim();}
+    const n=await SOP.promptBox(d.subName+' mới');if(!n)return;
+    const s={id:SOP.uid('s'),name:n,blocks:[]};
+    if(d.subs==='acc'){
+      s.level=(await SOP.askLevel())||'mu';
+      s.code=(await SOP.promptBox('Mã game','','bỏ trống nếu không có'))||'';
+      s.from=(await SOP.promptBox('Áp dụng từ ngày','','vd 01/08/2026'))||'';
+    }
     SOP.cur.subs.push(s);SOP.curSub=SOP.cur.subs.length-1;
     SOP.touch();await SOP.saveItem();SOP.syncCount();SOP.render();
   },
   async renameSub(i){
     const s=SOP.cur.subs[i];if(!s)return;
-    const n=prompt('Tên:',s.name);if(!n||!n.trim())return;
-    s.name=n.trim();SOP.touch();await SOP.saveItem();SOP.render();
+    const n=await SOP.promptBox('Tên',s.name);if(!n)return;
+    s.name=n;SOP.touch();await SOP.saveItem();SOP.render();
   },
   async editGame(i){
     const s=SOP.cur.subs[i];if(!s)return;
-    const c=prompt('Mã game:',s.code||'');if(c===null)return;
-    const fr=prompt('Áp dụng từ ngày:',s.from||'');if(fr===null)return;
-    const lv=SOP.askLevel();
-    s.code=c.trim();s.from=fr.trim();if(lv)s.level=lv;
+    const c=await SOP.promptBox('Mã game',s.code||'');if(c===null)return;
+    const fr=await SOP.promptBox('Áp dụng từ ngày',s.from||'','vd 01/08/2026');if(fr===null)return;
+    const lv=await SOP.askLevel();
+    s.code=c;s.from=fr;if(lv)s.level=lv;
     SOP.touch();await SOP.saveItem();SOP.render();
   },
   async moveSub(i,d){
@@ -8858,7 +8937,7 @@ const SOP={
   },
   async delSub(i){
     const s=SOP.cur.subs[i];if(!s)return;
-    if(!confirm(`Xoá "${s.name}"?`))return;
+    if(!await SOP.confirmBox(`Xoá "${s.name}"?`,{title:'Xoá '+SOP.tabDef().subName.toLowerCase()}))return;
     SOP.cur.subs.splice(i,1);
     if(SOP.curSub>=SOP.cur.subs.length)SOP.curSub=Math.max(0,SOP.cur.subs.length-1);
     SOP.touch();await SOP.saveItem();SOP.syncCount();SOP.render();
@@ -8903,7 +8982,7 @@ const SOP={
     if(!b){SOP._ed=null;SOP.renderPane();return;}
     if(b.t==='feat'){
       b.items=b.items||[];
-      if(!hv){alert('Hãy nhập tiêu đề.');return;}
+      if(!hv){SOP.dlg({title:'Thiếu tiêu đề',msg:'Hãy nhập tiêu đề trước khi lưu.',okText:'Đã hiểu'});return;}
       if(e.k>=0){b.items[e.k].b=hv;b.items[e.k].d=bv.trim();}
       else b.items.push({b:hv,d:bv.trim()});
     }else if(b.t==='img'){
@@ -8925,13 +9004,8 @@ const SOP={
       b.h='';b.b='';bs.push(b);SOP.edOpen(scope,bs.length-1);return;
     }else if(t==='img'){b.imgs=[];b.cols=2;}
     else if(t==='feat'){b.items=[];}
-    else if(t==='table'){
-      const cols=prompt('Bảng có mấy cột?','3');if(cols===null)return;
-      const n=Math.max(1,Math.min(8,parseInt(cols,10)||3));
-      const hd=prompt('Tiêu đề các cột, cách nhau dấu |','Cột 1 | Cột 2 | Cột 3');if(hd===null)return;
-      b.rows=[hd.split('|').map(s=>s.trim()).slice(0,n)];
-      while(b.rows[0].length<n)b.rows[0].push('');
-    }else{
+    else if(t==='table'){b.rows=[['Cột 1','Cột 2','Cột 3'],['','','']];}
+    else{
       // khung ghi nhớ / lưu ý / cấm: thêm rỗng rồi mở ô soạn tại chỗ
       b.b='';bs.push(b);SOP.edOpen(scope,bs.length-1);return;
     }
@@ -8942,21 +9016,34 @@ const SOP={
     const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b)return;
     if(b.t==='text'||b.t==='info'||b.t==='warn'||b.t==='ban'){SOP.edOpen(scope,i);return;}
     if(b.t==='table'){
-      const add=confirm('OK = thêm một dòng mới.\nCancel = sửa tiêu đề bảng.');
-      if(add){
-        const n=b.rows[0].length;
-        const r=prompt(`Nội dung ${n} ô, cách nhau dấu |`,'');if(r===null)return;
-        const cells=r.split('|').map(s=>s.trim());while(cells.length<n)cells.push('');
-        b.rows.push(cells.slice(0,n));
-      }else{
-        const h=prompt('Tiêu đề bảng:',b.h||'');if(h===null)return;b.h=h.trim();
-      }
+      const h=await SOP.promptBox('Tiêu đề bảng',b.h||'','bỏ trống nếu không cần');if(h===null)return;b.h=h;
     }else if(b.t==='img'){
       SOP.pickImg(scope,i);return;
     }else if(b.t==='feat'){
-      const h=prompt('Tên khối:',b.h||'');if(h===null)return;b.h=h.trim();
+      const h=await SOP.promptBox('Tiêu đề khối',b.h||'','bỏ trống nếu không cần');if(h===null)return;b.h=h;
     }
     SOP.touch();await SOP.saveItem();SOP.render();
+  },
+  // ---------- BẢNG: sửa thẳng trên ô ----------
+  async tblCell(scope,i,r,c,el){
+    const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b||!b.rows[r])return;
+    // textContent chứ KHÔNG innerText: hàng tiêu đề có CSS text-transform:uppercase,
+    // innerText trả về chữ ĐÃ in hoa -> lưu xuống là hỏng dữ liệu gốc.
+    const v=el.textContent.replace(/\s+$/,'');
+    if(b.rows[r][c]===v)return;
+    b.rows[r][c]=v;SOP.touch();await SOP.saveItem();
+  },
+  async tblRow(scope,i,d){
+    const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b)return;
+    if(d>0)b.rows.push(new Array(b.rows[0].length).fill(''));
+    else if(b.rows.length>2)b.rows.pop();
+    await SOP.saveItem();SOP.render();
+  },
+  async tblCol(scope,i,d){
+    const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b)return;
+    if(d>0)b.rows.forEach((r,ri)=>r.push(ri?'':'Cột '+(r.length+1)));
+    else if(b.rows[0].length>1)b.rows.forEach(r=>r.pop());
+    await SOP.saveItem();SOP.render();
   },
   async moveBlock(scope,i,d){
     const bs=SOP.blocksOf(scope),j=i+d;if(!bs||j<0||j>=bs.length)return;
@@ -8964,7 +9051,7 @@ const SOP={
   },
   async delBlock(scope,i){
     const bs=SOP.blocksOf(scope);if(!bs||!bs[i])return;
-    if(!confirm('Xoá khối này?'))return;
+    if(!await SOP.confirmBox('Xoá khối này?',{title:'Xoá khối'}))return;
     bs.splice(i,1);SOP.touch();await SOP.saveItem();SOP.syncCount();SOP.render();
   },
   editFeat(scope,i,k){
@@ -8973,7 +9060,7 @@ const SOP={
   },
   async delFeat(scope,i,k){
     const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b||!b.items[k])return;
-    if(!confirm('Xoá mục này?'))return;
+    if(!await SOP.confirmBox('Xoá mục này?',{title:'Xoá mục'}))return;
     b.items.splice(k,1);await SOP.saveItem();SOP.render();
   },
   async setCols(scope,i,c){
@@ -8986,7 +9073,7 @@ const SOP={
   },
   async delImg(scope,i,k){
     const bs=SOP.blocksOf(scope),b=bs&&bs[i],im=b&&(b.imgs||[])[k];if(!im)return;
-    if(!confirm('Xoá ảnh này?'))return;
+    if(!await SOP.confirmBox('Xoá ảnh này?',{title:'Xoá ảnh'}))return;
     const path=im.u;b.imgs.splice(k,1);
     await SOP.saveItem();SOP.syncCount();SOP.render();
     try{await SB.client().storage.from(SOP.BUCKET).remove([path]);}catch(e){console.warn('xoá ảnh storage',e);}
@@ -9015,7 +9102,7 @@ const SOP={
           const bs=SOP.blocksOf(t.scope),b=bs&&bs[t.i];
           if(b){b.imgs=b.imgs||[];b.imgs.push({u:path,cap:''});}
         }
-      }catch(e){alert('Tải ảnh thất bại: '+(e.message||e));break;}
+      }catch(e){SOP.dlg({title:'Tải ảnh thất bại',msg:String(e.message||e),okText:'Đã hiểu'});break;}
     }
     if(st)st.textContent='';
     SOP._imgTarget=null;SOP.touch();await SOP.saveItem();SOP.syncCount();SOP.render();
@@ -9116,8 +9203,8 @@ const SOP={
   async onTransFile(inp){
     const f=(inp.files||[])[0];inp.value='';if(!f)return;
     let data;
-    try{data=JSON.parse(await f.text());}catch(e){alert('File không đọc được: '+(e.message||e));return;}
-    if(!data||!Array.isArray(data.items)){alert('File không đúng định dạng (thiếu items).');return;}
+    try{data=JSON.parse(await f.text());}catch(e){SOP.dlg({title:'Không đọc được file',msg:String(e.message||e),okText:'Đã hiểu'});return;}
+    if(!data||!Array.isArray(data.items)){SOP.dlg({title:'Sai định dạng',msg:'File thiếu danh sách items.',okText:'Đã hiểu'});return;}
     let nItem=0,nStr=0,idxTouched=false;
     for(const rec of data.items){
       let d=null;
@@ -9134,7 +9221,7 @@ const SOP={
       if(enName){const f=SOP.findItemAny(rec.id);if(f){f.it.en_name=enName.en;idxTouched=true;}}
     }
     if(idxTouched)await SOP.saveIndex();
-    alert(`Đã nhập bản dịch: ${nStr} chuỗi trong ${nItem} mục.`);
+    SOP.dlg({title:'Đã nhập bản dịch',msg:`${nStr} chuỗi trong ${nItem} mục.`,okText:'Xong'});
     logAction('SOP nhập bản dịch',nStr+' chuỗi · '+nItem+' mục');
     if(SOP.curId)await SOP.open(SOP.curId);
   },
@@ -9165,6 +9252,17 @@ window.SOP=SOP;
     if(t)t.addEventListener('change',()=>SOP.onTransFile(t));
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',w);else w();
+  // Hộp thoại chung: Enter = đồng ý · Esc / bấm nền tối = huỷ (phải TRẢ Promise, nếu không
+  // handler .dr-modal chung chỉ đóng lớp phủ mà lời gọi await treo mãi)
+  document.addEventListener('keydown',e=>{
+    if(!SOP._dlgRes)return;
+    if(e.key==='Escape'){e.preventDefault();e.stopPropagation();SOP.dlgClose(null);}
+    else if(e.key==='Enter'&&e.target&&e.target.id==='sopDlgI'){e.preventDefault();
+      const ok=document.getElementById('sopDlgOK');if(ok)ok.click();}
+  },true);
+  const dm=()=>{const m=document.getElementById('sopDlg');
+    if(m)m.addEventListener('click',e=>{if(e.target===m&&SOP._dlgRes)SOP.dlgClose(null);});};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',dm);else dm();
   // Phím tắt trong ô soạn tại chỗ: Ctrl+Enter lưu · Esc huỷ (Esc bắt ở giai đoạn capture để
   // không bị handler đóng .dr-modal chung của DR nuốt mất)
   document.addEventListener('keydown',e=>{

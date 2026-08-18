@@ -999,6 +999,20 @@
   <input type="file" id="sopFile" accept="image/*" multiple style="display:none">
   <input type="file" id="sopTransFile" accept=".json,application/json" style="display:none">
 
+  <!-- Hộp thoại chung của T4 (thay confirm/prompt của trình duyệt) -->
+  <div class="dr-modal" id="sopDlg">
+    <div class="box sop-dlg">
+      <div class="sop-dlg-t" id="sopDlgT"></div>
+      <div class="sop-dlg-m" id="sopDlgM" data-noi18n></div>
+      <input class="sop-eh" id="sopDlgI" style="display:none">
+      <div class="sop-dlg-opts" id="sopDlgOpts"></div>
+      <div class="sop-dlg-b" id="sopDlgB">
+        <button class="abtn abtn-ghost abtn-sm" onclick="SOP.dlgClose(null)">Huỷ</button>
+        <button class="abtn abtn-pu abtn-sm" id="sopDlgOK">Đồng ý</button>
+      </div>
+    </div>
+  </div>
+
   <div class="dr-modal" id="sopLb">
     <div class="box" data-noi18n>
       <img id="sopLbImg" alt="">
