@@ -521,13 +521,20 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-grp:first-of-type{margin-top:2px}
 .sop-gx{opacity:0;cursor:pointer;transition:.15s;font-size:.68rem;color:var(--mu)}
 .sop-grp:hover .sop-gx{opacity:1}.sop-gx:hover{color:var(--re)}
-.sop-it{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;cursor:pointer;transition:.18s;margin-bottom:2px}
-.sop-it:hover{background:rgba(124,58,237,.08)}
-.sop-it.on{background:rgba(124,58,237,.2)}
+/* Dòng mục = NÚT thật sự, dùng đúng ngôn ngữ .abtn (ghost khi thường, gradient tím-xanh khi đang chọn) */
+.sop-it{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;cursor:pointer;margin-bottom:5px;
+  background:transparent;border:1px solid var(--border2);transition:transform .18s,box-shadow .18s,background .18s,border-color .18s}
+.sop-it:hover{border-color:var(--pu);background:rgba(124,58,237,.10);transform:translateY(-1px)}
+.sop-it.on{background:linear-gradient(135deg,var(--pu),var(--bl));border-color:transparent;box-shadow:0 4px 14px rgba(124,58,237,.3)}
+.sop-it.on:hover{transform:none}
+.sop-it.on .sop-n{color:rgba(255,255,255,.8)}
+.sop-it.on .sop-x{color:rgba(255,255,255,.85)}
+.sop-it.on .sop-dot{background:#fff;box-shadow:none}
 .sop-dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--border2)}
 .sop-dot.hi{background:var(--re)}.sop-dot.go{background:var(--go)}.sop-dot.mu{background:var(--mu)}
 .sop-it.on .sop-dot{box-shadow:0 0 0 3px rgba(124,58,237,.25)}
-.sop-itt{font-size:.73rem;font-weight:600;flex:1;line-height:1.4}
+.sop-itt{font-size:.72rem;font-weight:700;flex:1;line-height:1.4;color:var(--mu2)}
+.sop-it:hover .sop-itt{color:var(--tx)}
 .sop-it.on .sop-itt{font-weight:800;color:#fff}
 .sop-n{font-size:.57rem;color:var(--mu);font-weight:700;flex:none}
 .sop-x{opacity:0;font-size:.68rem;color:var(--mu);flex:none}
