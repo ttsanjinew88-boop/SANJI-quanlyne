@@ -598,8 +598,12 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-grow b{font-size:.73rem;font-weight:700}
 .sop-blk{border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px;position:relative;background:var(--card2)}
 .sop-blk.plain{border:none;background:none;padding:0}
-.sop-btools{position:absolute;top:8px;right:10px;display:flex;gap:4px;opacity:0;transition:.15s;z-index:2}
+/* Thanh nút của khối: NẰM RIÊNG một hàng trên đầu khối, không đè lên nội dung/ảnh.
+   Trước đây để position:absolute góc phải -> che mất phần trên ảnh chụp màn hình. */
+.sop-btools{display:flex;gap:4px;justify-content:flex-end;align-items:center;
+  margin:-6px -6px 10px;padding-bottom:8px;border-bottom:1px dashed var(--border);opacity:.45;transition:opacity .15s}
 .sop-blk:hover .sop-btools{opacity:1}
+.sop-blk.plain .sop-btools{margin:0 0 6px;border-bottom:none;padding-bottom:0}
 .sop-tag{font-size:.55rem;font-weight:800;letter-spacing:.1em;color:var(--mu);text-transform:uppercase;margin-bottom:7px;display:block}
 .sop-bh{font-size:.82rem;font-weight:800;color:var(--pu2);margin-bottom:7px}
 .sop-body p{font-size:.77rem;line-height:1.85;margin-bottom:6px}
@@ -609,8 +613,9 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-imgbox{border:1px solid var(--border2);border-radius:8px;overflow:hidden;background:var(--bg);position:relative}
 .sop-imgbox img{width:100%;display:block;cursor:zoom-in;background:var(--card2)}
 .sop-cap{padding:7px 12px;font-size:.64rem;color:var(--mu2);border-top:1px solid var(--border);text-align:center}
-.sop-imgb{position:absolute;top:6px;right:6px;display:flex;gap:4px;opacity:0;transition:.15s}
-.sop-imgbox:hover .sop-imgb{opacity:1}
+/* Nút của từng ảnh: xuống DƯỚI phần chú thích, không nằm đè lên ảnh */
+.sop-imgb{display:flex;gap:6px;justify-content:center;padding:7px;border-top:1px solid var(--border);background:var(--card2)}
+.sop-imgbox:hover .sop-imgb{background:rgba(124,58,237,.10)}
 .sop-imgph{border:1px dashed var(--border2);border-radius:8px;padding:26px;text-align:center;color:var(--mu);font-size:.68rem}
 .sop-imgctl{display:flex;gap:6px;margin-top:9px;align-items:center;flex-wrap:wrap}
 .sop-imgctl span{font-size:.62rem;color:var(--mu)}
