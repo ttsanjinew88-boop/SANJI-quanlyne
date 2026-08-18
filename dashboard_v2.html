@@ -5207,7 +5207,10 @@ function rKoOverview(){
   // Bảng hạn mức duyệt đơn (dữ liệu nhập ở view Đề Xuất Hạn Mức Duyệt)
   const lt=document.getElementById('ovLimitTbl');
   if(lt){
-    const rows=FK_KEYS.filter(fk=>LIMITS[fk]&&(LIMITS[fk].limit||LIMITS[fk].pcq));
+    // LUÔN gom theo nhóm: FKVIP trước, FKONL sau (thêm/sửa người mới cũng tự vào đúng cụm)
+    const hasLim=fk=>LIMITS[fk]&&(LIMITS[fk].limit||LIMITS[fk].pcq);
+    const rows=FK_KEYS.filter(fk=>FKVIP.includes(fk)&&hasLim(fk))
+      .concat(FK_KEYS.filter(fk=>!FKVIP.includes(fk)&&hasLim(fk)));
     lt.innerHTML='<thead><tr><th style="text-align:left">NHÂN VIÊN</th><th>Nhóm</th><th>Hạn mức duyệt đơn</th><th>Phê duyệt PCQ</th></tr></thead><tbody>'+
       (rows.length?rows.map(fk=>{
         const lm=LIMITS[fk];
