@@ -5207,15 +5207,14 @@ function rKoOverview(){
   // Bảng hạn mức duyệt đơn (dữ liệu nhập ở view Đề Xuất Hạn Mức Duyệt)
   const lt=document.getElementById('ovLimitTbl');
   if(lt){
-    // LUÔN gom theo nhóm: FKVIP trước, FKONL sau (thêm/sửa người mới cũng tự vào đúng cụm)
-    const hasLim=fk=>LIMITS[fk]&&(LIMITS[fk].limit||LIMITS[fk].pcq);
-    const rows=FK_KEYS.filter(fk=>FKVIP.includes(fk)&&hasLim(fk))
-      .concat(FK_KEYS.filter(fk=>!FKVIP.includes(fk)&&hasLim(fk)));
+    // LIỆT KÊ MỌI nhân viên đang hoạt động (kể cả chưa nhập hạn mức → hiện "—"),
+    // LUÔN gom theo nhóm: FKVIP trước, FKONL sau (thêm người mới tự vào đúng cụm)
+    const rows=FKVIP.concat(FKONL);
     lt.innerHTML='<thead><tr><th style="text-align:left">NHÂN VIÊN</th><th>Nhóm</th><th>Hạn mức duyệt đơn</th><th>Phê duyệt PCQ</th></tr></thead><tbody>'+
       (rows.length?rows.map(fk=>{
-        const lm=LIMITS[fk];
+        const lm=LIMITS[fk]||{};
         return `<tr><td style="text-align:left;font-weight:700">${FK_NAMES[fk]}</td><td><span style="color:${fkGrpCol(fk)};font-weight:700">${FKVIP.includes(fk)?'FKVIP':'FKONL'}</span></td><td style="color:var(--go);font-weight:800">${lm.limit||'—'}</td><td style="color:${lm.pcq==='Duyệt'?'#10b981':lm.pcq==='Từ chối'?'#ef4444':'var(--mu)'};font-weight:700">${lm.pcq||'—'}</td></tr>`;
-      }).join(''):'<tr><td colspan="4" style="color:var(--mu);padding:14px">Chưa có hạn mức nào — nhập trong view Đề Xuất Hạn Mức Duyệt</td></tr>')+'</tbody>';
+      }).join(''):'<tr><td colspan="4" style="color:var(--mu);padding:14px">Chưa có nhân viên nào — thêm trong Quản lý nhân viên</td></tr>')+'</tbody>';
   }
 }
 
