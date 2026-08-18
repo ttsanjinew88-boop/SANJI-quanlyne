@@ -291,7 +291,7 @@ const SOP={
           ${ed?`<div class="sop-imgb"><button class="abtn abtn-ghost abtn-sm" onclick="SOP.capImg('${scope}',${i},${k})">✎ Chú thích</button><button class="abtn abtn-danger abtn-sm" onclick="SOP.delImg('${scope}',${i},${k})">🗑</button></div>`:''}
         </div>`).join('');
       if(!imgs.length)g=`<div class="sop-imgph">Chưa có ảnh${ed?' — bấm ＋ Thêm ảnh':''}</div>`;
-      return `<div class="sop-blk">${tools}<span class="sop-tag">Hình ảnh${imgs.length?' · '+imgs.length+' ảnh':''}</span>
+      return `<div class="sop-blk">${tools}
         <div class="sop-grid" style="grid-template-columns:repeat(${cols},1fr)">${g}</div>
         ${ed?`<div class="sop-imgctl"><button class="abtn abtn-ghost abtn-sm" onclick="SOP.pickImg('${scope}',${i})">＋ Thêm ảnh</button>
           <span>Bố cục:</span>${[1,2,3].map(c=>`<button class="abtn ${c===cols?'abtn-pu':'abtn-ghost'} abtn-sm" onclick="SOP.setCols('${scope}',${i},${c})">${c} cột</button>`).join('')}</div>`:''}</div>`;
@@ -305,7 +305,7 @@ const SOP={
           <textarea class="sop-eb" id="sopEdB" rows="2" placeholder="Giải thích / ví dụ (không bắt buộc)">${hesc(f.d||'')}</textarea>
           ${SOP.edBar()}</div></div>`;
       };
-      return `<div class="sop-blk">${tools}<span class="sop-tag">${hesc(b.h||(SOP.view==='game'?'Cách hội viên lạm dụng':'Đặc điểm nhận biết'))}</span>
+      return `<div class="sop-blk">${tools}${b.h?`<div class="sop-bh" data-noi18n>${hesc(SOP.tx(b,'h'))}</div>`:''}
         ${its.map((f,k)=>fk===k?form(k):`<div class="sop-feat"><span class="sop-fn">${k+1}</span><div>
           <b data-noi18n>${hesc(SOP.tx(f,'b'))}</b>${f.d?`<div class="sop-fd" data-noi18n>${hesc(SOP.tx(f,'d'))}</div>`:''}</div>
           ${ed?`<span class="sop-featb"><button class="abtn abtn-ghost abtn-sm" onclick="SOP.editFeat('${scope}',${i},${k})">✎</button><button class="abtn abtn-danger abtn-sm" onclick="SOP.delFeat('${scope}',${i},${k})">🗑</button></span>`:''}</div>`).join('')||(fk===-1?'':'<div class="sop-empty sm">— chưa có mục nào —</div>')}
@@ -314,7 +314,7 @@ const SOP={
     }
     if(b.t==='table'){
       const rows=b.rows||[];
-      return `<div class="sop-blk">${tools}<span class="sop-tag">Bảng</span>
+      return `<div class="sop-blk">${tools}
         ${b.h?`<div class="sop-bh" data-noi18n>${hesc(SOP.tx(b,'h'))}</div>`:''}
         <div style="overflow-x:auto"><table class="sop-tbl" data-noi18n>${rows.map((r,ri)=>`<tr>${r.map(c=>ri?`<td>${hesc(c)}</td>`:`<th>${hesc(c)}</th>`).join('')}</tr>`).join('')}</table></div></div>`;
     }
