@@ -794,6 +794,75 @@ const I18N={
   "Chưa cấu hình Google Sheet.":"Google Sheet is not configured.",
   "Cần deploy file google_sheet_baocao.gs (Apps Script) rồi dán URL Web App vào BC.GS_WEBAPP_URL trong dashboard_v2.html.":"Deploy google_sheet_baocao.gs (Apps Script), then paste the Web App URL into BC.GS_WEBAPP_URL in dashboard_v2.html.",
 
+  /* ---- T4: Quy Trình Công Việc (SOP) — chỉ NHÃN giao diện; nội dung người dùng gõ gắn data-noi18n ---- */
+  "QUY TRÌNH CÔNG VIỆC":"WORK PROCEDURES",
+  "Quy Trình Công Việc":"Work Procedures",
+  "Quy Trình Duyệt Đơn":"Withdrawal Approval Guide",
+  "Nhóm Lạm Dụng":"Abuse Groups",
+  "Trò Chơi Lạm Dụng":"Abused Games",
+  "Lưu Trình Công Việc":"Work Regulations",
+  "🔒 Chỉ ADMIN":"🔒 ADMIN only",
+  "Chế độ biên tập":"Edit mode",
+  "Xuất nội dung":"Export content",
+  "Nhập bản dịch":"Import translation",
+  "Giữ nguyên ảnh gốc":"Keep original image",
+  "Chủ đề":"Topics",
+  "Dấu hiệu":"Signs",
+  "Sảnh":"Lobbies",
+  "Mục":"Sections",
+  "Bước":"Step",
+  "Trò chơi":"Game",
+  "Nhóm":"Group",
+  "＋ Nhóm":"＋ Group",
+  "＋ Chủ đề":"＋ Topic",
+  "＋ Dấu hiệu":"＋ Sign",
+  "＋ Sảnh":"＋ Lobby",
+  "＋ Mục":"＋ Section",
+  "＋ Bước":"＋ Step",
+  "＋ Trò chơi":"＋ Game",
+  "＋ Văn bản":"＋ Text",
+  "＋ Hình ảnh":"＋ Image",
+  "＋ Thêm ảnh":"＋ Add image",
+  "＋ Thêm mục":"＋ Add entry",
+  "＋ Bảng":"＋ Table",
+  "＋ Đặc điểm":"＋ Trait",
+  "＋ Cách lạm dụng":"＋ Abuse method",
+  "＋ Khung ghi nhớ":"＋ Note box",
+  "＋ Khung lưu ý":"＋ Caution box",
+  "＋ Khung cấm":"＋ Prohibition box",
+  "Thêm bước":"Add step",
+  "Đổi tên":"Rename",
+  "Đổi tên bước":"Rename step",
+  "Xoá bước":"Delete step",
+  "✎ Chú thích":"✎ Caption",
+  "✎ Sửa thông tin":"✎ Edit details",
+  "＋ Ảnh bìa":"＋ Cover image",
+  "Đổi ảnh bìa":"Change cover image",
+  "Chưa có ảnh bìa":"No cover image",
+  "← Bước trước":"← Previous step",
+  "Bước sau →":"Next step →",
+  "Văn bản":"Text",
+  "Hình ảnh":"Image",
+  "Bảng":"Table",
+  "Đặc điểm nhận biết":"Identifying traits",
+  "Cách hội viên lạm dụng":"How members abuse it",
+  "Mã game":"Game code",
+  "Trạng thái":"Status",
+  "Áp dụng từ":"Effective from",
+  "Bố cục:":"Layout:",
+  "1 cột":"1 column","2 cột":"2 columns","3 cột":"3 columns",
+  "Nguy hiểm cao":"High risk","Trung bình":"Medium","Theo dõi":"Watch",
+  "Cấm cược":"Betting banned","Hạn chế":"Restricted",
+  "ℹ Ghi nhớ:":"ℹ Note:",
+  "⚠ Lưu ý:":"⚠ Caution:",
+  "🚫 Tuyệt đối không:":"🚫 Never:",
+  "✓ Đã lưu":"✓ Saved",
+  "－ Thu nhỏ":"－ Zoom out",
+  "＋ Phóng to":"＋ Zoom in",
+  "Mở ảnh gốc":"Open original",
+  "Chưa có nội dung.":"No content yet.",
+  "Không tải được ảnh":"Could not load image",
+  "In":"Print",
   /* ---- T3: Lọc File NTK (nhiều tài khoản) ---- */
   "LỌC FILE NTK":"MULTI-ACCOUNT FILTER",
   "Lọc File NTK — Nhiều Tài Khoản":"Multi-Account Filter",
@@ -1065,7 +1134,7 @@ function i18nSyncBtn(){
   const html=
     '<button type="button" class="lang-opt'+(en?"":" on")+'" onclick="setLang(\'vi\')" title="Tiếng Việt">'+I18N_FLAG.vi+'<span>VI</span></button>'+
     '<button type="button" class="lang-opt'+(en?" on":"")+'" onclick="setLang(\'en\')" title="English">'+I18N_FLAG.en+'<span>EN</span></button>';
-  ["btnLang","btnLang2","btnLang3"].forEach(id=>{
+  ["btnLang","btnLang2","btnLang3","btnLang4"].forEach(id=>{
     const b=document.getElementById(id);
     if(b)b.innerHTML=html;
   });
@@ -1080,6 +1149,8 @@ function setLang(l){
   // Vẽ lại phần sinh bằng JS (chart/canvas không nằm trong DOM text) — bọc try để không chặn việc đổi ngôn ngữ
   try{if(typeof rAll==="function"&&typeof D!=="undefined"&&D)rAll();}catch(e){}
   try{if(window.BC&&BC.rows&&BC.rows.length&&typeof BC.renderAll==="function")BC.renderAll();}catch(e){}
+  // T4: nội dung do người dùng gõ có thể có bản dịch riêng (o.en) -> vẽ lại để đổi bản
+  try{if(window.SOP&&SOP.booted)SOP.render();}catch(e){}
 }
 function i18nToggle(){setLang(I18N.on()?"vi":"en");}
 /* Nội dung render sau này (bảng, thẻ, modal) — dịch ngay khi được chèn vào DOM */

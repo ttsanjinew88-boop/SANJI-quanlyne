@@ -523,6 +523,118 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .ntk-tbl tr.ntk-gap td{height:10px;padding:0;border:none;background:transparent}
 .ntk-tbl tr.ntk-gap:hover td{background:transparent}
 .ntk-mark{display:inline-block;background:rgba(244,63,94,.16);border:1px solid rgba(244,63,94,.4);color:#fda4af;border-radius:5px;padding:2px 7px;font-size:.55rem;font-weight:700;margin:1px}
+
+/* ===== T4 — QUY TRÌNH CÔNG VIỆC (SOP) ===== */
+.sop-wrap{display:grid;grid-template-columns:270px 1fr;gap:16px;align-items:start}
+.sop-rail{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;position:sticky;top:14px}
+.sop-pane{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 22px;min-height:320px}
+.sop-inp{background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:8px;padding:7px 11px;font-size:.7rem;font-family:inherit;outline:none}
+.sop-inp:focus{border-color:var(--pu)}
+.sop-grp{font-size:.55rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--mu);margin:15px 0 6px;padding-left:3px;display:flex;align-items:center;gap:6px}
+.sop-grp:first-of-type{margin-top:0}
+.sop-gx{opacity:0;cursor:pointer;transition:.15s}
+.sop-grp:hover .sop-gx{opacity:1}.sop-gx:hover{color:var(--re)}
+.sop-it{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;cursor:pointer;transition:.18s;margin-bottom:2px}
+.sop-it:hover{background:rgba(124,58,237,.08)}
+.sop-it.on{background:rgba(124,58,237,.2)}
+.sop-dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--border2)}
+.sop-dot.hi{background:var(--re)}.sop-dot.go{background:var(--go)}.sop-dot.mu{background:var(--mu)}
+.sop-it.on .sop-dot{box-shadow:0 0 0 3px rgba(124,58,237,.25)}
+.sop-itt{font-size:.73rem;font-weight:600;flex:1;line-height:1.4}
+.sop-it.on .sop-itt{font-weight:800;color:#fff}
+.sop-n{font-size:.57rem;color:var(--mu);font-weight:700;flex:none}
+.sop-x{opacity:0;font-size:.68rem;color:var(--mu);flex:none}
+.sop-it:hover .sop-x{opacity:1}.sop-x:hover{color:var(--re)}
+.sop-leg{font-size:.6rem;color:var(--mu);margin-top:12px;line-height:1.9}
+.sop-lg{display:inline-block;width:7px;height:7px;border-radius:50%;margin:0 4px 0 8px}
+.sop-lg.hi{background:var(--re)}.sop-lg.go{background:var(--go)}.sop-lg.mu{background:var(--mu)}
+.sop-h{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:14px;flex-wrap:wrap}
+.sop-crumb{font-size:.58rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--mu);margin-bottom:4px}
+.sop-t{font-size:1rem;font-weight:800}
+.sop-m{font-size:.63rem;color:var(--mu);margin-top:3px}
+.sop-saved{font-size:.6rem;color:var(--gr);opacity:.45;transition:opacity .3s}
+.sop-empty{border:1px dashed var(--border2);border-radius:10px;padding:16px;text-align:center;color:var(--mu);font-size:.7rem;margin:8px 0}
+.sop-empty.sm{padding:7px;font-size:.62rem;border:none}
+.sop-empty.big{padding:40px}
+.sop-steps{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:18px;padding:12px 14px;background:var(--card2);border:1px solid var(--border);border-radius:10px}
+.sop-sdot{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;padding:0 2px}
+.sop-sdot i{width:30px;height:30px;border-radius:50%;background:var(--bg);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;color:var(--mu2);font-style:normal;transition:.18s}
+.sop-sdot span{font-size:.57rem;color:var(--mu);max-width:82px;text-align:center;line-height:1.35}
+.sop-sdot:hover i{border-color:var(--pu)}
+.sop-sdot.on i{background:linear-gradient(135deg,var(--pu),var(--bl));border-color:transparent;color:#fff;box-shadow:0 0 0 3px rgba(124,58,237,.22)}
+.sop-sdot.on span{color:var(--pu2);font-weight:700}
+.sop-sdot.sadd i{border-style:dashed;color:var(--mu)}
+.sop-sline{flex:1;min-width:14px;height:2px;background:var(--border2);margin:0 2px 20px}
+.sop-subh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.sop-subt{font-size:.86rem;font-weight:800}
+.sop-nav{display:flex;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
+.sop-acc{border:1px solid var(--border);border-radius:11px;margin-bottom:10px;overflow:hidden;background:var(--card2)}
+.sop-acc.open{border-color:rgba(124,58,237,.4)}
+.sop-acch{display:flex;align-items:center;gap:9px;padding:11px 14px;cursor:pointer;transition:.15s;flex-wrap:wrap}
+.sop-acch:hover{background:rgba(124,58,237,.07)}
+.sop-acc.open .sop-acch{background:rgba(124,58,237,.12);border-bottom:1px solid var(--border)}
+.sop-car{color:var(--mu);font-size:.7rem;width:12px;flex:none}
+.sop-acc.open .sop-car{color:var(--pu2)}
+.sop-acct{font-size:.82rem;font-weight:800;flex:none}
+.sop-accm{font-size:.6rem;color:var(--mu);flex:1}
+.sop-accb{display:flex;gap:4px;opacity:0;transition:.15s;flex:none}
+.sop-acch:hover .sop-accb,.sop-acc.open .sop-accb{opacity:1}
+.sop-accb2{padding:14px}
+.sop-gcard{display:grid;grid-template-columns:1.15fr 1fr;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:11px;padding:14px;margin-bottom:12px}
+.sop-gthumb{border:1px solid var(--border2);border-radius:9px;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--mu);font-size:.68rem;background:var(--bg);padding:10px}
+.sop-gthumb img{max-width:100%;max-height:190px;border-radius:6px;cursor:zoom-in}
+.sop-grow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed var(--border)}
+.sop-grow span{font-size:.63rem;color:var(--mu)}
+.sop-grow b{font-size:.73rem;font-weight:700}
+.sop-blk{border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px;position:relative;background:var(--card2)}
+.sop-blk.plain{border:none;background:none;padding:0}
+.sop-btools{position:absolute;top:8px;right:10px;display:flex;gap:4px;opacity:0;transition:.15s;z-index:2}
+.sop-blk:hover .sop-btools{opacity:1}
+.sop-tag{font-size:.55rem;font-weight:800;letter-spacing:.1em;color:var(--mu);text-transform:uppercase;margin-bottom:7px;display:block}
+.sop-bh{font-size:.82rem;font-weight:800;color:var(--pu2);margin-bottom:7px}
+.sop-body p{font-size:.77rem;line-height:1.85;margin-bottom:6px}
+.sop-body p:last-child{margin-bottom:0}
+.sop-mu{color:var(--mu)}
+.sop-grid{display:grid;gap:10px}
+.sop-imgbox{border:1px solid var(--border2);border-radius:8px;overflow:hidden;background:var(--bg);position:relative}
+.sop-imgbox img{width:100%;display:block;cursor:zoom-in;background:var(--card2)}
+.sop-cap{padding:7px 12px;font-size:.64rem;color:var(--mu2);border-top:1px solid var(--border);text-align:center}
+.sop-imgb{position:absolute;top:6px;right:6px;display:flex;gap:4px;opacity:0;transition:.15s}
+.sop-imgbox:hover .sop-imgb{opacity:1}
+.sop-imgph{border:1px dashed var(--border2);border-radius:8px;padding:26px;text-align:center;color:var(--mu);font-size:.68rem}
+.sop-imgctl{display:flex;gap:6px;margin-top:9px;align-items:center;flex-wrap:wrap}
+.sop-imgctl span{font-size:.62rem;color:var(--mu)}
+.sop-feat{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed var(--border);position:relative}
+.sop-feat:last-of-type{border-bottom:none}
+.sop-fn{width:20px;height:20px;flex:none;border-radius:50%;background:rgba(239,68,68,.16);color:#fca5a5;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:800;margin-top:1px}
+.sop-feat b{font-size:.75rem;font-weight:700}
+.sop-fd{font-size:.68rem;color:var(--mu2);margin-top:3px;line-height:1.6}
+.sop-featb{margin-left:auto;display:flex;gap:4px;opacity:0;transition:.15s}
+.sop-feat:hover .sop-featb{opacity:1}
+.sop-tbl{width:100%;border-collapse:collapse;font-size:.72rem}
+.sop-tbl th,.sop-tbl td{border:1px solid var(--border2);padding:7px 10px;text-align:center}
+.sop-tbl th{background:var(--card);color:var(--mu2);font-weight:800;font-size:.62rem;letter-spacing:.05em;text-transform:uppercase}
+.sop-note{border-radius:0 8px 8px 0;padding:11px 14px;font-size:.75rem;line-height:1.75;border-left:3px solid;margin-bottom:12px}
+.sop-note.info{background:rgba(59,130,246,.10);border-color:var(--bl)}
+.sop-note.warn{background:rgba(245,158,11,.10);border-color:var(--go)}
+.sop-note.ban{background:rgba(239,68,68,.10);border-color:var(--re)}
+.sop-addbar{display:flex;gap:8px;justify-content:center;padding:14px;border:1px dashed var(--border2);border-radius:10px;margin-top:6px;flex-wrap:wrap}
+.sop-lvl{font-size:.53rem;font-weight:800;letter-spacing:.08em;padding:3px 9px;border-radius:20px;vertical-align:middle;margin-left:8px;flex:none}
+.sop-lvl.hi{background:rgba(239,68,68,.16);color:#fca5a5;border:1px solid rgba(239,68,68,.35)}
+.sop-lvl.go{background:rgba(245,158,11,.15);color:#fcd34d;border:1px solid rgba(245,158,11,.34)}
+.sop-lvl.mu{background:rgba(148,163,184,.13);color:var(--mu2);border:1px solid var(--border2)}
+#sopLb .box{max-width:96vw;width:auto;padding:10px;background:var(--card)}
+#sopLbImg{max-width:92vw;max-height:78vh;display:block;transform-origin:center center;transition:transform .15s;border-radius:8px}
+.sop-lbbar{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:10px;flex-wrap:wrap}
+@media(max-width:900px){.sop-wrap{grid-template-columns:1fr}.sop-rail{position:static}.sop-gcard{grid-template-columns:1fr}}
+@media print{
+  body.sop-printing .tool-sw,body.sop-printing .hdr,body.sop-printing #sopTabs,body.sop-printing .sop-rail,
+  body.sop-printing .sop-btools,body.sop-printing .sop-addbar,body.sop-printing .sop-h button,body.sop-printing #sopBar{display:none!important}
+  body.sop-printing .sop-wrap{grid-template-columns:1fr}
+  body.sop-printing .sop-pane{border:none;padding:0}
+  body.sop-printing,body.sop-printing .sop-pane,body.sop-printing .sop-blk{background:#fff!important;color:#000!important}
+  body.sop-printing .sop-blk{border-color:#ccc}
+}
 </style>
 </head>
 <body>
@@ -614,6 +726,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
   <button class="tool-sw-btn on" id="tsb1" onclick="switchTool('t1')">HIỆU SUẤT NHÂN VIÊN</button>
   <button class="tool-sw-btn" id="tsb2" onclick="switchTool('t2')">BÁO CÁO ĐẠI LÝ - GỬI FILE</button>
   <button class="tool-sw-btn" id="tsb3" onclick="switchTool('t3')">LỌC FILE NTK</button>
+  <button class="tool-sw-btn" id="tsb4" style="display:none" onclick="switchTool('t4')">QUY TRÌNH CÔNG VIỆC</button>
 </div>
 
 <div id="t1">
@@ -1990,6 +2103,75 @@ const I18N={
   "Chưa cấu hình Google Sheet.":"Google Sheet is not configured.",
   "Cần deploy file google_sheet_baocao.gs (Apps Script) rồi dán URL Web App vào BC.GS_WEBAPP_URL trong dashboard_v2.html.":"Deploy google_sheet_baocao.gs (Apps Script), then paste the Web App URL into BC.GS_WEBAPP_URL in dashboard_v2.html.",
 
+  /* ---- T4: Quy Trình Công Việc (SOP) — chỉ NHÃN giao diện; nội dung người dùng gõ gắn data-noi18n ---- */
+  "QUY TRÌNH CÔNG VIỆC":"WORK PROCEDURES",
+  "Quy Trình Công Việc":"Work Procedures",
+  "Quy Trình Duyệt Đơn":"Withdrawal Approval Guide",
+  "Nhóm Lạm Dụng":"Abuse Groups",
+  "Trò Chơi Lạm Dụng":"Abused Games",
+  "Lưu Trình Công Việc":"Work Regulations",
+  "🔒 Chỉ ADMIN":"🔒 ADMIN only",
+  "Chế độ biên tập":"Edit mode",
+  "Xuất nội dung":"Export content",
+  "Nhập bản dịch":"Import translation",
+  "Giữ nguyên ảnh gốc":"Keep original image",
+  "Chủ đề":"Topics",
+  "Dấu hiệu":"Signs",
+  "Sảnh":"Lobbies",
+  "Mục":"Sections",
+  "Bước":"Step",
+  "Trò chơi":"Game",
+  "Nhóm":"Group",
+  "＋ Nhóm":"＋ Group",
+  "＋ Chủ đề":"＋ Topic",
+  "＋ Dấu hiệu":"＋ Sign",
+  "＋ Sảnh":"＋ Lobby",
+  "＋ Mục":"＋ Section",
+  "＋ Bước":"＋ Step",
+  "＋ Trò chơi":"＋ Game",
+  "＋ Văn bản":"＋ Text",
+  "＋ Hình ảnh":"＋ Image",
+  "＋ Thêm ảnh":"＋ Add image",
+  "＋ Thêm mục":"＋ Add entry",
+  "＋ Bảng":"＋ Table",
+  "＋ Đặc điểm":"＋ Trait",
+  "＋ Cách lạm dụng":"＋ Abuse method",
+  "＋ Khung ghi nhớ":"＋ Note box",
+  "＋ Khung lưu ý":"＋ Caution box",
+  "＋ Khung cấm":"＋ Prohibition box",
+  "Thêm bước":"Add step",
+  "Đổi tên":"Rename",
+  "Đổi tên bước":"Rename step",
+  "Xoá bước":"Delete step",
+  "✎ Chú thích":"✎ Caption",
+  "✎ Sửa thông tin":"✎ Edit details",
+  "＋ Ảnh bìa":"＋ Cover image",
+  "Đổi ảnh bìa":"Change cover image",
+  "Chưa có ảnh bìa":"No cover image",
+  "← Bước trước":"← Previous step",
+  "Bước sau →":"Next step →",
+  "Văn bản":"Text",
+  "Hình ảnh":"Image",
+  "Bảng":"Table",
+  "Đặc điểm nhận biết":"Identifying traits",
+  "Cách hội viên lạm dụng":"How members abuse it",
+  "Mã game":"Game code",
+  "Trạng thái":"Status",
+  "Áp dụng từ":"Effective from",
+  "Bố cục:":"Layout:",
+  "1 cột":"1 column","2 cột":"2 columns","3 cột":"3 columns",
+  "Nguy hiểm cao":"High risk","Trung bình":"Medium","Theo dõi":"Watch",
+  "Cấm cược":"Betting banned","Hạn chế":"Restricted",
+  "ℹ Ghi nhớ:":"ℹ Note:",
+  "⚠ Lưu ý:":"⚠ Caution:",
+  "🚫 Tuyệt đối không:":"🚫 Never:",
+  "✓ Đã lưu":"✓ Saved",
+  "－ Thu nhỏ":"－ Zoom out",
+  "＋ Phóng to":"＋ Zoom in",
+  "Mở ảnh gốc":"Open original",
+  "Chưa có nội dung.":"No content yet.",
+  "Không tải được ảnh":"Could not load image",
+  "In":"Print",
   /* ---- T3: Lọc File NTK (nhiều tài khoản) ---- */
   "LỌC FILE NTK":"MULTI-ACCOUNT FILTER",
   "Lọc File NTK — Nhiều Tài Khoản":"Multi-Account Filter",
@@ -2261,7 +2443,7 @@ function i18nSyncBtn(){
   const html=
     '<button type="button" class="lang-opt'+(en?"":" on")+'" onclick="setLang(\'vi\')" title="Tiếng Việt">'+I18N_FLAG.vi+'<span>VI</span></button>'+
     '<button type="button" class="lang-opt'+(en?" on":"")+'" onclick="setLang(\'en\')" title="English">'+I18N_FLAG.en+'<span>EN</span></button>';
-  ["btnLang","btnLang2","btnLang3"].forEach(id=>{
+  ["btnLang","btnLang2","btnLang3","btnLang4"].forEach(id=>{
     const b=document.getElementById(id);
     if(b)b.innerHTML=html;
   });
@@ -2276,6 +2458,8 @@ function setLang(l){
   // Vẽ lại phần sinh bằng JS (chart/canvas không nằm trong DOM text) — bọc try để không chặn việc đổi ngôn ngữ
   try{if(typeof rAll==="function"&&typeof D!=="undefined"&&D)rAll();}catch(e){}
   try{if(window.BC&&BC.rows&&BC.rows.length&&typeof BC.renderAll==="function")BC.renderAll();}catch(e){}
+  // T4: nội dung do người dùng gõ có thể có bản dịch riêng (o.en) -> vẽ lại để đổi bản
+  try{if(window.SOP&&SOP.booted)SOP.render();}catch(e){}
 }
 function i18nToggle(){setLang(I18N.on()?"vi":"en");}
 /* Nội dung render sau này (bảng, thẻ, modal) — dịch ngay khi được chèn vào DOM */
@@ -2881,6 +3065,14 @@ function applyPerms(){
   if(active&&active.style.display==='none'){
     const first=[...document.querySelectorAll('.tabs-wrap .tab')].find(t=>t.style.display!=='none');
     if(first)first.click();
+  }
+  // Quy Trình Công Việc (T4): TẠM THỜI chỉ ADMIN thấy tab lớn + sửa nội dung
+  const tsb4=document.getElementById('tsb4');
+  if(tsb4)tsb4.style.display=p.is_admin?'':'none';
+  const seb=document.getElementById('sopEditBtn');
+  if(seb)seb.style.display=p.is_admin?'':'none';
+  if(!p.is_admin&&document.getElementById('t4')&&document.getElementById('t4').style.display!=='none'){
+    switchTool('t1');
   }
   // nếu đang đứng ở BC tool mà mất quyền -> về tool 1
   if(!canView('bc')&&document.getElementById('t2').style.display!=='none'){
@@ -6335,11 +6527,49 @@ rAll();
   </div>
 </div><!-- /t3 -->
 
+<!-- ============ T4 — QUY TRÌNH CÔNG VIỆC (lưu cloud; TẠM THỜI chỉ ADMIN) ============ -->
+<div id="t4" style="display:none" class="pg active">
+  <div class="sec-hdr pu" id="sopBar">Quy Trình Công Việc
+    <span style="font-size:.56rem;color:var(--go);text-transform:none;letter-spacing:0;font-weight:700">🔒 Chỉ ADMIN</span>
+    <button class="abtn abtn-pu abtn-sm" id="sopEditBtn" onclick="SOP.toggleEdit()">Chế độ biên tập</button>
+    <button class="abtn abtn-ghost abtn-sm" onclick="SOP.exportTrans()">Xuất nội dung</button>
+    <button class="abtn abtn-ghost abtn-sm" onclick="SOP.importTrans()">Nhập bản dịch</button>
+    <label style="font-size:.58rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400;display:flex;align-items:center;gap:5px">
+      <input type="checkbox" id="sopNoCompress"> Giữ nguyên ảnh gốc</label>
+    <span id="sopUpStatus" style="font-size:.58rem;color:var(--cy);text-transform:none;letter-spacing:0;font-weight:400"></span>
+    <div class="lang-sw" id="btnLang4" data-noi18n></div>
+  </div>
+
+  <div class="tabs-wrap" id="sopTabs" style="position:static;top:auto;margin-bottom:14px;border-radius:10px;border:1px solid var(--border)"></div>
+
+  <div class="sop-wrap">
+    <div class="sop-rail" id="sopRail"></div>
+    <div class="sop-pane" id="sopPane"></div>
+  </div>
+
+  <input type="file" id="sopFile" accept="image/*" multiple style="display:none">
+  <input type="file" id="sopTransFile" accept=".json,application/json" style="display:none">
+
+  <div class="dr-modal" id="sopLb">
+    <div class="box" data-noi18n>
+      <img id="sopLbImg" alt="">
+      <div class="sop-lbbar">
+        <button class="abtn abtn-ghost abtn-sm" onclick="SOP.lbZoom(-0.5)">－ Thu nhỏ</button>
+        <button class="abtn abtn-ghost abtn-sm" onclick="SOP.lbZoom(0.5)">＋ Phóng to</button>
+        <a id="sopLbOpen" href="#" target="_blank" rel="noopener" class="abtn abtn-ghost abtn-sm" style="text-decoration:none">Mở ảnh gốc</a>
+        <button class="abtn abtn-pu abtn-sm" onclick="document.getElementById('sopLb').classList.remove('show')">Đóng</button>
+      </div>
+    </div>
+  </div>
+</div><!-- /t4 -->
+
 <script>
 // ===== TOOL SWITCHER =====
 // Tổng quát hóa theo danh sách tab lớn -> thêm tab thứ 4 chỉ cần nối thêm vào TOOLS
-const TOOLS=['t1','t2','t3'];
+const TOOLS=['t1','t2','t3','t4'];
 function switchTool(id){
+  // T4 nạp dữ liệu cloud lần đầu mở (khỏi tốn request khi không ai vào tab này)
+  if(id==='t4'&&typeof SOP!=='undefined')SOP.boot();
   TOOLS.forEach((t,i)=>{
     const pane=document.getElementById(t),btn=document.getElementById('tsb'+(i+1));
     // #t3 mang class .pg (CSS .pg{display:none}) nên sw() của T1 gỡ mất .active
@@ -8168,6 +8398,695 @@ const NTK={
     if(text&&text.includes('\t')){e.preventDefault();
       NTK.applyPasted(text.replace(/\r/g,'').split('\n').map(l=>l.split('\t')));}
   });
+})();
+
+// ===== T4 — QUY TRÌNH CÔNG VIỆC (SOP) =====
+// 4 tab nhỏ dùng CHUNG một bộ khối nội dung: qt (quy trình duyệt đơn) · ld (nhóm lạm dụng)
+// · game (trò chơi lạm dụng) · doc (lưu trình công việc).
+// Lưu CLOUD (khác NTK/DR vốn session-only): bảng `reports`
+//   - type 'sop_index' month 'all'      -> mục lục 4 tab {tab:[{gid,gname,items:[{id,name,level}]}]}
+//   - type 'sop_item'  month <id mục>   -> nội dung 1 mục (tách nhỏ để mở mục nào tải mục đó)
+// Ảnh: Supabase Storage bucket 'quytrinh' (PRIVATE) -> hiển thị bằng signed URL có hạn.
+// Quyền: TẠM THỜI chỉ ADMIN (xem + sửa) — gate ở applyPerms (#tsb4) và SOP.canEdit().
+// Song ngữ: nhãn giao diện dịch qua I18N; nội dung người dùng gõ gắn data-noi18n (giữ tiếng Việt),
+// mỗi chuỗi có sẵn chỗ chứa bản dịch `en` + dấu vết `envi` -> Xuất/Nhập JSON để dịch một lượt.
+const SOP={
+  BUCKET:'quytrinh',
+  TABS:[
+    {k:'qt',  label:'Quy Trình Duyệt Đơn', unit:'Chủ đề',  subs:'step', subName:'Bước'},
+    {k:'ld',  label:'Nhóm Lạm Dụng',       unit:'Dấu hiệu',subs:'',     subName:''},
+    {k:'game',label:'Trò Chơi Lạm Dụng',   unit:'Sảnh',    subs:'acc',  subName:'Trò chơi'},
+    {k:'doc', label:'Lưu Trình Công Việc', unit:'Mục',     subs:'',     subName:''}
+  ],
+  LEVELS:{hi:'Nguy hiểm cao',go:'Trung bình',mu:'Theo dõi'},
+  GLEVELS:{hi:'Cấm cược',go:'Hạn chế',mu:'Theo dõi'},
+  view:'qt', idx:null, cur:null, curId:'', curSub:0, edit:false,
+  booted:false, _urls:{}, _imgTarget:null, _blkEdit:null,
+
+  canEdit(){return !!(CUR_PROFILE&&CUR_PROFILE.is_admin);},
+  tabDef(k){return SOP.TABS.find(t=>t.k===(k||SOP.view));},
+  uid(p){return p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);},
+
+  // ---------- NẠP / LƯU ----------
+  async boot(){
+    if(SOP.booted)return;SOP.booted=true;
+    try{
+      SOP.idx=await SB.loadReport('sop_index','all');
+    }catch(e){console.error('SOP index',e);}
+    if(!SOP.idx||!SOP.idx.tabs)SOP.idx={v:1,tabs:{qt:[],ld:[],game:[],doc:[]}};
+    SOP.TABS.forEach(t=>{if(!Array.isArray(SOP.idx.tabs[t.k]))SOP.idx.tabs[t.k]=[];});
+    SOP.renderTabs();
+    await SOP.openFirst();
+  },
+  async saveIndex(){
+    try{await SB.saveReport('sop_index','all',SOP.idx);SOP.flash();}
+    catch(e){alert('Không lưu được mục lục: '+(e.message||e));}
+  },
+  async saveItem(){
+    if(!SOP.cur)return;
+    try{await SB.saveReport('sop_item',SOP.curId,SOP.cur);SOP.flash();}
+    catch(e){alert('Không lưu được nội dung: '+(e.message||e));}
+  },
+  flash(){
+    const el=document.getElementById('sopSaved');if(!el)return;
+    el.textContent='✓ Đã lưu';el.style.opacity='1';
+    clearTimeout(SOP._ft);SOP._ft=setTimeout(()=>{el.style.opacity='.45';},1800);
+  },
+  groups(){return SOP.idx.tabs[SOP.view]||[];},
+  findItem(id){
+    for(const g of SOP.groups()){const it=(g.items||[]).find(x=>x.id===id);if(it)return{g,it};}
+    return null;
+  },
+  // tìm trong CẢ 4 tab (dùng khi nhập bản dịch: mục có thể thuộc tab khác tab đang mở)
+  findItemAny(id){
+    for(const t of SOP.TABS)for(const g of (SOP.idx.tabs[t.k]||[])){
+      const it=(g.items||[]).find(x=>x.id===id);if(it)return{t:t.k,g,it};
+    }
+    return null;
+  },
+  async openFirst(){
+    const g=SOP.groups().find(g=>(g.items||[]).length);
+    if(g)await SOP.open(g.items[0].id);else{SOP.cur=null;SOP.curId='';SOP.render();}
+  },
+  async open(id){
+    SOP.curId=id;SOP.curSub=0;
+    try{SOP.cur=await SB.loadReport('sop_item',id);}catch(e){SOP.cur=null;console.error(e);}
+    if(!SOP.cur){
+      const f=SOP.findItem(id);
+      SOP.cur={id,tab:SOP.view,name:f?f.it.name:'(mục trống)',subs:[],blocks:[]};
+    }
+    if(!Array.isArray(SOP.cur.subs))SOP.cur.subs=[];
+    if(!Array.isArray(SOP.cur.blocks))SOP.cur.blocks=[];
+    SOP.render();
+  },
+
+  // ---------- KHUNG GIAO DIỆN ----------
+  renderTabs(){
+    const w=document.getElementById('sopTabs');if(!w)return;
+    w.innerHTML=SOP.TABS.map(t=>`<div class="tab${t.k===SOP.view?' active':''}" onclick="SOP.setView('${t.k}')">${hesc(t.label)}</div>`).join('');
+  },
+  async setView(k){
+    if(SOP.view===k)return;
+    SOP.view=k;SOP.renderTabs();await SOP.openFirst();
+  },
+  toggleEdit(){
+    if(!SOP.canEdit())return;
+    SOP.edit=!SOP.edit;SOP.render();
+  },
+  render(){
+    SOP.renderRail();SOP.renderPane();SOP.hydrateImgs();
+  },
+
+  // ---------- CỘT TRÁI ----------
+  renderRail(){
+    const el=document.getElementById('sopRail');if(!el)return;
+    const d=SOP.tabDef(),ed=SOP.edit&&SOP.canEdit();
+    const q=(SOP._q||'').toLowerCase();
+    let h=`<div class="sec-hdr">${hesc(d.unit)}</div>
+      <input class="sop-inp" placeholder="Tìm ${hesc(d.unit.toLowerCase())}…" value="${hesc(SOP._q||'')}" oninput="SOP.search(this.value)" style="width:100%;margin-bottom:12px">`;
+    const gs=SOP.groups();
+    if(!gs.length)h+=`<div class="sop-empty">Chưa có nhóm nào.${ed?' Bấm ＋ Nhóm để tạo.':''}</div>`;
+    gs.forEach((g,gi)=>{
+      const items=(g.items||[]).filter(it=>!q||(it.name||'').toLowerCase().includes(q));
+      if(q&&!items.length&&!(g.name||'').toLowerCase().includes(q))return;
+      h+=`<div class="sop-grp" data-noi18n>${hesc(g.name)}${ed?`<span class="sop-gx" title="Đổi tên nhóm" onclick="SOP.renameGroup(${gi})">✎</span><span class="sop-gx" title="Xoá nhóm" onclick="SOP.delGroup(${gi})">✕</span>`:''}</div>`;
+      if(!items.length)h+=`<div class="sop-empty sm">— trống —</div>`;
+      items.forEach(it=>{
+        const on=it.id===SOP.curId,dot=it.level||'',n=SOP.badgeOf(it);
+        h+=`<div class="sop-it${on?' on':''}" onclick="SOP.open('${it.id}')">
+          <span class="sop-dot ${hesc(dot)}"></span>
+          <span class="sop-itt" data-noi18n>${hesc(SOP.nameOf(it))}</span>
+          ${n?`<span class="sop-n">${hesc(n)}</span>`:''}
+          ${ed?`<span class="sop-x" onclick="event.stopPropagation();SOP.delItem('${it.id}')">✕</span>`:''}
+        </div>`;
+      });
+    });
+    if(ed)h+=`<div style="display:flex;gap:6px;margin-top:14px">
+      <button class="abtn abtn-pu abtn-sm" style="flex:1;justify-content:center" onclick="SOP.addItem()">＋ ${hesc(d.unit)}</button>
+      <button class="abtn abtn-ghost abtn-sm" style="flex:1;justify-content:center" onclick="SOP.addGroup()">＋ Nhóm</button></div>`;
+    if(SOP.view==='ld'||SOP.view==='game'){
+      const L=SOP.view==='game'?SOP.GLEVELS:SOP.LEVELS;
+      h+=`<div class="sop-leg"><span class="sop-lg hi"></span>${hesc(L.hi)} <span class="sop-lg go"></span>${hesc(L.go)} <span class="sop-lg mu"></span>${hesc(L.mu)}</div>`;
+    }
+    el.innerHTML=h;
+  },
+  // Tên mục ở cột trái lấy từ MỤC LỤC (không tải nội dung) -> bản dịch tên được chép sang idx lúc nhập
+  nameOf(it){
+    if(it.en_name&&typeof I18N!=='undefined'&&I18N.lang==='en')return it.en_name;
+    return it.name||'';
+  },
+  badgeOf(it){
+    if(SOP.view==='qt')return it.n?it.n+' bước':'';
+    if(SOP.view==='game')return it.n?it.n+' game':'';
+    if(SOP.view==='ld')return it.n?it.n+' ảnh':'';
+    return '';
+  },
+  search(v){SOP._q=v;SOP.renderRail();},
+
+  // ---------- CỘT PHẢI ----------
+  renderPane(){
+    const el=document.getElementById('sopPane');if(!el)return;
+    if(!SOP.cur){el.innerHTML=`<div class="sop-empty big">Chưa có nội dung. ${SOP.canEdit()?'Bật Chế độ biên tập rồi thêm nhóm và mục.':''}</div>`;return;}
+    const d=SOP.tabDef(),ed=SOP.edit&&SOP.canEdit(),f=SOP.findItem(SOP.curId);
+    const gname=f?f.g.name:'';
+    let h=`<div class="sop-h">
+      <div><div class="sop-crumb" data-noi18n>${hesc(gname)} ›</div>
+        <div class="sop-t"><span data-noi18n>${hesc(SOP.tx(SOP.cur,'name'))}</span>${SOP.lvlChip(f&&f.it)}</div>
+        <div class="sop-m">${hesc(SOP.metaLine())}</div></div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span id="sopSaved" class="sop-saved">✓ Đã lưu</span>
+        ${ed?`<button class="abtn abtn-ghost abtn-sm" onclick="SOP.renameItem()">Đổi tên</button>`:''}
+        ${SOP.view==='doc'?`<button class="abtn abtn-ghost abtn-sm" onclick="SOP.printDoc()">In</button>`:''}
+        ${(ed&&d.subs)?`<button class="abtn abtn-pu abtn-sm" onclick="SOP.addSub()">＋ ${hesc(d.subName)}</button>`:''}
+      </div></div>`;
+
+    if(d.subs==='step')h+=SOP.stepBarHtml(ed)+SOP.stepBodyHtml(ed);
+    else if(d.subs==='acc')h+=SOP.accHtml(ed);
+    else h+=SOP.blocksHtml(SOP.cur.blocks,ed,'i');
+    el.innerHTML=h;
+  },
+  metaLine(){
+    const d=SOP.tabDef();
+    if(d.subs)return SOP.cur.subs.length+' '+d.subName.toLowerCase()+' · cập nhật '+(SOP.cur.upd||'—');
+    return SOP.cur.blocks.length+' khối nội dung · cập nhật '+(SOP.cur.upd||'—');
+  },
+  lvlChip(it){
+    if(!it||!it.level||(SOP.view!=='ld'&&SOP.view!=='game'))return '';
+    const L=SOP.view==='game'?SOP.GLEVELS:SOP.LEVELS;
+    return ` <span class="sop-lvl ${hesc(it.level)}">${hesc((L[it.level]||'').toUpperCase())}</span>`;
+  },
+
+  // ----- qt: thanh bước -----
+  stepBarHtml(ed){
+    const ss=SOP.cur.subs;
+    if(!ss.length)return `<div class="sop-empty big">Chưa có bước nào.${ed?' Bấm ＋ Bước ở trên.':''}</div>`;
+    let h='<div class="sop-steps">';
+    ss.forEach((s,i)=>{
+      if(i)h+='<div class="sop-sline"></div>';
+      h+=`<div class="sop-sdot${i===SOP.curSub?' on':''}" onclick="SOP.goSub(${i})"><i>${i+1}</i><span data-noi18n>${hesc(s.name||'')}</span></div>`;
+    });
+    if(ed)h+=`<div class="sop-sline"></div><div class="sop-sdot sadd" onclick="SOP.addSub()"><i>+</i><span>Thêm bước</span></div>`;
+    return h+'</div>';
+  },
+  stepBodyHtml(ed){
+    const s=SOP.cur.subs[SOP.curSub];if(!s)return '';
+    let h=`<div class="sop-subh"><div class="sop-subt">Bước ${SOP.curSub+1} — <span data-noi18n>${hesc(s.name||'')}</span></div>`;
+    if(ed)h+=`<div style="display:flex;gap:6px">
+      <button class="abtn abtn-ghost abtn-sm" onclick="SOP.renameSub(${SOP.curSub})">Đổi tên bước</button>
+      <button class="abtn abtn-danger abtn-sm" onclick="SOP.delSub(${SOP.curSub})">Xoá bước</button></div>`;
+    h+='</div>';
+    h+=SOP.blocksHtml(s.blocks,ed,'s'+SOP.curSub);
+    if(SOP.cur.subs.length>1){
+      h+=`<div class="sop-nav">
+        <button class="abtn abtn-ghost abtn-sm"${SOP.curSub? '':' disabled'} onclick="SOP.goSub(${SOP.curSub-1})">← Bước trước</button>
+        <button class="abtn abtn-pu abtn-sm"${SOP.curSub<SOP.cur.subs.length-1?'':' disabled'} onclick="SOP.goSub(${SOP.curSub+1})">Bước sau →</button></div>`;
+    }
+    return h;
+  },
+  goSub(i){
+    if(i<0||i>=SOP.cur.subs.length)return;
+    SOP.curSub=i;SOP.renderPane();SOP.hydrateImgs();
+  },
+
+  // ----- game: khối gập -----
+  accHtml(ed){
+    const ss=SOP.cur.subs;
+    if(!ss.length)return `<div class="sop-empty big">Sảnh này chưa có trò chơi nào.${ed?' Bấm ＋ Trò chơi ở trên.':''}</div>`;
+    let h='';
+    ss.forEach((s,i)=>{
+      const open=i===SOP.curSub;
+      const L=SOP.GLEVELS;
+      h+=`<div class="sop-acc${open?' open':''}">
+        <div class="sop-acch" onclick="SOP.goAcc(${i},event)">
+          <span class="sop-car">${open?'▾':'▸'}</span>
+          <span class="sop-acct" data-noi18n>${hesc(s.name||'')}</span>
+          ${s.level?`<span class="sop-lvl ${hesc(s.level)}">${hesc((L[s.level]||'').toUpperCase())}</span>`:''}
+          <span class="sop-accm">${hesc(s.code||'')}${s.code?' · ':''}${SOP.countImgs(s.blocks)} ảnh</span>
+          ${ed?`<span class="sop-accb">
+            <button class="abtn abtn-ghost abtn-sm" onclick="SOP.renameSub(${i})">✎</button>
+            <button class="abtn abtn-ghost abtn-sm" onclick="SOP.moveSub(${i},-1)">↑</button>
+            <button class="abtn abtn-ghost abtn-sm" onclick="SOP.moveSub(${i},1)">↓</button>
+            <button class="abtn abtn-danger abtn-sm" onclick="SOP.delSub(${i})">🗑</button></span>`:''}
+        </div>`;
+      if(open)h+=`<div class="sop-accb2">${SOP.gameCardHtml(s,i,ed)}${SOP.blocksHtml(s.blocks,ed,'s'+i)}</div>`;
+      h+='</div>';
+    });
+    return h;
+  },
+  gameCardHtml(s,i,ed){
+    const rows=[['Mã game',s.code||'—'],['Trạng thái',SOP.GLEVELS[s.level]||'—'],['Áp dụng từ',s.from||'—']];
+    return `<div class="sop-gcard">
+      <div class="sop-gthumb">${s.thumb?`<img data-p="${hesc(s.thumb)}" alt="" onclick="SOP.lightbox('${hesc(s.thumb)}')">`:'<span>Chưa có ảnh bìa</span>'}
+        ${ed?`<button class="abtn abtn-ghost abtn-sm" onclick="SOP.pickThumb(${i})">${s.thumb?'Đổi ảnh bìa':'＋ Ảnh bìa'}</button>`:''}</div>
+      <div>${rows.map(r=>`<div class="sop-grow"><span>${hesc(r[0])}</span><b data-noi18n>${hesc(r[1])}</b></div>`).join('')}
+        ${ed?`<button class="abtn abtn-ghost abtn-sm" style="margin-top:8px;width:100%;justify-content:center" onclick="SOP.editGame(${i})">✎ Sửa thông tin</button>`:''}</div>
+    </div>`;
+  },
+  goAcc(i,e){
+    if(e&&e.target.closest('button'))return;
+    SOP.curSub=(SOP.curSub===i)?-1:i;SOP.renderPane();SOP.hydrateImgs();
+  },
+  countImgs(bs){return (bs||[]).reduce((n,b)=>n+(b.t==='img'?(b.imgs||[]).length:0),0);},
+
+  // ---------- KHỐI NỘI DUNG ----------
+  blocksHtml(bs,ed,scope){
+    bs=bs||[];
+    let h='';
+    if(!bs.length)h+=`<div class="sop-empty">Chưa có nội dung.${ed?' Dùng các nút bên dưới để thêm khối.':''}</div>`;
+    bs.forEach((b,i)=>{h+=SOP.blockHtml(b,i,ed,scope);});
+    if(ed){
+      h+=`<div class="sop-addbar">
+        <button class="abtn abtn-pu abtn-sm" onclick="SOP.addBlock('${scope}','text')">＋ Văn bản</button>
+        <button class="abtn abtn-pu abtn-sm" onclick="SOP.addBlock('${scope}','img')">＋ Hình ảnh</button>`;
+      if(SOP.view==='ld'||SOP.view==='game')h+=`<button class="abtn abtn-ghost abtn-sm" onclick="SOP.addBlock('${scope}','feat')">＋ ${SOP.view==='game'?'Cách lạm dụng':'Đặc điểm'}</button>`;
+      if(SOP.view==='doc')h+=`<button class="abtn abtn-ghost abtn-sm" onclick="SOP.addBlock('${scope}','table')">＋ Bảng</button>`;
+      h+=`<button class="abtn abtn-ghost abtn-sm" onclick="SOP.addBlock('${scope}','info')">＋ Khung ghi nhớ</button>
+        <button class="abtn abtn-ghost abtn-sm" onclick="SOP.addBlock('${scope}','warn')">＋ Khung lưu ý</button>
+        <button class="abtn abtn-ghost abtn-sm" onclick="SOP.addBlock('${scope}','ban')">＋ Khung cấm</button></div>`;
+    }
+    return h;
+  },
+  blockHtml(b,i,ed,scope){
+    const tools=ed?`<div class="sop-btools">
+      <button class="abtn abtn-ghost abtn-sm" onclick="SOP.editBlock('${scope}',${i})">✎</button>
+      <button class="abtn abtn-ghost abtn-sm" onclick="SOP.moveBlock('${scope}',${i},-1)">↑</button>
+      <button class="abtn abtn-ghost abtn-sm" onclick="SOP.moveBlock('${scope}',${i},1)">↓</button>
+      <button class="abtn abtn-danger abtn-sm" onclick="SOP.delBlock('${scope}',${i})">🗑</button></div>`:'';
+    if(b.t==='text'){
+      return `<div class="sop-blk">${tools}<span class="sop-tag">Văn bản</span>
+        ${b.h?`<div class="sop-bh" data-noi18n>${hesc(SOP.tx(b,'h'))}</div>`:''}
+        <div class="sop-body" data-noi18n>${SOP.para(SOP.tx(b,'b'))}</div></div>`;
+    }
+    if(b.t==='img'){
+      const imgs=b.imgs||[],cols=b.cols||(imgs.length>1?2:1);
+      let g=imgs.map((im,k)=>`<div class="sop-imgbox"${imgs.length>1&&k===imgs.length-1&&imgs.length%cols===1?' style="grid-column:1/-1"':''}>
+          <img data-p="${hesc(im.u)}" alt="" onclick="SOP.lightbox('${hesc(im.u)}')">
+          <div class="sop-cap" data-noi18n>${hesc(SOP.tx(im,'cap'))||'&nbsp;'}</div>
+          ${ed?`<div class="sop-imgb"><button class="abtn abtn-ghost abtn-sm" onclick="SOP.capImg('${scope}',${i},${k})">✎ Chú thích</button><button class="abtn abtn-danger abtn-sm" onclick="SOP.delImg('${scope}',${i},${k})">🗑</button></div>`:''}
+        </div>`).join('');
+      if(!imgs.length)g=`<div class="sop-imgph">Chưa có ảnh${ed?' — bấm ＋ Thêm ảnh':''}</div>`;
+      return `<div class="sop-blk">${tools}<span class="sop-tag">Hình ảnh${imgs.length?' · '+imgs.length+' ảnh':''}</span>
+        <div class="sop-grid" style="grid-template-columns:repeat(${cols},1fr)">${g}</div>
+        ${ed?`<div class="sop-imgctl"><button class="abtn abtn-ghost abtn-sm" onclick="SOP.pickImg('${scope}',${i})">＋ Thêm ảnh</button>
+          <span>Bố cục:</span>${[1,2,3].map(c=>`<button class="abtn ${c===cols?'abtn-pu':'abtn-ghost'} abtn-sm" onclick="SOP.setCols('${scope}',${i},${c})">${c} cột</button>`).join('')}</div>`:''}</div>`;
+    }
+    if(b.t==='feat'){
+      const its=b.items||[];
+      return `<div class="sop-blk">${tools}<span class="sop-tag">${hesc(b.h||(SOP.view==='game'?'Cách hội viên lạm dụng':'Đặc điểm nhận biết'))}</span>
+        ${its.map((f,k)=>`<div class="sop-feat"><span class="sop-fn">${k+1}</span><div>
+          <b data-noi18n>${hesc(SOP.tx(f,'b'))}</b>${f.d?`<div class="sop-fd" data-noi18n>${hesc(SOP.tx(f,'d'))}</div>`:''}</div>
+          ${ed?`<span class="sop-featb"><button class="abtn abtn-ghost abtn-sm" onclick="SOP.editFeat('${scope}',${i},${k})">✎</button><button class="abtn abtn-danger abtn-sm" onclick="SOP.delFeat('${scope}',${i},${k})">🗑</button></span>`:''}</div>`).join('')||'<div class="sop-empty sm">— chưa có mục nào —</div>'}
+        ${ed?`<button class="abtn abtn-ghost abtn-sm" style="margin-top:10px" onclick="SOP.editFeat('${scope}',${i},-1)">＋ Thêm mục</button>`:''}</div>`;
+    }
+    if(b.t==='table'){
+      const rows=b.rows||[];
+      return `<div class="sop-blk">${tools}<span class="sop-tag">Bảng</span>
+        ${b.h?`<div class="sop-bh" data-noi18n>${hesc(SOP.tx(b,'h'))}</div>`:''}
+        <div style="overflow-x:auto"><table class="sop-tbl" data-noi18n>${rows.map((r,ri)=>`<tr>${r.map(c=>ri?`<td>${hesc(c)}</td>`:`<th>${hesc(c)}</th>`).join('')}</tr>`).join('')}</table></div></div>`;
+    }
+    // note: info / warn / ban
+    const kind=b.t==='ban'?'ban':(b.t==='warn'?'warn':'info');
+    const pre={info:'ℹ Ghi nhớ:',warn:'⚠ Lưu ý:',ban:'🚫 Tuyệt đối không:'}[kind];
+    return `<div class="sop-blk plain">${tools}<div class="sop-note ${kind}"><b>${pre}</b> <span data-noi18n>${hesc(SOP.tx(b,'b'))}</span></div></div>`;
+  },
+  // lấy chuỗi theo ngôn ngữ: có bản EN + đang bật EN thì dùng, thiếu thì rơi về tiếng Việt
+  tx(o,f){
+    const en=o&&o.en&&o.en[f];
+    if(en&&typeof I18N!=='undefined'&&I18N.lang==='en')return en;
+    return (o&&o[f])||'';
+  },
+  para(s){return hesc(s||'').split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>`<p>${l}</p>`).join('')||'<p class="sop-mu">(trống)</p>';},
+
+  // ---------- SỬA MỤC LỤC ----------
+  async addGroup(){
+    const n=prompt('Tên nhóm mới:');if(!n||!n.trim())return;
+    SOP.groups().push({gid:SOP.uid('g'),name:n.trim(),items:[]});
+    await SOP.saveIndex();SOP.renderRail();
+  },
+  async renameGroup(gi){
+    const g=SOP.groups()[gi];if(!g)return;
+    const n=prompt('Tên nhóm:',g.name);if(!n||!n.trim())return;
+    g.name=n.trim();await SOP.saveIndex();SOP.renderRail();
+  },
+  async delGroup(gi){
+    const g=SOP.groups()[gi];if(!g)return;
+    if((g.items||[]).length&&!confirm(`Xoá nhóm "${g.name}" cùng ${g.items.length} mục bên trong?`))return;
+    if(!(g.items||[]).length&&!confirm(`Xoá nhóm "${g.name}"?`))return;
+    SOP.groups().splice(gi,1);await SOP.saveIndex();
+    logAction('SOP xoá nhóm',SOP.view+' · '+g.name);
+    await SOP.openFirst();
+  },
+  async addItem(){
+    const gs=SOP.groups();
+    if(!gs.length){alert('Hãy tạo Nhóm trước.');return;}
+    const d=SOP.tabDef();
+    const n=prompt(d.unit+' mới — nhập tên:');if(!n||!n.trim())return;
+    let gi=0;
+    if(gs.length>1){
+      const pick=prompt('Thuộc nhóm nào? Nhập số:\n'+gs.map((g,i)=>(i+1)+'. '+g.name).join('\n'),'1');
+      if(pick===null)return;
+      gi=Math.max(0,Math.min(gs.length-1,(parseInt(pick,10)||1)-1));
+    }
+    const it={id:SOP.uid('i'),name:n.trim()};
+    if(SOP.view==='ld'||SOP.view==='game')it.level=SOP.askLevel()||'mu';
+    (gs[gi].items=gs[gi].items||[]).push(it);
+    await SOP.saveIndex();
+    SOP.cur={id:it.id,tab:SOP.view,name:it.name,subs:[],blocks:[],upd:SOP.today()};
+    SOP.curId=it.id;SOP.curSub=0;
+    await SOP.saveItem();SOP.render();
+  },
+  askLevel(){
+    const L=SOP.view==='game'?SOP.GLEVELS:SOP.LEVELS;
+    const v=prompt(`Mức độ:\n1. ${L.hi}\n2. ${L.go}\n3. ${L.mu}`,'3');
+    return {1:'hi',2:'go',3:'mu'}[parseInt(v,10)]||null;
+  },
+  async renameItem(){
+    const f=SOP.findItem(SOP.curId);if(!f)return;
+    const n=prompt('Tên:',f.it.name);if(!n||!n.trim())return;
+    f.it.name=n.trim();SOP.cur.name=n.trim();
+    if(SOP.view==='ld'||SOP.view==='game'){const lv=SOP.askLevel();if(lv)f.it.level=lv;}
+    await SOP.saveIndex();await SOP.saveItem();SOP.render();
+  },
+  async delItem(id){
+    const f=SOP.findItem(id);if(!f)return;
+    if(!confirm(`Xoá "${f.it.name}"? Không khôi phục được.`))return;
+    f.g.items.splice(f.g.items.indexOf(f.it),1);
+    await SOP.saveIndex();
+    logAction('SOP xoá mục',SOP.view+' · '+f.it.name);
+    if(SOP.curId===id)await SOP.openFirst();else SOP.renderRail();
+  },
+  today(){const d=new Date();return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();},
+  touch(){SOP.cur.upd=SOP.today();},
+  syncCount(){
+    const f=SOP.findItem(SOP.curId);if(!f)return;
+    const d=SOP.tabDef();
+    f.it.n=d.subs?SOP.cur.subs.length:SOP.cur.blocks.reduce((n,b)=>n+(b.t==='img'?(b.imgs||[]).length:0),0);
+    SOP.saveIndex();
+  },
+
+  // ---------- BƯỚC / TRÒ CHƠI ----------
+  async addSub(){
+    const d=SOP.tabDef();if(!d.subs||!SOP.cur)return;
+    const n=prompt(d.subName+' mới — nhập tên:');if(!n||!n.trim())return;
+    const s={id:SOP.uid('s'),name:n.trim(),blocks:[]};
+    if(d.subs==='acc'){s.level=SOP.askLevel()||'mu';s.code=(prompt('Mã game (bỏ trống nếu không có):','')||'').trim();s.from=(prompt('Áp dụng từ ngày (vd 01/08/2026):','')||'').trim();}
+    SOP.cur.subs.push(s);SOP.curSub=SOP.cur.subs.length-1;
+    SOP.touch();await SOP.saveItem();SOP.syncCount();SOP.render();
+  },
+  async renameSub(i){
+    const s=SOP.cur.subs[i];if(!s)return;
+    const n=prompt('Tên:',s.name);if(!n||!n.trim())return;
+    s.name=n.trim();SOP.touch();await SOP.saveItem();SOP.render();
+  },
+  async editGame(i){
+    const s=SOP.cur.subs[i];if(!s)return;
+    const c=prompt('Mã game:',s.code||'');if(c===null)return;
+    const fr=prompt('Áp dụng từ ngày:',s.from||'');if(fr===null)return;
+    const lv=SOP.askLevel();
+    s.code=c.trim();s.from=fr.trim();if(lv)s.level=lv;
+    SOP.touch();await SOP.saveItem();SOP.render();
+  },
+  async moveSub(i,d){
+    const ss=SOP.cur.subs,j=i+d;if(j<0||j>=ss.length)return;
+    [ss[i],ss[j]]=[ss[j],ss[i]];
+    if(SOP.curSub===i)SOP.curSub=j;else if(SOP.curSub===j)SOP.curSub=i;
+    await SOP.saveItem();SOP.render();
+  },
+  async delSub(i){
+    const s=SOP.cur.subs[i];if(!s)return;
+    if(!confirm(`Xoá "${s.name}"?`))return;
+    SOP.cur.subs.splice(i,1);
+    if(SOP.curSub>=SOP.cur.subs.length)SOP.curSub=Math.max(0,SOP.cur.subs.length-1);
+    SOP.touch();await SOP.saveItem();SOP.syncCount();SOP.render();
+  },
+
+  // ---------- KHỐI ----------
+  blocksOf(scope){
+    if(scope==='i')return SOP.cur.blocks;
+    const i=parseInt(scope.slice(1),10),s=SOP.cur.subs[i];
+    return s?(s.blocks=s.blocks||[]):null;
+  },
+  async addBlock(scope,t){
+    const bs=SOP.blocksOf(scope);if(!bs)return;
+    let b={t};
+    if(t==='text'){
+      const h=prompt('Tiêu đề nhỏ (bỏ trống nếu không cần):','')||'';
+      const body=prompt('Nội dung (xuống dòng để tách đoạn):','');
+      if(body===null)return;
+      b.h=h.trim();b.b=body;
+    }else if(t==='img'){b.imgs=[];b.cols=2;}
+    else if(t==='feat'){b.items=[];}
+    else if(t==='table'){
+      const cols=prompt('Bảng có mấy cột?','3');if(cols===null)return;
+      const n=Math.max(1,Math.min(8,parseInt(cols,10)||3));
+      const hd=prompt('Tiêu đề các cột, cách nhau dấu |','Cột 1 | Cột 2 | Cột 3');if(hd===null)return;
+      b.rows=[hd.split('|').map(s=>s.trim()).slice(0,n)];
+      while(b.rows[0].length<n)b.rows[0].push('');
+    }else{
+      const body=prompt('Nội dung khung:','');if(body===null)return;
+      b.b=body;
+    }
+    bs.push(b);SOP.touch();await SOP.saveItem();SOP.syncCount();SOP.render();
+    if(t==='img')SOP.pickImg(scope,bs.length-1);
+  },
+  async editBlock(scope,i){
+    const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b)return;
+    if(b.t==='text'){
+      const h=prompt('Tiêu đề nhỏ:',b.h||'');if(h===null)return;
+      const body=prompt('Nội dung:',b.b||'');if(body===null)return;
+      b.h=h.trim();b.b=body;
+    }else if(b.t==='table'){
+      const add=confirm('OK = thêm một dòng mới.\nCancel = sửa tiêu đề bảng.');
+      if(add){
+        const n=b.rows[0].length;
+        const r=prompt(`Nội dung ${n} ô, cách nhau dấu |`,'');if(r===null)return;
+        const cells=r.split('|').map(s=>s.trim());while(cells.length<n)cells.push('');
+        b.rows.push(cells.slice(0,n));
+      }else{
+        const h=prompt('Tiêu đề bảng:',b.h||'');if(h===null)return;b.h=h.trim();
+      }
+    }else if(b.t==='img'){
+      SOP.pickImg(scope,i);return;
+    }else if(b.t==='feat'){
+      const h=prompt('Tên khối:',b.h||'');if(h===null)return;b.h=h.trim();
+    }else{
+      const body=prompt('Nội dung khung:',b.b||'');if(body===null)return;b.b=body;
+    }
+    SOP.touch();await SOP.saveItem();SOP.render();
+  },
+  async moveBlock(scope,i,d){
+    const bs=SOP.blocksOf(scope),j=i+d;if(!bs||j<0||j>=bs.length)return;
+    [bs[i],bs[j]]=[bs[j],bs[i]];await SOP.saveItem();SOP.render();
+  },
+  async delBlock(scope,i){
+    const bs=SOP.blocksOf(scope);if(!bs||!bs[i])return;
+    if(!confirm('Xoá khối này?'))return;
+    bs.splice(i,1);SOP.touch();await SOP.saveItem();SOP.syncCount();SOP.render();
+  },
+  async editFeat(scope,i,k){
+    const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b)return;
+    b.items=b.items||[];
+    const cur=k>=0?b.items[k]:{b:'',d:''};
+    const t=prompt('Tiêu đề (in đậm):',cur.b||'');if(t===null||!t.trim())return;
+    const d=prompt('Giải thích / ví dụ:',cur.d||'');if(d===null)return;
+    if(k>=0){cur.b=t.trim();cur.d=d.trim();}else b.items.push({b:t.trim(),d:d.trim()});
+    SOP.touch();await SOP.saveItem();SOP.render();
+  },
+  async delFeat(scope,i,k){
+    const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b||!b.items[k])return;
+    if(!confirm('Xoá mục này?'))return;
+    b.items.splice(k,1);await SOP.saveItem();SOP.render();
+  },
+  async setCols(scope,i,c){
+    const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b)return;
+    b.cols=c;await SOP.saveItem();SOP.render();
+  },
+  async capImg(scope,i,k){
+    const bs=SOP.blocksOf(scope),b=bs&&bs[i],im=b&&(b.imgs||[])[k];if(!im)return;
+    const c=prompt('Chú thích ảnh:',im.cap||'');if(c===null)return;
+    im.cap=c.trim();await SOP.saveItem();SOP.render();
+  },
+  async delImg(scope,i,k){
+    const bs=SOP.blocksOf(scope),b=bs&&bs[i],im=b&&(b.imgs||[])[k];if(!im)return;
+    if(!confirm('Xoá ảnh này?'))return;
+    const path=im.u;b.imgs.splice(k,1);
+    await SOP.saveItem();SOP.syncCount();SOP.render();
+    try{await SB.client().storage.from(SOP.BUCKET).remove([path]);}catch(e){console.warn('xoá ảnh storage',e);}
+  },
+
+  // ---------- ẢNH ----------
+  pickImg(scope,i){SOP._imgTarget={scope,i,thumb:-1};document.getElementById('sopFile').click();},
+  pickThumb(i){SOP._imgTarget={scope:null,i,thumb:i};document.getElementById('sopFile').click();},
+  async onFile(inp){
+    const files=[...(inp.files||[])];inp.value='';
+    if(!files.length||!SOP._imgTarget)return;
+    const keep=document.getElementById('sopNoCompress');
+    const raw=keep&&keep.checked;
+    const st=document.getElementById('sopUpStatus');
+    for(let n=0;n<files.length;n++){
+      if(st)st.textContent=`Đang tải ảnh ${n+1}/${files.length}…`;
+      try{
+        const blob=raw?files[n]:await SOP.compress(files[n]);
+        const ext=raw?(files[n].name.split('.').pop()||'png'):'webp';
+        const path=SOP.curId+'/'+SOP.uid('p')+'.'+ext;
+        const{error}=await SB.client().storage.from(SOP.BUCKET).upload(path,blob,{contentType:blob.type||'image/webp',upsert:false});
+        if(error)throw error;
+        const t=SOP._imgTarget;
+        if(t.thumb>=0){SOP.cur.subs[t.thumb].thumb=path;}
+        else{
+          const bs=SOP.blocksOf(t.scope),b=bs&&bs[t.i];
+          if(b){b.imgs=b.imgs||[];b.imgs.push({u:path,cap:''});}
+        }
+      }catch(e){alert('Tải ảnh thất bại: '+(e.message||e));break;}
+    }
+    if(st)st.textContent='';
+    SOP._imgTarget=null;SOP.touch();await SOP.saveItem();SOP.syncCount();SOP.render();
+  },
+  // Nén: giữ nguyên tới 1920px (ảnh chụp màn hình chữ nhỏ vẫn sắc), WebP 0.85 (~120-250 KB/ảnh)
+  compress(file){
+    return new Promise((res,rej)=>{
+      if(!/^image\//.test(file.type)){rej(new Error('Không phải file ảnh'));return;}
+      const img=new Image(),url=URL.createObjectURL(file);
+      img.onload=()=>{
+        URL.revokeObjectURL(url);
+        const MAX=1920,sc=Math.min(1,MAX/Math.max(img.width,img.height));
+        const c=document.createElement('canvas');
+        c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+        c.toBlob(b=>b?res(b):rej(new Error('Nén ảnh lỗi')),'image/webp',.85);
+      };
+      img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('Không đọc được ảnh'));};
+      img.src=url;
+    });
+  },
+  async signed(path){
+    if(SOP._urls[path]&&SOP._urls[path].exp>Date.now())return SOP._urls[path].u;
+    const{data,error}=await SB.client().storage.from(SOP.BUCKET).createSignedUrl(path,3600);
+    if(error||!data)return '';
+    SOP._urls[path]={u:data.signedUrl,exp:Date.now()+50*60*1000};
+    return data.signedUrl;
+  },
+  async hydrateImgs(){
+    const els=[...document.querySelectorAll('#t4 img[data-p]')];
+    for(const el of els){
+      const p=el.getAttribute('data-p');
+      const u=await SOP.signed(p);
+      if(u)el.src=u;else el.replaceWith(Object.assign(document.createElement('div'),{className:'sop-imgph',textContent:'Không tải được ảnh'}));
+    }
+  },
+  lightbox(path){
+    const m=document.getElementById('sopLb');if(!m)return;
+    SOP._lbZoom=1;
+    SOP.signed(path).then(u=>{
+      const img=document.getElementById('sopLbImg');
+      img.src=u;img.style.transform='scale(1)';
+      document.getElementById('sopLbOpen').href=u;
+    });
+    m.classList.add('show');
+  },
+  lbZoom(d){
+    const img=document.getElementById('sopLbImg');if(!img)return;
+    SOP._lbZoom=Math.max(1,Math.min(4,(SOP._lbZoom||1)+d));
+    img.style.transform='scale('+SOP._lbZoom+')';
+  },
+
+  // ---------- IN ----------
+  printDoc(){
+    document.body.classList.add('sop-printing');
+    setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove('sop-printing'),400);},60);
+  },
+
+  // ---------- XUẤT / NHẬP BẢN DỊCH ----------
+  // Gom mọi chuỗi tiếng Việt kèm đường dẫn -> file JSON để dịch một lượt, rồi nhập ngược lại.
+  paths(item){
+    const out=[];
+    const push=(o,f,p)=>{if(o&&o[f]&&String(o[f]).trim())out.push({p,vi:o[f],en:(o.en&&o.en[f])||'',cu:(o.envi&&o.envi[f])||''});};
+    push(item,'name','name');
+    (item.blocks||[]).forEach((b,i)=>walkBlk(b,'blocks.'+i));
+    (item.subs||[]).forEach((s,i)=>{
+      push(s,'name','subs.'+i+'.name');
+      (s.blocks||[]).forEach((b,j)=>walkBlk(b,'subs.'+i+'.blocks.'+j));
+    });
+    function walkBlk(b,p){
+      push(b,'h',p+'.h');push(b,'b',p+'.b');
+      (b.items||[]).forEach((f,k)=>{push(f,'b',p+'.items.'+k+'.b');push(f,'d',p+'.items.'+k+'.d');});
+      (b.imgs||[]).forEach((im,k)=>push(im,'cap',p+'.imgs.'+k+'.cap'));
+      (b.rows||[]).forEach((r,ri)=>r.forEach((c,ci)=>{if(String(c||'').trim())out.push({p:p+'.rows.'+ri+'.'+ci,vi:c,en:'',cu:''});}));
+    }
+    return out;
+  },
+  async exportTrans(){
+    if(!SOP.canEdit())return;
+    const out={v:1,at:new Date().toISOString(),items:[]};
+    for(const t of SOP.TABS){
+      for(const g of (SOP.idx.tabs[t.k]||[])){
+        for(const it of (g.items||[])){
+          let d=null;
+          try{d=await SB.loadReport('sop_item',it.id);}catch(e){}
+          if(!d)continue;
+          const rows=SOP.paths(d).map(r=>({p:r.p,vi:r.vi,en:r.en,stale:!!(r.en&&r.cu&&r.cu!==r.vi)}));
+          if(rows.length)out.items.push({id:it.id,tab:t.k,group:g.name,name:it.name,rows});
+        }
+      }
+    }
+    const blob=new Blob([JSON.stringify(out,null,1)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download='quy_trinh_cong_viec_'+new Date().toISOString().slice(0,10)+'.json';
+    a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  },
+  importTrans(){if(SOP.canEdit())document.getElementById('sopTransFile').click();},
+  async onTransFile(inp){
+    const f=(inp.files||[])[0];inp.value='';if(!f)return;
+    let data;
+    try{data=JSON.parse(await f.text());}catch(e){alert('File không đọc được: '+(e.message||e));return;}
+    if(!data||!Array.isArray(data.items)){alert('File không đúng định dạng (thiếu items).');return;}
+    let nItem=0,nStr=0,idxTouched=false;
+    for(const rec of data.items){
+      let d=null;
+      try{d=await SB.loadReport('sop_item',rec.id);}catch(e){}
+      if(!d)continue;
+      let touched=false;
+      (rec.rows||[]).forEach(r=>{
+        if(!r.en||!String(r.en).trim())return;
+        if(SOP.setPath(d,r.p,r.en,r.vi)){nStr++;touched=true;}
+      });
+      if(touched){nItem++;await SB.saveReport('sop_item',rec.id,d);}
+      // tên mục hiện ở cột trái đọc từ mục lục -> chép bản dịch tên sang idx
+      const enName=(rec.rows||[]).find(r=>r.p==='name'&&r.en&&String(r.en).trim());
+      if(enName){const f=SOP.findItemAny(rec.id);if(f){f.it.en_name=enName.en;idxTouched=true;}}
+    }
+    if(idxTouched)await SOP.saveIndex();
+    alert(`Đã nhập bản dịch: ${nStr} chuỗi trong ${nItem} mục.`);
+    logAction('SOP nhập bản dịch',nStr+' chuỗi · '+nItem+' mục');
+    if(SOP.curId)await SOP.open(SOP.curId);
+  },
+  // ghi bản dịch vào o.en[field] + lưu dấu vết bản VI lúc dịch vào o.envi[field]
+  setPath(root,p,en,vi){
+    const parts=p.split('.');const field=parts.pop();
+    let o=root;
+    for(const k of parts){o=o&&o[/^\d+$/.test(k)?Number(k):k];if(!o)return false;}
+    if(Array.isArray(o)){ // ô bảng: rows.<ri>.<ci> -> field là chỉ số cột
+      const ci=Number(field);if(isNaN(ci)||o[ci]===undefined)return false;
+      o[ci]=en;return true;
+    }
+    if(!o||typeof o!=='object')return false;
+    o.en=o.en||{};o.envi=o.envi||{};
+    o.en[field]=en;o.envi[field]=vi!==undefined?vi:o[field];
+    return true;
+  }
+};
+// `const SOP` nằm ở global LEXICAL scope, KHÔNG có trên window (cùng bẫy với AUTH) ->
+// i18n.js kiểm `window.SOP` sẽ trượt âm thầm nếu không phơi ra.
+window.SOP=SOP;
+// Ô chọn file ảnh + file bản dịch nằm trong HTML T4; nối sự kiện sau khi DOM sẵn sàng.
+(function(){
+  const w=()=>{
+    const f=document.getElementById('sopFile');
+    if(f)f.addEventListener('change',()=>SOP.onFile(f));
+    const t=document.getElementById('sopTransFile');
+    if(t)t.addEventListener('change',()=>SOP.onTransFile(t));
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',w);else w();
 })();
 
 </script>

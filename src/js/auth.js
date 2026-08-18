@@ -339,6 +339,14 @@ function applyPerms(){
     const first=[...document.querySelectorAll('.tabs-wrap .tab')].find(t=>t.style.display!=='none');
     if(first)first.click();
   }
+  // Quy Trình Công Việc (T4): TẠM THỜI chỉ ADMIN thấy tab lớn + sửa nội dung
+  const tsb4=document.getElementById('tsb4');
+  if(tsb4)tsb4.style.display=p.is_admin?'':'none';
+  const seb=document.getElementById('sopEditBtn');
+  if(seb)seb.style.display=p.is_admin?'':'none';
+  if(!p.is_admin&&document.getElementById('t4')&&document.getElementById('t4').style.display!=='none'){
+    switchTool('t1');
+  }
   // nếu đang đứng ở BC tool mà mất quyền -> về tool 1
   if(!canView('bc')&&document.getElementById('t2').style.display!=='none'){
     switchTool('t1');

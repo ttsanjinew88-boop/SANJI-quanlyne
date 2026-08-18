@@ -1,7 +1,9 @@
 // ===== TOOL SWITCHER =====
 // Tổng quát hóa theo danh sách tab lớn -> thêm tab thứ 4 chỉ cần nối thêm vào TOOLS
-const TOOLS=['t1','t2','t3'];
+const TOOLS=['t1','t2','t3','t4'];
 function switchTool(id){
+  // T4 nạp dữ liệu cloud lần đầu mở (khỏi tốn request khi không ai vào tab này)
+  if(id==='t4'&&typeof SOP!=='undefined')SOP.boot();
   TOOLS.forEach((t,i)=>{
     const pane=document.getElementById(t),btn=document.getElementById('tsb'+(i+1));
     // #t3 mang class .pg (CSS .pg{display:none}) nên sw() của T1 gỡ mất .active
