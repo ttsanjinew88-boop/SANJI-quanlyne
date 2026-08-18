@@ -588,7 +588,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
     <div id="lg-step2fa" style="display:none">
       <div style="font-size:.72rem;color:var(--mu2);margin-bottom:12px;line-height:1.6">Nhập mã <b style="color:var(--tx)">6 số</b> từ ứng dụng <b style="color:var(--pu2)">Google Authenticator</b></div>
       <div class="otp-wrap" data-for="lg-2fa-code" data-submit="AUTH.verifyLogin2fa"></div>
-      <button class="login-btn" id="lg-2fa-btn" onclick="AUTH.verifyLogin2fa()">Xác minh</button>
+      <button class="login-btn" id="lg-2fa-btn" onclick="AUTH.verifyLogin2fa()">Xác Minh</button>
       <button onclick="AUTH.cancel2fa()" style="width:100%;margin-top:8px;background:transparent;border:1px solid var(--border2);color:var(--mu2);border-radius:8px;padding:9px;font-size:.7rem;font-weight:700;cursor:pointer">Quay lại</button>
     </div>
     <!-- Bước 3: BẮT BUỘC thiết lập 2FA (tài khoản chưa có) -->
@@ -1260,7 +1260,7 @@ const I18N={
   "Tên đăng nhập":"Username",
   "Mật khẩu":"Password",
   "Đăng nhập":"Log in",
-  "Xác minh":"Verify",
+  "Xác Minh":"Verify",
   "Nhập mã":"Enter code",
   "6 số":"6-digit",
   "từ ứng dụng":"from the app",
@@ -2402,7 +2402,14 @@ const OTP=(function(){
       wrap.appendChild(b);boxes.push(b);
     }
     const sync=()=>{hid.value=boxes.map(b=>b.value).join('');boxes.forEach(b=>b.classList.toggle('filled',!!b.value));return hid.value;};
-    const fire=()=>{const fn=submit.split('.').reduce((o,k)=>o&&o[k],window);if(typeof fn==='function')fn();};
+    // chống gửi trùng: nhập đủ 6 số đã tự gửi, người dùng bấm Enter ngay sau đó sẽ không gửi lần 2
+    const fire=()=>{
+      const now=Date.now();
+      if(wrap._lastCode===hid.value&&now-(wrap._lastAt||0)<1500)return;
+      wrap._lastCode=hid.value;wrap._lastAt=now;
+      const fn=submit.split('.').reduce((o,k)=>o&&o[k],window);if(typeof fn==='function')fn();
+    };
+    wrap._fire=fire;wrap._sync=sync;
     boxes.forEach((b,i)=>{
       b.addEventListener('focus',()=>b.select());
       b.addEventListener('input',()=>{
@@ -2434,12 +2441,21 @@ const OTP=(function(){
       if(!wrap)return;
       build(wrap);
       wrap._boxes.forEach(b=>{b.value='';b.classList.remove('filled');});
-      wrap._hidden.value='';
+      wrap._hidden.value='';wrap._lastCode='';
       setTimeout(()=>wrap._boxes[0].focus(),0);
     }
   };
 })();
 document.addEventListener('DOMContentLoaded',()=>OTP.init());
+// Enter ở BẤT KỲ đâu (kể cả khi ô đã mất focus sau khi nhập đủ) = bấm nút xác minh của ô OTP đang hiện
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'||e.isComposing)return;
+  const t=e.target,tag=t&&t.tagName;
+  if(tag==='TEXTAREA'||(tag==='INPUT'&&!t.classList.contains('otp-box')))return;
+  const wrap=[...document.querySelectorAll('.otp-wrap')].find(w=>w.offsetParent&&w._hidden&&w._hidden.value.length===6);
+  if(!wrap)return;
+  e.preventDefault();wrap._sync();wrap._fire();
+});
 
 // ===== NGHI NGỜ: tùy chỉnh cột hiển thị bảng chi tiết khách =====
 // Đầy đủ 20 cột — đúng như tab Tổng Hợp (ĐL là tiêu đề thẻ nên không lặp trong bảng khách)
@@ -2763,7 +2779,7 @@ const AUTH={
       AUTH._pendingUser=null;AUTH._reset2faStep();
       await AUTH.postLogin(u);
     }catch(e){console.error('verifyLogin2fa',e);err.textContent='Lỗi xác minh 2FA';}
-    finally{btn.disabled=false;btn.textContent='Xác minh';}
+    finally{btn.disabled=false;btn.textContent='Xác Minh';}
   },
   async postLogin(user){
     try{
@@ -2788,6 +2804,9 @@ const AUTH={
     location.reload();
   }
 };
+// `const AUTH` nằm trong global LEXICAL scope nên window.AUTH = undefined => data-submit="AUTH.*"
+// của ô OTP (core.js) tra cứu qua window sẽ trượt âm thầm (Enter/nhập đủ 6 số không gửi). Phơi ra đây.
+window.AUTH=AUTH;
 // Kiểm tra định kỳ: đang dùng mà quá 12h kể từ lúc đăng nhập -> tự đăng xuất
 setInterval(function(){
   if(CUR_PROFILE&&sessionExpired()){

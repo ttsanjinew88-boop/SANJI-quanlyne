@@ -93,7 +93,14 @@ const OTP=(function(){
       wrap.appendChild(b);boxes.push(b);
     }
     const sync=()=>{hid.value=boxes.map(b=>b.value).join('');boxes.forEach(b=>b.classList.toggle('filled',!!b.value));return hid.value;};
-    const fire=()=>{const fn=submit.split('.').reduce((o,k)=>o&&o[k],window);if(typeof fn==='function')fn();};
+    // chống gửi trùng: nhập đủ 6 số đã tự gửi, người dùng bấm Enter ngay sau đó sẽ không gửi lần 2
+    const fire=()=>{
+      const now=Date.now();
+      if(wrap._lastCode===hid.value&&now-(wrap._lastAt||0)<1500)return;
+      wrap._lastCode=hid.value;wrap._lastAt=now;
+      const fn=submit.split('.').reduce((o,k)=>o&&o[k],window);if(typeof fn==='function')fn();
+    };
+    wrap._fire=fire;wrap._sync=sync;
     boxes.forEach((b,i)=>{
       b.addEventListener('focus',()=>b.select());
       b.addEventListener('input',()=>{
@@ -125,12 +132,21 @@ const OTP=(function(){
       if(!wrap)return;
       build(wrap);
       wrap._boxes.forEach(b=>{b.value='';b.classList.remove('filled');});
-      wrap._hidden.value='';
+      wrap._hidden.value='';wrap._lastCode='';
       setTimeout(()=>wrap._boxes[0].focus(),0);
     }
   };
 })();
 document.addEventListener('DOMContentLoaded',()=>OTP.init());
+// Enter ở BẤT KỲ đâu (kể cả khi ô đã mất focus sau khi nhập đủ) = bấm nút xác minh của ô OTP đang hiện
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'||e.isComposing)return;
+  const t=e.target,tag=t&&t.tagName;
+  if(tag==='TEXTAREA'||(tag==='INPUT'&&!t.classList.contains('otp-box')))return;
+  const wrap=[...document.querySelectorAll('.otp-wrap')].find(w=>w.offsetParent&&w._hidden&&w._hidden.value.length===6);
+  if(!wrap)return;
+  e.preventDefault();wrap._sync();wrap._fire();
+});
 
 // ===== NGHI NGỜ: tùy chỉnh cột hiển thị bảng chi tiết khách =====
 // Đầy đủ 20 cột — đúng như tab Tổng Hợp (ĐL là tiêu đề thẻ nên không lặp trong bảng khách)

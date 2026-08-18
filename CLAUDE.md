@@ -91,6 +91,7 @@
 - Login/2FA flow: `AUTH` init ~1160+ (đăng nhập, kiểm 2FA, ép thiết lập 2FA). QR: thư viện `qrcode-generator`.
 
 ### 2FA (Google Authenticator)
+- **Ô nhập mã 6 số + phím Enter (chốt 18/08/2026)**: module `OTP` (core.js, grep `const OTP=`) dựng 6 ô rời từ `<div class="otp-wrap" data-for=".." data-submit="..">`. `data-submit` được tra qua `window` ⇒ `const AUTH={...}` (auth.js) nằm ở global **lexical** scope, KHÔNG có trên `window` ⇒ 2 ô `AUTH.verifyLogin2fa` / `AUTH.confirmEnrollLogin` **trượt âm thầm** (nhập đủ 6 số không tự gửi). Đã thêm `window.AUTH=AUTH;` cuối `auth.js` — thêm module mới kiểu `const X={}` mà dùng `data-submit="X.y"` thì phải phơi tương tự. Enter: handler `keydown` ở `document` (cuối core.js) — bấm Enter ở BẤT KỲ đâu (kể cả sau khi ô mất focus) sẽ gửi ô OTP đang hiện nếu đủ 6 số; bỏ qua khi đang gõ trong `<input>` khác/`<textarea>`. Chống gửi trùng bằng cooldown 1,5s theo mã trong `fire()` (auto-gửi lúc đủ 6 số + Enter ngay sau đó = 1 lần); `OTP.reset()` xóa `_lastCode` để nhập lại cùng mã vẫn gửi được.
 `open2faModal` 1566, `start2faEnroll` 1583, `confirm2faEnroll` 1599, `disable2fa` 1611, `copy2faSecret` 1622, `admReset2fa` 1628 (TT/admin reset của người khác). Label hiển thị: "He Thong NE: TÊN - DD/MM/YY".
 
 ### Quản Trị (admin panel)

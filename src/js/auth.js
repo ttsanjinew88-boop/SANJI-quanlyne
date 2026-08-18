@@ -242,7 +242,7 @@ const AUTH={
       AUTH._pendingUser=null;AUTH._reset2faStep();
       await AUTH.postLogin(u);
     }catch(e){console.error('verifyLogin2fa',e);err.textContent='Lỗi xác minh 2FA';}
-    finally{btn.disabled=false;btn.textContent='Xác minh';}
+    finally{btn.disabled=false;btn.textContent='Xác Minh';}
   },
   async postLogin(user){
     try{
@@ -267,6 +267,9 @@ const AUTH={
     location.reload();
   }
 };
+// `const AUTH` nằm trong global LEXICAL scope nên window.AUTH = undefined => data-submit="AUTH.*"
+// của ô OTP (core.js) tra cứu qua window sẽ trượt âm thầm (Enter/nhập đủ 6 số không gửi). Phơi ra đây.
+window.AUTH=AUTH;
 // Kiểm tra định kỳ: đang dùng mà quá 12h kể từ lúc đăng nhập -> tự đăng xuất
 setInterval(function(){
   if(CUR_PROFILE&&sessionExpired()){

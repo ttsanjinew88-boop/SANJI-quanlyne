@@ -68,7 +68,7 @@ const I18N={
   "Tên đăng nhập":"Username",
   "Mật khẩu":"Password",
   "Đăng nhập":"Log in",
-  "Xác minh":"Verify",
+  "Xác Minh":"Verify",
   "Nhập mã":"Enter code",
   "6 số":"6-digit",
   "từ ứng dụng":"from the app",
