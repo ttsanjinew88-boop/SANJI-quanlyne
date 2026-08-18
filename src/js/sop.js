@@ -270,8 +270,14 @@ const SOP={
       <button class="abtn abtn-ghost abtn-sm" onclick="SOP.moveBlock('${scope}',${i},-1)">↑</button>
       <button class="abtn abtn-ghost abtn-sm" onclick="SOP.moveBlock('${scope}',${i},1)">↓</button>
       <button class="abtn abtn-danger abtn-sm" onclick="SOP.delBlock('${scope}',${i})">🗑</button></div>`:'';
+    const editing=SOP._ed&&SOP._ed.scope===scope&&SOP._ed.i===i;
     if(b.t==='text'){
-      return `<div class="sop-blk">${tools}<span class="sop-tag">Văn bản</span>
+      // SOẠN TẠI CHỖ (không dùng prompt: prompt không xuống dòng, không căn chỉnh được)
+      if(editing)return `<div class="sop-blk editing" data-noi18n>
+        <input class="sop-eh" id="sopEdH" placeholder="Tiêu đề nhỏ (để trống nếu không cần)" value="${hesc(b.h||'')}">
+        <textarea class="sop-eb" id="sopEdB" rows="6" placeholder="Nội dung… (Enter để xuống dòng, mỗi dòng trống tách một đoạn)">${hesc(b.b||'')}</textarea>
+        ${SOP.edBar()}</div>`;
+      return `<div class="sop-blk">${tools}
         ${b.h?`<div class="sop-bh" data-noi18n>${hesc(SOP.tx(b,'h'))}</div>`:''}
         <div class="sop-body" data-noi18n>${SOP.para(SOP.tx(b,'b'))}</div></div>`;
     }
@@ -279,7 +285,9 @@ const SOP={
       const imgs=b.imgs||[],cols=b.cols||(imgs.length>1?2:1);
       let g=imgs.map((im,k)=>`<div class="sop-imgbox"${imgs.length>1&&k===imgs.length-1&&imgs.length%cols===1?' style="grid-column:1/-1"':''}>
           <img data-p="${hesc(im.u)}" alt="" onclick="SOP.lightbox('${hesc(im.u)}')">
-          <div class="sop-cap" data-noi18n>${hesc(SOP.tx(im,'cap'))||'&nbsp;'}</div>
+          ${(SOP._ed&&SOP._ed.scope===scope&&SOP._ed.i===i&&SOP._ed.k===k)
+            ?`<div class="sop-cap" data-noi18n><input class="sop-eh" id="sopEdH" placeholder="Chú thích ảnh" value="${hesc(im.cap||'')}">${SOP.edBar()}</div>`
+            :`<div class="sop-cap" data-noi18n>${hesc(SOP.tx(im,'cap'))||'&nbsp;'}</div>`}
           ${ed?`<div class="sop-imgb"><button class="abtn abtn-ghost abtn-sm" onclick="SOP.capImg('${scope}',${i},${k})">✎ Chú thích</button><button class="abtn abtn-danger abtn-sm" onclick="SOP.delImg('${scope}',${i},${k})">🗑</button></div>`:''}
         </div>`).join('');
       if(!imgs.length)g=`<div class="sop-imgph">Chưa có ảnh${ed?' — bấm ＋ Thêm ảnh':''}</div>`;
@@ -289,12 +297,20 @@ const SOP={
           <span>Bố cục:</span>${[1,2,3].map(c=>`<button class="abtn ${c===cols?'abtn-pu':'abtn-ghost'} abtn-sm" onclick="SOP.setCols('${scope}',${i},${c})">${c} cột</button>`).join('')}</div>`:''}</div>`;
     }
     if(b.t==='feat'){
-      const its=b.items||[];
+      const its=b.items||[],fk=SOP._ed&&SOP._ed.scope===scope&&SOP._ed.i===i?SOP._ed.k:null;
+      const form=k=>{
+        const f=k>=0?(its[k]||{}):{};
+        return `<div class="sop-feat editing" data-noi18n><span class="sop-fn">${k>=0?k+1:its.length+1}</span><div style="flex:1">
+          <input class="sop-eh" id="sopEdH" placeholder="Tiêu đề (in đậm)" value="${hesc(f.b||'')}">
+          <textarea class="sop-eb" id="sopEdB" rows="2" placeholder="Giải thích / ví dụ (không bắt buộc)">${hesc(f.d||'')}</textarea>
+          ${SOP.edBar()}</div></div>`;
+      };
       return `<div class="sop-blk">${tools}<span class="sop-tag">${hesc(b.h||(SOP.view==='game'?'Cách hội viên lạm dụng':'Đặc điểm nhận biết'))}</span>
-        ${its.map((f,k)=>`<div class="sop-feat"><span class="sop-fn">${k+1}</span><div>
+        ${its.map((f,k)=>fk===k?form(k):`<div class="sop-feat"><span class="sop-fn">${k+1}</span><div>
           <b data-noi18n>${hesc(SOP.tx(f,'b'))}</b>${f.d?`<div class="sop-fd" data-noi18n>${hesc(SOP.tx(f,'d'))}</div>`:''}</div>
-          ${ed?`<span class="sop-featb"><button class="abtn abtn-ghost abtn-sm" onclick="SOP.editFeat('${scope}',${i},${k})">✎</button><button class="abtn abtn-danger abtn-sm" onclick="SOP.delFeat('${scope}',${i},${k})">🗑</button></span>`:''}</div>`).join('')||'<div class="sop-empty sm">— chưa có mục nào —</div>'}
-        ${ed?`<button class="abtn abtn-ghost abtn-sm" style="margin-top:10px" onclick="SOP.editFeat('${scope}',${i},-1)">＋ Thêm mục</button>`:''}</div>`;
+          ${ed?`<span class="sop-featb"><button class="abtn abtn-ghost abtn-sm" onclick="SOP.editFeat('${scope}',${i},${k})">✎</button><button class="abtn abtn-danger abtn-sm" onclick="SOP.delFeat('${scope}',${i},${k})">🗑</button></span>`:''}</div>`).join('')||(fk===-1?'':'<div class="sop-empty sm">— chưa có mục nào —</div>')}
+        ${fk===-1?form(-1):''}
+        ${(ed&&fk===null)?`<button class="abtn abtn-ghost abtn-sm" style="margin-top:10px" onclick="SOP.editFeat('${scope}',${i},-1)">＋ Thêm mục</button>`:''}</div>`;
     }
     if(b.t==='table'){
       const rows=b.rows||[];
@@ -305,6 +321,9 @@ const SOP={
     // note: info / warn / ban
     const kind=b.t==='ban'?'ban':(b.t==='warn'?'warn':'info');
     const pre={info:'ℹ Ghi nhớ:',warn:'⚠ Lưu ý:',ban:'🚫 Tuyệt đối không:'}[kind];
+    if(editing)return `<div class="sop-blk plain" data-noi18n><div class="sop-note ${kind} editing"><b>${pre}</b>
+      <textarea class="sop-eb" id="sopEdB" rows="3" placeholder="Nội dung khung…">${hesc(b.b||'')}</textarea>
+      ${SOP.edBar()}</div></div>`;
     return `<div class="sop-blk plain">${tools}<div class="sop-note ${kind}"><b>${pre}</b> <span data-noi18n>${hesc(SOP.tx(b,'b'))}</span></div></div>`;
   },
   // lấy chuỗi theo ngôn ngữ: có bản EN + đang bật EN thì dùng, thiếu thì rơi về tiếng Việt
@@ -424,14 +443,59 @@ const SOP={
     const i=parseInt(scope.slice(1),10),s=SOP.cur.subs[i];
     return s?(s.blocks=s.blocks||[]):null;
   },
+  // ---------- SOẠN TẠI CHỖ ----------
+  // Thanh nút dùng chung cho mọi ô soạn (Lưu xanh lá / Huỷ viền mờ). Ctrl+Enter = lưu, Esc = huỷ.
+  edBar(){
+    return `<div class="sop-ebar">
+      <button class="abtn abtn-ok abtn-sm" onclick="SOP.edSave()">Lưu</button>
+      <button class="abtn abtn-ghost abtn-sm" onclick="SOP.edCancel()">Huỷ</button>
+      <span class="sop-ehint">Ctrl+Enter để lưu · Esc để huỷ</span></div>`;
+  },
+  edOpen(scope,i,k){
+    SOP._ed={scope,i,k:(k===undefined?null:k)};
+    SOP.renderPane();SOP.hydrateImgs();
+    setTimeout(()=>{
+      const el=document.getElementById('sopEdH')||document.getElementById('sopEdB');
+      if(el){el.focus();if(el.setSelectionRange)el.setSelectionRange(el.value.length,el.value.length);}
+    },30);
+  },
+  edCancel(){
+    const e=SOP._ed;SOP._ed=null;
+    // khối văn bản/khung vừa thêm mà bỏ trống -> gỡ luôn cho khỏi rác
+    if(e&&e.k===null){
+      const bs=SOP.blocksOf(e.scope),b=bs&&bs[e.i];
+      if(b&&(b.t==='text'||b.t==='info'||b.t==='warn'||b.t==='ban')&&!(b.b||'').trim()&&!(b.h||'').trim())bs.splice(e.i,1);
+    }
+    SOP.renderPane();SOP.hydrateImgs();
+  },
+  async edSave(){
+    const e=SOP._ed;if(!e)return;
+    const H=document.getElementById('sopEdH'),B=document.getElementById('sopEdB');
+    const hv=H?H.value.trim():'',bv=B?B.value:'';
+    const bs=SOP.blocksOf(e.scope),b=bs&&bs[e.i];
+    if(!b){SOP._ed=null;SOP.renderPane();return;}
+    if(b.t==='feat'){
+      b.items=b.items||[];
+      if(!hv){alert('Hãy nhập tiêu đề.');return;}
+      if(e.k>=0){b.items[e.k].b=hv;b.items[e.k].d=bv.trim();}
+      else b.items.push({b:hv,d:bv.trim()});
+    }else if(b.t==='img'){
+      const im=(b.imgs||[])[e.k];if(im)im.cap=hv;
+    }else if(b.t==='text'){
+      if(!hv&&!bv.trim()){SOP.edCancel();return;}
+      b.h=hv;b.b=bv;
+    }else{
+      if(!bv.trim()){SOP.edCancel();return;}
+      b.b=bv;
+    }
+    SOP._ed=null;SOP.touch();await SOP.saveItem();SOP.syncCount();SOP.render();
+  },
   async addBlock(scope,t){
     const bs=SOP.blocksOf(scope);if(!bs)return;
     let b={t};
     if(t==='text'){
-      const h=prompt('Tiêu đề nhỏ (bỏ trống nếu không cần):','')||'';
-      const body=prompt('Nội dung (xuống dòng để tách đoạn):','');
-      if(body===null)return;
-      b.h=h.trim();b.b=body;
+      // thêm khối rỗng rồi mở ngay ô soạn tại chỗ (không hỏi qua prompt)
+      b.h='';b.b='';bs.push(b);SOP.edOpen(scope,bs.length-1);return;
     }else if(t==='img'){b.imgs=[];b.cols=2;}
     else if(t==='feat'){b.items=[];}
     else if(t==='table'){
@@ -441,19 +505,16 @@ const SOP={
       b.rows=[hd.split('|').map(s=>s.trim()).slice(0,n)];
       while(b.rows[0].length<n)b.rows[0].push('');
     }else{
-      const body=prompt('Nội dung khung:','');if(body===null)return;
-      b.b=body;
+      // khung ghi nhớ / lưu ý / cấm: thêm rỗng rồi mở ô soạn tại chỗ
+      b.b='';bs.push(b);SOP.edOpen(scope,bs.length-1);return;
     }
     bs.push(b);SOP.touch();await SOP.saveItem();SOP.syncCount();SOP.render();
     if(t==='img')SOP.pickImg(scope,bs.length-1);
   },
   async editBlock(scope,i){
     const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b)return;
-    if(b.t==='text'){
-      const h=prompt('Tiêu đề nhỏ:',b.h||'');if(h===null)return;
-      const body=prompt('Nội dung:',b.b||'');if(body===null)return;
-      b.h=h.trim();b.b=body;
-    }else if(b.t==='table'){
+    if(b.t==='text'||b.t==='info'||b.t==='warn'||b.t==='ban'){SOP.edOpen(scope,i);return;}
+    if(b.t==='table'){
       const add=confirm('OK = thêm một dòng mới.\nCancel = sửa tiêu đề bảng.');
       if(add){
         const n=b.rows[0].length;
@@ -467,8 +528,6 @@ const SOP={
       SOP.pickImg(scope,i);return;
     }else if(b.t==='feat'){
       const h=prompt('Tên khối:',b.h||'');if(h===null)return;b.h=h.trim();
-    }else{
-      const body=prompt('Nội dung khung:',b.b||'');if(body===null)return;b.b=body;
     }
     SOP.touch();await SOP.saveItem();SOP.render();
   },
@@ -481,14 +540,9 @@ const SOP={
     if(!confirm('Xoá khối này?'))return;
     bs.splice(i,1);SOP.touch();await SOP.saveItem();SOP.syncCount();SOP.render();
   },
-  async editFeat(scope,i,k){
+  editFeat(scope,i,k){
     const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b)return;
-    b.items=b.items||[];
-    const cur=k>=0?b.items[k]:{b:'',d:''};
-    const t=prompt('Tiêu đề (in đậm):',cur.b||'');if(t===null||!t.trim())return;
-    const d=prompt('Giải thích / ví dụ:',cur.d||'');if(d===null)return;
-    if(k>=0){cur.b=t.trim();cur.d=d.trim();}else b.items.push({b:t.trim(),d:d.trim()});
-    SOP.touch();await SOP.saveItem();SOP.render();
+    b.items=b.items||[];SOP.edOpen(scope,i,k);
   },
   async delFeat(scope,i,k){
     const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b||!b.items[k])return;
@@ -499,10 +553,9 @@ const SOP={
     const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b)return;
     b.cols=c;await SOP.saveItem();SOP.render();
   },
-  async capImg(scope,i,k){
+  capImg(scope,i,k){
     const bs=SOP.blocksOf(scope),b=bs&&bs[i],im=b&&(b.imgs||[])[k];if(!im)return;
-    const c=prompt('Chú thích ảnh:',im.cap||'');if(c===null)return;
-    im.cap=c.trim();await SOP.saveItem();SOP.render();
+    SOP.edOpen(scope,i,k);
   },
   async delImg(scope,i,k){
     const bs=SOP.blocksOf(scope),b=bs&&bs[i],im=b&&(b.imgs||[])[k];if(!im)return;
@@ -685,4 +738,13 @@ window.SOP=SOP;
     if(t)t.addEventListener('change',()=>SOP.onTransFile(t));
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',w);else w();
+  // Phím tắt trong ô soạn tại chỗ: Ctrl+Enter lưu · Esc huỷ (Esc bắt ở giai đoạn capture để
+  // không bị handler đóng .dr-modal chung của DR nuốt mất)
+  document.addEventListener('keydown',e=>{
+    if(!SOP._ed)return;
+    const t=e.target;if(!t||(t.id!=='sopEdH'&&t.id!=='sopEdB'))return;
+    if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();SOP.edSave();}
+    else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();SOP.edCancel();}
+    else if(e.key==='Enter'&&t.id==='sopEdH'){e.preventDefault();const b=document.getElementById('sopEdB');if(b)b.focus();else SOP.edSave();}
+  },true);
 })();
