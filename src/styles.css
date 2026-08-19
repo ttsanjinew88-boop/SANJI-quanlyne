@@ -516,8 +516,10 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-pane{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 22px;min-height:320px}
 .sop-inp{background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:8px;padding:7px 11px;font-size:.7rem;font-family:inherit;outline:none}
 .sop-inp:focus{border-color:var(--pu)}
-/* Tiêu đề nhóm: KHÔNG in hoa toàn bộ (chữ Việt có dấu viết hoa hết rất khó đọc) */
-.sop-grp{font-size:.66rem;font-weight:800;letter-spacing:.01em;color:var(--mu2);margin:16px 0 7px;padding:0 3px 6px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px}
+/* Tiêu đề nhóm: form chữ lấy y theo nút tab lớn .tool-sw-btn (.8rem / 700 / giãn .05em / in hoa),
+   màu xanh dương nhạt galaxy --bl2 */
+.sop-grp{font-size:.8rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--bl2);
+  margin:16px 0 7px;padding:0 3px 6px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;line-height:1.45}
 .sop-grp:first-of-type{margin-top:2px}
 .sop-gx{opacity:0;cursor:pointer;transition:.15s;font-size:.68rem;color:var(--mu)}
 .sop-grp:hover .sop-gx{opacity:1}.sop-gx:hover{color:var(--re)}
