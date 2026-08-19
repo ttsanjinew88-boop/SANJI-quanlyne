@@ -23,7 +23,8 @@ const SOP={
   view:'qt', idx:null, cur:null, curId:'', curSub:0, edit:false,
   booted:false, _urls:{}, _imgTarget:null, _blkEdit:null,
 
-  canEdit(){return !!(CUR_PROFILE&&CUR_PROFILE.is_admin);},
+  // Sửa nội dung: ADMIN + Tổ Trưởng (chốt 19/08/2026). Nhân viên chỉ xem.
+  canEdit(){return !!(CUR_PROFILE&&(CUR_PROFILE.is_admin||roleOf(CUR_PROFILE).key==='totruong'));},
   tabDef(k){return SOP.TABS.find(t=>t.k===(k||SOP.view));},
   uid(p){return p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);},
 

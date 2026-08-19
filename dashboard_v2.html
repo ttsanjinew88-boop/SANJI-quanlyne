@@ -2177,7 +2177,7 @@ const I18N={
   "Nhóm Lạm Dụng":"Abuse Groups",
   "Trò Chơi Lạm Dụng":"Abused Games",
   "Lưu Trình Công Việc":"Work Regulations",
-  "🔒 Chỉ ADMIN được sửa":"🔒 ADMIN can edit only",
+  "🔒 ADMIN & Tổ Trưởng được sửa":"🔒 Editable by ADMIN & Team Leader",
   "Chế độ biên tập":"Edit mode",
   "Xuất nội dung":"Export content",
   "Nhập bản dịch":"Import translation",
@@ -3133,11 +3133,11 @@ function applyPerms(){
     const first=[...document.querySelectorAll('.tabs-wrap .tab')].find(t=>t.style.display!=='none');
     if(first)first.click();
   }
-  // Quy Trình Làm Việc (T4): MỌI tài khoản đăng nhập đều XEM được; chỉ ADMIN mới SỬA
+  // Quy Trình Làm Việc (T4): MỌI tài khoản đăng nhập đều XEM được; ADMIN + Tổ Trưởng mới SỬA
   const tsb4=document.getElementById('tsb4');
   if(tsb4)tsb4.style.display='';
   const sat=document.getElementById('sopAdminTools');
-  if(sat)sat.style.display=p.is_admin?'inline-flex':'none';
+  if(sat)sat.style.display=isTTup?'inline-flex':'none';
   // nếu đang đứng ở BC tool mà mất quyền -> về tool 1
   if(!canView('bc')&&document.getElementById('t2').style.display!=='none'){
     switchTool('t1');
@@ -6594,7 +6594,7 @@ rAll();
 <!-- ============ T4 — QUY TRÌNH LÀM VIỆC (lưu cloud; MỌI người xem, chỉ ADMIN sửa) ============ -->
 <div id="t4" style="display:none" class="pg active">
   <div class="sec-hdr pu" id="sopBar">Quy Trình Làm Việc
-    <span style="font-size:.56rem;color:var(--go);text-transform:none;letter-spacing:0;font-weight:700">🔒 Chỉ ADMIN được sửa</span>
+    <span style="font-size:.56rem;color:var(--go);text-transform:none;letter-spacing:0;font-weight:700">🔒 ADMIN &amp; Tổ Trưởng được sửa</span>
     <span id="sopAdminTools" style="display:none;align-items:center;gap:8px">
       <button class="abtn abtn-pu abtn-sm" id="sopEditBtn" onclick="SOP.toggleEdit()">Chế độ biên tập</button>
       <button class="abtn abtn-ghost abtn-sm" onclick="SOP.exportTrans()">Xuất nội dung</button>
@@ -8505,7 +8505,8 @@ const SOP={
   view:'qt', idx:null, cur:null, curId:'', curSub:0, edit:false,
   booted:false, _urls:{}, _imgTarget:null, _blkEdit:null,
 
-  canEdit(){return !!(CUR_PROFILE&&CUR_PROFILE.is_admin);},
+  // Sửa nội dung: ADMIN + Tổ Trưởng (chốt 19/08/2026). Nhân viên chỉ xem.
+  canEdit(){return !!(CUR_PROFILE&&(CUR_PROFILE.is_admin||roleOf(CUR_PROFILE).key==='totruong'));},
   tabDef(k){return SOP.TABS.find(t=>t.k===(k||SOP.view));},
   uid(p){return p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);},
 

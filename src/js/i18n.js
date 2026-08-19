@@ -801,7 +801,7 @@ const I18N={
   "Nhóm Lạm Dụng":"Abuse Groups",
   "Trò Chơi Lạm Dụng":"Abused Games",
   "Lưu Trình Công Việc":"Work Regulations",
-  "🔒 Chỉ ADMIN được sửa":"🔒 ADMIN can edit only",
+  "🔒 ADMIN & Tổ Trưởng được sửa":"🔒 Editable by ADMIN & Team Leader",
   "Chế độ biên tập":"Edit mode",
   "Xuất nội dung":"Export content",
   "Nhập bản dịch":"Import translation",

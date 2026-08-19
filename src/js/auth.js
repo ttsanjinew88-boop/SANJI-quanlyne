@@ -339,11 +339,11 @@ function applyPerms(){
     const first=[...document.querySelectorAll('.tabs-wrap .tab')].find(t=>t.style.display!=='none');
     if(first)first.click();
   }
-  // Quy Trình Làm Việc (T4): MỌI tài khoản đăng nhập đều XEM được; chỉ ADMIN mới SỬA
+  // Quy Trình Làm Việc (T4): MỌI tài khoản đăng nhập đều XEM được; ADMIN + Tổ Trưởng mới SỬA
   const tsb4=document.getElementById('tsb4');
   if(tsb4)tsb4.style.display='';
   const sat=document.getElementById('sopAdminTools');
-  if(sat)sat.style.display=p.is_admin?'inline-flex':'none';
+  if(sat)sat.style.display=isTTup?'inline-flex':'none';
   // nếu đang đứng ở BC tool mà mất quyền -> về tool 1
   if(!canView('bc')&&document.getElementById('t2').style.display!=='none'){
     switchTool('t1');
