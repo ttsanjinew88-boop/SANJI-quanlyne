@@ -104,7 +104,7 @@
   <button class="tool-sw-btn on" id="tsb1" onclick="switchTool('t1')">HIỆU SUẤT NHÂN VIÊN</button>
   <button class="tool-sw-btn" id="tsb2" onclick="switchTool('t2')">BÁO CÁO ĐẠI LÝ - GỬI FILE</button>
   <button class="tool-sw-btn" id="tsb3" onclick="switchTool('t3')">LỌC FILE NTK</button>
-  <button class="tool-sw-btn" id="tsb4" style="display:none" onclick="switchTool('t4')">QUY TRÌNH CÔNG VIỆC</button>
+  <button class="tool-sw-btn" id="tsb4" style="display:none" onclick="switchTool('t4')">QUY TRÌNH LÀM VIỆC</button>
 </div>
 
 <div id="t1">
@@ -976,15 +976,17 @@
   </div>
 </div><!-- /t3 -->
 
-<!-- ============ T4 — QUY TRÌNH CÔNG VIỆC (lưu cloud; TẠM THỜI chỉ ADMIN) ============ -->
+<!-- ============ T4 — QUY TRÌNH LÀM VIỆC (lưu cloud; MỌI người xem, chỉ ADMIN sửa) ============ -->
 <div id="t4" style="display:none" class="pg active">
-  <div class="sec-hdr pu" id="sopBar">Quy Trình Công Việc
-    <span style="font-size:.56rem;color:var(--go);text-transform:none;letter-spacing:0;font-weight:700">🔒 Chỉ ADMIN</span>
-    <button class="abtn abtn-pu abtn-sm" id="sopEditBtn" onclick="SOP.toggleEdit()">Chế độ biên tập</button>
-    <button class="abtn abtn-ghost abtn-sm" onclick="SOP.exportTrans()">Xuất nội dung</button>
-    <button class="abtn abtn-ghost abtn-sm" onclick="SOP.importTrans()">Nhập bản dịch</button>
-    <label style="font-size:.58rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400;display:flex;align-items:center;gap:5px">
-      <input type="checkbox" id="sopNoCompress"> Giữ nguyên ảnh gốc</label>
+  <div class="sec-hdr pu" id="sopBar">Quy Trình Làm Việc
+    <span style="font-size:.56rem;color:var(--go);text-transform:none;letter-spacing:0;font-weight:700">🔒 Chỉ ADMIN được sửa</span>
+    <span id="sopAdminTools" style="display:none;align-items:center;gap:8px">
+      <button class="abtn abtn-pu abtn-sm" id="sopEditBtn" onclick="SOP.toggleEdit()">Chế độ biên tập</button>
+      <button class="abtn abtn-ghost abtn-sm" onclick="SOP.exportTrans()">Xuất nội dung</button>
+      <button class="abtn abtn-ghost abtn-sm" onclick="SOP.importTrans()">Nhập bản dịch</button>
+      <label style="font-size:.58rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400;display:flex;align-items:center;gap:5px">
+        <input type="checkbox" id="sopNoCompress"> Giữ nguyên ảnh gốc</label>
+    </span>
     <span id="sopUpStatus" style="font-size:.58rem;color:var(--cy);text-transform:none;letter-spacing:0;font-weight:400"></span>
     <div class="lang-sw" id="btnLang4" data-noi18n></div>
   </div>

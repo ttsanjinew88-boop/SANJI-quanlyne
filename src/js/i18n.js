@@ -794,14 +794,14 @@ const I18N={
   "Chưa cấu hình Google Sheet.":"Google Sheet is not configured.",
   "Cần deploy file google_sheet_baocao.gs (Apps Script) rồi dán URL Web App vào BC.GS_WEBAPP_URL trong dashboard_v2.html.":"Deploy google_sheet_baocao.gs (Apps Script), then paste the Web App URL into BC.GS_WEBAPP_URL in dashboard_v2.html.",
 
-  /* ---- T4: Quy Trình Công Việc (SOP) — chỉ NHÃN giao diện; nội dung người dùng gõ gắn data-noi18n ---- */
-  "QUY TRÌNH CÔNG VIỆC":"WORK PROCEDURES",
-  "Quy Trình Công Việc":"Work Procedures",
+  /* ---- T4: Quy Trình Làm Việc (SOP) — chỉ NHÃN giao diện; nội dung người dùng gõ gắn data-noi18n ---- */
+  "QUY TRÌNH LÀM VIỆC":"WORK PROCEDURES",
+  "Quy Trình Làm Việc":"Work Procedures",
   "Quy Trình Duyệt Đơn":"Withdrawal Approval Guide",
   "Nhóm Lạm Dụng":"Abuse Groups",
   "Trò Chơi Lạm Dụng":"Abused Games",
   "Lưu Trình Công Việc":"Work Regulations",
-  "🔒 Chỉ ADMIN":"🔒 ADMIN only",
+  "🔒 Chỉ ADMIN được sửa":"🔒 ADMIN can edit only",
   "Chế độ biên tập":"Edit mode",
   "Xuất nội dung":"Export content",
   "Nhập bản dịch":"Import translation",

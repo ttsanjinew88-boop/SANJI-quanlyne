@@ -17,8 +17,10 @@ drop policy if exists "sop_img_write"  on storage.objects;
 drop policy if exists "sop_img_update" on storage.objects;
 drop policy if exists "sop_img_delete" on storage.objects;
 
+-- 2b) ĐỌC ẢNH: MỌI tài khoản đã đăng nhập (chốt 19/08/2026 — mở tab cho toàn bộ nhân viên xem).
+--     Nếu đã chạy bản cũ (chỉ ADMIN đọc) thì chạy lại đúng 3 dòng dưới là đủ.
 create policy "sop_img_read" on storage.objects
-  for select using (bucket_id = 'quytrinh' and is_admin());
+  for select to authenticated using (bucket_id = 'quytrinh');
 
 create policy "sop_img_write" on storage.objects
   for insert with check (bucket_id = 'quytrinh' and is_admin());
@@ -38,9 +40,7 @@ create policy "sop_img_delete" on storage.objects
 --   with check (type in ('sop_index','sop_item') and is_admin());
 
 -- ============================================================
--- MỞ RỘNG SAU NÀY: cho nhân viên XEM (không sửa)
--- Khi nào muốn mở, đổi 4 policy ở mục (2): giữ nguyên write/update/delete,
--- riêng "sop_img_read" đổi using thành:  bucket_id = 'quytrinh' and auth.role() = 'authenticated'
--- rồi trong dashboard bỏ điều kiện p.is_admin ở applyPerms (src/js/auth.js, #tsb4)
--- và SOP.canEdit() (src/js/sop.js) đổi sang kiểm quyền sửa riêng.
+-- TRẠNG THÁI HIỆN TẠI (19/08/2026): mọi tài khoản đăng nhập XEM được (chữ qua policy
+-- reports_select của supabase_update4.sql, ảnh qua sop_img_read ở trên); chỉ ADMIN mới
+-- thêm/sửa/xoá (sop_img_write/update/delete + SOP.canEdit() trong dashboard).
 -- ============================================================

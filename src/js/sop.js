@@ -1,11 +1,13 @@
-// ===== T4 — QUY TRÌNH CÔNG VIỆC (SOP) =====
+// ===== T4 — QUY TRÌNH LÀM VIỆC (SOP) =====
 // 4 tab nhỏ dùng CHUNG một bộ khối nội dung: qt (quy trình duyệt đơn) · ld (nhóm lạm dụng)
 // · game (trò chơi lạm dụng) · doc (lưu trình công việc).
 // Lưu CLOUD (khác NTK/DR vốn session-only): bảng `reports`
 //   - type 'sop_index' month 'all'      -> mục lục 4 tab {tab:[{gid,gname,items:[{id,name,level}]}]}
 //   - type 'sop_item'  month <id mục>   -> nội dung 1 mục (tách nhỏ để mở mục nào tải mục đó)
 // Ảnh: Supabase Storage bucket 'quytrinh' (PRIVATE) -> hiển thị bằng signed URL có hạn.
-// Quyền: TẠM THỜI chỉ ADMIN (xem + sửa) — gate ở applyPerms (#tsb4) và SOP.canEdit().
+// Quyền: MỌI tài khoản đăng nhập đều XEM được; chỉ ADMIN mới SỬA (applyPerms ẩn #sopAdminTools,
+// SOP.canEdit() chặn mọi thao tác ghi). RLS: reports_select cho authenticated đọc; bucket 'quytrinh'
+// phải mở policy đọc cho authenticated (xem supabase_sop_setup.sql mục 2b).
 // Song ngữ: nhãn giao diện dịch qua I18N; nội dung người dùng gõ gắn data-noi18n (giữ tiếng Việt),
 // mỗi chuỗi có sẵn chỗ chứa bản dịch `en` + dấu vết `envi` -> Xuất/Nhập JSON để dịch một lượt.
 const SOP={
