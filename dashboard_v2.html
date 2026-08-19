@@ -24,6 +24,7 @@ html,body{min-height:100vh;background:var(--bg);color:var(--tx);font-family:"Seg
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
 /* HEADER */
 .hdr{background:linear-gradient(135deg,#1a1040 0%,#0f0d2a 50%,#0a1535 100%);border-bottom:1px solid var(--border2);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100}
 .hdr-left{display:flex;align-items:center;gap:12px}
@@ -64,6 +65,7 @@ input#fh{display:none}
 .upload-dd-menu.show{display:block}
 .upload-dd-item{padding:9px 12px;border-radius:7px;font-size:.7rem;font-weight:700;color:var(--tx);cursor:pointer;white-space:nowrap}
 .upload-dd-item:hover{background:rgba(124,58,237,.18)}
+
 /* PROGRESS */
 #progOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center}
 #progOverlay.show{display:flex}
@@ -75,13 +77,16 @@ input#fh{display:none}
 .prog-pct{font-size:2.2rem;font-weight:900;background:linear-gradient(135deg,var(--pu2),var(--bl2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;margin-bottom:6px}
 .prog-rows{font-size:.72rem;color:var(--mu)}
 .prog-step{font-size:.68rem;color:var(--go);margin-top:8px;font-weight:600}
+
 /* TABS */
 .tabs-wrap{background:#0a0d20;border-bottom:1px solid var(--border);overflow-x:auto;display:flex;gap:0;padding:0 8px;position:sticky;top:67px;z-index:99}
 .tab{padding:12px 18px;font-size:.7rem;font-weight:700;cursor:pointer;color:var(--mu);letter-spacing:.06em;text-transform:uppercase;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:6px}
 .tab:hover{color:var(--tx)}
 .tab.active{color:var(--pu2);border-bottom-color:var(--pu);background:rgba(124,58,237,.06)}
+
 /* PANELS */
 .pg{display:none;padding:20px 24px}.pg.active{display:block}
+
 /* STATS */
 .stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:18px}
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;position:relative;overflow:hidden}
@@ -97,24 +102,29 @@ input#fh{display:none}
 .stat-val.pu{background:linear-gradient(135deg,var(--pu2),var(--bl2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .stat-val.bl{color:var(--bl2)}.stat-val.cy{color:var(--cy)}.stat-val.gr{color:var(--gr)}.stat-val.go{color:var(--go)}.stat-val.pk{color:var(--pk)}
 .stat-sub{font-size:.62rem;color:var(--mu);margin-top:3px}
+
 /* SECTION HEADER */
 .sec-hdr{font-size:.62rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--mu2);display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .sec-hdr::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
 .sec-hdr.pu{color:var(--pu2)}.sec-hdr.bl{color:var(--bl2)}.sec-hdr.cy{color:var(--cy)}.sec-hdr.gr{color:var(--gr)}
 .sec-hdr .cnt-badge{background:rgba(124,58,237,.18);color:var(--pu2);border-radius:10px;padding:1px 8px;font-size:.6rem}
+
 /* GRID */
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
 .g21{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:16px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
 @media(max-width:900px){.g2,.g21,.g3{grid-template-columns:1fr}}
+
 /* CHART CARDS */
 .chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
 .chart-title{font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+
 /* DAY BTNS */
 #dayBtns{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
 .day-btn{background:var(--card);border:1px solid var(--border);color:var(--mu);border-radius:6px;padding:4px 9px;font-size:.67rem;font-weight:700;cursor:pointer;transition:all .2s}
 .day-btn:hover{border-color:var(--pu);color:var(--pu2)}
 .day-btn.active{background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;border-color:transparent;box-shadow:0 3px 10px rgba(124,58,237,.3)}
+
 /* TOP3 */
 .top3-list{display:flex;flex-direction:column;gap:8px;padding-top:4px}
 .top3-item{display:flex;align-items:center;gap:10px;background:var(--card2);border-radius:8px;padding:10px 12px}
@@ -125,6 +135,7 @@ input#fh{display:none}
 .top3-label{font-size:.8rem;font-weight:700;flex:1}
 .top3-val{font-size:.8rem;font-weight:800;color:var(--go);text-align:right}
 .top3-sub{font-size:.6rem;color:var(--mu);margin-top:1px;text-align:right}
+
 /* FK CARDS */
 .fk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:16px}
 .fk-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
@@ -146,6 +157,7 @@ input#fh{display:none}
 .fkm-name{font-size:.8rem;font-weight:800;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:18px}
 .fkm-score{font-size:1.1rem;font-weight:900;line-height:1.05}
 .fkm-sub{font-size:.54rem;color:var(--mu);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 /* TABLE */
 .mtbl-wrap{overflow-x:auto}
 .mtbl{border-collapse:collapse;font-size:.65rem;white-space:nowrap;width:100%}
@@ -162,10 +174,12 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:3;text
 .cell-hi{color:#4ade80;font-weight:700}
 .cell-tot{font-weight:800;color:var(--pu2)}
 .cell-1{color:#ffd700;font-weight:900}.cell-2{color:#c0c0c0;font-weight:800}.cell-3{color:#cd7f32;font-weight:700}
+
 /* TOGGLE */
 .view-toggle{display:flex;gap:4px;margin-bottom:12px}
 .vt-btn{padding:5px 14px;border-radius:6px;font-size:.67rem;font-weight:700;cursor:pointer;border:1px solid var(--border);color:var(--mu);transition:all .2s;background:transparent}
 .vt-btn.active{background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;border-color:transparent;box-shadow:0 3px 10px rgba(124,58,237,.25)}
+
 /* RANK */
 .trophy-section{margin-bottom:28px}
 .trophy-banner{text-align:center;font-size:.95rem;font-weight:900;letter-spacing:3px;padding:10px 24px;border-radius:8px;margin-bottom:18px;text-transform:uppercase}
@@ -194,6 +208,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:3;text
 .pod1-base{height:68px;background:linear-gradient(180deg,#261600,#140c00);border:1px solid #f59e0b;border-bottom:none}
 .pod2-base{height:42px;background:linear-gradient(180deg,#180e30,#0a0618);border:1px solid #7c3aed;border-bottom:none}
 .pod3-base{height:22px;background:linear-gradient(180deg,#0c1830,#060e1c);border:1px solid #2563eb;border-bottom:none}
+
 /* DETAIL */
 .detail-panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:10px;display:none}
 .detail-panel.show{display:block}
@@ -201,6 +216,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:3;text
 .dp-name{font-size:1rem;font-weight:800}
 .dp-stats{display:flex;gap:16px;font-size:.67rem;color:var(--mu);margin-left:auto}
 .dp-stats b{color:var(--tx)}
+
 /* SHIFT */
 .shift-panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px}
 .shift-inputs{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
@@ -235,10 +251,12 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:3;text
 /* Mã phân công việc (DD/KM/HT/OFF/SN/HV) — form chữ chuẩn theo .fk-chip; màu đặt inline theo WK_CODES */
 .wk-code{font-family:inherit;font-size:.65rem;font-weight:700;line-height:1;border-radius:5px}
 select.wk-code{cursor:pointer;outline:none}
+
 /* RATIO */
 .ratio-bar{height:20px;border-radius:10px;overflow:hidden;display:flex;margin:6px 0 4px}
 .ratio-seg{display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:800;color:#fff;transition:width .5s ease}
 .ratio-labels{display:flex;justify-content:space-between;font-size:.6rem;color:var(--mu)}
+
 /* ANOMALY */
 .anomaly-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px}
 .anomaly-hdr{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
@@ -267,6 +285,7 @@ select.wk-code{cursor:pointer;outline:none}
 .mtbl tr.onl-row td.sticky-col{background:#121e3c!important}
 .mtbl tr.vip-row td{background:rgba(240,180,41,.035)!important}
 .mtbl tr.vip-row td.sticky-col{background:#201d1f!important}
+
 /* HOUR TABLE */
 .htbl{border-collapse:collapse;font-size:.68rem;width:100%}
 .htbl th{background:var(--card2);padding:7px 10px;text-align:center;border:1px solid var(--border);font-size:.62rem;font-weight:700;text-transform:uppercase}
@@ -276,6 +295,7 @@ select.wk-code{cursor:pointer;outline:none}
 .htbl .peak{color:var(--go)!important;font-weight:800}
 .htbl .hi{color:var(--pu2);font-weight:700}
 .htbl .md{color:var(--tx)}
+
 /* MODAL */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center}
 .modal-overlay.show{display:flex}
@@ -467,6 +487,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .adm-tbl tr:hover td{background:rgba(124,58,237,.05)}
 .adm-tbl .tc{text-align:center}
 .adm-tbl input[type=checkbox]{accent-color:var(--pu);cursor:pointer;width:15px;height:15px}
+
 /* ===== BÁO CÁO ĐƠN RÚT (session-only, port từ PROMAX) ===== */
 .dr-sort{background:var(--card2);border:1px solid var(--border2);color:var(--mu);border-radius:6px;padding:5px 10px;font-size:.62rem;cursor:pointer;font-weight:600}
 .dr-sort.active{color:var(--go);border-color:var(--go)}
@@ -502,6 +523,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .ntk-tbl tr.ntk-gap td{height:10px;padding:0;border:none;background:transparent}
 .ntk-tbl tr.ntk-gap:hover td{background:transparent}
 .ntk-mark{display:inline-block;background:rgba(244,63,94,.16);border:1px solid rgba(244,63,94,.4);color:#fda4af;border-radius:5px;padding:2px 7px;font-size:.55rem;font-weight:700;margin:1px}
+
 /* ===== T4 — QUY TRÌNH CÔNG VIỆC (SOP) ===== */
 .sop-wrap{display:grid;grid-template-columns:270px 1fr;gap:16px;align-items:start}
 .sop-rail{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;position:sticky;top:14px}
