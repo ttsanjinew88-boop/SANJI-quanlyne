@@ -548,7 +548,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-crumb{font-size:.64rem;font-weight:700;letter-spacing:.01em;color:var(--mu);margin-bottom:5px}
 /* Tiêu đề chính (tên mục) — tím, dùng chung cho cả 4 tab nhỏ.
    FORM chữ theo .sop-grp (700 / giãn .05em / in hoa); CỠ chữ và MÀU giữ nguyên. */
-.sop-t{font-size:1.05rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--pu2)}
+.sop-t{font-size:1.05rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--bl2)}
 .sop-m{font-size:.63rem;color:var(--mu);margin-top:4px}
 /* Tab nhỏ T4: viết hoa ĐẦU CHỮ (đè .tab của T1 vốn uppercase toàn bộ) */
 #sopTabs .tab{text-transform:none;letter-spacing:.02em;font-size:.75rem;padding:11px 18px}
@@ -584,7 +584,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
   box-shadow:0 0 0 6px rgba(59,130,246,.20),0 6px 16px rgba(59,130,246,.4)}
 .sop-sadd{position:absolute;right:14px;top:28px}
 .sop-subh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
-.sop-subt{font-size:.86rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--pu2)}
+.sop-subt{font-size:.86rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--bl2)}
 .sop-nav{display:flex;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
 .sop-acc{border:1px solid var(--border);border-radius:11px;margin-bottom:10px;overflow:hidden;background:var(--card2)}
 .sop-acc.open{border-color:rgba(124,58,237,.4)}
@@ -593,7 +593,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-acc.open .sop-acch{background:rgba(124,58,237,.12);border-bottom:1px solid var(--border)}
 .sop-car{color:var(--mu);font-size:.7rem;width:12px;flex:none}
 .sop-acc.open .sop-car{color:var(--pu2)}
-.sop-acct{font-size:.82rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;flex:none;color:var(--pu2)}
+.sop-acct{font-size:.82rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;flex:none;color:var(--bl2)}
 .sop-accm{font-size:.6rem;color:var(--mu);flex:1}
 .sop-accb{display:flex;gap:4px;opacity:0;transition:.15s;flex:none}
 .sop-acch:hover .sop-accb,.sop-acc.open .sop-accb{opacity:1}
@@ -614,7 +614,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-blk.plain .sop-btools{margin:0 0 6px;border-bottom:none;padding-bottom:0}
 .sop-tag{font-size:.55rem;font-weight:800;letter-spacing:.1em;color:var(--mu);text-transform:uppercase;margin-bottom:7px;display:block}
 /* Tiêu đề khối: giữ NGUYÊN màu tím cũ, chỉ chỉnh cỡ chữ và khoảng cách */
-.sop-bh{font-size:.9rem;font-weight:700;color:var(--pu2);letter-spacing:.05em;text-transform:uppercase;line-height:1.5;margin:0 0 12px}
+.sop-bh{font-size:.9rem;font-weight:700;color:var(--bl2);letter-spacing:.05em;text-transform:uppercase;line-height:1.5;margin:0 0 12px}
 /* Thân bài: to hơn, thoáng hơn, giới hạn bề ngang cho dễ đọc */
 .sop-body{max-width:80ch}
 .sop-body p{font-size:.82rem;line-height:1.95;margin-bottom:10px}
@@ -652,7 +652,8 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-blk.editing{border-color:var(--pu);box-shadow:0 0 0 3px rgba(124,58,237,.14)}
 .sop-eh,.sop-eb{width:100%;background:var(--bg);border:1px solid var(--border2);color:var(--tx);border-radius:8px;
   padding:9px 12px;font-family:inherit;outline:none;display:block}
-.sop-eh{font-size:.86rem;font-weight:800;color:var(--pu2);margin-bottom:8px}
+/* ô nhập tiêu đề: cùng màu với tiêu đề khi hiển thị (--bl2) để gõ sao thấy vậy */
+.sop-eh{font-size:.86rem;font-weight:800;color:var(--bl2);margin-bottom:8px}
 .sop-eb{font-size:.82rem;line-height:1.95;resize:vertical;min-height:74px}
 .sop-eh:focus,.sop-eb:focus{border-color:var(--pu)}
 .sop-eh::placeholder,.sop-eb::placeholder{color:var(--mu);font-weight:400}
