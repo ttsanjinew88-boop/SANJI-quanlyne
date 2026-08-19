@@ -553,15 +553,35 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-empty{border:1px dashed var(--border2);border-radius:10px;padding:16px;text-align:center;color:var(--mu);font-size:.7rem;margin:8px 0}
 .sop-empty.sm{padding:7px;font-size:.62rem;border:none}
 .sop-empty.big{padding:40px}
-.sop-steps{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:18px;padding:12px 14px;background:var(--card2);border:1px solid var(--border);border-radius:10px}
-.sop-sdot{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;padding:0 2px}
-.sop-sdot i{width:30px;height:30px;border-radius:50%;background:var(--bg);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;color:var(--mu2);font-style:normal;transition:.18s}
-.sop-sdot span{font-size:.57rem;color:var(--mu);max-width:82px;text-align:center;line-height:1.35}
-.sop-sdot:hover i{border-color:var(--pu)}
-.sop-sdot.on i{background:linear-gradient(135deg,var(--pu),var(--bl));border-color:transparent;color:#fff;box-shadow:0 0 0 3px rgba(124,58,237,.22)}
-.sop-sdot.on span{color:var(--pu2);font-weight:700}
-.sop-sdot.sadd i{border-style:dashed;color:var(--mu)}
-.sop-sline{flex:1;min-width:14px;height:2px;background:var(--border2);margin:0 2px 20px}
+/* ===== Thanh bước: ray liền, chấm che kín ray (chốt 19/08/2026) =====
+   --sop-bar phải là màu ĐẶC và trùng nền khung: vành `outline` của chấm dùng đúng màu này
+   để "cắt" ray khi đi qua chấm. Đổi nền khung thì phải đổi biến này theo. */
+.sop-steps{--sop-bar:#121c39;position:relative;display:flex;align-items:flex-start;justify-content:center;
+  margin-bottom:18px;padding:18px 22px 15px;border-radius:12px;border:1px solid rgba(59,130,246,.3);background:var(--sop-bar);
+  overflow-x:auto}/* nhiều bước -> cuộn ngang, KHÔNG xuống dòng để ray không đứt */
+.sop-steps.has-add{padding-right:132px}
+/* flex:none — nếu để co giãn, ray bị bóp hẹp hơn hàng chấm và phần sáng tính sai vị trí */
+.sop-srail{position:relative;display:flex;align-items:flex-start;justify-content:center;flex:none}
+/* ray chạy từ tâm chấm đầu tới tâm chấm cuối (chấm rộng 104 -> tâm cách mép 52) */
+.sop-srail::before{content:"";position:absolute;top:16px;left:52px;right:52px;height:4px;border-radius:4px;background:var(--border2)}
+.sop-srail::after{content:"";position:absolute;top:16px;left:52px;height:4px;border-radius:4px;
+  width:calc((100% - 104px) * var(--p,0));background:linear-gradient(90deg,var(--bl2),var(--pu2))}
+.sop-sdot{display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;width:104px;flex:none}
+.sop-sdot i{width:36px;height:36px;border-radius:50%;font-style:normal;font-size:.78rem;font-weight:800;
+  display:flex;align-items:center;justify-content:center;position:relative;z-index:2;transition:transform .18s,box-shadow .18s;
+  outline:5px solid var(--sop-bar)}
+.sop-sdot span{font-size:.6rem;text-align:center;line-height:1.45}
+.sop-sdot:hover i{transform:translateY(-2px)}
+.sop-sdot.todo i{background:#0b1024;border:2px solid var(--border2);color:var(--mu)}
+.sop-sdot.todo span{color:var(--mu)}
+/* đã đọc: sáng Y HỆT bước đang xem */
+.sop-sdot.read i{background:linear-gradient(135deg,var(--bl),var(--pu));border:2px solid rgba(255,255,255,.22);color:#fff}
+.sop-sdot.read span{color:#fff;font-weight:700}
+/* đang xem: cùng màu, thêm quầng sáng để biết đang đứng ở đâu */
+.sop-sdot.on i{background:linear-gradient(135deg,var(--bl),var(--pu));border:2px solid rgba(255,255,255,.22);color:#fff;
+  box-shadow:0 0 0 6px rgba(59,130,246,.20),0 6px 16px rgba(59,130,246,.4)}
+.sop-sdot.on span{color:#fff;font-weight:800}
+.sop-sadd{position:absolute;right:14px;top:28px}
 .sop-subh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .sop-subt{font-size:.86rem;font-weight:800;color:var(--pu2)}
 .sop-nav{display:flex;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
