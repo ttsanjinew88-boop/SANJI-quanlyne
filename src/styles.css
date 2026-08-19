@@ -570,8 +570,8 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-sdot i{width:36px;height:36px;border-radius:50%;font-style:normal;font-size:.78rem;font-weight:800;
   display:flex;align-items:center;justify-content:center;position:relative;z-index:2;transition:transform .18s,box-shadow .18s;
   outline:5px solid var(--sop-bar)}
-/* tên bước: giữ MỜ ở mọi trạng thái, chỉ chấm tròn sáng lên */
-.sop-sdot span{font-size:.6rem;text-align:center;line-height:1.45;color:var(--mu)}
+/* tên bước: chữ trắng thường ở MỌI trạng thái (không tô đậm, không đổi màu theo bước) */
+.sop-sdot span{font-size:.6rem;text-align:center;line-height:1.45;color:var(--tx);font-weight:400}
 .sop-sdot:hover i{transform:translateY(-2px)}
 .sop-sdot.todo i{background:#0b1024;border:2px solid var(--border2);color:var(--mu)}
 /* đã đọc: sáng Y HỆT bước đang xem */

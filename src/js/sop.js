@@ -180,28 +180,18 @@ const SOP={
   stepBarHtml(ed){
     const ss=SOP.cur.subs,n=ss.length;
     if(!n)return `<div class="sop-empty big">Chưa có bước nào.${ed?' Bấm ＋ Bước ở trên.':''}</div>`;
-    const lit=Math.max(SOP.curSub,SOP.readMax());
     const p=n>1?(SOP.curSub/(n-1)):0;
     // class sop-srail (KHÔNG phải sop-rail — tên đó đã là cột chủ đề bên trái)
     let h=`<div class="sop-steps${ed?' has-add':''}"><div class="sop-srail" style="--p:${p}">`;
     ss.forEach((s,i)=>{
-      const cls=i===SOP.curSub?'on':(i<=lit?'read':'todo');
+      // sáng = các bước TRƯỚC bước đang xem (không nhớ lịch sử đã mở: đang ở bước 1
+      // thì bước 2 phải tối, dù trước đó có mở qua)
+      const cls=i===SOP.curSub?'on':(i<SOP.curSub?'read':'todo');
       h+=`<div class="sop-sdot ${cls}" onclick="SOP.goSub(${i})"><i>${i+1}</i><span data-noi18n>${hesc(s.name||'')}</span></div>`;
     });
     h+='</div>';
     if(ed)h+=`<button class="abtn abtn-ghost abtn-sm sop-sadd" onclick="SOP.addSub()">＋ Thêm bước</button>`;
     return h+'</div>';
-  },
-  // "Đã đọc" = bước xa nhất từng mở của mục này, nhớ trên MÁY người xem (localStorage),
-  // không lưu cloud vì đây là tiến độ của từng người, không phải nội dung dùng chung.
-  readMax(){
-    try{return JSON.parse(localStorage.getItem('sop_read')||'{}')[SOP.curId]||0;}catch(e){return 0;}
-  },
-  markRead(i){
-    try{
-      const o=JSON.parse(localStorage.getItem('sop_read')||'{}');
-      if((o[SOP.curId]||0)<i){o[SOP.curId]=i;localStorage.setItem('sop_read',JSON.stringify(o));}
-    }catch(e){}
   },
   stepBodyHtml(ed){
     const s=SOP.cur.subs[SOP.curSub];if(!s)return '';
@@ -220,7 +210,7 @@ const SOP={
   },
   goSub(i){
     if(i<0||i>=SOP.cur.subs.length)return;
-    SOP.curSub=i;SOP.markRead(i);SOP.renderPane();SOP.hydrateImgs();
+    SOP.curSub=i;SOP.renderPane();SOP.hydrateImgs();
   },
 
   // ----- game: khối gập -----
