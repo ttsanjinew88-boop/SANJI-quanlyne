@@ -630,7 +630,8 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 /* Tiêu đề khối: giữ NGUYÊN màu tím cũ, chỉ chỉnh cỡ chữ và khoảng cách */
 .sop-bh{font-size:.9rem;font-weight:700;color:var(--bl2);letter-spacing:.05em;text-transform:uppercase;line-height:1.5;margin:0 0 12px}
 /* Thân bài: to hơn, thoáng hơn, giới hạn bề ngang cho dễ đọc */
-.sop-body{max-width:80ch}
+/* Thân bài chạy HẾT chiều ngang khối (bỏ giới hạn 80ch cũ vì để lại dải trống bên phải) */
+.sop-body{max-width:none}
 .sop-body p{font-size:.82rem;line-height:1.95;margin-bottom:10px}
 .sop-body p:last-child{margin-bottom:0}
 .sop-mu{color:var(--mu)}
