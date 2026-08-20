@@ -110,7 +110,7 @@ const SOP={
     gs.forEach((g,gi)=>{
       const items=(g.items||[]).filter(it=>!q||(it.name||'').toLowerCase().includes(q));
       if(q&&!items.length&&!(g.name||'').toLowerCase().includes(q))return;
-      h+=`<div class="sop-grp" data-noi18n>${hesc(g.name)}${ed?`<span class="sop-gx" title="Đổi tên nhóm" onclick="SOP.renameGroup(${gi})">✎</span><span class="sop-gx" title="Xoá nhóm" onclick="SOP.delGroup(${gi})">✕</span>`:''}</div>`;
+      h+=`<div class="sop-grp" data-noi18n>${hesc(SOP.grpName(g))}${ed?`<span class="sop-gx" title="Đổi tên nhóm" onclick="SOP.renameGroup(${gi})">✎</span><span class="sop-gx" title="Xoá nhóm" onclick="SOP.delGroup(${gi})">✕</span>`:''}</div>`;
       if(!items.length)h+=`<div class="sop-empty sm">— trống —</div>`;
       items.forEach(it=>{
         const on=it.id===SOP.curId,dot=it.level||'',n=SOP.badgeOf(it);
@@ -131,11 +131,10 @@ const SOP={
     }
     el.innerHTML=h;
   },
-  // Tên mục ở cột trái lấy từ MỤC LỤC (không tải nội dung) -> bản dịch tên được chép sang idx lúc nhập
-  nameOf(it){
-    if(it.en_name&&typeof I18N!=='undefined'&&I18N.lang==='en')return it.en_name;
-    return it.name||'';
-  },
+  // Tên mục/nhóm ở cột trái lấy từ MỤC LỤC (không tải nội dung) -> bản dịch chép sang idx lúc nhập
+  en(){return typeof I18N!=='undefined'&&I18N.lang==='en';},
+  nameOf(it){return (SOP.en()&&it.en_name)?it.en_name:(it.name||'');},
+  grpName(g){return g?((SOP.en()&&g.en_name)?g.en_name:(g.name||'')):'';},
   badgeOf(it){
     if(SOP.view==='qt')return it.n?it.n+' bước':'';
     if(SOP.view==='game')return it.n?it.n+' game':'';
@@ -149,7 +148,7 @@ const SOP={
     const el=document.getElementById('sopPane');if(!el)return;
     if(!SOP.cur){el.innerHTML=`<div class="sop-empty big">Chưa có nội dung. ${SOP.canEdit()?'Bật Chế độ biên tập rồi thêm nhóm và mục.':''}</div>`;return;}
     const d=SOP.tabDef(),ed=SOP.edit&&SOP.canEdit(),f=SOP.findItem(SOP.curId);
-    const gname=f?f.g.name:'';
+    const gname=f?SOP.grpName(f.g):'';
     let h=`<div class="sop-h">
       <div><div class="sop-crumb" data-noi18n>${hesc(gname)} ›</div>
         <div class="sop-t"><span data-noi18n>${hesc(SOP.tx(SOP.cur,'name'))}</span>${SOP.lvlChip(f&&f.it)}</div>
@@ -190,7 +189,7 @@ const SOP={
       // sáng = các bước TRƯỚC bước đang xem (không nhớ lịch sử đã mở: đang ở bước 1
       // thì bước 2 phải tối, dù trước đó có mở qua)
       const cls=i===SOP.curSub?'on':(i<SOP.curSub?'read':'todo');
-      h+=`<div class="sop-sdot ${cls}" onclick="SOP.goSub(${i})"><i>${i+1}</i><span data-noi18n>${hesc(s.name||'')}</span></div>`;
+      h+=`<div class="sop-sdot ${cls}" onclick="SOP.goSub(${i})"><i>${i+1}</i><span data-noi18n>${hesc(SOP.tx(s,'name'))}</span></div>`;
     });
     h+='</div>';
     if(ed)h+=`<button class="abtn abtn-ghost abtn-sm sop-sadd" onclick="SOP.addSub()">＋ Thêm bước</button>`;
@@ -198,7 +197,7 @@ const SOP={
   },
   stepBodyHtml(ed){
     const s=SOP.cur.subs[SOP.curSub];if(!s)return '';
-    let h=`<div class="sop-subh"><div class="sop-subt">Bước ${SOP.curSub+1} — <span data-noi18n>${hesc(s.name||'')}</span></div>`;
+    let h=`<div class="sop-subh"><div class="sop-subt">Bước ${SOP.curSub+1} — <span data-noi18n>${hesc(SOP.tx(s,'name'))}</span></div>`;
     if(ed)h+=`<div style="display:flex;gap:6px">
       <button class="abtn abtn-ghost abtn-sm" onclick="SOP.renameSub(${SOP.curSub})">Đổi tên bước</button>
       <button class="abtn abtn-danger abtn-sm" onclick="SOP.delSub(${SOP.curSub})">Xoá bước</button></div>`;
@@ -227,7 +226,7 @@ const SOP={
       h+=`<div class="sop-acc${open?' open':''}">
         <div class="sop-acch" onclick="SOP.goAcc(${i},event)">
           <span class="sop-car">${open?'▾':'▸'}</span>
-          <span class="sop-acct" data-noi18n>${hesc(s.name||'')}</span>
+          <span class="sop-acct" data-noi18n>${hesc(SOP.tx(s,'name'))}</span>
           ${s.level?`<span class="sop-lvl ${hesc(s.level)}">${hesc((L[s.level]||'').toUpperCase())}</span>`:''}
           <span class="sop-accm">${hesc(s.code||'')}${s.code?' · ':''}${SOP.countImgs(s.blocks)} ảnh</span>
           ${ed?`<span class="sop-accb">
@@ -243,9 +242,11 @@ const SOP={
   },
   gameCardHtml(s,i,ed){
     const rows=[['Mã game',s.code||'—'],['Trạng thái',SOP.GLEVELS[s.level]||'—'],['Áp dụng từ',s.from||'—']];
+    const th=SOP.imgSrc({u:s.thumb,en_u:s.en_thumb});
     return `<div class="sop-gcard">
-      <div class="sop-gthumb">${s.thumb?`<img data-p="${hesc(s.thumb)}" alt="" onclick="SOP.lightbox('${hesc(s.thumb)}')">`:'<span>Chưa có ảnh bìa</span>'}
-        ${ed?`<button class="abtn abtn-ghost abtn-sm" onclick="SOP.pickThumb(${i})">${s.thumb?'Đổi ảnh bìa':'＋ Ảnh bìa'}</button>`:''}</div>
+      <div class="sop-gthumb">${th?`<img data-p="${hesc(th)}" alt="" onclick="SOP.lightbox('${hesc(th)}')">`:'<span>Chưa có ảnh bìa</span>'}
+        ${ed?`<button class="abtn abtn-ghost abtn-sm" onclick="SOP.pickThumb(${i})">${s.thumb?'Đổi ảnh bìa':'＋ Ảnh bìa'}</button>
+          <button class="abtn ${s.en_thumb?'abtn-cy':'abtn-ghost'} abtn-sm" onclick="SOP.pickThumbEn(${i})">${s.en_thumb?'Đổi ảnh EN':'＋ Ảnh bản EN'}</button>`:''}</div>
       <div>${rows.map(r=>`<div class="sop-grow"><span>${hesc(r[0])}</span><b data-noi18n>${hesc(r[1])}</b></div>`).join('')}
         ${ed?`<button class="abtn abtn-ghost abtn-sm" style="margin-top:8px;width:100%;justify-content:center" onclick="SOP.editGame(${i})">✎ Sửa thông tin</button>`:''}</div>
     </div>`;
@@ -293,13 +294,19 @@ const SOP={
     }
     if(b.t==='img'){
       const imgs=b.imgs||[],cols=b.cols||(imgs.length>1?2:1);
-      let g=imgs.map((im,k)=>`<div class="sop-imgbox"${imgs.length>1&&k===imgs.length-1&&imgs.length%cols===1?' style="grid-column:1/-1"':''}>
-          <img data-p="${hesc(im.u)}" alt="" onclick="SOP.lightbox('${hesc(im.u)}')">
+      // Ảnh riêng cho bản EN: có `im.en_u` và đang bật EN thì hiện ảnh EN, thiếu thì rơi về ảnh VI
+      let g=imgs.map((im,k)=>{const src=SOP.imgSrc(im);return `<div class="sop-imgbox"${imgs.length>1&&k===imgs.length-1&&imgs.length%cols===1?' style="grid-column:1/-1"':''}>
+          <img data-p="${hesc(src)}" alt="" onclick="SOP.lightbox('${hesc(src)}')">
           ${(SOP._ed&&SOP._ed.scope===scope&&SOP._ed.i===i&&SOP._ed.k===k)
             ?`<div class="sop-cap" data-noi18n><input class="sop-eh" id="sopEdH" placeholder="Chú thích ảnh" value="${hesc(im.cap||'')}">${SOP.edBar()}</div>`
             :`<div class="sop-cap" data-noi18n>${hesc(SOP.tx(im,'cap'))||'&nbsp;'}</div>`}
-          ${ed?`<div class="sop-imgb"><button class="abtn abtn-ghost abtn-sm" onclick="SOP.capImg('${scope}',${i},${k})">✎ Chú thích</button><button class="abtn abtn-danger abtn-sm" onclick="SOP.delImg('${scope}',${i},${k})">🗑</button></div>`:''}
-        </div>`).join('');
+          ${(im.en_u&&SOP.en())?`<div class="sop-enflag">Đang xem: ảnh bản EN</div>`:''}
+          ${ed?`<div class="sop-imgb">
+              <button class="abtn abtn-ghost abtn-sm" onclick="SOP.capImg('${scope}',${i},${k})">✎ Chú thích</button>
+              <button class="abtn ${im.en_u?'abtn-cy':'abtn-ghost'} abtn-sm" onclick="SOP.pickEnImg('${scope}',${i},${k})">${im.en_u?'Đổi ảnh EN':'＋ Ảnh bản EN'}</button>
+              ${im.en_u?`<button class="abtn abtn-ghost abtn-sm" onclick="SOP.delEnImg('${scope}',${i},${k})">Xoá ảnh EN</button>`:''}
+              <button class="abtn abtn-danger abtn-sm" onclick="SOP.delImg('${scope}',${i},${k})">🗑</button></div>`:''}
+        </div>`;}).join('');
       if(!imgs.length)g=`<div class="sop-imgph">Chưa có ảnh${ed?' — bấm ＋ Thêm ảnh':''}</div>`;
       return `<div class="sop-blk">${tools}
         <div class="sop-grid" style="grid-template-columns:repeat(${cols},1fr)">${g}</div>
@@ -632,14 +639,26 @@ const SOP={
   async delImg(scope,i,k){
     const bs=SOP.blocksOf(scope),b=bs&&bs[i],im=b&&(b.imgs||[])[k];if(!im)return;
     if(!await SOP.confirmBox('Xoá ảnh này?',{title:'Xoá ảnh'}))return;
-    const path=im.u;b.imgs.splice(k,1);
+    const paths=[im.u];if(im.en_u)paths.push(im.en_u); // xoá cả bản EN kèm theo
+    b.imgs.splice(k,1);
     await SOP.saveItem();SOP.syncCount();SOP.render();
-    try{await SB.client().storage.from(SOP.BUCKET).remove([path]);}catch(e){console.warn('xoá ảnh storage',e);}
+    try{await SB.client().storage.from(SOP.BUCKET).remove(paths);}catch(e){console.warn('xoá ảnh storage',e);}
   },
 
   // ---------- ẢNH ----------
-  pickImg(scope,i){SOP._imgTarget={scope,i,thumb:-1};document.getElementById('sopFile').click();},
-  pickThumb(i){SOP._imgTarget={scope:null,i,thumb:i};document.getElementById('sopFile').click();},
+  // Mỗi ảnh có thể kèm bản EN riêng (`en_u`): bật EN thì hiện ảnh EN, chưa có thì dùng ảnh VI.
+  imgSrc(im){return (SOP.en()&&im&&im.en_u)?im.en_u:(im?im.u:'');},
+  pickImg(scope,i){SOP._imgTarget={scope,i,thumb:-1,en:-1};document.getElementById('sopFile').click();},
+  pickThumb(i){SOP._imgTarget={scope:null,i,thumb:i,en:-1};document.getElementById('sopFile').click();},
+  pickEnImg(scope,i,k){SOP._imgTarget={scope,i,thumb:-1,en:k};document.getElementById('sopFile').click();},
+  pickThumbEn(i){SOP._imgTarget={scope:null,i,thumb:-1,en:-1,enThumb:i};document.getElementById('sopFile').click();},
+  async delEnImg(scope,i,k){
+    const bs=SOP.blocksOf(scope),b=bs&&bs[i],im=b&&(b.imgs||[])[k];if(!im||!im.en_u)return;
+    if(!await SOP.confirmBox('Xoá ảnh bản EN của ảnh này? Bản tiếng Việt giữ nguyên.',{title:'Xoá ảnh EN'}))return;
+    const path=im.en_u;delete im.en_u;
+    await SOP.saveItem();SOP.render();
+    try{await SB.client().storage.from(SOP.BUCKET).remove([path]);}catch(e){console.warn('xoá ảnh EN',e);}
+  },
   async onFile(inp){
     const files=[...(inp.files||[])];inp.value='';
     if(!files.length||!SOP._imgTarget)return;
@@ -655,7 +674,19 @@ const SOP={
         const{error}=await SB.client().storage.from(SOP.BUCKET).upload(path,blob,{contentType:blob.type||'image/webp',upsert:false});
         if(error)throw error;
         const t=SOP._imgTarget;
+        if(t.enThumb>=0){ // ảnh bìa bản EN của một trò chơi
+          const s2=SOP.cur.subs[t.enThumb];
+          if(s2){const old=s2.en_thumb;s2.en_thumb=path;
+            if(old)try{await SB.client().storage.from(SOP.BUCKET).remove([old]);}catch(e){}}
+          SOP._imgTarget=null;break;
+        }
         if(t.thumb>=0){SOP.cur.subs[t.thumb].thumb=path;}
+        else if(t.en>=0){ // ảnh bản EN cho đúng 1 ảnh đã có (chỉ nhận 1 file, bỏ qua file dư)
+          const bs=SOP.blocksOf(t.scope),b=bs&&bs[t.i],im=b&&(b.imgs||[])[t.en];
+          if(im){const old=im.en_u;im.en_u=path;
+            if(old)try{await SB.client().storage.from(SOP.BUCKET).remove([old]);}catch(e){}}
+          SOP._imgTarget=null;break;
+        }
         else{
           const bs=SOP.blocksOf(t.scope),b=bs&&bs[t.i];
           if(b){b.imgs=b.imgs||[];b.imgs.push({u:path,cap:''});}
@@ -741,6 +772,11 @@ const SOP={
   async exportTrans(){
     if(!SOP.canEdit())return;
     const out={v:1,at:new Date().toISOString(),items:[]};
+    // Tên NHÓM nằm ở mục lục (sop_index), gom thành một bản ghi riêng id '__index'
+    const grows=[];
+    for(const t of SOP.TABS)for(const g of (SOP.idx.tabs[t.k]||[]))
+      if((g.name||'').trim())grows.push({p:'g.'+g.gid,vi:g.name,en:g.en_name||'',stale:false});
+    if(grows.length)out.items.push({id:'__index',tab:'index',group:'',name:'Tên nhóm',rows:grows});
     for(const t of SOP.TABS){
       for(const g of (SOP.idx.tabs[t.k]||[])){
         for(const it of (g.items||[])){
@@ -765,6 +801,15 @@ const SOP={
     if(!data||!Array.isArray(data.items)){SOP.dlg({title:'Sai định dạng',msg:'File thiếu danh sách items.',okText:'Đã hiểu'});return;}
     let nItem=0,nStr=0,idxTouched=false;
     for(const rec of data.items){
+      if(rec.id==='__index'){ // bản dịch TÊN NHÓM -> ghi thẳng vào mục lục
+        (rec.rows||[]).forEach(r=>{
+          if(!r.en||!String(r.en).trim()||!/^g\./.test(r.p||''))return;
+          const gid=r.p.slice(2);
+          for(const t of SOP.TABS){const g=(SOP.idx.tabs[t.k]||[]).find(x=>x.gid===gid);
+            if(g){g.en_name=r.en;nStr++;idxTouched=true;break;}}
+        });
+        continue;
+      }
       let d=null;
       try{d=await SB.loadReport('sop_item',rec.id);}catch(e){}
       if(!d)continue;

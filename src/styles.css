@@ -628,6 +628,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-imgb{display:flex;gap:6px;justify-content:center;padding:7px;border-top:1px solid var(--border);background:var(--card2)}
 .sop-imgbox:hover .sop-imgb{background:rgba(124,58,237,.10)}
 .sop-imgph{border:1px dashed var(--border2);border-radius:8px;padding:26px;text-align:center;color:var(--mu);font-size:.68rem}
+.sop-enflag{font-size:.55rem;font-weight:700;color:var(--cy);background:rgba(6,182,212,.12);border-top:1px solid var(--border);padding:4px 8px;text-align:center}
 .sop-imgctl{display:flex;gap:6px;margin-top:9px;align-items:center;flex-wrap:wrap}
 .sop-imgctl span{font-size:.62rem;color:var(--mu)}
 .sop-feat{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed var(--border);position:relative}
