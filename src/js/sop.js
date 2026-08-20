@@ -298,7 +298,7 @@ const SOP={
       let g=imgs.map((im,k)=>{const src=SOP.imgSrc(im);return `<div class="sop-imgbox"${imgs.length>1&&k===imgs.length-1&&imgs.length%cols===1?' style="grid-column:1/-1"':''}>
           <img data-p="${hesc(src)}" alt="" onclick="SOP.lightbox('${hesc(src)}')">
           ${(SOP._ed&&SOP._ed.scope===scope&&SOP._ed.i===i&&SOP._ed.k===k)
-            ?`<div class="sop-cap" data-noi18n><input class="sop-eh" id="sopEdH" placeholder="Chú thích ảnh" value="${hesc(im.cap||'')}">${SOP.edBar()}</div>`
+            ?`<div class="sop-cap" data-noi18n><input class="sop-eh" id="sopEdH" placeholder="Chú thích ảnh" value="${hesc(im.cap||'')}">${SOP.edBar(1)}</div>`
             :`<div class="sop-cap" data-noi18n>${hesc(SOP.tx(im,'cap'))||'&nbsp;'}</div>`}
           ${(im.en_u&&SOP.en())?`<div class="sop-enflag">Đang xem: ảnh bản EN</div>`:''}
           ${ed?`<div class="sop-imgb">
@@ -324,7 +324,7 @@ const SOP={
       };
       return `<div class="sop-blk">${tools}${b.h?`<div class="sop-bh" data-noi18n>${hesc(SOP.tx(b,'h'))}</div>`:''}
         ${its.map((f,k)=>fk===k?form(k):`<div class="sop-feat"><span class="sop-fn">${k+1}</span><div>
-          <b data-noi18n>${hesc(SOP.tx(f,'b'))}</b>${f.d?`<div class="sop-fd" data-noi18n>${hesc(SOP.tx(f,'d'))}</div>`:''}</div>
+          <b data-noi18n>${SOP.rich(SOP.tx(f,'b'))}</b>${f.d?`<div class="sop-fd" data-noi18n>${SOP.rich(SOP.tx(f,'d'))}</div>`:''}</div>
           ${ed?`<span class="sop-featb"><button class="abtn abtn-ghost abtn-sm" onclick="SOP.editFeat('${scope}',${i},${k})">✎</button><button class="abtn abtn-danger abtn-sm" onclick="SOP.delFeat('${scope}',${i},${k})">🗑</button></span>`:''}</div>`).join('')||(fk===-1?'':'<div class="sop-empty sm">— chưa có mục nào —</div>')}
         ${fk===-1?form(-1):''}
         ${(ed&&fk===null)?`<button class="abtn abtn-ghost abtn-sm" style="margin-top:10px" onclick="SOP.editFeat('${scope}',${i},-1)">＋ Thêm mục</button>`:''}</div>`;
@@ -348,7 +348,7 @@ const SOP={
     if(editing)return `<div class="sop-blk plain" data-noi18n><div class="sop-note ${kind} editing"><b>${pre}</b>
       <textarea class="sop-eb" id="sopEdB" rows="3" placeholder="Nội dung khung…">${hesc(b.b||'')}</textarea>
       ${SOP.edBar()}</div></div>`;
-    return `<div class="sop-blk plain">${tools}<div class="sop-note ${kind}"><b>${pre}</b> <span data-noi18n>${hesc(SOP.tx(b,'b'))}</span></div></div>`;
+    return `<div class="sop-blk plain">${tools}<div class="sop-note ${kind}"><b>${pre}</b> <span data-noi18n>${SOP.rich(SOP.tx(b,'b'))}</span></div></div>`;
   },
   // lấy chuỗi theo ngôn ngữ: có bản EN + đang bật EN thì dùng, thiếu thì rơi về tiếng Việt
   tx(o,f){
@@ -356,7 +356,65 @@ const SOP={
     if(en&&typeof I18N!=='undefined'&&I18N.lang==='en')return en;
     return (o&&o[f])||'';
   },
-  para(s){return hesc(s||'').split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>`<p>${l}</p>`).join('')||'<p class="sop-mu">(trống)</p>';},
+
+  // ---------- LIÊN KẾT TỚI BÀI HƯỚNG DẪN KHÁC ----------
+  // Cú pháp nhúng trong nội dung: [[<id mục>|<chữ hiển thị>]]
+  // vd: … vào phần [[i_abc123|Giao Diện Kiểm Tra Hội Viên]] để xem chi tiết.
+  // Người soạn KHÔNG phải gõ tay: nút "🔗 Liên kết bài" ở thanh soạn chèn sẵn (SOP.insertLink).
+  // Bấm vào chữ -> SOP.goto(id): tự chuyển tab nhỏ nếu bài nằm ở tab khác rồi mở bài đó.
+  LINK_RX:/\[\[(i_[A-Za-z0-9_]+)\|([^\]|]*)\]\]/g,
+  // escape HTML + đổi cú pháp [[..]] thành thẻ bấm được (dùng thay hesc cho mọi chỗ có văn bản dài)
+  rich(s){
+    s=String(s||'');
+    const rx=new RegExp(SOP.LINK_RX.source,'g');
+    let out='',last=0,m;
+    while((m=rx.exec(s))){
+      out+=hesc(s.slice(last,m.index));
+      out+=SOP.linkHtml(m[1],(m[2]||'').trim());
+      last=m.index+m[0].length;
+    }
+    return out+hesc(s.slice(last));
+  },
+  linkHtml(id,lb){
+    const f=SOP.findItemAny(id);
+    const label=lb||(f?SOP.nameOf(f.it):id);
+    // bài đã bị xoá/đổi mã -> hiện chữ gạch mờ thay vì link chết
+    if(!f)return `<span class="sop-lnk dead" title="Bài hướng dẫn không còn">${hesc(label)}</span>`;
+    return `<a class="sop-lnk" onclick="SOP.goto('${hesc(id)}');return false;" title="Mở bài hướng dẫn">${hesc(label)} ↗</a>`;
+  },
+  async goto(id){
+    const f=SOP.findItemAny(id);
+    if(!f){await SOP.dlg({title:'Không tìm thấy bài',msg:'Bài hướng dẫn này đã bị xoá hoặc đổi mã.',okText:'Đã hiểu'});return;}
+    if(SOP.view!==f.t){SOP.view=f.t;SOP._q='';SOP.renderTabs();}
+    await SOP.open(id);
+    const p=document.getElementById('sopPane');
+    if(p){p.classList.remove('sop-jump');void p.offsetWidth;p.classList.add('sop-jump');
+      if(p.scrollIntoView)p.scrollIntoView({behavior:'smooth',block:'start'});}
+  },
+  // Chèn liên kết tại vị trí con trỏ trong ô đang soạn
+  async insertLink(){
+    const el=document.getElementById('sopEdB')||document.getElementById('sopEdH');
+    if(!el)return;
+    const s0=el.selectionStart||0,e0=el.selectionEnd||0,sel=el.value.slice(s0,e0).trim();
+    const list=[];
+    for(const t of SOP.TABS)for(const g of (SOP.idx.tabs[t.k]||[]))for(const it of (g.items||[])){
+      if(it.id===SOP.curId)continue;
+      list.push({label:t.label+' › '+(g.name||'')+' › '+(it.name||''),v:it.id});
+    }
+    if(!list.length){await SOP.dlg({title:'Chưa có bài nào khác',msg:'Hãy tạo bài hướng dẫn khác trước rồi mới chèn liên kết.',okText:'Đã hiểu'});return;}
+    const id=await SOP.dlg({title:'Liên kết tới bài nào?',options:list});
+    if(id===null||id===undefined)return;
+    const f=SOP.findItemAny(id);
+    const lb=await SOP.promptBox('Chữ hiển thị',sel||(f?f.it.name:''),'chữ mà người đọc bấm vào');
+    if(lb===null)return;
+    const snip='[['+id+'|'+String(lb||(f?f.it.name:'')).replace(/[\[\]|]/g,'').trim()+']]';
+    const box=document.getElementById('sopEdB')||document.getElementById('sopEdH');
+    if(!box)return;
+    box.value=box.value.slice(0,s0)+snip+box.value.slice(e0);
+    box.focus();
+    if(box.setSelectionRange)box.setSelectionRange(s0+snip.length,s0+snip.length);
+  },
+  para(s){return String(s||'').split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>`<p>${SOP.rich(l)}</p>`).join('')||'<p class="sop-mu">(trống)</p>';},
 
   // ---------- HỘP THOẠI CHUNG (thay confirm/prompt của trình duyệt) ----------
   // Trả Promise: xác nhận -> true/null · nhập chữ -> chuỗi/null · chọn -> giá trị/null
@@ -516,10 +574,12 @@ const SOP={
   },
   // ---------- SOẠN TẠI CHỖ ----------
   // Thanh nút dùng chung cho mọi ô soạn (Lưu xanh lá / Huỷ viền mờ). Ctrl+Enter = lưu, Esc = huỷ.
-  edBar(){
+  // noLink=1 cho ô chú thích ảnh (chỉ 1 dòng, không cần chèn liên kết)
+  edBar(noLink){
     return `<div class="sop-ebar">
       <button class="abtn abtn-ok abtn-sm" onclick="SOP.edSave()">Lưu</button>
       <button class="abtn abtn-ghost abtn-sm" onclick="SOP.edCancel()">Huỷ</button>
+      ${noLink?'':`<button class="abtn abtn-ghost abtn-sm" title="Chèn liên kết tới bài hướng dẫn khác" onclick="SOP.insertLink()">🔗 Liên kết bài</button>`}
       <span class="sop-ehint">Ctrl+Enter để lưu · Esc để huỷ</span></div>`;
   },
   edOpen(scope,i,k){
