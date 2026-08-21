@@ -797,6 +797,7 @@ const I18N={
   /* ---- T4: Quy Trình Làm Việc (SOP) — chỉ NHÃN giao diện; nội dung người dùng gõ gắn data-noi18n ---- */
   "QUY TRÌNH LÀM VIỆC":"WORKFLOW",
   "Quy Trình Làm Việc":"Workflow",
+  "Hướng dẫn nghiệp vụ FK · nội dung lưu trên cloud":"FK work guides · saved in the cloud",
   "Quy Trình Duyệt Đơn":"Withdrawal Approval Guide",
   "Nhóm Lạm Dụng":"Abuse Groups",
   "Trò Chơi Lạm Dụng":"Abused Games",
@@ -907,6 +908,8 @@ const I18N={
   /* ---- T3: Lọc File NTK (nhiều tài khoản) ---- */
   "LỌC FILE NTK":"MULTI-ACCOUNT FILTER",
   "Lọc File NTK — Nhiều Tài Khoản":"Multi-Account Filter",
+  "Lọc File NTK":"NTK File Filter",
+  "Gom nhóm theo Tên thật + IP · dùng 1 lần, F5 là mất":"Grouped by Real Name + IP · single-use, lost on refresh",
   "— gom nhóm theo Tên thật + IP; nhóm từ 2 tài khoản khác nhau trở lên là nghi ngờ. Dùng 1 lần, F5 là mất, không lưu cloud.":"— groups by Real Name + IP; a group of 2 or more distinct accounts is flagged. Single-use, lost on refresh, never saved to the cloud.",
   "Thả file Excel vào đây, dán (Ctrl+V) dữ liệu, hoặc bấm Chọn file":"Drop an Excel file here, paste (Ctrl+V) data, or click Choose file",
   "Cần các cột: ID · Thời gian nạp tiền · Tên thật · IP · Cấp độ thành viên (Tiền nạp và Chi nhánh là tùy chọn).":"Required columns: ID · Deposit Time · Real Name · IP · Member Level (Deposit Amount and Branch are optional).",

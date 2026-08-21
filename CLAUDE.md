@@ -40,6 +40,12 @@
 `--bg --card --card2 --border --border2 --pu(#7c3aed) --pu2(#9f67ff) --bl(#3b82f6) --bl2 --cy(#06b6d4) --gr --go(#f59e0b) --re --pk --tx --mu --mu2 --vip-c(#06b6d4) --onl-c(#a78bfa)`
 → Khi thêm UI, dùng các biến này (KHÔNG hardcode màu vàng/teal của PROMAX).
 
+### Banner đầu trang của 4 tab lớn (chốt 21/08/2026)
+Cả 4 tab lớn đều mở đầu bằng một dải banner cùng kiểu (gradient tím-xanh `#1a1040→#0f0d2a→#0a1535`, logo NE 38px, tên tab 1.1rem, dòng "SANJI", ghi chú đẩy sang phải, nút VI/EN cuối cùng):
+- T1 = `.hdr` (thêm chip tài khoản/Đăng xuất) · T2 = `.bc-tool .topbar` — 2 cái này có sẵn từ đầu, **không đụng**.
+- T3/T4 = `.tool-hdr` + `.tool-hdr-title/.tool-hdr-sub/.tool-hdr-note` (styles.css cạnh `.hdr-date`). ⚠ T3/T4 nằm TRONG `.pg` (padding 20px 24px) nên banner phải `margin:-20px -24px 16px` mới tràn hết bề ngang — đổi padding `.pg` thì phải sửa theo.
+- Nút ngôn ngữ của T3/T4 (`#btnLang3`/`#btnLang4`) nay nằm TRONG banner, **đã gỡ khỏi dòng `.sec-hdr`** bên dưới; dòng `.sec-hdr` giữ lại làm tiêu đề mục (T4 vẫn chứa cụm `#sopAdminTools`). Thêm tab lớn mới → dựng `.tool-hdr` tương tự + thêm id nút vào mảng trong `i18nSyncBtn`.
+
 ### ⚠ QUY ƯỚC NÚT (bắt buộc khi tạo chức năng mới — chốt 02/08/2026)
 **KHÔNG viết inline-style cho nút.** Mọi nút mới PHẢI dùng bộ class chuẩn `.abtn` trong `styles.css` (cạnh `.upload-btn`) để đồng nhất kích cỡ + form chữ toàn dashboard:
 - Base: `.abtn` (padding 8px 18px, .72rem, radius 8px, hover nhấc + brightness). Biến thể nhỏ trong bảng: thêm `.abtn-sm` (4px 12px, .62rem).
