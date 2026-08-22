@@ -241,15 +241,50 @@ const SOP={
     return h;
   },
   gameCardHtml(s,i,ed){
-    const rows=[['Mã game',s.code||'—'],['Trạng thái',SOP.GLEVELS[s.level]||'—'],['Áp dụng từ',s.from||'—']];
+    // 'code' vẫn là tên field cũ trong dữ liệu, chỉ ĐỔI NHÃN hiển thị thành "Tên game".
+    // Trạng thái + Áp dụng từ tô vàng (--go) cho nổi, khỏi lẫn với chữ thường.
+    const rows=[['Tên game',s.code||'—',0],['Trạng thái',SOP.GLEVELS[s.level]||'—',1],['Áp dụng từ',s.from||'—',1]];
     const th=SOP.imgSrc({u:s.thumb,en_u:s.en_thumb});
     return `<div class="sop-gcard">
       <div class="sop-gthumb">${th?`<img data-p="${hesc(th)}" alt="" onclick="SOP.lightbox('${hesc(th)}')">`:'<span>Chưa có ảnh bìa</span>'}
         ${ed?`<button class="abtn abtn-ghost abtn-sm" onclick="SOP.pickThumb(${i})">${s.thumb?'Đổi ảnh bìa':'＋ Ảnh bìa'}</button>
           <button class="abtn ${s.en_thumb?'abtn-cy':'abtn-ghost'} abtn-sm" onclick="SOP.pickThumbEn(${i})">${s.en_thumb?'Đổi ảnh EN':'＋ Ảnh bản EN'}</button>`:''}</div>
-      <div>${rows.map(r=>`<div class="sop-grow"><span>${hesc(r[0])}</span><b data-noi18n>${hesc(r[1])}</b></div>`).join('')}
-        ${ed?`<button class="abtn abtn-ghost abtn-sm" style="margin-top:8px;width:100%;justify-content:center" onclick="SOP.editGame(${i})">✎ Sửa thông tin</button>`:''}</div>
+      <div>${rows.map(r=>`<div class="sop-grow"><span>${hesc(r[0])}</span><b class="${r[2]?'go':''}"${r[2]?'':' data-noi18n'}>${hesc(r[1])}</b></div>`).join('')}
+        ${ed?`<button class="abtn abtn-ghost abtn-sm" style="margin-top:8px;width:100%;justify-content:center" onclick="SOP.editGame(${i})">✎ Sửa thông tin</button>`:''}
+        ${SOP.gameNoteHtml(s,i,ed)}</div>
     </div>`;
+  },
+  // Ghi chú của trò chơi: chỗ cấp trên truyền đạt thêm, lấp luôn khoảng trống dưới ô thông tin.
+  // Soạn TẠI CHỖ giống các khối khác (không dùng prompt) — cờ riêng SOP._gnEd vì đây không phải khối.
+  gameNoteHtml(s,i,ed){
+    if(SOP._gnEd===i)return `<div class="sop-gnote editing" data-noi18n>
+      <div class="sop-gnote-h">Ghi chú</div>
+      <textarea class="sop-eb" id="sopGnB" rows="4" placeholder="Ghi chú thêm từ cấp trên…" onkeydown="SOP.gnKey(event,${i})">${hesc(s.note||'')}</textarea>
+      <div class="sop-ebar"><button class="abtn abtn-ok abtn-sm" onclick="SOP.saveGameNote(${i})">Lưu</button>
+        <button class="abtn abtn-ghost abtn-sm" onclick="SOP.cancelGameNote()">Huỷ</button>
+        <span class="sop-ehint">Ctrl+Enter để lưu · Esc để huỷ</span></div></div>`;
+    const tx=SOP.tx(s,'note');
+    if(!tx&&!ed)return '';
+    return `<div class="sop-gnote">
+      <div class="sop-gnote-h">Ghi chú${ed?`<button class="abtn abtn-ghost abtn-sm" onclick="SOP.editGameNote(${i})">${tx?'✎ Sửa':'＋ Thêm'}</button>`:''}</div>
+      ${tx?`<div class="sop-gnote-b" data-noi18n>${SOP.rich(tx)}</div>`:`<div class="sop-gnote-b mu">Chưa có ghi chú.</div>`}</div>`;
+  },
+  editGameNote(i){
+    if(!SOP.canEdit())return;
+    SOP._gnEd=i;SOP.renderPane();SOP.hydrateImgs();
+    setTimeout(()=>{const el=document.getElementById('sopGnB');
+      if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length);}},30);
+  },
+  cancelGameNote(){SOP._gnEd=null;SOP.renderPane();SOP.hydrateImgs();},
+  gnKey(e,i){
+    if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();SOP.saveGameNote(i);}
+    else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();SOP.cancelGameNote();}
+  },
+  async saveGameNote(i){
+    const s=SOP.cur&&SOP.cur.subs[i],el=document.getElementById('sopGnB');
+    if(!s){SOP._gnEd=null;SOP.renderPane();return;}
+    s.note=el?el.value.trim():'';
+    SOP._gnEd=null;SOP.touch();await SOP.saveItem();SOP.render();
   },
   goAcc(i,e){
     if(e&&e.target.closest('button'))return;
@@ -546,7 +581,7 @@ const SOP={
   },
   async editGame(i){
     const s=SOP.cur.subs[i];if(!s)return;
-    const c=await SOP.promptBox('Mã game',s.code||'');if(c===null)return;
+    const c=await SOP.promptBox('Tên game',s.code||'');if(c===null)return;
     const fr=await SOP.promptBox('Áp dụng từ ngày',s.from||'','vd 01/08/2026');if(fr===null)return;
     const lv=await SOP.askLevel();
     s.code=c;s.from=fr;if(lv)s.level=lv;
@@ -818,7 +853,7 @@ const SOP={
     push(item,'name','name');
     (item.blocks||[]).forEach((b,i)=>walkBlk(b,'blocks.'+i));
     (item.subs||[]).forEach((s,i)=>{
-      push(s,'name','subs.'+i+'.name');
+      push(s,'name','subs.'+i+'.name');push(s,'note','subs.'+i+'.note');
       (s.blocks||[]).forEach((b,j)=>walkBlk(b,'subs.'+i+'.blocks.'+j));
     });
     function walkBlk(b,p){
