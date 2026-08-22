@@ -606,17 +606,32 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-subh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .sop-subt{font-size:.86rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--bl2)}
 .sop-nav{display:flex;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
-.sop-acc{border:1px solid var(--border);border-radius:11px;margin-bottom:10px;overflow:hidden;background:var(--card2)}
-.sop-acc.open{border-color:rgba(124,58,237,.4)}
-.sop-acch{display:flex;align-items:center;gap:9px;padding:11px 14px;cursor:pointer;transition:.15s;flex-wrap:wrap}
-.sop-acch:hover{background:rgba(124,58,237,.07)}
-.sop-acc.open .sop-acch{background:rgba(124,58,237,.12);border-bottom:1px solid var(--border)}
-.sop-car{color:var(--mu);font-size:.7rem;width:12px;flex:none}
-.sop-acc.open .sop-car{color:var(--pu2)}
-.sop-acct{font-size:.82rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;flex:none;color:var(--bl2)}
-.sop-accm{font-size:.6rem;color:var(--mu);flex:1}
+/* Thanh trò chơi (tab game) — nền XANH NHẠT, viền trái tô theo mức độ, số thứ tự nền galaxy.
+   Mở NHIỀU trò cùng lúc: trạng thái ở SOP.accOpen, .open chỉ là lớp hiển thị. */
+.sop-acc{border:1px solid rgba(59,130,246,.28);border-left:4px solid var(--mu);border-radius:11px;margin-bottom:10px;overflow:hidden;background:rgba(59,130,246,.09)}
+.sop-acc.lv-hi{border-left-color:var(--re)}
+.sop-acc.lv-go{border-left-color:var(--go)}
+.sop-acc.lv-mu{border-left-color:var(--mu)}
+/* ⚠ chỉ đổi 3 cạnh: dùng border-color sẽ ghi đè luôn viền TRÁI đang tô theo mức độ */
+.sop-acc.open{border-top-color:rgba(124,58,237,.55);border-right-color:rgba(124,58,237,.55);border-bottom-color:rgba(124,58,237,.55);background:rgba(59,130,246,.15)}
+.sop-acch{display:flex;align-items:center;gap:11px;padding:9px 14px;cursor:pointer;transition:.15s;flex-wrap:wrap}
+.sop-acch:hover{background:rgba(59,130,246,.12)}
+.sop-acc.open .sop-acch{background:rgba(124,58,237,.18);border-bottom:1px solid var(--border)}
+.sop-accn{width:22px;height:22px;flex:none;border-radius:50%;background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;font-size:.62rem;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(124,58,237,.35)}
+.sop-accth{width:34px;height:34px;flex:none;border-radius:8px;background:var(--card2);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.sop-accth:empty{display:none}
+.sop-accth img{width:100%;height:100%;object-fit:contain}
+.sop-acci{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.sop-car{color:var(--mu2);font-size:.78rem;width:12px;flex:none;text-align:right}
+.sop-acc.open .sop-car{color:#fff}
+.sop-acct{font-size:.86rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--tx)}
+.sop-acc.open .sop-acct{color:#fff}
+.sop-accm{font-size:.6rem;color:var(--mu2)}
 .sop-accb{display:flex;gap:4px;opacity:0;transition:.15s;flex:none}
 .sop-acch:hover .sop-accb,.sop-acc.open .sop-accb{opacity:1}
+/* hàng nút mở/đóng tất cả + bộ đếm */
+.sop-accbar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sop-accnt{margin-left:auto;font-size:.62rem;color:var(--mu2)}
 .sop-accb2{padding:14px}
 .sop-gcard{display:grid;grid-template-columns:1.15fr 1fr;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:11px;padding:14px;margin-bottom:12px}
 .sop-gthumb{border:1px solid var(--border2);border-radius:9px;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--mu);font-size:.68rem;background:var(--bg);padding:10px}
@@ -706,6 +721,11 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-lvl.hi{background:rgba(239,68,68,.16);color:#fca5a5;border:1px solid rgba(239,68,68,.35)}
 .sop-lvl.go{background:rgba(245,158,11,.15);color:#fcd34d;border:1px solid rgba(245,158,11,.34)}
 .sop-lvl.mu{background:rgba(148,163,184,.13);color:var(--mu2);border:1px solid var(--border2)}
+/* biến thể TÔ NỀN ĐẶC — dùng trên thanh trò chơi cho nổi (nền xanh nhạt nên chip mờ sẽ chìm) */
+.sop-lvl.solid{margin-left:0;flex:none}
+.sop-lvl.solid.hi{background:var(--re);color:#4a0d0d;border-color:var(--re)}
+.sop-lvl.solid.go{background:var(--go);color:#412402;border-color:var(--go)}
+.sop-lvl.solid.mu{background:#94a3b8;color:#1e293b;border-color:#94a3b8}
 /* Hộp thoại chung T4 (thay confirm/prompt trình duyệt) */
 .sop-dlg{max-width:400px;padding:20px 22px}
 .sop-dlg-t{font-size:.92rem;font-weight:800;margin-bottom:8px}
@@ -2290,6 +2310,7 @@ const I18N={
   "Cách hội viên lạm dụng":"How members abuse it",
   "Mã game":"Game code",
   "Tên game":"Game name",
+  "Mở tất cả":"Expand all","Đóng tất cả":"Collapse all",
   "Trạng thái":"Status",
   "Áp dụng từ":"Effective from",
   "Ghi chú":"Note","Chưa có ghi chú.":"No note yet.","＋ Thêm":"＋ Add","✎ Sửa":"✎ Edit",
@@ -2411,6 +2432,7 @@ const I18N={
     [/^Bước (\d+) —$/,"Step $1 —"],
     [/^1 bước · cập nhật (.+)$/,"1 step · updated $1"],
     [/^(\d+) bước · cập nhật (.+)$/,"$1 steps · updated $2"],
+    [/^(\d+) trò chơi · (\d+) đang mở$/,"$1 games · $2 open"],
     [/^1 trò chơi · cập nhật (.+)$/,"1 game · updated $1"],
     [/^(\d+) trò chơi · cập nhật (.+)$/,"$1 games · updated $2"],
     [/^1 khối nội dung · cập nhật (.+)$/,"1 content block · updated $1"],
@@ -8605,7 +8627,7 @@ const SOP={
   ],
   LEVELS:{hi:'Nguy hiểm cao',go:'Trung bình',mu:'Theo dõi'},
   GLEVELS:{hi:'Cấm cược',go:'Hạn chế',mu:'Theo dõi'},
-  view:'qt', idx:null, cur:null, curId:'', curSub:0, edit:false,
+  view:'qt', idx:null, cur:null, curId:'', curSub:0, accOpen:{}, edit:false,
   booted:false, _urls:{}, _imgTarget:null, _blkEdit:null,
 
   // Sửa nội dung: ADMIN + Tổ Trưởng (chốt 19/08/2026). Nhân viên chỉ xem.
@@ -8655,7 +8677,7 @@ const SOP={
     if(g)await SOP.open(g.items[0].id);else{SOP.cur=null;SOP.curId='';SOP.render();}
   },
   async open(id){
-    SOP.curId=id;SOP.curSub=0;
+    SOP.curId=id;SOP.curSub=0;SOP.accOpen={0:true}; // mở sẵn trò chơi đầu, các trò khác bấm thêm
     try{SOP.cur=await SB.loadReport('sop_item',id);}catch(e){SOP.cur=null;console.error(e);}
     if(!SOP.cur){
       const f=SOP.findItem(id);
@@ -8804,21 +8826,32 @@ const SOP={
   accHtml(ed){
     const ss=SOP.cur.subs;
     if(!ss.length)return `<div class="sop-empty big">Sảnh này chưa có trò chơi nào.${ed?' Bấm ＋ Trò chơi ở trên.':''}</div>`;
-    let h='';
+    const nOpen=ss.reduce((n,s,i)=>n+(SOP.accOpen[i]?1:0),0);
+    // Hàng điều khiển: mở/đóng hàng loạt + bộ đếm (sảnh nhiều game thì cuộn mỏi tay)
+    let h=`<div class="sop-accbar">
+      <button class="abtn abtn-ghost abtn-sm" onclick="SOP.accAll(1)">Mở tất cả</button>
+      <button class="abtn abtn-ghost abtn-sm" onclick="SOP.accAll(0)">Đóng tất cả</button>
+      <span class="sop-accnt">${ss.length} trò chơi · ${nOpen} đang mở</span></div>`;
     ss.forEach((s,i)=>{
-      const open=i===SOP.curSub;
-      const L=SOP.GLEVELS;
-      h+=`<div class="sop-acc${open?' open':''}">
+      // MỞ NHIỀU trò chơi cùng lúc: trạng thái mở nằm ở SOP.accOpen (chỉ số -> true),
+      // KHÔNG dùng SOP.curSub (một-lúc-một-cái) như thanh bước của tab qt.
+      const open=!!SOP.accOpen[i];
+      const L=SOP.GLEVELS,th=SOP.imgSrc({u:s.thumb,en_u:s.en_thumb});
+      h+=`<div class="sop-acc lv-${hesc(s.level||'mu')}${open?' open':''}">
         <div class="sop-acch" onclick="SOP.goAcc(${i},event)">
-          <span class="sop-car">${open?'▾':'▸'}</span>
-          <span class="sop-acct" data-noi18n>${hesc(SOP.tx(s,'name'))}</span>
-          ${s.level?`<span class="sop-lvl ${hesc(s.level)}">${hesc((L[s.level]||'').toUpperCase())}</span>`:''}
-          <span class="sop-accm">${hesc(s.code||'')}${s.code?' · ':''}${SOP.countImgs(s.blocks)} ảnh</span>
+          <span class="sop-accn">${i+1}</span>
+          <span class="sop-accth">${th?`<img data-p="${hesc(th)}" alt="">`:''}</span>
+          <span class="sop-acci">
+            <span class="sop-acct" data-noi18n>${hesc(SOP.tx(s,'name'))}</span>
+            <span class="sop-accm"><span data-noi18n>${hesc(s.code||'')}</span>${s.code?' · ':''}${SOP.countImgs(s.blocks)} ảnh</span>
+          </span>
+          ${s.level?`<span class="sop-lvl solid ${hesc(s.level)}">${hesc((L[s.level]||'').toUpperCase())}</span>`:''}
           ${ed?`<span class="sop-accb">
             <button class="abtn abtn-ghost abtn-sm" onclick="SOP.renameSub(${i})">✎</button>
             <button class="abtn abtn-ghost abtn-sm" onclick="SOP.moveSub(${i},-1)">↑</button>
             <button class="abtn abtn-ghost abtn-sm" onclick="SOP.moveSub(${i},1)">↓</button>
             <button class="abtn abtn-danger abtn-sm" onclick="SOP.delSub(${i})">🗑</button></span>`:''}
+          <span class="sop-car">${open?'▾':'▸'}</span>
         </div>`;
       if(open)h+=`<div class="sop-accb2">${SOP.gameCardHtml(s,i,ed)}${SOP.blocksHtml(s.blocks,ed,'s'+i)}</div>`;
       h+='</div>';
@@ -8873,7 +8906,13 @@ const SOP={
   },
   goAcc(i,e){
     if(e&&e.target.closest('button'))return;
-    SOP.curSub=(SOP.curSub===i)?-1:i;SOP.renderPane();SOP.hydrateImgs();
+    if(SOP.accOpen[i])delete SOP.accOpen[i];else SOP.accOpen[i]=true;
+    SOP.curSub=i;SOP.renderPane();SOP.hydrateImgs();
+  },
+  accAll(open){
+    SOP.accOpen={};
+    if(open)(SOP.cur&&SOP.cur.subs||[]).forEach((s,i)=>{SOP.accOpen[i]=true;});
+    SOP.renderPane();SOP.hydrateImgs();
   },
   countImgs(bs){return (bs||[]).reduce((n,b)=>n+(b.t==='img'?(b.imgs||[]).length:0),0);},
 
@@ -9153,10 +9192,11 @@ const SOP={
     const s={id:SOP.uid('s'),name:n,blocks:[]};
     if(d.subs==='acc'){
       s.level=(await SOP.askLevel())||'mu';
-      s.code=(await SOP.promptBox('Mã game','','bỏ trống nếu không có'))||'';
+      s.code=(await SOP.promptBox('Tên game','','bỏ trống nếu không có'))||'';
       s.from=(await SOP.promptBox('Áp dụng từ ngày','','vd 01/08/2026'))||'';
     }
     SOP.cur.subs.push(s);SOP.curSub=SOP.cur.subs.length-1;
+    if(SOP.tabDef().subs==='acc')SOP.accOpen[SOP.curSub]=true; // game mới mở sẵn để soạn
     SOP.touch();await SOP.saveItem();SOP.syncCount();SOP.render();
   },
   async renameSub(i){
@@ -9176,12 +9216,17 @@ const SOP={
     const ss=SOP.cur.subs,j=i+d;if(j<0||j>=ss.length)return;
     [ss[i],ss[j]]=[ss[j],ss[i]];
     if(SOP.curSub===i)SOP.curSub=j;else if(SOP.curSub===j)SOP.curSub=i;
+    const oi=!!SOP.accOpen[i],oj=!!SOP.accOpen[j]; // trạng thái mở đi theo trò chơi khi đổi chỗ
+    if(oj)SOP.accOpen[i]=true;else delete SOP.accOpen[i];
+    if(oi)SOP.accOpen[j]=true;else delete SOP.accOpen[j];
     await SOP.saveItem();SOP.render();
   },
   async delSub(i){
     const s=SOP.cur.subs[i];if(!s)return;
     if(!await SOP.confirmBox(`Xoá "${s.name}"?`,{title:'Xoá '+SOP.tabDef().subName.toLowerCase()}))return;
     SOP.cur.subs.splice(i,1);
+    const nx={};Object.keys(SOP.accOpen).forEach(k=>{const n=+k;if(n<i)nx[n]=true;else if(n>i)nx[n-1]=true;});
+    SOP.accOpen=nx; // dồn chỉ số sau khi xoá, không thì mở nhầm trò chơi khác
     if(SOP.curSub>=SOP.cur.subs.length)SOP.curSub=Math.max(0,SOP.cur.subs.length-1);
     SOP.touch();await SOP.saveItem();SOP.syncCount();SOP.render();
   },

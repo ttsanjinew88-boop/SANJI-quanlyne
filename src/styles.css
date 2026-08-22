@@ -592,17 +592,32 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-subh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .sop-subt{font-size:.86rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--bl2)}
 .sop-nav{display:flex;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
-.sop-acc{border:1px solid var(--border);border-radius:11px;margin-bottom:10px;overflow:hidden;background:var(--card2)}
-.sop-acc.open{border-color:rgba(124,58,237,.4)}
-.sop-acch{display:flex;align-items:center;gap:9px;padding:11px 14px;cursor:pointer;transition:.15s;flex-wrap:wrap}
-.sop-acch:hover{background:rgba(124,58,237,.07)}
-.sop-acc.open .sop-acch{background:rgba(124,58,237,.12);border-bottom:1px solid var(--border)}
-.sop-car{color:var(--mu);font-size:.7rem;width:12px;flex:none}
-.sop-acc.open .sop-car{color:var(--pu2)}
-.sop-acct{font-size:.82rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;flex:none;color:var(--bl2)}
-.sop-accm{font-size:.6rem;color:var(--mu);flex:1}
+/* Thanh trò chơi (tab game) — nền XANH NHẠT, viền trái tô theo mức độ, số thứ tự nền galaxy.
+   Mở NHIỀU trò cùng lúc: trạng thái ở SOP.accOpen, .open chỉ là lớp hiển thị. */
+.sop-acc{border:1px solid rgba(59,130,246,.28);border-left:4px solid var(--mu);border-radius:11px;margin-bottom:10px;overflow:hidden;background:rgba(59,130,246,.09)}
+.sop-acc.lv-hi{border-left-color:var(--re)}
+.sop-acc.lv-go{border-left-color:var(--go)}
+.sop-acc.lv-mu{border-left-color:var(--mu)}
+/* ⚠ chỉ đổi 3 cạnh: dùng border-color sẽ ghi đè luôn viền TRÁI đang tô theo mức độ */
+.sop-acc.open{border-top-color:rgba(124,58,237,.55);border-right-color:rgba(124,58,237,.55);border-bottom-color:rgba(124,58,237,.55);background:rgba(59,130,246,.15)}
+.sop-acch{display:flex;align-items:center;gap:11px;padding:9px 14px;cursor:pointer;transition:.15s;flex-wrap:wrap}
+.sop-acch:hover{background:rgba(59,130,246,.12)}
+.sop-acc.open .sop-acch{background:rgba(124,58,237,.18);border-bottom:1px solid var(--border)}
+.sop-accn{width:22px;height:22px;flex:none;border-radius:50%;background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;font-size:.62rem;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(124,58,237,.35)}
+.sop-accth{width:34px;height:34px;flex:none;border-radius:8px;background:var(--card2);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.sop-accth:empty{display:none}
+.sop-accth img{width:100%;height:100%;object-fit:contain}
+.sop-acci{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.sop-car{color:var(--mu2);font-size:.78rem;width:12px;flex:none;text-align:right}
+.sop-acc.open .sop-car{color:#fff}
+.sop-acct{font-size:.86rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--tx)}
+.sop-acc.open .sop-acct{color:#fff}
+.sop-accm{font-size:.6rem;color:var(--mu2)}
 .sop-accb{display:flex;gap:4px;opacity:0;transition:.15s;flex:none}
 .sop-acch:hover .sop-accb,.sop-acc.open .sop-accb{opacity:1}
+/* hàng nút mở/đóng tất cả + bộ đếm */
+.sop-accbar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sop-accnt{margin-left:auto;font-size:.62rem;color:var(--mu2)}
 .sop-accb2{padding:14px}
 .sop-gcard{display:grid;grid-template-columns:1.15fr 1fr;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:11px;padding:14px;margin-bottom:12px}
 .sop-gthumb{border:1px solid var(--border2);border-radius:9px;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--mu);font-size:.68rem;background:var(--bg);padding:10px}
@@ -692,6 +707,11 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-lvl.hi{background:rgba(239,68,68,.16);color:#fca5a5;border:1px solid rgba(239,68,68,.35)}
 .sop-lvl.go{background:rgba(245,158,11,.15);color:#fcd34d;border:1px solid rgba(245,158,11,.34)}
 .sop-lvl.mu{background:rgba(148,163,184,.13);color:var(--mu2);border:1px solid var(--border2)}
+/* biến thể TÔ NỀN ĐẶC — dùng trên thanh trò chơi cho nổi (nền xanh nhạt nên chip mờ sẽ chìm) */
+.sop-lvl.solid{margin-left:0;flex:none}
+.sop-lvl.solid.hi{background:var(--re);color:#4a0d0d;border-color:var(--re)}
+.sop-lvl.solid.go{background:var(--go);color:#412402;border-color:var(--go)}
+.sop-lvl.solid.mu{background:#94a3b8;color:#1e293b;border-color:#94a3b8}
 /* Hộp thoại chung T4 (thay confirm/prompt trình duyệt) */
 .sop-dlg{max-width:400px;padding:20px 22px}
 .sop-dlg-t{font-size:.92rem;font-weight:800;margin-bottom:8px}
