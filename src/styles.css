@@ -676,9 +676,22 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-jump{animation:sopJump 1.1s ease-out}
 .sop-featb{margin-left:auto;display:flex;gap:4px;opacity:0;transition:.15s}
 .sop-feat:hover .sop-featb{opacity:1}
-.sop-tbl{width:100%;border-collapse:collapse;font-size:.72rem}
-.sop-tbl th,.sop-tbl td{border:1px solid var(--border2);padding:7px 10px;text-align:center}
-.sop-tbl th{background:var(--card);color:var(--mu2);font-weight:800;font-size:.62rem;letter-spacing:.05em;text-transform:uppercase}
+/* table-layout:fixed để độ rộng cột (colgroup, đơn vị %) được tôn trọng; chữ dài tự xuống dòng */
+.sop-tbl{width:100%;border-collapse:collapse;font-size:.72rem;table-layout:fixed}
+.sop-tbl th,.sop-tbl td{border:1px solid var(--border2);padding:7px 10px;text-align:center;word-wrap:break-word;overflow-wrap:anywhere;vertical-align:top}
+.sop-tbl th{background:var(--card);color:var(--mu2);font-weight:800;font-size:.62rem;letter-spacing:.05em;text-transform:uppercase;position:relative}
+.sop-tbl .al-l{text-align:left}.sop-tbl .al-c{text-align:center}.sop-tbl .al-r{text-align:right}
+/* màu nền ô — nền mờ để chữ sáng vẫn đọc được trên theme tối */
+.sop-tbl .bg-go{background:rgba(245,158,11,.20)}
+.sop-tbl .bg-re{background:rgba(239,68,68,.20)}
+.sop-tbl .bg-gr{background:rgba(16,185,129,.18)}
+.sop-tbl .bg-bl{background:rgba(59,130,246,.20)}
+.sop-tbl .bg-pu{background:rgba(124,58,237,.22)}
+/* tay kéo viền cột (chỉ hàng tiêu đề, ở chế độ biên tập) */
+.sop-cres{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:2}
+.sop-cres:hover{background:rgba(124,58,237,.55)}
+.sop-tbl.paint th,.sop-tbl.paint td{cursor:pointer}
+.sop-tbl.paint th:hover,.sop-tbl.paint td:hover{outline:2px solid var(--go);outline-offset:-2px}
 .sop-tbl.edit th,.sop-tbl.edit td{cursor:text;min-width:70px}
 .sop-tbl.edit th:focus,.sop-tbl.edit td:focus{outline:2px solid var(--pu);outline-offset:-2px;background:rgba(124,58,237,.10)}
 .sop-tbl.edit td:empty::after{content:"—";color:var(--mu)}

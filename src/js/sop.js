@@ -385,14 +385,16 @@ const SOP={
       const rows=b.rows||[];
       return `<div class="sop-blk">${tools}
         ${b.h?`<div class="sop-bh" data-noi18n>${hesc(SOP.tx(b,'h'))}</div>`:''}
-        <div style="overflow-x:auto"><table class="sop-tbl${ed?' edit':''}" data-noi18n>${rows.map((r,ri)=>`<tr>${r.map((c,ci)=>{
-          const a=ed?` contenteditable="true" spellcheck="false" onblur="SOP.tblCell('${scope}',${i},${ri},${ci},this)"`:'';
-          return ri?`<td${a}>${hesc(c)}</td>`:`<th${a}>${hesc(c)}</th>`;}).join('')}</tr>`).join('')}</table></div>
-        ${ed?`<div class="sop-imgctl"><span>Bấm thẳng vào ô để sửa.</span>
+        ${SOP.tableHtml(b,i,ed,scope)}
+        ${ed?`<div class="sop-imgctl">
+          <span>${SOP.tblPainting(scope,i)?'Bấm vào ô để chọn màu nền.':'Bấm thẳng vào ô để sửa · kéo viền cột để chỉnh rộng.'}</span>
           <button class="abtn abtn-ghost abtn-sm" onclick="SOP.tblRow('${scope}',${i},1)">＋ Dòng</button>
           <button class="abtn abtn-ghost abtn-sm" onclick="SOP.tblRow('${scope}',${i},-1)">－ Dòng</button>
           <button class="abtn abtn-ghost abtn-sm" onclick="SOP.tblCol('${scope}',${i},1)">＋ Cột</button>
-          <button class="abtn abtn-ghost abtn-sm" onclick="SOP.tblCol('${scope}',${i},-1)">－ Cột</button></div>`:''}</div>`;
+          <button class="abtn abtn-ghost abtn-sm" onclick="SOP.tblCol('${scope}',${i},-1)">－ Cột</button>
+          <button class="abtn abtn-ghost abtn-sm" onclick="SOP.tblAlign('${scope}',${i})">⇤⇥ Căn chữ</button>
+          <button class="abtn ${SOP.tblPainting(scope,i)?'abtn-ok':'abtn-ghost'} abtn-sm" onclick="SOP.tblPaintMode('${scope}',${i})">${SOP.tblPainting(scope,i)?'Xong tô màu':'🎨 Tô màu ô'}</button>
+          </div>`:''}</div>`;
     }
     // note: info / warn / ban
     const kind=b.t==='ban'?'ban':(b.t==='warn'?'warn':'info');
@@ -707,6 +709,72 @@ const SOP={
     }
     SOP.touch();await SOP.saveItem();SOP.render();
   },
+  // ---------- BẢNG: rộng cột · căn chữ · tô màu ô ----------
+  // Dữ liệu thêm vào khối bảng: b.w=[% mỗi cột] · b.al=['l'|'c'|'r' mỗi cột] · b.bg={"ri|ci":màu}
+  TBL_BG:{go:'Vàng',re:'Đỏ',gr:'Xanh lá',bl:'Xanh dương',pu:'Tím'},
+  tblCols(b){return ((b.rows||[])[0]||[]).length;},
+  tblW(b){const n=SOP.tblCols(b);
+    if(!Array.isArray(b.w)||b.w.length!==n)return new Array(n).fill(100/n);
+    return b.w;},
+  tblAlOf(b,ci){const a=Array.isArray(b.al)?b.al[ci]:null;return a||'c';},
+  tblPainting(scope,i){return !!(SOP._paint&&SOP._paint.scope===scope&&SOP._paint.i===i);},
+  tableHtml(b,i,ed,scope){
+    const rows=b.rows||[],w=SOP.tblW(b),paint=ed&&SOP.tblPainting(scope,i),nc=SOP.tblCols(b);
+    const cg=`<colgroup>${w.map(x=>`<col style="width:${(+x||0).toFixed(2)}%">`).join('')}</colgroup>`;
+    const body=rows.map((r,ri)=>`<tr>${r.map((c,ci)=>{
+      const cls=`al-${SOP.tblAlOf(b,ci)}${(b.bg&&b.bg[ri+'|'+ci])?' bg-'+b.bg[ri+'|'+ci]:''}`;
+      // đang tô màu thì KHÔNG cho sửa chữ (tránh con trỏ nhảy vào ô lúc bấm chọn màu)
+      const a=paint?` onclick="SOP.tblPaintCell('${scope}',${i},${ri},${ci})"`
+        :(ed?` contenteditable="true" spellcheck="false" onblur="SOP.tblCell('${scope}',${i},${ri},${ci},this)"`:'');
+      const grip=(ed&&!paint&&ri===0&&ci<nc-1)?`<span class="sop-cres" onmousedown="SOP.tblResize(event,'${scope}',${i},${ci})"></span>`:'';
+      return ri?`<td class="${cls}"${a}>${hesc(c)}</td>`:`<th class="${cls}"${a}>${hesc(c)}${grip}</th>`;
+    }).join('')}</tr>`).join('');
+    return `<div style="overflow-x:auto"><table class="sop-tbl${ed?' edit':''}${paint?' paint':''}" data-noi18n>${cg}${body}</table></div>`;
+  },
+  // Kéo viền: lấy bớt/thêm cho cột kế bên nên tổng luôn = 100%
+  tblResize(e,scope,i,ci){
+    e.preventDefault();e.stopPropagation();
+    const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b)return;
+    const tbl=e.target.closest('table');if(!tbl)return;
+    const tw=tbl.getBoundingClientRect().width||1,w=SOP.tblW(b).slice(),x0=e.clientX,a0=w[ci],b0=w[ci+1];
+    const move=ev=>{
+      const d=(ev.clientX-x0)/tw*100;
+      const na=Math.max(6,Math.min(a0+b0-6,a0+d));
+      w[ci]=na;w[ci+1]=a0+b0-na;
+      const cols=tbl.querySelectorAll('col');
+      if(cols[ci])cols[ci].style.width=w[ci].toFixed(2)+'%';
+      if(cols[ci+1])cols[ci+1].style.width=w[ci+1].toFixed(2)+'%';
+    };
+    const up=async()=>{
+      document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',up);
+      b.w=w;SOP.touch();await SOP.saveItem();
+    };
+    document.addEventListener('mousemove',move);document.addEventListener('mouseup',up);
+  },
+  async tblAlign(scope,i){
+    const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b)return;
+    const nc=SOP.tblCols(b);
+    const ci=nc>1?await SOP.dlg({title:'Căn chữ cột nào?',options:Array.from({length:nc},(_,k)=>({label:'Cột '+(k+1),v:k}))}):0;
+    if(ci===null||ci===undefined)return;
+    const v=await SOP.dlg({title:'Căn chữ',options:[{label:'Căn trái',v:'l'},{label:'Căn giữa',v:'c'},{label:'Căn phải',v:'r'}]});
+    if(!v)return;
+    if(!Array.isArray(b.al)||b.al.length!==nc)b.al=new Array(nc).fill('c');
+    b.al[ci]=v;SOP.touch();await SOP.saveItem();SOP.render();
+  },
+  tblPaintMode(scope,i){
+    SOP._paint=SOP.tblPainting(scope,i)?null:{scope,i};
+    SOP.renderPane();SOP.hydrateImgs();
+  },
+  async tblPaintCell(scope,i,ri,ci){
+    const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b)return;
+    const opts=Object.keys(SOP.TBL_BG).map(k=>({label:SOP.TBL_BG[k],v:k}));
+    opts.push({label:'Xoá màu',v:''});
+    const v=await SOP.dlg({title:'Màu nền ô',options:opts});
+    if(v===null||v===undefined)return;
+    b.bg=b.bg||{};
+    if(v)b.bg[ri+'|'+ci]=v;else delete b.bg[ri+'|'+ci];
+    SOP.touch();await SOP.saveItem();SOP.render();
+  },
   // ---------- BẢNG: sửa thẳng trên ô ----------
   async tblCell(scope,i,r,c,el){
     const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b||!b.rows[r])return;
@@ -719,13 +787,26 @@ const SOP={
   async tblRow(scope,i,d){
     const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b)return;
     if(d>0)b.rows.push(new Array(b.rows[0].length).fill(''));
-    else if(b.rows.length>2)b.rows.pop();
+    else if(b.rows.length>2){
+      const ri=b.rows.length-1;b.rows.pop();
+      if(b.bg)Object.keys(b.bg).forEach(k=>{if(+k.split('|')[0]===ri)delete b.bg[k];});
+    }
     await SOP.saveItem();SOP.render();
   },
   async tblCol(scope,i,d){
     const bs=SOP.blocksOf(scope),b=bs&&bs[i];if(!b)return;
-    if(d>0)b.rows.forEach((r,ri)=>r.push(ri?'':'Cột '+(r.length+1)));
-    else if(b.rows[0].length>1)b.rows.forEach(r=>r.pop());
+    const w=SOP.tblW(b).slice(),al=Array.isArray(b.al)?b.al.slice():new Array(SOP.tblCols(b)).fill('c');
+    if(d>0){
+      b.rows.forEach((r,ri)=>r.push(ri?'':'Cột '+(r.length+1)));
+      const share=100/b.rows[0].length; // cột mới lấy phần đều, các cột cũ co lại theo tỉ lệ
+      b.w=w.map(x=>x*(100-share)/100).concat([share]);al.push('c');
+    }else if(b.rows[0].length>1){
+      const ci=b.rows[0].length-1;b.rows.forEach(r=>r.pop());
+      const rest=w.slice(0,ci),sum=rest.reduce((a,x)=>a+x,0)||1;
+      b.w=rest.map(x=>x/sum*100);al.pop();
+      if(b.bg)Object.keys(b.bg).forEach(k=>{if(+k.split('|')[1]===ci)delete b.bg[k];});
+    }
+    b.al=al;
     await SOP.saveItem();SOP.render();
   },
   async moveBlock(scope,i,d){
