@@ -611,6 +611,8 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-grow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed var(--border)}
 /* Nhãn Tên game/Trạng thái/Áp dụng từ: CÙNG cỡ + form chữ với giá trị bên phải, chỉ khác màu (trắng) */
 .sop-grow span{font-size:.73rem;font-weight:700;color:var(--tx)}
+/* dấu ":" thêm bằng CSS để KHÔNG đụng khoá từ điển i18n ("Tên game", "Trạng thái"…) */
+.sop-grow span::after{content:":"}
 .sop-grow b{font-size:.73rem;font-weight:700}
 .sop-grow b.go{color:var(--go)}
 /* Ghi chú của trò chơi — lấp khoảng trống dưới ô thông tin */
