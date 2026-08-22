@@ -692,7 +692,9 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-feat:hover .sop-featb{opacity:1}
 /* table-layout:fixed để độ rộng cột (colgroup, đơn vị %) được tôn trọng; chữ dài tự xuống dòng */
 .sop-tbl{width:100%;border-collapse:collapse;font-size:.72rem;table-layout:fixed}
-.sop-tbl th,.sop-tbl td{border:1px solid var(--border2);padding:7px 10px;text-align:center;word-wrap:break-word;overflow-wrap:anywhere;vertical-align:top}
+/* viền sáng + dày hơn cho rõ lằn ranh ô; chữ luôn canh GIỮA theo chiều dọc */
+/* ⚠ border-collapse làm tròn về pixel thiết bị: 1.5px sẽ ra 1px, muốn dày hơn phải để 2px */
+.sop-tbl th,.sop-tbl td{border:2px solid rgba(148,163,184,.48);padding:8px 10px;text-align:center;word-wrap:break-word;overflow-wrap:anywhere;vertical-align:middle}
 .sop-tbl th{background:var(--card);color:var(--mu2);font-weight:800;font-size:.62rem;letter-spacing:.05em;text-transform:uppercase;position:relative}
 .sop-tbl .al-l{text-align:left}.sop-tbl .al-c{text-align:center}.sop-tbl .al-r{text-align:right}
 /* màu nền ô — nền mờ để chữ sáng vẫn đọc được trên theme tối */
@@ -708,7 +710,6 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-tbl.paint th:hover,.sop-tbl.paint td:hover{outline:2px solid var(--go);outline-offset:-2px}
 /* ô đầu đã chọn trong lúc gộp */
 .sop-tbl .sel{outline:2px solid var(--pu2);outline-offset:-2px;background:rgba(124,58,237,.22)}
-.sop-tbl th[rowspan],.sop-tbl td[rowspan]{vertical-align:middle}
 .sop-tbl.edit th,.sop-tbl.edit td{cursor:text;min-width:70px}
 .sop-tbl.edit th:focus,.sop-tbl.edit td:focus{outline:2px solid var(--pu);outline-offset:-2px;background:rgba(124,58,237,.10)}
 .sop-tbl.edit td:empty::after{content:"—";color:var(--mu)}
