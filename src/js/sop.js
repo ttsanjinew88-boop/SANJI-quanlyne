@@ -387,13 +387,16 @@ const SOP={
         ${b.h?`<div class="sop-bh" data-noi18n>${hesc(SOP.tx(b,'h'))}</div>`:''}
         ${SOP.tableHtml(b,i,ed,scope)}
         ${ed?`<div class="sop-imgctl">
-          <span>${SOP.tblPainting(scope,i)?'Bấm vào ô để chọn màu nền.':'Bấm thẳng vào ô để sửa · kéo viền cột để chỉnh rộng.'}</span>
+          <span>${SOP.tblPainting(scope,i)?'Bấm vào ô để chọn màu nền.'
+            :(SOP.tblMerging(scope,i)?'Bấm ô đầu rồi bấm ô cuối để gộp.'
+            :'Bấm thẳng vào ô để sửa · kéo viền cột để chỉnh rộng.')}</span>
           <button class="abtn abtn-ghost abtn-sm" onclick="SOP.tblRow('${scope}',${i},1)">＋ Dòng</button>
           <button class="abtn abtn-ghost abtn-sm" onclick="SOP.tblRow('${scope}',${i},-1)">－ Dòng</button>
           <button class="abtn abtn-ghost abtn-sm" onclick="SOP.tblCol('${scope}',${i},1)">＋ Cột</button>
           <button class="abtn abtn-ghost abtn-sm" onclick="SOP.tblCol('${scope}',${i},-1)">－ Cột</button>
           <button class="abtn abtn-ghost abtn-sm" onclick="SOP.tblAlign('${scope}',${i})">⇤⇥ Căn chữ</button>
           <button class="abtn ${SOP.tblPainting(scope,i)?'abtn-ok':'abtn-ghost'} abtn-sm" onclick="SOP.tblPaintMode('${scope}',${i})">${SOP.tblPainting(scope,i)?'Xong tô màu':'🎨 Tô màu ô'}</button>
+          <button class="abtn ${SOP.tblMerging(scope,i)?'abtn-ok':'abtn-ghost'} abtn-sm" onclick="SOP.tblMergeMode('${scope}',${i})">${SOP.tblMerging(scope,i)?'Xong gộp ô':'⿴ Gộp ô'}</button>
           </div>`:''}</div>`;
     }
     // note: info / warn / ban
@@ -718,18 +721,67 @@ const SOP={
     return b.w;},
   tblAlOf(b,ci){const a=Array.isArray(b.al)?b.al[ci]:null;return a||'c';},
   tblPainting(scope,i){return !!(SOP._paint&&SOP._paint.scope===scope&&SOP._paint.i===i);},
+  tblMerging(scope,i){return !!(SOP._mg&&SOP._mg.scope===scope&&SOP._mg.i===i);},
+  // Ô bị NUỐT bởi một ô gộp -> không render (dữ liệu chữ vẫn giữ, bỏ gộp là hiện lại)
+  tblSkip(b){
+    const sk={};
+    Object.keys(b.mg||{}).forEach(k=>{
+      const p=k.split('|'),r=+p[0],c=+p[1],m=b.mg[k];
+      for(let a=0;a<m[0];a++)for(let d=0;d<m[1];d++)if(a||d)sk[(r+a)+'|'+(c+d)]=1;
+    });
+    return sk;
+  },
   tableHtml(b,i,ed,scope){
-    const rows=b.rows||[],w=SOP.tblW(b),paint=ed&&SOP.tblPainting(scope,i),nc=SOP.tblCols(b);
+    const rows=b.rows||[],w=SOP.tblW(b),nc=SOP.tblCols(b);
+    const paint=ed&&SOP.tblPainting(scope,i),mgm=ed&&SOP.tblMerging(scope,i),sk=SOP.tblSkip(b);
+    const pk=mgm&&SOP._mg.r!==null?SOP._mg.r+'|'+SOP._mg.c:'';
     const cg=`<colgroup>${w.map(x=>`<col style="width:${(+x||0).toFixed(2)}%">`).join('')}</colgroup>`;
     const body=rows.map((r,ri)=>`<tr>${r.map((c,ci)=>{
-      const cls=`al-${SOP.tblAlOf(b,ci)}${(b.bg&&b.bg[ri+'|'+ci])?' bg-'+b.bg[ri+'|'+ci]:''}`;
-      // đang tô màu thì KHÔNG cho sửa chữ (tránh con trỏ nhảy vào ô lúc bấm chọn màu)
+      const key=ri+'|'+ci;
+      if(sk[key])return '';
+      const m=(b.mg||{})[key];
+      const span=m?`${m[0]>1?` rowspan="${m[0]}"`:''}${m[1]>1?` colspan="${m[1]}"`:''}`:'';
+      const cls=`al-${SOP.tblAlOf(b,ci)}${(b.bg&&b.bg[key])?' bg-'+b.bg[key]:''}${pk===key?' sel':''}`;
+      // đang tô màu / gộp ô thì KHÔNG cho sửa chữ (tránh con trỏ nhảy vào ô lúc bấm chọn)
       const a=paint?` onclick="SOP.tblPaintCell('${scope}',${i},${ri},${ci})"`
-        :(ed?` contenteditable="true" spellcheck="false" onblur="SOP.tblCell('${scope}',${i},${ri},${ci},this)"`:'');
-      const grip=(ed&&!paint&&ri===0&&ci<nc-1)?`<span class="sop-cres" onmousedown="SOP.tblResize(event,'${scope}',${i},${ci})"></span>`:'';
-      return ri?`<td class="${cls}"${a}>${hesc(c)}</td>`:`<th class="${cls}"${a}>${hesc(c)}${grip}</th>`;
+        :(mgm?` onclick="SOP.tblMergePick('${scope}',${i},${ri},${ci})"`
+        :(ed?` contenteditable="true" spellcheck="false" onblur="SOP.tblCell('${scope}',${i},${ri},${ci},this)"`:''));
+      const grip=(ed&&!paint&&!mgm&&ri===0&&ci<nc-1)?`<span class="sop-cres" onmousedown="SOP.tblResize(event,'${scope}',${i},${ci})"></span>`:'';
+      return ri?`<td class="${cls}"${span}${a}>${hesc(c)}</td>`:`<th class="${cls}"${span}${a}>${hesc(c)}${grip}</th>`;
     }).join('')}</tr>`).join('');
-    return `<div style="overflow-x:auto"><table class="sop-tbl${ed?' edit':''}${paint?' paint':''}" data-noi18n>${cg}${body}</table></div>`;
+    return `<div style="overflow-x:auto"><table class="sop-tbl${ed?' edit':''}${(paint||mgm)?' paint':''}" data-noi18n>${cg}${body}</table></div>`;
+  },
+  tblMergeMode(scope,i){
+    SOP._paint=null;
+    SOP._mg=SOP.tblMerging(scope,i)?null:{scope,i,r:null,c:null};
+    SOP.renderPane();SOP.hydrateImgs();
+  },
+  // Bấm ô ĐẦU rồi bấm ô CUỐI -> gộp cả vùng chữ nhật; bấm lại đúng ô đầu = bỏ chọn
+  async tblMergePick(scope,i,ri,ci){
+    const bs=SOP.blocksOf(scope),b=bs&&bs[i],st=SOP._mg;if(!b||!st)return;
+    if(st.r===null){
+      if((b.mg||{})[ri+'|'+ci]){
+        const v=await SOP.dlg({title:'Ô đã gộp',options:[{label:'Bỏ gộp ô này',v:'u'},{label:'Chọn làm ô đầu để gộp',v:'s'}]});
+        if(v==='u'){delete b.mg[ri+'|'+ci];SOP.touch();await SOP.saveItem();SOP.render();return;}
+        if(v!=='s')return;
+      }
+      st.r=ri;st.c=ci;SOP.renderPane();return;
+    }
+    const r1=Math.min(st.r,ri),r2=Math.max(st.r,ri),c1=Math.min(st.c,ci),c2=Math.max(st.c,ci);
+    st.r=null;st.c=null;
+    if(r1===r2&&c1===c2){SOP.renderPane();return;}
+    b.mg=b.mg||{};
+    // ô gộp cũ THÒ RA ngoài vùng chọn -> từ chối, không thì bảng vỡ khung
+    const bad=Object.keys(b.mg).some(k=>{
+      const p=k.split('|'),r=+p[0],c=+p[1],m=b.mg[k];
+      const inA=r>=r1&&r<=r2&&c>=c1&&c<=c2;
+      const over=r+m[0]-1>=r1&&r<=r2&&c+m[1]-1>=c1&&c<=c2;
+      return over&&(!inA||r+m[0]-1>r2||c+m[1]-1>c2);
+    });
+    if(bad){await SOP.dlg({title:'Không gộp được',msg:'Vùng chọn cắt ngang một ô đã gộp sẵn. Hãy bỏ gộp ô đó trước.',okText:'Đã hiểu'});SOP.renderPane();return;}
+    Object.keys(b.mg).forEach(k=>{const p=k.split('|'),r=+p[0],c=+p[1];if(r>=r1&&r<=r2&&c>=c1&&c<=c2)delete b.mg[k];});
+    b.mg[r1+'|'+c1]=[r2-r1+1,c2-c1+1];
+    SOP.touch();await SOP.saveItem();SOP.render();
   },
   // Kéo viền: lấy bớt/thêm cho cột kế bên nên tổng luôn = 100%
   tblResize(e,scope,i,ci){
@@ -762,6 +814,7 @@ const SOP={
     b.al[ci]=v;SOP.touch();await SOP.saveItem();SOP.render();
   },
   tblPaintMode(scope,i){
+    SOP._mg=null;
     SOP._paint=SOP.tblPainting(scope,i)?null:{scope,i};
     SOP.renderPane();SOP.hydrateImgs();
   },
@@ -790,6 +843,9 @@ const SOP={
     else if(b.rows.length>2){
       const ri=b.rows.length-1;b.rows.pop();
       if(b.bg)Object.keys(b.bg).forEach(k=>{if(+k.split('|')[0]===ri)delete b.bg[k];});
+      // ô gộp chạm tới dòng vừa xoá -> co lại / bỏ hẳn, không thì bảng lệch khung
+      if(b.mg)Object.keys(b.mg).forEach(k=>{const r=+k.split('|')[0],m=b.mg[k];
+        if(r===ri)delete b.mg[k];else if(r+m[0]-1>=ri){m[0]=ri-r;if(m[0]<2&&m[1]<2)delete b.mg[k];}});
     }
     await SOP.saveItem();SOP.render();
   },
@@ -805,6 +861,8 @@ const SOP={
       const rest=w.slice(0,ci),sum=rest.reduce((a,x)=>a+x,0)||1;
       b.w=rest.map(x=>x/sum*100);al.pop();
       if(b.bg)Object.keys(b.bg).forEach(k=>{if(+k.split('|')[1]===ci)delete b.bg[k];});
+      if(b.mg)Object.keys(b.mg).forEach(k=>{const c=+k.split('|')[1],m=b.mg[k];
+        if(c===ci)delete b.mg[k];else if(c+m[1]-1>=ci){m[1]=ci-c;if(m[0]<2&&m[1]<2)delete b.mg[k];}});
     }
     b.al=al;
     await SOP.saveItem();SOP.render();
