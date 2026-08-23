@@ -182,7 +182,8 @@ const SOP={
   // it.new  = do người soạn tích thẳng vào mục
   // it.hasNew = suy ra từ các bước/trò chơi bên trong (syncCount) -> cột chủ đề sáng đèn
   // luôn để cả 2 nơi cùng hiện một biểu tượng.
-  NEWCHIP:'<span class="sop-new">Mới</span>',
+  // Chữ "New" giữ nguyên ở cả 2 ngôn ngữ (data-noi18n) — 6 thẻ <i> là các ngôi sao lấp lánh.
+  NEWCHIP:'<span class="sop-new" data-noi18n><i></i><i></i><i></i><i></i><i></i><i></i>New</span>',
   isNew(it){return !!(it&&(it.new||it.hasNew));},
   async toggleNewItem(){
     if(!SOP.canEdit())return;

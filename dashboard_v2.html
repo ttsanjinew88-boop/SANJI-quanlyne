@@ -745,10 +745,25 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-lvl.solid.hi{background:var(--re);color:#4a0d0d;border-color:var(--re)}
 .sop-lvl.solid.go{background:var(--go);color:#412402;border-color:var(--go)}
 .sop-lvl.solid.mu{background:#94a3b8;color:#1e293b;border-color:#94a3b8}
-/* Dấu MỚI: tích ở mục (cột chủ đề) hoặc ở từng trò chơi/bước -> hiện cả 2 nơi */
-.sop-new{font-size:.6rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 9px;border-radius:20px;flex:none;background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.35)}
+/* Dấu NEW: tích ở mục (cột chủ đề) hoặc ở từng trò chơi/bước -> hiện cả 2 nơi.
+   Chữ "New" giữ nguyên ở CẢ VI lẫn EN (chip gắn data-noi18n).
+   Lấp lánh = 6 ngôi sao quanh viền, nháy lệch nhịp 0,19s (mật độ "cấp 2 — vừa", chốt 23/08/2026).
+   Sao nằm NGOÀI viền chip -> đừng đặt overflow:hidden cho .sop-new hay dòng chứa nó. */
+.sop-new{position:relative;font-size:.6rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 9px;border-radius:20px;flex:none;background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.35)}
+.sop-new i{position:absolute;background:#fff;pointer-events:none;
+  clip-path:polygon(50% 0,58% 42%,100% 50%,58% 58%,50% 100%,42% 58%,0 50%,42% 42%);
+  animation:sopTw 1.8s ease-in-out infinite}
+.sop-new i:nth-child(1){left:-7%;top:-34%;width:9px;height:9px;animation-delay:0s}
+.sop-new i:nth-child(2){left:104%;top:72%;width:8px;height:8px;animation-delay:.19s}
+.sop-new i:nth-child(3){left:36%;top:-42%;width:7px;height:7px;animation-delay:.38s}
+.sop-new i:nth-child(4){left:70%;top:108%;width:7px;height:7px;animation-delay:.57s}
+.sop-new i:nth-child(5){left:-11%;top:52%;width:7px;height:7px;animation-delay:.76s}
+.sop-new i:nth-child(6){left:96%;top:-38%;width:8px;height:8px;animation-delay:.95s}
+@keyframes sopTw{0%,100%{transform:scale(.15) rotate(0);opacity:0}50%{transform:scale(1) rotate(90deg);opacity:1}}
 .sop-t .sop-new,.sop-subt .sop-new{margin-left:8px;vertical-align:middle}
 .sop-it.on .sop-new{background:#fff;color:var(--pu);box-shadow:none}
+.sop-it.on .sop-new i{background:var(--pu)} /* chip đảo màu -> sao trắng sẽ tàng hình */
+@media (prefers-reduced-motion:reduce){.sop-new i{animation:none;opacity:.85}}
 /* Hộp thoại chung T4 (thay confirm/prompt trình duyệt) */
 .sop-dlg{max-width:400px;padding:20px 22px}
 .sop-dlg-t{font-size:.92rem;font-weight:800;margin-bottom:8px}
@@ -2353,7 +2368,7 @@ const I18N={
   "1 cột":"1 column","2 cột":"2 columns","3 cột":"3 columns",
   "Nguy hiểm cao":"High risk","Trung bình":"Medium","Theo dõi":"Watch",
   "Cấm cược":"Betting banned","Hạn chế":"Restricted",
-  "Mới":"New","Đánh dấu mới":"Mark as new","Bỏ dấu mới":"Unmark new",
+  "Đánh dấu mới":"Mark as new","Bỏ dấu mới":"Unmark new",
   "Đánh dấu là thông tin mới":"Mark as new information",
   "ℹ Ghi nhớ:":"ℹ Note:",
   "⚠ Lưu ý:":"⚠ Caution:",
@@ -8826,7 +8841,8 @@ const SOP={
   // it.new  = do người soạn tích thẳng vào mục
   // it.hasNew = suy ra từ các bước/trò chơi bên trong (syncCount) -> cột chủ đề sáng đèn
   // luôn để cả 2 nơi cùng hiện một biểu tượng.
-  NEWCHIP:'<span class="sop-new">Mới</span>',
+  // Chữ "New" giữ nguyên ở cả 2 ngôn ngữ (data-noi18n) — 6 thẻ <i> là các ngôi sao lấp lánh.
+  NEWCHIP:'<span class="sop-new" data-noi18n><i></i><i></i><i></i><i></i><i></i><i></i>New</span>',
   isNew(it){return !!(it&&(it.new||it.hasNew));},
   async toggleNewItem(){
     if(!SOP.canEdit())return;
