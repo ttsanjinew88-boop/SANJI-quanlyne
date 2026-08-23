@@ -720,7 +720,9 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-note.editing .sop-eb{margin-top:7px}
 .sop-cap .sop-eh{font-size:.7rem;font-weight:600;color:var(--tx);margin:0}
 .sop-cap .sop-ebar{justify-content:center;margin-top:7px}
-.sop-lvl{font-size:.53rem;font-weight:800;letter-spacing:.08em;padding:3px 9px;border-radius:20px;vertical-align:middle;margin-left:8px;flex:none}
+/* FORM CHỮ TIÊU CHUẨN cho chip (700 · .05em · uppercase bằng CSS, KHÔNG toUpperCase trong JS
+   — uppercase ở JS làm i18n trượt vì từ điển khớp nguyên văn "Hạn chế"). */
+.sop-lvl{font-size:.62rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 10px;border-radius:20px;vertical-align:middle;margin-left:8px;flex:none}
 .sop-lvl.hi{background:rgba(239,68,68,.16);color:#fca5a5;border:1px solid rgba(239,68,68,.35)}
 .sop-lvl.go{background:rgba(245,158,11,.15);color:#fcd34d;border:1px solid rgba(245,158,11,.34)}
 .sop-lvl.mu{background:rgba(148,163,184,.13);color:var(--mu2);border:1px solid var(--border2)}
@@ -729,6 +731,10 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-lvl.solid.hi{background:var(--re);color:#4a0d0d;border-color:var(--re)}
 .sop-lvl.solid.go{background:var(--go);color:#412402;border-color:var(--go)}
 .sop-lvl.solid.mu{background:#94a3b8;color:#1e293b;border-color:#94a3b8}
+/* Dấu MỚI: tích ở mục (cột chủ đề) hoặc ở từng trò chơi/bước -> hiện cả 2 nơi */
+.sop-new{font-size:.6rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 9px;border-radius:20px;flex:none;background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.35)}
+.sop-t .sop-new,.sop-subt .sop-new{margin-left:8px;vertical-align:middle}
+.sop-it.on .sop-new{background:#fff;color:var(--pu);box-shadow:none}
 /* Hộp thoại chung T4 (thay confirm/prompt trình duyệt) */
 .sop-dlg{max-width:400px;padding:20px 22px}
 .sop-dlg-t{font-size:.92rem;font-weight:800;margin-bottom:8px}

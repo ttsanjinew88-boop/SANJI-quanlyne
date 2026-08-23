@@ -734,7 +734,9 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-note.editing .sop-eb{margin-top:7px}
 .sop-cap .sop-eh{font-size:.7rem;font-weight:600;color:var(--tx);margin:0}
 .sop-cap .sop-ebar{justify-content:center;margin-top:7px}
-.sop-lvl{font-size:.53rem;font-weight:800;letter-spacing:.08em;padding:3px 9px;border-radius:20px;vertical-align:middle;margin-left:8px;flex:none}
+/* FORM CHỮ TIÊU CHUẨN cho chip (700 · .05em · uppercase bằng CSS, KHÔNG toUpperCase trong JS
+   — uppercase ở JS làm i18n trượt vì từ điển khớp nguyên văn "Hạn chế"). */
+.sop-lvl{font-size:.62rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 10px;border-radius:20px;vertical-align:middle;margin-left:8px;flex:none}
 .sop-lvl.hi{background:rgba(239,68,68,.16);color:#fca5a5;border:1px solid rgba(239,68,68,.35)}
 .sop-lvl.go{background:rgba(245,158,11,.15);color:#fcd34d;border:1px solid rgba(245,158,11,.34)}
 .sop-lvl.mu{background:rgba(148,163,184,.13);color:var(--mu2);border:1px solid var(--border2)}
@@ -743,6 +745,10 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-lvl.solid.hi{background:var(--re);color:#4a0d0d;border-color:var(--re)}
 .sop-lvl.solid.go{background:var(--go);color:#412402;border-color:var(--go)}
 .sop-lvl.solid.mu{background:#94a3b8;color:#1e293b;border-color:#94a3b8}
+/* Dấu MỚI: tích ở mục (cột chủ đề) hoặc ở từng trò chơi/bước -> hiện cả 2 nơi */
+.sop-new{font-size:.6rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 9px;border-radius:20px;flex:none;background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.35)}
+.sop-t .sop-new,.sop-subt .sop-new{margin-left:8px;vertical-align:middle}
+.sop-it.on .sop-new{background:#fff;color:var(--pu);box-shadow:none}
 /* Hộp thoại chung T4 (thay confirm/prompt trình duyệt) */
 .sop-dlg{max-width:400px;padding:20px 22px}
 .sop-dlg-t{font-size:.92rem;font-weight:800;margin-bottom:8px}
@@ -2347,6 +2353,8 @@ const I18N={
   "1 cột":"1 column","2 cột":"2 columns","3 cột":"3 columns",
   "Nguy hiểm cao":"High risk","Trung bình":"Medium","Theo dõi":"Watch",
   "Cấm cược":"Betting banned","Hạn chế":"Restricted",
+  "Mới":"New","Đánh dấu mới":"Mark as new","Bỏ dấu mới":"Unmark new",
+  "Đánh dấu là thông tin mới":"Mark as new information",
   "ℹ Ghi nhớ:":"ℹ Note:",
   "⚠ Lưu ý:":"⚠ Caution:",
   "🚫 Tuyệt đối không:":"🚫 Never:",
@@ -8753,6 +8761,7 @@ const SOP={
         h+=`<div class="sop-it${on?' on':''}" onclick="SOP.open('${it.id}')">
           <span class="sop-dot ${hesc(dot)}"></span>
           <span class="sop-itt" data-noi18n>${hesc(SOP.nameOf(it))}</span>
+          ${SOP.isNew(it)?SOP.NEWCHIP:''}
           ${n?`<span class="sop-n">${hesc(n)}</span>`:''}
           ${ed?`<span class="sop-x" onclick="event.stopPropagation();SOP.delItem('${it.id}')">✕</span>`:''}
         </div>`;
@@ -8787,11 +8796,12 @@ const SOP={
     const gname=f?SOP.grpName(f.g):'';
     let h=`<div class="sop-h">
       <div><div class="sop-crumb" data-noi18n>${hesc(gname)} ›</div>
-        <div class="sop-t"><span data-noi18n>${hesc(SOP.tx(SOP.cur,'name'))}</span>${SOP.lvlChip(f&&f.it)}</div>
+        <div class="sop-t"><span data-noi18n>${hesc(SOP.tx(SOP.cur,'name'))}</span>${SOP.lvlChip(f&&f.it)}${(f&&f.it&&f.it.new)?SOP.NEWCHIP:''}</div>
         <div class="sop-m">${hesc(SOP.metaLine())}</div></div>
       <div style="display:flex;gap:6px;align-items:center">
         <span id="sopSaved" class="sop-saved">✓ Đã lưu</span>
-        ${ed?`<button class="abtn abtn-ghost abtn-sm" onclick="SOP.renameItem()">Đổi tên</button>`:''}
+        ${ed?`<button class="abtn abtn-ghost abtn-sm" onclick="SOP.renameItem()">Đổi tên</button>
+        <button class="abtn ${(f&&f.it&&f.it.new)?'abtn-pu':'abtn-ghost'} abtn-sm" title="Đánh dấu là thông tin mới" onclick="SOP.toggleNewItem()">${(f&&f.it&&f.it.new)?'Bỏ dấu mới':'Đánh dấu mới'}</button>`:''}
         ${SOP.view==='doc'?`<button class="abtn abtn-ghost abtn-sm" onclick="SOP.printDoc()">In</button>`:''}
         ${(ed&&d.subs)?`<button class="abtn abtn-pu abtn-sm" onclick="SOP.addSub()">＋ ${hesc(d.subName)}</button>`:''}
       </div></div>`;
@@ -8809,7 +8819,26 @@ const SOP={
   lvlChip(it){
     if(!it||!it.level||(SOP.view!=='ld'&&SOP.view!=='game'))return '';
     const L=SOP.view==='game'?SOP.GLEVELS:SOP.LEVELS;
-    return ` <span class="sop-lvl ${hesc(it.level)}">${hesc((L[it.level]||'').toUpperCase())}</span>`;
+    return ` <span class="sop-lvl ${hesc(it.level)}">${hesc(L[it.level]||'')}</span>`;
+  },
+
+  // ---------- DẤU "MỚI" ----------
+  // it.new  = do người soạn tích thẳng vào mục
+  // it.hasNew = suy ra từ các bước/trò chơi bên trong (syncCount) -> cột chủ đề sáng đèn
+  // luôn để cả 2 nơi cùng hiện một biểu tượng.
+  NEWCHIP:'<span class="sop-new">Mới</span>',
+  isNew(it){return !!(it&&(it.new||it.hasNew));},
+  async toggleNewItem(){
+    if(!SOP.canEdit())return;
+    const f=SOP.findItem(SOP.curId);if(!f)return;
+    f.it.new=!f.it.new;
+    await SOP.saveIndex();SOP.render();
+  },
+  async toggleNewSub(i){
+    if(!SOP.canEdit()||!SOP.cur)return;
+    const s=SOP.cur.subs[i];if(!s)return;
+    s.new=!s.new;
+    SOP.touch();await SOP.saveItem();SOP.syncCount();SOP.render();
   },
 
   // ----- qt: thanh bước -----
@@ -8833,8 +8862,9 @@ const SOP={
   },
   stepBodyHtml(ed){
     const s=SOP.cur.subs[SOP.curSub];if(!s)return '';
-    let h=`<div class="sop-subh"><div class="sop-subt">Bước ${SOP.curSub+1} — <span data-noi18n>${hesc(SOP.tx(s,'name'))}</span></div>`;
+    let h=`<div class="sop-subh"><div class="sop-subt">Bước ${SOP.curSub+1} — <span data-noi18n>${hesc(SOP.tx(s,'name'))}</span>${s.new?SOP.NEWCHIP:''}</div>`;
     if(ed)h+=`<div style="display:flex;gap:6px">
+      <button class="abtn ${s.new?'abtn-pu':'abtn-ghost'} abtn-sm" onclick="SOP.toggleNewSub(${SOP.curSub})">${s.new?'Bỏ dấu mới':'Đánh dấu mới'}</button>
       <button class="abtn abtn-ghost abtn-sm" onclick="SOP.renameSub(${SOP.curSub})">Đổi tên bước</button>
       <button class="abtn abtn-danger abtn-sm" onclick="SOP.delSub(${SOP.curSub})">Xoá bước</button></div>`;
     h+='</div>';
@@ -8874,8 +8904,10 @@ const SOP={
             <span class="sop-acct" data-noi18n>${hesc(SOP.tx(s,'name'))}</span>
             <span class="sop-accm"><span data-noi18n>${hesc(s.code||'')}</span>${s.code?' · ':''}${SOP.countImgs(s.blocks)} ảnh</span>
           </span>
-          ${s.level?`<span class="sop-lvl solid ${hesc(s.level)}">${hesc((L[s.level]||'').toUpperCase())}</span>`:''}
+          ${s.new?SOP.NEWCHIP:''}
+          ${s.level?`<span class="sop-lvl solid ${hesc(s.level)}">${hesc(L[s.level]||'')}</span>`:''}
           ${ed?`<span class="sop-accb">
+            <button class="abtn ${s.new?'abtn-pu':'abtn-ghost'} abtn-sm" title="Đánh dấu là thông tin mới" onclick="SOP.toggleNewSub(${i})">🆕</button>
             <button class="abtn abtn-ghost abtn-sm" onclick="SOP.renameSub(${i})">✎</button>
             <button class="abtn abtn-ghost abtn-sm" onclick="SOP.moveSub(${i},-1)">↑</button>
             <button class="abtn abtn-ghost abtn-sm" onclick="SOP.moveSub(${i},1)">↓</button>
@@ -9216,6 +9248,7 @@ const SOP={
     const f=SOP.findItem(SOP.curId);if(!f)return;
     const d=SOP.tabDef();
     f.it.n=d.subs?SOP.cur.subs.length:SOP.cur.blocks.reduce((n,b)=>n+(b.t==='img'?(b.imgs||[]).length:0),0);
+    if(d.subs)f.it.hasNew=(SOP.cur.subs||[]).some(s=>s.new); // bước/trò chơi mới -> cột chủ đề cũng hiện dấu
     SOP.saveIndex();
   },
 

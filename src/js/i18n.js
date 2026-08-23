@@ -910,6 +910,8 @@ const I18N={
   "1 cột":"1 column","2 cột":"2 columns","3 cột":"3 columns",
   "Nguy hiểm cao":"High risk","Trung bình":"Medium","Theo dõi":"Watch",
   "Cấm cược":"Betting banned","Hạn chế":"Restricted",
+  "Mới":"New","Đánh dấu mới":"Mark as new","Bỏ dấu mới":"Unmark new",
+  "Đánh dấu là thông tin mới":"Mark as new information",
   "ℹ Ghi nhớ:":"ℹ Note:",
   "⚠ Lưu ý:":"⚠ Caution:",
   "🚫 Tuyệt đối không:":"🚫 Never:",

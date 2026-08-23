@@ -117,6 +117,7 @@ const SOP={
         h+=`<div class="sop-it${on?' on':''}" onclick="SOP.open('${it.id}')">
           <span class="sop-dot ${hesc(dot)}"></span>
           <span class="sop-itt" data-noi18n>${hesc(SOP.nameOf(it))}</span>
+          ${SOP.isNew(it)?SOP.NEWCHIP:''}
           ${n?`<span class="sop-n">${hesc(n)}</span>`:''}
           ${ed?`<span class="sop-x" onclick="event.stopPropagation();SOP.delItem('${it.id}')">✕</span>`:''}
         </div>`;
@@ -151,11 +152,12 @@ const SOP={
     const gname=f?SOP.grpName(f.g):'';
     let h=`<div class="sop-h">
       <div><div class="sop-crumb" data-noi18n>${hesc(gname)} ›</div>
-        <div class="sop-t"><span data-noi18n>${hesc(SOP.tx(SOP.cur,'name'))}</span>${SOP.lvlChip(f&&f.it)}</div>
+        <div class="sop-t"><span data-noi18n>${hesc(SOP.tx(SOP.cur,'name'))}</span>${SOP.lvlChip(f&&f.it)}${(f&&f.it&&f.it.new)?SOP.NEWCHIP:''}</div>
         <div class="sop-m">${hesc(SOP.metaLine())}</div></div>
       <div style="display:flex;gap:6px;align-items:center">
         <span id="sopSaved" class="sop-saved">✓ Đã lưu</span>
-        ${ed?`<button class="abtn abtn-ghost abtn-sm" onclick="SOP.renameItem()">Đổi tên</button>`:''}
+        ${ed?`<button class="abtn abtn-ghost abtn-sm" onclick="SOP.renameItem()">Đổi tên</button>
+        <button class="abtn ${(f&&f.it&&f.it.new)?'abtn-pu':'abtn-ghost'} abtn-sm" title="Đánh dấu là thông tin mới" onclick="SOP.toggleNewItem()">${(f&&f.it&&f.it.new)?'Bỏ dấu mới':'Đánh dấu mới'}</button>`:''}
         ${SOP.view==='doc'?`<button class="abtn abtn-ghost abtn-sm" onclick="SOP.printDoc()">In</button>`:''}
         ${(ed&&d.subs)?`<button class="abtn abtn-pu abtn-sm" onclick="SOP.addSub()">＋ ${hesc(d.subName)}</button>`:''}
       </div></div>`;
@@ -173,7 +175,26 @@ const SOP={
   lvlChip(it){
     if(!it||!it.level||(SOP.view!=='ld'&&SOP.view!=='game'))return '';
     const L=SOP.view==='game'?SOP.GLEVELS:SOP.LEVELS;
-    return ` <span class="sop-lvl ${hesc(it.level)}">${hesc((L[it.level]||'').toUpperCase())}</span>`;
+    return ` <span class="sop-lvl ${hesc(it.level)}">${hesc(L[it.level]||'')}</span>`;
+  },
+
+  // ---------- DẤU "MỚI" ----------
+  // it.new  = do người soạn tích thẳng vào mục
+  // it.hasNew = suy ra từ các bước/trò chơi bên trong (syncCount) -> cột chủ đề sáng đèn
+  // luôn để cả 2 nơi cùng hiện một biểu tượng.
+  NEWCHIP:'<span class="sop-new">Mới</span>',
+  isNew(it){return !!(it&&(it.new||it.hasNew));},
+  async toggleNewItem(){
+    if(!SOP.canEdit())return;
+    const f=SOP.findItem(SOP.curId);if(!f)return;
+    f.it.new=!f.it.new;
+    await SOP.saveIndex();SOP.render();
+  },
+  async toggleNewSub(i){
+    if(!SOP.canEdit()||!SOP.cur)return;
+    const s=SOP.cur.subs[i];if(!s)return;
+    s.new=!s.new;
+    SOP.touch();await SOP.saveItem();SOP.syncCount();SOP.render();
   },
 
   // ----- qt: thanh bước -----
@@ -197,8 +218,9 @@ const SOP={
   },
   stepBodyHtml(ed){
     const s=SOP.cur.subs[SOP.curSub];if(!s)return '';
-    let h=`<div class="sop-subh"><div class="sop-subt">Bước ${SOP.curSub+1} — <span data-noi18n>${hesc(SOP.tx(s,'name'))}</span></div>`;
+    let h=`<div class="sop-subh"><div class="sop-subt">Bước ${SOP.curSub+1} — <span data-noi18n>${hesc(SOP.tx(s,'name'))}</span>${s.new?SOP.NEWCHIP:''}</div>`;
     if(ed)h+=`<div style="display:flex;gap:6px">
+      <button class="abtn ${s.new?'abtn-pu':'abtn-ghost'} abtn-sm" onclick="SOP.toggleNewSub(${SOP.curSub})">${s.new?'Bỏ dấu mới':'Đánh dấu mới'}</button>
       <button class="abtn abtn-ghost abtn-sm" onclick="SOP.renameSub(${SOP.curSub})">Đổi tên bước</button>
       <button class="abtn abtn-danger abtn-sm" onclick="SOP.delSub(${SOP.curSub})">Xoá bước</button></div>`;
     h+='</div>';
@@ -238,8 +260,10 @@ const SOP={
             <span class="sop-acct" data-noi18n>${hesc(SOP.tx(s,'name'))}</span>
             <span class="sop-accm"><span data-noi18n>${hesc(s.code||'')}</span>${s.code?' · ':''}${SOP.countImgs(s.blocks)} ảnh</span>
           </span>
-          ${s.level?`<span class="sop-lvl solid ${hesc(s.level)}">${hesc((L[s.level]||'').toUpperCase())}</span>`:''}
+          ${s.new?SOP.NEWCHIP:''}
+          ${s.level?`<span class="sop-lvl solid ${hesc(s.level)}">${hesc(L[s.level]||'')}</span>`:''}
           ${ed?`<span class="sop-accb">
+            <button class="abtn ${s.new?'abtn-pu':'abtn-ghost'} abtn-sm" title="Đánh dấu là thông tin mới" onclick="SOP.toggleNewSub(${i})">🆕</button>
             <button class="abtn abtn-ghost abtn-sm" onclick="SOP.renameSub(${i})">✎</button>
             <button class="abtn abtn-ghost abtn-sm" onclick="SOP.moveSub(${i},-1)">↑</button>
             <button class="abtn abtn-ghost abtn-sm" onclick="SOP.moveSub(${i},1)">↓</button>
@@ -580,6 +604,7 @@ const SOP={
     const f=SOP.findItem(SOP.curId);if(!f)return;
     const d=SOP.tabDef();
     f.it.n=d.subs?SOP.cur.subs.length:SOP.cur.blocks.reduce((n,b)=>n+(b.t==='img'?(b.imgs||[]).length:0),0);
+    if(d.subs)f.it.hasNew=(SOP.cur.subs||[]).some(s=>s.new); // bước/trò chơi mới -> cột chủ đề cũng hiện dấu
     SOP.saveIndex();
   },
 
