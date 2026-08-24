@@ -9449,6 +9449,30 @@ const SOP={
   // Dữ liệu thêm vào khối bảng: b.w=[% mỗi cột] · b.al=['l'|'c'|'r' mỗi cột] · b.bg={"ri|ci":màu}
   TBL_BG:{go:'Vàng',re:'Đỏ',gr:'Xanh lá',bl:'Xanh dương',pu:'Tím'},
   tblCols(b){return ((b.rows||[])[0]||[]).length;},
+  // Ô bảng SONG NGỮ (chốt 24/08/2026): bản VI ở `b.rows`, bản EN ở `b.en_rows` (cùng hình dạng),
+  // `b.envi_rows` giữ dấu vết bản VI lúc dịch để biết ô nào đã lệch (stale) — đúng kiểu `o.en/o.envi`
+  // của mọi khối khác. ⚠ TRƯỚC ngày này `setPath` ghi tiếng Anh ĐÈ THẲNG lên `b.rows` nên bảng mất
+  // hẳn tiếng Việt và không đổi ngôn ngữ được; nay bản dịch chỉ đụng tới `en_rows`.
+  tblGrid(b,f){ // lấy (tạo nếu thiếu) lưới phụ, tự nới cho khớp kích thước b.rows
+    const rows=b.rows||[];
+    if(!Array.isArray(b[f]))b[f]=[];
+    rows.forEach((r,ri)=>{if(!Array.isArray(b[f][ri]))b[f][ri]=[];
+      while(b[f][ri].length<r.length)b[f][ri].push('');});
+    return b[f];
+  },
+  tblTrim(b){ // cắt lưới phụ cho khớp b.rows sau khi xoá dòng/cột
+    ['en_rows','envi_rows'].forEach(f=>{
+      if(!Array.isArray(b[f]))return;
+      b[f].length=(b.rows||[]).length;
+      b[f].forEach((r,ri)=>{if(Array.isArray(r))r.length=((b.rows||[])[ri]||[]).length;});
+    });
+  },
+  tblTx(b,ri,ci){ // chữ hiển thị: EN khi đang bật EN và ô CÓ bản dịch, thiếu thì rơi về VI
+    const vi=((b.rows||[])[ri]||[])[ci]||'';
+    if(typeof I18N==='undefined'||I18N.lang!=='en')return vi;
+    const en=((b.en_rows||[])[ri]||[])[ci];
+    return (en&&String(en).trim())?en:vi;
+  },
   tblW(b){const n=SOP.tblCols(b);
     if(!Array.isArray(b.w)||b.w.length!==n)return new Array(n).fill(100/n);
     return b.w;},
@@ -9480,7 +9504,8 @@ const SOP={
         :(mgm?` onclick="SOP.tblMergePick('${scope}',${i},${ri},${ci})"`
         :(ed?` contenteditable="true" spellcheck="false" onblur="SOP.tblCell('${scope}',${i},${ri},${ci},this)"`:''));
       const grip=(ed&&!paint&&!mgm&&ri===0&&ci<nc-1)?`<span class="sop-cres" onmousedown="SOP.tblResize(event,'${scope}',${i},${ci})"></span>`:'';
-      return ri?`<td class="${cls}"${span}${a}>${hesc(c)}</td>`:`<th class="${cls}"${span}${a}>${hesc(c)}${grip}</th>`;
+      const tv=SOP.tblTx(b,ri,ci); // c = bản VI thô; tv = bản theo ngôn ngữ đang bật
+      return ri?`<td class="${cls}"${span}${a}>${hesc(tv)}</td>`:`<th class="${cls}"${span}${a}>${hesc(tv)}${grip}</th>`;
     }).join('')}</tr>`).join('');
     return `<div style="overflow-x:auto"><table class="sop-tbl${ed?' edit':''}${(paint||mgm)?' paint':''}" data-noi18n>${cg}${body}</table></div>`;
   },
@@ -9567,6 +9592,12 @@ const SOP={
     // textContent chứ KHÔNG innerText: hàng tiêu đề có CSS text-transform:uppercase,
     // innerText trả về chữ ĐÃ in hoa -> lưu xuống là hỏng dữ liệu gốc.
     const v=el.textContent.replace(/\s+$/,'');
+    // Đang bật EN thì ô hiện bản EN -> sửa vào `en_rows`, KHÔNG đè lên bản tiếng Việt.
+    if(typeof I18N!=='undefined'&&I18N.lang==='en'){
+      const g=SOP.tblGrid(b,'en_rows');if(g[r][c]===v)return;
+      g[r][c]=v;SOP.tblGrid(b,'envi_rows')[r][c]=b.rows[r][c]||'';
+      SOP.touch();await SOP.saveItem();return;
+    }
     if(b.rows[r][c]===v)return;
     b.rows[r][c]=v;SOP.touch();await SOP.saveItem();
   },
@@ -9579,6 +9610,7 @@ const SOP={
       // ô gộp chạm tới dòng vừa xoá -> co lại / bỏ hẳn, không thì bảng lệch khung
       if(b.mg)Object.keys(b.mg).forEach(k=>{const r=+k.split('|')[0],m=b.mg[k];
         if(r===ri)delete b.mg[k];else if(r+m[0]-1>=ri){m[0]=ri-r;if(m[0]<2&&m[1]<2)delete b.mg[k];}});
+      SOP.tblTrim(b); // lưới EN phải co theo, không thì lệch hàng
     }
     await SOP.saveItem();SOP.render();
   },
@@ -9596,6 +9628,7 @@ const SOP={
       if(b.bg)Object.keys(b.bg).forEach(k=>{if(+k.split('|')[1]===ci)delete b.bg[k];});
       if(b.mg)Object.keys(b.mg).forEach(k=>{const c=+k.split('|')[1],m=b.mg[k];
         if(c===ci)delete b.mg[k];else if(c+m[1]-1>=ci){m[1]=ci-c;if(m[0]<2&&m[1]<2)delete b.mg[k];}});
+      SOP.tblTrim(b); // lưới EN phải co theo, không thì lệch cột
     }
     b.al=al;
     await SOP.saveItem();SOP.render();
@@ -9755,7 +9788,9 @@ const SOP={
       push(b,'h',p+'.h');push(b,'b',p+'.b');
       (b.items||[]).forEach((f,k)=>{push(f,'b',p+'.items.'+k+'.b');push(f,'d',p+'.items.'+k+'.d');});
       (b.imgs||[]).forEach((im,k)=>push(im,'cap',p+'.imgs.'+k+'.cap'));
-      (b.rows||[]).forEach((r,ri)=>r.forEach((c,ci)=>{if(String(c||'').trim())out.push({p:p+'.rows.'+ri+'.'+ci,vi:c,en:'',cu:''});}));
+      (b.rows||[]).forEach((r,ri)=>r.forEach((c,ci)=>{if(!String(c||'').trim())return;
+        out.push({p:p+'.rows.'+ri+'.'+ci,vi:c,
+          en:((b.en_rows||[])[ri]||[])[ci]||'',cu:((b.envi_rows||[])[ri]||[])[ci]||''});}));
     }
     return out;
   },
@@ -9820,6 +9855,21 @@ const SOP={
   },
   // ghi bản dịch vào o.en[field] + lưu dấu vết bản VI lúc dịch vào o.envi[field]
   setPath(root,p,en,vi){
+    // Ô bảng `<đường dẫn khối>.rows.<ri>.<ci>`: ghi vào `b.en_rows`, GIỮ NGUYÊN `b.rows` (tiếng Việt).
+    const mt=p.match(/^(.*)\.rows\.(\d+)\.(\d+)$/);
+    if(mt){
+      let b=root;
+      for(const k of mt[1].split('.')){b=b&&b[/^\d+$/.test(k)?Number(k):k];if(!b)return false;}
+      const ri=+mt[2],ci=+mt[3];
+      if(!b.rows||!b.rows[ri]||b.rows[ri][ci]===undefined)return false;
+      // VÁ dữ liệu cũ: các lần nhập TRƯỚC 24/08/2026 đã ghi tiếng Anh đè lên ô tiếng Việt. Ô nào
+      // đang chứa ĐÚNG chuỗi EN sắp ghi = ô bị hỏng lần đó -> trả lại bản VI có sẵn trong file dịch.
+      // Điều kiện khớp tuyệt đối nên KHÔNG đụng tới ô người soạn đã sửa tay sau khi xuất file.
+      if(vi!==undefined&&String(vi).trim()&&b.rows[ri][ci]===en)b.rows[ri][ci]=vi;
+      SOP.tblGrid(b,'en_rows')[ri][ci]=en;
+      SOP.tblGrid(b,'envi_rows')[ri][ci]=vi!==undefined?vi:b.rows[ri][ci];
+      return true;
+    }
     const parts=p.split('.');const field=parts.pop();
     let o=root;
     for(const k of parts){o=o&&o[/^\d+$/.test(k)?Number(k):k];if(!o)return false;}
