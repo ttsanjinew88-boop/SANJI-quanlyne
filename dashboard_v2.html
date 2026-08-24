@@ -6912,6 +6912,34 @@ const BC={
     });
   },
 
+  // Dò cột theo tên: khớp CHÍNH XÁC trước, sau đó khớp CHỨA (chịu được hậu tố kiểu "(GMT+8)",
+  // khác hoa/thường, thừa khoảng trắng). Trả về giá trị ô, '' nếu không có cột nào khớp.
+  pick(row,names){
+    for(const n of names)if(row[n]!==undefined)return row[n];
+    const keys=Object.keys(row);
+    const norm=s=>String(s).toLowerCase().replace(/\s+/g,' ').trim();
+    for(const n of names){
+      const t=norm(n);
+      const k=keys.find(k=>norm(k)===t)||keys.find(k=>norm(k).includes(t));
+      if(k!==undefined)return row[k];
+    }
+    return '';
+  },
+
+  // Đọc ngày từ ô Excel. ⚠ KHÔNG dùng thẳng new Date(chuỗi) cho "dd/mm/yyyy" —
+  // trình duyệt đọc kiểu Mỹ (mm/dd) nên 05/08/2026 thành THÁNG 5, sai tháng nạp đầu.
+  parseDate(v){
+    if(v instanceof Date)return isNaN(v)?null:v;
+    if(typeof v==='number'&&v>0)return new Date(Math.round((v-25569)*86400*1000));
+    if(typeof v!=='string')return null;
+    const s=v.trim();if(!s)return null;
+    let m=s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);            // yyyy-mm-dd
+    if(m)return new Date(+m[1],+m[2]-1,+m[3]);
+    m=s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);                 // dd/mm/yyyy (chuẩn VN)
+    if(m)return new Date(+m[3],+m[2]-1,+m[1]);
+    const d=new Date(s);return isNaN(d)?null:d;
+  },
+
   async processFiles(){
     if(CUR_PROFILE&&!canEdit('bc')){alert('Bạn chỉ có quyền XEM báo cáo đại lý, không được tính toán dữ liệu mới.');return;}
     BC.showOverlay('Đang đọc file...');BC.setProgress(5);BC.log('\n🔄 Bắt đầu xử lý...');
@@ -6962,22 +6990,27 @@ const BC={
         const u=row['số tài khoản']||'';if(!u)return;
         const linkDn=String(row['URL nguồn-Đăng nhập']||'');
         const thiet_bi=linkDn.split('://').pop().startsWith('m.')?'Điện thoại':'Máy tính';
-        let regDate=null;
-        const dval=row['Thời gian gửi tiền thực tế đầu tiên'];
-        if(dval instanceof Date)regDate=dval;
-        else if(typeof dval==='number')regDate=new Date(Math.round((dval-25569)*86400*1000));
-        else if(typeof dval==='string'&&dval)regDate=new Date(dval);
+        const regDate=BC.parseDate(BC.pick(row,['Thời gian gửi tiền thực tế đầu tiên',
+          'Thời gian gửi tiền đầu tiên','Thời gian nạp đầu tiên','Lần gửi tiền đầu tiên',
+          'gửi tiền thực tế đầu tiên','nạp đầu tiên']));
         infoMap[u]={ho_ten:row['tên thật']||'',ip:row['IP đăng nhập lần cuối']||'',
           link_dk:row['Đăng ký URL nguồn']||'',link_dn:linkDn,
           ngan_hang:row['Ngân hàng_1']||'',chi_nhanh:row['Ngân hàng_1 - Quận']||'',
           stk:String(row['Ngân hàng_1 - Tài khoản']||''),thiet_bi,regDate};
       });
 
-      let maxTs=0;
-      Object.values(infoMap).forEach(m=>{if(m.regDate&&m.regDate.getTime()>maxTs)maxTs=m.regDate.getTime();});
+      let maxTs=0,nReg=0;
+      Object.values(infoMap).forEach(m=>{if(m.regDate){nReg++;if(m.regDate.getTime()>maxTs)maxTs=m.regDate.getTime();}});
       const maxDate=maxTs?new Date(maxTs):new Date();
       const maxM=maxDate.getFullYear()+'-'+(String(maxDate.getMonth()+1).padStart(2,'0'));
-      BC.log(`  📅 Tháng hiện tại: ${maxM}`);
+      BC.log(`  📅 Tháng hiện tại: ${maxM}${maxTs?'':' (không có ngày nạp đầu → lấy theo đồng hồ máy)'}`);
+      // Không đọc được ngày nạp đầu = MỌI khách bị gắn "Cũ" âm thầm → phải báo, đừng để trượt im lặng.
+      if(!nReg&&df1.length){
+        BC.log('  ⚠ KHÔNG đọc được cột "Thời gian gửi tiền thực tế đầu tiên" → tất cả sẽ là khách CŨ!');
+        BC.log('     Cột có trong file: '+Object.keys(df1[0]).join(' | '));
+      }else{
+        BC.log(`  🗓 Có ngày nạp đầu: ${nReg}/${Object.keys(infoMap).length} tài khoản`);
+      }
 
       const gameMap={};
       df3.forEach(row=>{
@@ -7003,6 +7036,8 @@ const BC={
         Object.assign(m,{ho_ten:info.ho_ten||'',ip:info.ip||'',link_dk:info.link_dk||'',
           link_dn:info.link_dn||'',ngan_hang:info.ngan_hang||'',chi_nhanh:info.chi_nhanh||'',
           stk:info.stk||'',thiet_bi:info.thiet_bi||'Máy tính'});
+        // Khách MỚI = nạp tiền lần ĐẦU trong tháng hiện tại (maxM); nạp đầu ở tháng trước = Khách CŨ.
+        // Không có ngày nạp đầu → xếp Cũ (đã cảnh báo ở log phía trên).
         const rd=info.regDate;
         m.khach=rd&&(rd.getFullYear()+'-'+String(rd.getMonth()+1).padStart(2,'0'))===maxM?'Mới':'Cũ';
         m.game=gameTop2[m.dai_ly+'|||'+m.id]||'';
@@ -7010,6 +7045,7 @@ const BC={
 
       const agentValid={};
       members.forEach(m=>{if(!agentValid[m.dai_ly])agentValid[m.dai_ly]=0;if(m.hop_le)agentValid[m.dai_ly]++;});
+      BC.log(`  👥 Khách mới: ${members.filter(m=>m.khach==='Mới').length} · Khách cũ: ${members.filter(m=>m.khach==='Cũ').length}`);
       const qualified=new Set(Object.keys(agentValid).filter(a=>agentValid[a]>=3));
       BC.log(`  ✅ Đại lý đủ điều kiện: ${qualified.size}`);
 
