@@ -16,6 +16,7 @@ $includes = @(
   @('//#include js/data-boot.js',   'js/data-boot.js'),
   @('//#include js/upload.js',      'js/upload.js'),
   @('//#include js/nav-donrut.js',  'js/nav-donrut.js'),
+  @('//#include js/remind.js',      'js/remind.js'),
   @('//#include js/render.js',      'js/render.js'),
   @('//#include js/shift-rank.js',  'js/shift-rank.js'),
   @('//#include js/bc.js',          'js/bc.js'),

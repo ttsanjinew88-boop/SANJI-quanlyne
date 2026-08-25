@@ -324,6 +324,9 @@ function applyPerms(){
   // View Đề Xuất Hạn Mức Duyệt: chỉ quyền SỬA tab Hiệu Suất KO mới thấy
   const klb=document.getElementById('koLimitBtn');
   if(klb)klb.style.display=canEdit('ko')?'':'none';
+  // Nguồn "Nhắc Nhở" trong tab Dữ Liệu: ADMIN + Tổ Trưởng (server cũng chặn, không chỉ ẩn nút)
+  const rsb=document.getElementById('rmSrcBtn');
+  if(rsb)rsb.style.display=isTTup?'':'none';
   // Quản lý nhân viên (roster) ở Tổng Quan: ADMIN + Tổ Trưởng
   const reb=document.getElementById('rosterEditBtn');
   if(reb)reb.style.display=isTTup?'':'none';

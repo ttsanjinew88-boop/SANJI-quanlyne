@@ -790,6 +790,34 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
   body.sop-printing,body.sop-printing .sop-pane,body.sop-printing .sop-blk{background:#fff!important;color:#000!important}
   body.sop-printing .sop-blk{border-color:#ccc}
 }
+/* ===== NHẮC NHỞ TELEGRAM (nguồn thứ 3 tab Dữ Liệu) ===== */
+.rm-lbl{display:block;font-size:.58rem;color:var(--mu);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.rm-inp{background:var(--card2);border:1px solid var(--border2);border-radius:7px;padding:8px 11px;font-size:.7rem;color:var(--tx);outline:none;font-family:inherit;width:100%}
+.rm-inp:focus{border-color:var(--pu)}
+.rm-ta{resize:vertical;min-height:74px;line-height:1.55}
+.rm-msel{cursor:pointer;margin-bottom:7px}
+.rm-msel.has{border-color:transparent;background:linear-gradient(120deg,rgba(124,58,237,.22),rgba(59,130,246,.2));box-shadow:inset 0 0 0 1px rgba(124,58,237,.55);font-weight:700}
+.rm-head{display:grid;grid-template-columns:180px 1fr 96px 56px;gap:12px;padding:0 4px 8px;font-size:.58rem;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.rm-row{display:grid;grid-template-columns:180px 1fr 96px 56px;gap:12px;align-items:stretch;background:var(--card2);border:1px solid var(--border2);border-radius:9px;padding:11px;margin-bottom:9px}
+.rm-c{display:flex;align-items:center;justify-content:center}
+.rm-try{font-size:.6rem;margin-top:6px}
+.rm-try a{color:var(--mu);text-decoration:none}
+.rm-try a:hover{color:var(--pu2)}
+.rm-sw{width:40px;height:22px;border-radius:22px;position:relative;cursor:pointer;background:var(--border2);flex:none;transition:.15s}
+.rm-sw.on{background:linear-gradient(120deg,var(--pu),var(--bl))}
+.rm-sw i{width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:.15s}
+.rm-sw.on i{left:21px}
+.rm-trash{font-size:1.1rem;color:var(--mu2);text-decoration:none;line-height:1;cursor:pointer}
+.rm-trash:hover{color:var(--re)}
+.rm-log{display:grid;grid-template-columns:150px 76px 110px 1fr 90px;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border);font-size:.66rem;align-items:center}
+.rm-log-hd{color:var(--mu);text-transform:uppercase;letter-spacing:.05em;font-weight:700;font-size:.58rem;border-bottom:1px solid var(--border2)}
+.rm-log-t{color:var(--pu2);font-family:monospace;font-size:.62rem}
+@media(max-width:820px){
+  .rm-head{display:none}
+  .rm-row{grid-template-columns:1fr 1fr}
+  .rm-row>textarea{grid-column:1/-1}
+  .rm-log{grid-template-columns:1fr 1fr}
+}
 </style>
 </head>
 <body>
@@ -940,6 +968,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
   <div class="view-toggle">
     <div class="vt-btn active" onclick="sds('don',this)">Duyệt Đơn</div>
     <div class="vt-btn" onclick="sds('km',this)">Khuyến Mãi</div>
+    <div class="vt-btn" id="rmSrcBtn" style="display:none" onclick="sds('rm',this)">Nhắc Nhở</div>
   </div>
   <div class="view-toggle" id="donSubToggle">
     <div class="vt-btn active" onclick="setDonSub('time',this)">Thời Gian Cao Điểm</div>
@@ -947,6 +976,89 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
   </div>
   <div id="dataEmptyKm" style="display:none;font-size:.65rem;color:var(--mu);padding:18px;border:1px dashed var(--border2);border-radius:8px;text-align:center">
     Chưa có dữ liệu Khuyến Mãi — bấm <b style="color:#10b981">Upload Excel ▾ → Duyệt Khuyến Mãi</b> ở góc trên để tải lên.
+  </div>
+
+  <!-- ===== NHẮC NHỞ TELEGRAM (nguồn thứ 3) — chỉ ADMIN + Tổ Trưởng ===== -->
+  <div id="data-remind" style="display:none">
+    <div id="rmNoPerm" style="display:none;font-size:.68rem;color:var(--mu);padding:20px;border:1px dashed var(--border2);border-radius:8px;text-align:center">
+      Chỉ ADMIN và Tổ Trưởng mới sử dụng được chức năng Nhắc Nhở.
+    </div>
+    <div id="rmMain" style="display:none">
+      <div id="rmStatus" style="border-radius:8px;padding:9px 13px;margin-bottom:14px;font-size:.66rem"></div>
+      <div class="view-toggle">
+        <div class="vt-btn active" onclick="RM.setView('cfg',this)">Cấu Hình Nhắc Nhở</div>
+        <div class="vt-btn" onclick="RM.setView('log',this)">Lịch Sử Nhắc Nhở</div>
+      </div>
+
+      <div id="rmPaneCfg">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <span style="font-size:.62rem;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;font-weight:700">Nhóm nhận</span>
+          <select class="adm-inp" id="rmGroupSel" data-noi18n style="cursor:pointer;min-width:190px" onchange="RM.selGroup(this.value)"></select>
+          <button class="abtn abtn-pu" onclick="RM.addGroup()">➕ Nhóm mới</button>
+          <div style="flex:1"></div>
+          <span id="rmChip" style="font-size:.62rem;color:var(--gr);font-weight:700;opacity:0;transition:opacity .3s"></span>
+        </div>
+
+        <div id="rmEmpty" style="display:none;font-size:.68rem;color:var(--mu);padding:20px;border:1px dashed var(--border2);border-radius:8px;text-align:center">
+          Chưa có nhóm nào. Bấm <b style="color:var(--pu2)">➕ Nhóm mới</b> để thêm nhóm Telegram nhận nhắc nhở.
+        </div>
+
+        <div id="rmBody" style="display:none">
+          <div class="chart-card" style="margin-bottom:14px">
+            <div class="chart-title" style="color:var(--pu2)">Nhóm Telegram nhận tin</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+              <div><label class="rm-lbl">Tên nhóm (gợi nhớ)</label><input class="rm-inp" id="rmName" data-noi18n oninput="RM.setGroup('name',this.value)"></div>
+              <div><label class="rm-lbl">ID nhóm Telegram *</label><input class="rm-inp" id="rmChat" data-noi18n placeholder="-100xxxxxxxxxx" oninput="RM.setGroup('chatId',this.value)"></div>
+              <div><label class="rm-lbl">ID Topic (để trống nếu nhóm thường)</label><input class="rm-inp" id="rmTopic" data-noi18n oninput="RM.setGroup('topicId',this.value)"></div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px">
+              <button class="abtn abtn-pu abtn-sm" onclick="RM.testConn()">🔌 Kiểm tra kết nối</button>
+              <span id="rmConnMsg" style="font-size:.64rem;color:var(--mu)"></span>
+              <div style="flex:1"></div>
+              <span style="font-size:.62rem;color:var(--mu)">Bật nhóm này</span>
+              <div class="rm-sw" id="rmSw" onclick="RM.toggleGroup()"><i></i></div>
+              <button class="abtn abtn-danger abtn-sm" onclick="RM.delGroup()">🗑 Xóa nhóm</button>
+            </div>
+            <div style="font-size:.6rem;color:var(--mu2);margin-top:8px">Bot phải được thêm vào nhóm trước. Token bot nằm ở secret của máy chủ — không nhập tại đây.</div>
+          </div>
+
+          <div class="chart-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap">
+              <div class="chart-title" style="margin:0;color:var(--pu2)">Danh sách nhắc nhở</div>
+              <button class="abtn abtn-pu abtn-sm" onclick="RM.addRem()">➕ Thêm mốc nhắc</button>
+            </div>
+            <div class="rm-head">
+              <div>Chế độ &amp; giờ</div><div>Nội dung tin nhắn</div>
+              <div style="text-align:center">Trạng thái</div><div style="text-align:center">Xóa</div>
+            </div>
+            <div id="rmList"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);gap:10px;flex-wrap:wrap">
+              <span id="rmStat" style="font-size:.64rem;color:var(--mu)"></span>
+              <button class="abtn abtn-ok" onclick="RM.save(true,'Lưu cấu hình nhắc nhở')">💾 Lưu cấu hình</button>
+            </div>
+            <div style="font-size:.62rem;color:var(--mu);line-height:1.8;margin-top:10px">
+              <b style="color:var(--pu2)">Chế độ:</b>
+              <span style="color:var(--go)">Mỗi giờ</span> = lặp mỗi giờ tại phút chỉ định (0–59) ·
+              <span style="color:var(--gr)">Mỗi ngày</span> = 1 lần/ngày (HH:mm) ·
+              <span style="color:var(--bl)">Đúng giờ</span> = nhiều mốc cách nhau dấu phẩy (08:00,12:00,20:00) ·
+              <span style="color:var(--pk)">Cách giờ</span> <span>= mỗi N tiếng 1 lần, gửi vào các giờ chia hết cho N tại phút :00.</span>
+              <span>Mọi mốc tính theo giờ Việt Nam (GMT+7) và nhắc mỗi ngày.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="rmPaneLog" style="display:none">
+        <div class="chart-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div class="chart-title" style="margin:0;color:var(--pu2)">Lịch sử nhắc nhở (200 dòng gần nhất)</div>
+            <button class="abtn abtn-pu abtn-sm" onclick="RM.loadLog()">🔄 Làm mới</button>
+          </div>
+          <div class="rm-log rm-log-hd"><div>Thời gian (GMT+7)</div><div>Loại</div><div>Người</div><div>Nội dung</div><div>Kết quả</div></div>
+          <div id="rmLogList"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Ngày / Tháng — gộp 1 view -->
@@ -1551,6 +1663,61 @@ const I18N={
   "Xác nhận bật 2FA":"Confirm 2FA",
   "Tài khoản BẮT BUỘC bật bảo mật 2 lớp trước khi vào hệ thống.":"This account MUST enable two-factor authentication before entering the system.",
   "Xác nhận & vào hệ thống":"Confirm & enter system",
+
+  /* NHẮC NHỞ TELEGRAM (nguồn thứ 3 tab Dữ Liệu) */
+  "Nhắc Nhở":"Reminders",
+  "Cấu Hình Nhắc Nhở":"Reminder Settings",
+  "Lịch Sử Nhắc Nhở":"Reminder History",
+  "Chỉ ADMIN và Tổ Trưởng mới sử dụng được chức năng Nhắc Nhở.":"Only ADMIN and Team Leader can use the Reminder feature.",
+  "Nhóm nhận":"Target group",
+  "➕ Nhóm mới":"➕ New group",
+  "Nhóm Telegram nhận tin":"Telegram group receiving messages",
+  "Tên nhóm (gợi nhớ)":"Group name (for your reference)",
+  "ID nhóm Telegram *":"Telegram group ID *",
+  "ID Topic (để trống nếu nhóm thường)":"Topic ID (leave empty for a normal group)",
+  "🔌 Kiểm tra kết nối":"🔌 Test connection",
+  "Bật nhóm này":"Enable this group",
+  "🗑 Xóa nhóm":"🗑 Delete group",
+  "Bot phải được thêm vào nhóm trước. Token bot nằm ở secret của máy chủ — không nhập tại đây.":"The bot must be added to the group first. The bot token lives in a server secret — not entered here.",
+  "Danh sách nhắc nhở":"Reminder list",
+  "➕ Thêm mốc nhắc":"➕ Add reminder",
+  "Chế độ & giờ":"Mode & time",
+  "Nội dung tin nhắn":"Message content",
+  "Nội dung tin nhắn...":"Message content...",
+  "Trạng thái":"Status",
+  "Chưa có mốc nhắc nào. Bấm \"Thêm mốc nhắc\".":"No reminders yet. Click \"Add reminder\".",
+  "gửi thử ▶":"send test ▶",
+  "Chọn giờ":"Pick mode",
+  "Mỗi giờ":"Hourly",
+  "Mỗi ngày":"Daily",
+  "Đúng giờ":"Exact times",
+  "Cách giờ":"Every N hours",
+  "phút 0–59":"minute 0–59",
+  "số giờ (vd 3)":"hours (e.g. 3)",
+  "💾 Lưu cấu hình":"💾 Save settings",
+  "✓ Đã lưu cấu hình":"✓ Settings saved",
+  "✓ Đã gửi thử tới nhóm":"✓ Test message sent to the group",
+  "Chế độ:":"Modes:",
+  "Lịch sử nhắc nhở (200 dòng gần nhất)":"Reminder history (latest 200 rows)",
+  "🔄 Làm mới":"🔄 Refresh",
+  "Thời gian (GMT+7)":"Time (GMT+7)",
+  "Loại":"Type",
+  "Người":"By",
+  "Nội dung":"Detail",
+  "Kết quả":"Result",
+  "Gửi tin":"Message sent",
+  "Thao tác":"Action",
+  "Đang tải...":"Loading...",
+  "Chưa có ghi nhận nào.":"Nothing recorded yet.",
+  "⚠️ Động cơ chưa chạy lần nào — kiểm tra đã bật pg_cron và deploy hàm tg-remind chưa (xem supabase_remind_setup.sql).":"⚠️ The engine has never run — check that pg_cron is enabled and the tg-remind function is deployed (see supabase_remind_setup.sql).",
+  "Chưa có nhóm nào. Bấm":"No group yet. Click",
+  "để thêm nhóm Telegram nhận nhắc nhở.":"to add a Telegram group that receives reminders.",
+  "= lặp mỗi giờ tại phút chỉ định (0–59) ·":"= repeats every hour at the given minute (0–59) ·",
+  "= 1 lần/ngày (HH:mm) ·":"= once a day (HH:mm) ·",
+  "= nhiều mốc cách nhau dấu phẩy (08:00,12:00,20:00) ·":"= several times separated by commas (08:00,12:00,20:00) ·",
+  "= mỗi N tiếng 1 lần, gửi vào các giờ chia hết cho N tại phút :00.":"= once every N hours, on hours divisible by N at minute :00.",
+  "Mọi mốc tính theo giờ Việt Nam (GMT+7) và nhắc mỗi ngày.":"All times follow Vietnam time (GMT+7) and repeat every day.",
+  "Chưa có mốc nhắc nào. Bấm \"Thêm mốc nhắc\".":"No reminders yet. Click \"Add reminder\".",
 
   /* TAB DỮ LIỆU — Theo Ngày / Theo Tháng / Thời gian cao điểm */
   "Thời Gian Cao Điểm":"Peak Hours",
@@ -2486,6 +2653,11 @@ const I18N={
     /* ⚠ THỨ TỰ QUAN TRỌNG: luật CỤ THỂ phải đứng trước luật tổng quát (vd ^Tháng (.+)$) */
     /* T4 — Quy Trình Làm Việc: chuỗi do JS ghép có kèm SỐ nên phải khớp bằng regex */
     /* ⚠ trs() TRIM chuỗi trước khi khớp -> regex KHÔNG được có khoảng trắng ở hai đầu */
+    /* Nhắc Nhở Telegram — chuỗi ghép kèm SỐ */
+    [/^(\d+) mốc nhắc · (\d+) đang bật$/,"$1 reminders · $2 enabled"],
+    [/^✅ Động cơ đang chạy — lượt kiểm tra gần nhất dưới 1 phút trước \(giờ Việt Nam GMT\+7\)\.$/,"✅ Engine running — last check less than 1 minute ago (Vietnam time GMT+7)."],
+    [/^✅ Động cơ đang chạy — lượt kiểm tra gần nhất (\d+) phút trước \(giờ Việt Nam GMT\+7\)\.$/,"✅ Engine running — last check $1 minutes ago (Vietnam time GMT+7)."],
+    [/^⚠️ Động cơ ngừng (\d+) phút — nhắc nhở có thể không được gửi\. Kiểm tra job pg_cron trên Supabase\.$/,"⚠️ Engine stopped for $1 minutes — reminders may not be sent. Check the pg_cron job on Supabase."],
     [/^Bước (\d+) —$/,"Step $1 —"],
     [/^1 bước · cập nhật (.+)$/,"1 step · updated $1"],
     [/^(\d+) bước · cập nhật (.+)$/,"$1 steps · updated $2"],
@@ -3285,6 +3457,9 @@ function applyPerms(){
   // View Đề Xuất Hạn Mức Duyệt: chỉ quyền SỬA tab Hiệu Suất KO mới thấy
   const klb=document.getElementById('koLimitBtn');
   if(klb)klb.style.display=canEdit('ko')?'':'none';
+  // Nguồn "Nhắc Nhở" trong tab Dữ Liệu: ADMIN + Tổ Trưởng (server cũng chặn, không chỉ ẩn nút)
+  const rsb=document.getElementById('rmSrcBtn');
+  if(rsb)rsb.style.display=isTTup?'':'none';
   // Quản lý nhân viên (roster) ở Tổng Quan: ADMIN + Tổ Trưởng
   const reb=document.getElementById('rosterEditBtn');
   if(reb)reb.style.display=isTTup?'':'none';
@@ -4840,11 +5015,19 @@ function sds(src,el){dataSrc=src;el.parentElement.querySelectorAll(".vt-btn").fo
   if(src!=='don')donSub='time';
   rDataTab();
 }
+// Nguồn 'rm' (Nhắc Nhở) KHÔNG có dataset tháng — dùng chung khung tab Dữ Liệu nhưng
+// đọc cấu hình riêng (reports type='tgremind' month='all'), đổi tháng không ảnh hưởng.
+function rmPaneShown(on){
+  const el=document.getElementById('data-remind');
+  if(el)el.style.display=on?'block':'none';
+}
 function setDonSub(v,el){donSub=v;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");rDataTab();}
 function curDataSet(){return dataSrc==="km"?KMD:D;}
 function rDataTab(){
   const ds=curDataSet();
   const empty=document.getElementById("dataEmptyKm"),body=document.getElementById("dataBody");
+  if(dataSrc==="rm"){empty.style.display="none";body.style.display="none";rmPaneShown(true);RM.boot();return;}
+  rmPaneShown(false);
   if(dataSrc==="km"&&!ds){empty.style.display="block";body.style.display="none";return;}
   empty.style.display="none";body.style.display="block";
   const showDonrut=(dataSrc==='don'&&donSub==='donrut');
@@ -5252,6 +5435,260 @@ function drResetBr(){DR.brackets=DR_DEFAULT_BR.map(p=>[...p]);document.getElemen
   document.querySelectorAll('.dr-modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));
   document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.dr-modal.show').forEach(m=>m.classList.remove('show'));});
 })();
+// ===== NHẮC NHỞ TELEGRAM — nguồn thứ 3 của tab Dữ Liệu (port từ web app Apps Script) =====
+// Cấu hình lưu cloud: reports type='tgremind' month='all' -> {groups:[{id,name,chatId,topicId,enabled,reminders:[]}]}
+// ĐỘNG CƠ KHÔNG CHẠY TRONG TRÌNH DUYỆT: pg_cron gọi Edge Function `tg-remind` mỗi phút (xem
+// supabase_remind_setup.sql). Đóng dashboard thì nhắc nhở VẪN chạy. Trình duyệt chỉ soạn cấu hình,
+// gửi thử và xem lịch sử. Múi giờ khóa cứng GMT+7 (server tự tính, không đọc giờ máy người dùng).
+// Token bot KHÔNG bao giờ có trong file này — nằm ở secret TG_BOT_TOKEN của Supabase.
+const RM={
+  CFG:{groups:[]}, cur:null, loaded:false, loading:false, view:'cfg', tickAt:0, dirty:false,
+  MODES:[['','Chọn giờ'],['hourly','Mỗi giờ'],['daily','Mỗi ngày'],['exact','Đúng giờ'],['interval','Cách giờ']],
+  canEdit(){return !!CUR_PROFILE&&(CUR_PROFILE.is_admin||roleOf(CUR_PROFILE).key==='totruong');},
+  uid(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);},
+  modeLabel(m){const f=RM.MODES.filter(x=>x[0]===m)[0];return f?f[1]:m;},
+  curGroup(){return RM.CFG.groups.filter(g=>g.id===RM.cur)[0]||null;},
+
+  // ---------- nạp / lưu ----------
+  // Nạp cấu hình từ cloud. CHỈ render sau khi nạp xong — render sớm rồi mới nạp thì thao tác
+  // của người dùng trong lúc chờ sẽ bị bản trên cloud ghi đè (đã vấp khi thử).
+  async boot(){
+    if(RM.loaded){RM.render();return;}
+    if(RM.loading)return;
+    RM.loading=true;
+    const main=document.getElementById('rmMain'),gate=document.getElementById('rmNoPerm');
+    if(!RM.canEdit()){RM.loading=false;RM.render();return;}
+    gate.style.display='none';main.style.display='block';
+    document.getElementById('rmStatus').textContent='Đang tải...';
+    try{
+      const d=await SB.loadReport('tgremind','all');
+      RM.CFG=(d&&d.groups)?d:{groups:[]};
+    }catch(e){RM.CFG={groups:[]};}
+    RM.loaded=true;RM.loading=false;
+    if(!RM.cur&&RM.CFG.groups.length)RM.cur=RM.CFG.groups[0].id;
+    RM.render();
+    RM.loadTick();
+  },
+  async save(notify,label){
+    try{
+      await SB.saveReport('tgremind','all',RM.CFG);
+      RM.dirty=false;
+      if(notify)RM.chip('✓ Đã lưu cấu hình');
+      if(label)RM.log('cfg',label,'ok');
+    }catch(e){alert('Lỗi lưu cấu hình nhắc nhở: '+(e.message||e));}
+  },
+  // Ghi lịch sử RIÊNG của tab này (bảng tg_remind_log) — không trộn vào tab Lịch Sử chung
+  async log(kind,detail,status){
+    if(!SB.ready()||!CUR_PROFILE)return;
+    try{
+      await SB.client().from('tg_remind_log').insert({kind,who:CUR_PROFILE.username||'',detail:String(detail||'').slice(0,300),status:status||'ok'});
+    }catch(e){/* lịch sử hỏng không được chặn thao tác chính */}
+  },
+  chip(t){
+    const el=document.getElementById('rmChip');if(!el)return;
+    el.textContent=t;el.style.opacity='1';
+    clearTimeout(RM._ct);RM._ct=setTimeout(()=>{el.style.opacity='0';},2600);
+  },
+  async loadTick(){
+    try{
+      const d=await SB.loadReport('tgremind_tick','all');
+      RM.tickAt=d&&d.at?Number(d.at):0;
+    }catch(e){RM.tickAt=0;}
+    RM.renderStatus();
+  },
+
+  // ---------- gọi Edge Function ----------
+  async call(body){
+    const{data:sess}=await SB.client().auth.getSession();
+    const token=sess&&sess.session&&sess.session.access_token;
+    if(!token)throw new Error('Phiên hết hạn, đăng nhập lại');
+    const r=await fetch(SB_URL+'/functions/v1/tg-remind',{method:'POST',headers:{'Authorization':'Bearer '+token,'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    let j=null;try{j=await r.json();}catch(e){}
+    if(!j)throw new Error('Không gọi được máy chủ (hàm tg-remind đã deploy chưa?)');
+    if(!j.ok)throw new Error(j.description||'Lỗi không rõ');
+    return j;
+  },
+
+  // ---------- nhóm ----------
+  addGroup(){
+    if(!RM.canEdit())return;
+    const g={id:RM.uid('g'),name:'Nhóm mới',chatId:'',topicId:'',enabled:true,reminders:[]};
+    RM.CFG.groups.push(g);RM.cur=g.id;RM.render();RM.save(false,'Tạo nhóm nhận mới');
+  },
+  delGroup(){
+    const g=RM.curGroup();if(!g||!RM.canEdit())return;
+    if(!confirm('Xóa nhóm "'+(g.name||'')+'" và toàn bộ mốc nhắc của nhóm này?'))return;
+    RM.CFG.groups=RM.CFG.groups.filter(x=>x.id!==g.id);
+    RM.cur=RM.CFG.groups.length?RM.CFG.groups[0].id:null;
+    RM.render();RM.save(true,'Xóa nhóm nhận "'+(g.name||'')+'"');
+  },
+  selGroup(id){RM.cur=id;RM.render();},
+  setGroup(k,v){const g=RM.curGroup();if(!g||!RM.canEdit())return;g[k]=v;RM.dirty=true;if(k==='name')RM.renderGroupSel();},
+  toggleGroup(){
+    const g=RM.curGroup();if(!g||!RM.canEdit())return;
+    g.enabled=g.enabled===false;RM.render();
+    RM.save(false,(g.enabled?'Bật':'Tắt')+' nhóm nhận "'+(g.name||'')+'"');
+  },
+
+  // ---------- mốc nhắc ----------
+  addRem(){
+    const g=RM.curGroup();if(!g||!RM.canEdit())return;
+    g.reminders.push({id:RM.uid('r'),mode:'',time:'',content:'',enabled:true});
+    RM.dirty=true;RM.renderRems();
+  },
+  delRem(rid){
+    const g=RM.curGroup();if(!g||!RM.canEdit())return;
+    const r=g.reminders.filter(x=>x.id===rid)[0];
+    if(!confirm('Xóa mốc nhắc này?'))return;
+    g.reminders=g.reminders.filter(x=>x.id!==rid);
+    RM.renderRems();RM.save(true,'Xóa mốc nhắc '+((r&&r.time)||'')+' của nhóm "'+(g.name||'')+'"');
+  },
+  setRem(rid,k,v){
+    const g=RM.curGroup();if(!g||!RM.canEdit())return;
+    const r=g.reminders.filter(x=>x.id===rid)[0];if(!r)return;
+    r[k]=v;RM.dirty=true;
+    if(k==='mode'){r.time='';RM.renderRems();}else{RM.renderStat();}
+  },
+  toggleRem(rid){
+    const g=RM.curGroup();if(!g||!RM.canEdit())return;
+    const r=g.reminders.filter(x=>x.id===rid)[0];if(!r)return;
+    r.enabled=r.enabled===false;RM.renderRems();
+    RM.save(false,(r.enabled?'Bật':'Tắt')+' mốc nhắc '+(r.time||''));
+  },
+  async testRem(rid){
+    const g=RM.curGroup();if(!g)return;
+    const r=g.reminders.filter(x=>x.id===rid)[0];if(!r)return;
+    if(!r.content){alert('Mốc nhắc này chưa có nội dung.');return;}
+    if(!g.chatId){alert('Nhóm này chưa có ID nhóm Telegram.');return;}
+    try{
+      await RM.call({action:'test',chatId:g.chatId,topicId:g.topicId||'',text:r.content});
+      RM.chip('✓ Đã gửi thử tới nhóm');
+      RM.log('cfg','Gửi thử mốc nhắc tới nhóm "'+(g.name||'')+'"','ok');
+    }catch(e){alert('Gửi thử lỗi: '+(e.message||e));}
+  },
+  async testConn(){
+    const g=RM.curGroup();if(!g)return;
+    const el=document.getElementById('rmConnMsg');
+    if(!g.chatId){el.style.color='var(--re)';el.textContent='❌ Chưa nhập ID nhóm Telegram.';return;}
+    el.style.color='var(--mu)';el.textContent='Đang kiểm tra...';
+    try{
+      const j=await RM.call({action:'check',chatId:g.chatId,topicId:g.topicId||''});
+      el.style.color='var(--gr)';
+      el.textContent='✅ Bot @'+(j.bot||'')+' — đã gửi tin kiểm tra vào nhóm.';
+      RM.log('cfg','Kiểm tra kết nối nhóm "'+(g.name||'')+'"','ok');
+    }catch(e){el.style.color='var(--re)';el.textContent='❌ '+(e.message||e);}
+  },
+
+  // ---------- khung nhìn ----------
+  setView(v,el){
+    RM.view=v;
+    el.parentElement.querySelectorAll('.vt-btn').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('rmPaneCfg').style.display=(v==='cfg')?'block':'none';
+    document.getElementById('rmPaneLog').style.display=(v==='log')?'block':'none';
+    if(v==='log')RM.loadLog();
+  },
+
+  // ---------- render ----------
+  render(){
+    const gate=document.getElementById('rmNoPerm'),main=document.getElementById('rmMain');
+    if(!RM.canEdit()){gate.style.display='block';main.style.display='none';return;}
+    gate.style.display='none';main.style.display='block';
+    RM.renderGroupSel();
+    const g=RM.curGroup();
+    document.getElementById('rmEmpty').style.display=g?'none':'block';
+    document.getElementById('rmBody').style.display=g?'block':'none';
+    if(!g)return;
+    document.getElementById('rmName').value=g.name||'';
+    document.getElementById('rmChat').value=g.chatId||'';
+    document.getElementById('rmTopic').value=g.topicId||'';
+    document.getElementById('rmSw').className='rm-sw'+(g.enabled===false?'':' on');
+    document.getElementById('rmConnMsg').textContent='';
+    RM.renderRems();
+    RM.renderStatus();
+  },
+  renderGroupSel(){
+    const s=document.getElementById('rmGroupSel');if(!s)return;
+    s.innerHTML=RM.CFG.groups.map(g=>'<option value="'+g.id+'"'+(g.id===RM.cur?' selected':'')+'>'+
+      hesc((g.enabled===false?'⏸ ':'')+(g.name||'(chưa đặt tên)'))+'</option>').join('');
+    s.style.display=RM.CFG.groups.length?'':'none';
+  },
+  renderStatus(){
+    const bar=document.getElementById('rmStatus');if(!bar)return;
+    let bad='';
+    if(!RM.tickAt)bad='⚠️ Động cơ chưa chạy lần nào — kiểm tra đã bật pg_cron và deploy hàm tg-remind chưa (xem supabase_remind_setup.sql).';
+    else{
+      const m=Math.round((Date.now()-RM.tickAt)/60000);
+      if(m>5)bad='⚠️ Động cơ ngừng '+m+' phút — nhắc nhở có thể không được gửi. Kiểm tra job pg_cron trên Supabase.';
+    }
+    if(bad){
+      bar.style.background='rgba(239,68,68,.12)';bar.style.border='1px solid rgba(239,68,68,.5)';bar.style.color='#fca5a5';
+      bar.textContent=bad;
+    }else{
+      const m=Math.round((Date.now()-RM.tickAt)/60000);
+      bar.style.background='rgba(16,185,129,.10)';bar.style.border='1px solid rgba(16,185,129,.4)';bar.style.color='#6ee7b7';
+      bar.textContent='✅ Động cơ đang chạy — lượt kiểm tra gần nhất '+(m<=1?'dưới 1 phút trước':m+' phút trước')+' (giờ Việt Nam GMT+7).';
+    }
+  },
+  renderRems(){
+    const g=RM.curGroup();if(!g)return;
+    const wrap=document.getElementById('rmList');
+    if(!g.reminders.length){
+      wrap.innerHTML='<div style="padding:16px 4px;font-size:.68rem;color:var(--mu)">Chưa có mốc nhắc nào. Bấm "Thêm mốc nhắc".</div>';
+      RM.renderStat();return;
+    }
+    wrap.innerHTML=g.reminders.map(r=>{
+      const opts=RM.MODES.map(m=>'<option value="'+m[0]+'"'+(r.mode===m[0]?' selected':'')+'>'+m[1]+'</option>').join('');
+      const ph=r.mode==='hourly'?'phút 0–59':(r.mode==='exact'?'08:00,12:00':(r.mode==='interval'?'số giờ (vd 3)':'HH:mm'));
+      return '<div class="rm-row">'+
+        '<div>'+
+          '<select class="rm-inp rm-msel'+(r.mode?' has':'')+'" onchange="RM.setRem(\''+r.id+'\',\'mode\',this.value)">'+opts+'</select>'+
+          (r.mode?'<input class="rm-inp" value="'+hesc(r.time||'')+'" placeholder="'+ph+'" oninput="RM.setRem(\''+r.id+'\',\'time\',this.value)">':'')+
+          '<div class="rm-try"><a href="javascript:void(0)" onclick="RM.testRem(\''+r.id+'\')">gửi thử ▶</a></div>'+
+        '</div>'+
+        '<textarea class="rm-inp rm-ta" data-noi18n placeholder="Nội dung tin nhắn..." oninput="RM.setRem(\''+r.id+'\',\'content\',this.value)">'+hesc(r.content||'')+'</textarea>'+
+        '<div class="rm-c"><div class="rm-sw'+(r.enabled===false?'':' on')+'" onclick="RM.toggleRem(\''+r.id+'\')"><i></i></div></div>'+
+        '<div class="rm-c"><a class="rm-trash" href="javascript:void(0)" onclick="RM.delRem(\''+r.id+'\')" title="Xóa">🗑</a></div>'+
+      '</div>';
+    }).join('');
+    RM.renderStat();
+  },
+  renderStat(){
+    const g=RM.curGroup(),el=document.getElementById('rmStat');if(!el)return;
+    if(!g){el.textContent='';return;}
+    const on=g.reminders.filter(r=>r.enabled!==false).length;
+    el.textContent=g.reminders.length+' mốc nhắc · '+on+' đang bật';
+  },
+
+  // ---------- lịch sử riêng ----------
+  async loadLog(){
+    const w=document.getElementById('rmLogList');
+    w.innerHTML='<div style="padding:14px 4px;font-size:.68rem;color:var(--mu)">Đang tải...</div>';
+    try{
+      const{data,error}=await SB.client().from('tg_remind_log').select('at,kind,who,detail,status').order('at',{ascending:false}).limit(200);
+      if(error)throw error;
+      if(!data||!data.length){w.innerHTML='<div style="padding:14px 4px;font-size:.68rem;color:var(--mu)">Chưa có ghi nhận nào.</div>';return;}
+      w.innerHTML=data.map(it=>{
+        const ok=String(it.status||'').indexOf('ok')===0;
+        return '<div class="rm-log">'+
+          '<div class="rm-log-t">'+hesc(RM.fmtTime(it.at))+'</div>'+
+          '<div>'+(it.kind==='send'?'Gửi tin':'Thao tác')+'</div>'+
+          '<div data-noi18n>'+hesc(it.who||'HỆ THỐNG')+'</div>'+
+          '<div data-noi18n>'+hesc(it.detail||'')+'</div>'+
+          '<div style="color:'+(ok?'var(--gr)':'var(--re)')+'" data-noi18n>'+hesc(it.status||'')+'</div>'+
+        '</div>';
+      }).join('');
+    }catch(e){w.innerHTML='<div style="padding:14px 4px;font-size:.68rem;color:var(--re)">Lỗi tải lịch sử: '+hesc(e.message||String(e))+' — đã chạy supabase_remind_setup.sql chưa?</div>';}
+  },
+  fmtTime(iso){
+    // Hiển thị theo GMT+7 để khớp với giờ động cơ chấm mốc
+    const d=new Date(iso);if(isNaN(d))return String(iso||'');
+    const v=new Date(d.getTime()+7*3600000),p=n=>n<10?'0'+n:''+n;
+    return p(v.getUTCDate())+'/'+p(v.getUTCMonth()+1)+'/'+v.getUTCFullYear()+' '+p(v.getUTCHours())+':'+p(v.getUTCMinutes())+':'+p(v.getUTCSeconds());
+  }
+};
+window.RM=RM;
+
 // ===== THỐNG KÊ KHUYẾN MÃI (thành công / từ chối / tiền thưởng đã phát) =====
 function rKmStat(ds){
   const box=document.getElementById('data-kmstat');

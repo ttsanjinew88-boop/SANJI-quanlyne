@@ -12,11 +12,19 @@ function sds(src,el){dataSrc=src;el.parentElement.querySelectorAll(".vt-btn").fo
   if(src!=='don')donSub='time';
   rDataTab();
 }
+// Nguồn 'rm' (Nhắc Nhở) KHÔNG có dataset tháng — dùng chung khung tab Dữ Liệu nhưng
+// đọc cấu hình riêng (reports type='tgremind' month='all'), đổi tháng không ảnh hưởng.
+function rmPaneShown(on){
+  const el=document.getElementById('data-remind');
+  if(el)el.style.display=on?'block':'none';
+}
 function setDonSub(v,el){donSub=v;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");rDataTab();}
 function curDataSet(){return dataSrc==="km"?KMD:D;}
 function rDataTab(){
   const ds=curDataSet();
   const empty=document.getElementById("dataEmptyKm"),body=document.getElementById("dataBody");
+  if(dataSrc==="rm"){empty.style.display="none";body.style.display="none";rmPaneShown(true);RM.boot();return;}
+  rmPaneShown(false);
   if(dataSrc==="km"&&!ds){empty.style.display="block";body.style.display="none";return;}
   empty.style.display="none";body.style.display="block";
   const showDonrut=(dataSrc==='don'&&donSub==='donrut');

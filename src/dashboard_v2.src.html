@@ -163,6 +163,7 @@
   <div class="view-toggle">
     <div class="vt-btn active" onclick="sds('don',this)">Duyệt Đơn</div>
     <div class="vt-btn" onclick="sds('km',this)">Khuyến Mãi</div>
+    <div class="vt-btn" id="rmSrcBtn" style="display:none" onclick="sds('rm',this)">Nhắc Nhở</div>
   </div>
   <div class="view-toggle" id="donSubToggle">
     <div class="vt-btn active" onclick="setDonSub('time',this)">Thời Gian Cao Điểm</div>
@@ -170,6 +171,89 @@
   </div>
   <div id="dataEmptyKm" style="display:none;font-size:.65rem;color:var(--mu);padding:18px;border:1px dashed var(--border2);border-radius:8px;text-align:center">
     Chưa có dữ liệu Khuyến Mãi — bấm <b style="color:#10b981">Upload Excel ▾ → Duyệt Khuyến Mãi</b> ở góc trên để tải lên.
+  </div>
+
+  <!-- ===== NHẮC NHỞ TELEGRAM (nguồn thứ 3) — chỉ ADMIN + Tổ Trưởng ===== -->
+  <div id="data-remind" style="display:none">
+    <div id="rmNoPerm" style="display:none;font-size:.68rem;color:var(--mu);padding:20px;border:1px dashed var(--border2);border-radius:8px;text-align:center">
+      Chỉ ADMIN và Tổ Trưởng mới sử dụng được chức năng Nhắc Nhở.
+    </div>
+    <div id="rmMain" style="display:none">
+      <div id="rmStatus" style="border-radius:8px;padding:9px 13px;margin-bottom:14px;font-size:.66rem"></div>
+      <div class="view-toggle">
+        <div class="vt-btn active" onclick="RM.setView('cfg',this)">Cấu Hình Nhắc Nhở</div>
+        <div class="vt-btn" onclick="RM.setView('log',this)">Lịch Sử Nhắc Nhở</div>
+      </div>
+
+      <div id="rmPaneCfg">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <span style="font-size:.62rem;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;font-weight:700">Nhóm nhận</span>
+          <select class="adm-inp" id="rmGroupSel" data-noi18n style="cursor:pointer;min-width:190px" onchange="RM.selGroup(this.value)"></select>
+          <button class="abtn abtn-pu" onclick="RM.addGroup()">➕ Nhóm mới</button>
+          <div style="flex:1"></div>
+          <span id="rmChip" style="font-size:.62rem;color:var(--gr);font-weight:700;opacity:0;transition:opacity .3s"></span>
+        </div>
+
+        <div id="rmEmpty" style="display:none;font-size:.68rem;color:var(--mu);padding:20px;border:1px dashed var(--border2);border-radius:8px;text-align:center">
+          Chưa có nhóm nào. Bấm <b style="color:var(--pu2)">➕ Nhóm mới</b> để thêm nhóm Telegram nhận nhắc nhở.
+        </div>
+
+        <div id="rmBody" style="display:none">
+          <div class="chart-card" style="margin-bottom:14px">
+            <div class="chart-title" style="color:var(--pu2)">Nhóm Telegram nhận tin</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+              <div><label class="rm-lbl">Tên nhóm (gợi nhớ)</label><input class="rm-inp" id="rmName" data-noi18n oninput="RM.setGroup('name',this.value)"></div>
+              <div><label class="rm-lbl">ID nhóm Telegram *</label><input class="rm-inp" id="rmChat" data-noi18n placeholder="-100xxxxxxxxxx" oninput="RM.setGroup('chatId',this.value)"></div>
+              <div><label class="rm-lbl">ID Topic (để trống nếu nhóm thường)</label><input class="rm-inp" id="rmTopic" data-noi18n oninput="RM.setGroup('topicId',this.value)"></div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px">
+              <button class="abtn abtn-pu abtn-sm" onclick="RM.testConn()">🔌 Kiểm tra kết nối</button>
+              <span id="rmConnMsg" style="font-size:.64rem;color:var(--mu)"></span>
+              <div style="flex:1"></div>
+              <span style="font-size:.62rem;color:var(--mu)">Bật nhóm này</span>
+              <div class="rm-sw" id="rmSw" onclick="RM.toggleGroup()"><i></i></div>
+              <button class="abtn abtn-danger abtn-sm" onclick="RM.delGroup()">🗑 Xóa nhóm</button>
+            </div>
+            <div style="font-size:.6rem;color:var(--mu2);margin-top:8px">Bot phải được thêm vào nhóm trước. Token bot nằm ở secret của máy chủ — không nhập tại đây.</div>
+          </div>
+
+          <div class="chart-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap">
+              <div class="chart-title" style="margin:0;color:var(--pu2)">Danh sách nhắc nhở</div>
+              <button class="abtn abtn-pu abtn-sm" onclick="RM.addRem()">➕ Thêm mốc nhắc</button>
+            </div>
+            <div class="rm-head">
+              <div>Chế độ &amp; giờ</div><div>Nội dung tin nhắn</div>
+              <div style="text-align:center">Trạng thái</div><div style="text-align:center">Xóa</div>
+            </div>
+            <div id="rmList"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);gap:10px;flex-wrap:wrap">
+              <span id="rmStat" style="font-size:.64rem;color:var(--mu)"></span>
+              <button class="abtn abtn-ok" onclick="RM.save(true,'Lưu cấu hình nhắc nhở')">💾 Lưu cấu hình</button>
+            </div>
+            <div style="font-size:.62rem;color:var(--mu);line-height:1.8;margin-top:10px">
+              <b style="color:var(--pu2)">Chế độ:</b>
+              <span style="color:var(--go)">Mỗi giờ</span> = lặp mỗi giờ tại phút chỉ định (0–59) ·
+              <span style="color:var(--gr)">Mỗi ngày</span> = 1 lần/ngày (HH:mm) ·
+              <span style="color:var(--bl)">Đúng giờ</span> = nhiều mốc cách nhau dấu phẩy (08:00,12:00,20:00) ·
+              <span style="color:var(--pk)">Cách giờ</span> <span>= mỗi N tiếng 1 lần, gửi vào các giờ chia hết cho N tại phút :00.</span>
+              <span>Mọi mốc tính theo giờ Việt Nam (GMT+7) và nhắc mỗi ngày.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="rmPaneLog" style="display:none">
+        <div class="chart-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div class="chart-title" style="margin:0;color:var(--pu2)">Lịch sử nhắc nhở (200 dòng gần nhất)</div>
+            <button class="abtn abtn-pu abtn-sm" onclick="RM.loadLog()">🔄 Làm mới</button>
+          </div>
+          <div class="rm-log rm-log-hd"><div>Thời gian (GMT+7)</div><div>Loại</div><div>Người</div><div>Nội dung</div><div>Kết quả</div></div>
+          <div id="rmLogList"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Ngày / Tháng — gộp 1 view -->
@@ -692,6 +776,7 @@
 //#include js/data-boot.js
 //#include js/upload.js
 //#include js/nav-donrut.js
+//#include js/remind.js
 //#include js/render.js
 //#include js/shift-rank.js
 </script>
