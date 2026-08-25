@@ -15,7 +15,7 @@
 //   TG_BOT_TOKEN  = token bot Telegram (dùng chung với super-function)
 //   TG_CRON_KEY   = chuỗi bí mật tự đặt, phải trùng với chuỗi trong pg_cron job
 //
-// SQL đi kèm: supabase_remind_setup.sql (bảng tg_remind_sent / tg_remind_log + cron job)
+// SQL đi kèm: supabase_remind_setup.sql (bảng tg_remind_sent + cron job)
 //
 // Múi giờ: TOÀN BỘ mốc giờ tính theo GMT+7. Deno Deploy chạy UTC nên KHÔNG dùng
 // getHours() của máy chủ — cộng 7 giờ rồi đọc bằng getUTC* (cùng cách với super-function).
@@ -109,9 +109,17 @@ function dueSlots(rem: Record<string, string>, v: Date): string[] {
   return out;
 }
 
-async function logRow(kind: string, who: string, detail: string, status: string) {
+// Lịch sử dùng CHUNG bảng audit_log (tab Lịch Sử của hệ thống) — chốt 25/08/2026,
+// bảng tg_remind_log riêng đã bỏ. CHỈ ghi khi GỬI HỎNG: mốc nhắc chạy mỗi giờ mà ghi
+// cả lần thành công thì lấp kín tab Lịch Sử chung; tin gửi được đã nằm sẵn trong Telegram.
+async function logFail(detail: string, reason: string) {
   try {
-    await sb.from("tg_remind_log").insert({ kind, who, detail: detail.slice(0, 300), status: status.slice(0, 200) });
+    await sb.from("audit_log").insert({
+      user_id: null,
+      username: "BOT NHẮC NHỞ",
+      action: "NHẮC NHỞ LỖI",
+      detail: (detail + " — " + reason).slice(0, 300),
+    });
   } catch (_e) { /* lịch sử hỏng không được chặn việc gửi tin */ }
 }
 
@@ -145,25 +153,23 @@ async function tick(): Promise<Response> {
         const r = await tgSend(String(g.chatId), String(g.topicId || ""), String(rem.content));
         if (r && r.ok) {
           sent++;
-          await logRow("send", "HỆ THỐNG", `[${g.name || g.chatId}] ${String(rem.content).slice(0, 120)}`, "ok");
         } else {
           failed++;
           // Gửi hỏng -> XÓA dấu đã-gửi để lượt tick sau thử lại (còn trong dung sai 2 phút)
           await sb.from("tg_remind_sent").delete()
             .eq("day_key", dayKey).eq("group_id", String(g.id)).eq("rem_id", String(rem.id)).eq("tag", tag);
-          await logRow("send", "HỆ THỐNG", `[${g.name || g.chatId}] ${String(rem.content).slice(0, 120)}`,
-            "fail: " + ((r && r.description) || "không rõ"));
+          await logFail(`[${g.name || g.chatId}] ${String(rem.content).slice(0, 100)}`,
+            (r && r.description) || "không rõ");
         }
         await new Promise((res) => setTimeout(res, 350)); // giãn nhịp, tránh giới hạn tốc độ Telegram
       }
     }
   }
 
-  // Dọn rác 1 lần/ngày: bỏ dấu đã-gửi cũ hơn 2 ngày + cắt lịch sử còn 60 ngày
+  // Dọn rác 1 lần/ngày: bỏ dấu đã-gửi cũ hơn 2 ngày
   if (v.getUTCHours() === 3 && v.getUTCMinutes() < 2) {
     const cut = new Date(Date.now() - 2 * 86400000);
     await sb.from("tg_remind_sent").delete().lt("day_key", dayKeyOf(new Date(cut.getTime() + 7 * 3600000)));
-    await sb.from("tg_remind_log").delete().lt("at", new Date(Date.now() - 60 * 86400000).toISOString());
   }
   return json({ ok: true, sent, failed });
 }
@@ -191,7 +197,6 @@ async function fromDashboard(req: Request, body: Record<string, any>): Promise<R
     if (!r || !r.ok) {
       return json({ ok: false, description: "Bot OK nhưng gửi vào nhóm lỗi: " + ((r && r.description) || "") + " (bot đã được thêm vào nhóm chưa? ID nhóm đúng chưa?)" }, 400);
     }
-    await logRow("cfg", prof!.username || "", "Kiểm tra kết nối nhóm " + chatId, "ok");
     return json({ ok: true, bot: me.result.username });
   }
 
@@ -200,7 +205,6 @@ async function fromDashboard(req: Request, body: Record<string, any>): Promise<R
     if (!text) return json({ ok: false, description: "Nội dung trống" }, 400);
     const r = await tgSend(chatId, topicId, text);
     if (!r || !r.ok) return json({ ok: false, description: (r && r.description) || "Gửi thất bại" }, 400);
-    await logRow("cfg", prof!.username || "", "Gửi thử: " + text.slice(0, 120), "ok");
     return json({ ok: true });
   }
 

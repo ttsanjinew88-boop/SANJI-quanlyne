@@ -40,29 +40,11 @@ create table if not exists public.tg_remind_sent(
 alter table public.tg_remind_sent enable row level security;
 
 
--- 2) LỊCH SỬ RIÊNG CỦA CHỨC NĂNG NHẮC NHỞ ---------------------
--- Tách khỏi audit_log chung để tab "Lịch Sử Nhắc Nhở" không lẫn với log toàn hệ thống.
-create table if not exists public.tg_remind_log(
-  id     bigserial primary key,
-  at     timestamptz not null default now(),
-  kind   text not null,             -- 'send' = bot gửi tin | 'cfg' = người dùng thao tác
-  who    text,                      -- tên tài khoản, hoặc 'HỆ THỐNG' khi động cơ gửi
-  detail text,
-  status text                       -- 'ok' hoặc 'fail: <lý do>'
-);
-create index if not exists tg_remind_log_at_idx on public.tg_remind_log(at desc);
-alter table public.tg_remind_log enable row level security;
-
-drop policy if exists "tgremind_log_read"  on public.tg_remind_log;
-drop policy if exists "tgremind_log_write" on public.tg_remind_log;
-
-create policy "tgremind_log_read" on public.tg_remind_log
-  for select to authenticated
-  using (public.my_role() in ('admin','totruong'));
-
-create policy "tgremind_log_write" on public.tg_remind_log
-  for insert to authenticated
-  with check (public.my_role() in ('admin','totruong'));
+-- 2) LỊCH SỬ ---------------------------------------------------
+-- KHÔNG có bảng riêng (chốt 25/08/2026): mọi thao tác ghi thẳng vào audit_log qua
+-- logAction() và hiện ở tab "Lịch Sử" chung của hệ thống. Động cơ chỉ ghi khi GỬI HỎNG
+-- (action 'NHẮC NHỞ LỖI', username 'BOT NHẮC NHỞ') — gửi thành công không ghi để khỏi
+-- lấp kín tab Lịch Sử. Không cần chạy SQL gì thêm cho phần này.
 
 
 -- 3) QUYỀN GHI CẤU HÌNH NHẮC NHỞ ------------------------------
@@ -85,9 +67,16 @@ $$;
 
 
 -- 4) ĐỘNG CƠ: gọi Edge Function mỗi phút ----------------------
--- ⚠ SỬA 2 CHỖ TRƯỚC KHI CHẠY:
+-- ⚠ SỬA 3 CHỖ TRƯỚC KHI CHẠY:
 --     <PROJECT_REF>  = mã dự án Supabase (phần đầu URL, vd abcdefghijklm)
 --     <TG_CRON_KEY>  = ĐÚNG chuỗi đã đặt ở secret TG_CRON_KEY tại BƯỚC 2
+--     <ANON_KEY>     = anon key của dự án (chính là SB_KEY trong dashboard_v2.html)
+--
+-- Vì sao phải gửi kèm Authorization + anon key?
+--   Nếu hàm còn bật "Verify JWT", cổng Edge Function chặn mọi lời gọi KHÔNG có JWT
+--   (trả 401 UNAUTHORIZED_NO_AUTH_HEADER) -> động cơ không bao giờ chạy. Anon key là
+--   một JWT hợp lệ nên qua được cổng; quyền thật vẫn do x-cron-key quyết định bên trong
+--   hàm. Gửi kèm cả hai = chạy đúng dù Verify JWT bật hay tắt.
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
 
@@ -104,7 +93,10 @@ select cron.schedule(
   $CRON$
   select net.http_post(
     url     := 'https://<PROJECT_REF>.supabase.co/functions/v1/tg-remind',
-    headers := jsonb_build_object('Content-Type','application/json','x-cron-key','<TG_CRON_KEY>'),
+    headers := jsonb_build_object(
+                 'Content-Type','application/json',
+                 'Authorization','Bearer <ANON_KEY>',
+                 'x-cron-key','<TG_CRON_KEY>'),
     body    := '{}'::jsonb,
     timeout_milliseconds := 20000
   );

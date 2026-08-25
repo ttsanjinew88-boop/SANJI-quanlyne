@@ -5,7 +5,7 @@
 // gửi thử và xem lịch sử. Múi giờ khóa cứng GMT+7 (server tự tính, không đọc giờ máy người dùng).
 // Token bot KHÔNG bao giờ có trong file này — nằm ở secret TG_BOT_TOKEN của Supabase.
 const RM={
-  CFG:{groups:[]}, cur:null, loaded:false, loading:false, view:'cfg', tickAt:0, dirty:false,
+  CFG:{groups:[]}, cur:null, loaded:false, loading:false, tickAt:0, dirty:false,
   MODES:[['','Chọn giờ'],['hourly','Mỗi giờ'],['daily','Mỗi ngày'],['exact','Đúng giờ'],['interval','Cách giờ']],
   canEdit(){return !!CUR_PROFILE&&(CUR_PROFILE.is_admin||roleOf(CUR_PROFILE).key==='totruong');},
   uid(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);},
@@ -37,16 +37,12 @@ const RM={
       await SB.saveReport('tgremind','all',RM.CFG);
       RM.dirty=false;
       if(notify)RM.chip('✓ Đã lưu cấu hình');
-      if(label)RM.log('cfg',label,'ok');
+      if(label)RM.log(label);
     }catch(e){alert('Lỗi lưu cấu hình nhắc nhở: '+(e.message||e));}
   },
-  // Ghi lịch sử RIÊNG của tab này (bảng tg_remind_log) — không trộn vào tab Lịch Sử chung
-  async log(kind,detail,status){
-    if(!SB.ready()||!CUR_PROFILE)return;
-    try{
-      await SB.client().from('tg_remind_log').insert({kind,who:CUR_PROFILE.username||'',detail:String(detail||'').slice(0,300),status:status||'ok'});
-    }catch(e){/* lịch sử hỏng không được chặn thao tác chính */}
-  },
+  // Lịch sử dùng CHUNG tab Lịch Sử của hệ thống (audit_log) — không có bảng/tab riêng
+  // (chốt 25/08/2026: bảng tg_remind_log đã bỏ hẳn).
+  log(detail){logAction('NHẮC NHỞ',String(detail||'').slice(0,300));},
   chip(t){
     const el=document.getElementById('rmChip');if(!el)return;
     el.textContent=t;el.style.opacity='1';
@@ -126,7 +122,7 @@ const RM={
     try{
       await RM.call({action:'test',chatId:g.chatId,topicId:g.topicId||'',text:r.content});
       RM.chip('✓ Đã gửi thử tới nhóm');
-      RM.log('cfg','Gửi thử mốc nhắc tới nhóm "'+(g.name||'')+'"','ok');
+      RM.log('Gửi thử mốc nhắc tới nhóm "'+(g.name||'')+'"');
     }catch(e){alert('Gửi thử lỗi: '+(e.message||e));}
   },
   async testConn(){
@@ -138,18 +134,8 @@ const RM={
       const j=await RM.call({action:'check',chatId:g.chatId,topicId:g.topicId||''});
       el.style.color='var(--gr)';
       el.textContent='✅ Bot @'+(j.bot||'')+' — đã gửi tin kiểm tra vào nhóm.';
-      RM.log('cfg','Kiểm tra kết nối nhóm "'+(g.name||'')+'"','ok');
+      RM.log('Kiểm tra kết nối nhóm "'+(g.name||'')+'"');
     }catch(e){el.style.color='var(--re)';el.textContent='❌ '+(e.message||e);}
-  },
-
-  // ---------- khung nhìn ----------
-  setView(v,el){
-    RM.view=v;
-    el.parentElement.querySelectorAll('.vt-btn').forEach(t=>t.classList.remove('active'));
-    el.classList.add('active');
-    document.getElementById('rmPaneCfg').style.display=(v==='cfg')?'block':'none';
-    document.getElementById('rmPaneLog').style.display=(v==='log')?'block':'none';
-    if(v==='log')RM.loadLog();
   },
 
   // ---------- render ----------
@@ -221,33 +207,6 @@ const RM={
     if(!g){el.textContent='';return;}
     const on=g.reminders.filter(r=>r.enabled!==false).length;
     el.textContent=g.reminders.length+' mốc nhắc · '+on+' đang bật';
-  },
-
-  // ---------- lịch sử riêng ----------
-  async loadLog(){
-    const w=document.getElementById('rmLogList');
-    w.innerHTML='<div style="padding:14px 4px;font-size:.68rem;color:var(--mu)">Đang tải...</div>';
-    try{
-      const{data,error}=await SB.client().from('tg_remind_log').select('at,kind,who,detail,status').order('at',{ascending:false}).limit(200);
-      if(error)throw error;
-      if(!data||!data.length){w.innerHTML='<div style="padding:14px 4px;font-size:.68rem;color:var(--mu)">Chưa có ghi nhận nào.</div>';return;}
-      w.innerHTML=data.map(it=>{
-        const ok=String(it.status||'').indexOf('ok')===0;
-        return '<div class="rm-log">'+
-          '<div class="rm-log-t">'+hesc(RM.fmtTime(it.at))+'</div>'+
-          '<div>'+(it.kind==='send'?'Gửi tin':'Thao tác')+'</div>'+
-          '<div data-noi18n>'+hesc(it.who||'HỆ THỐNG')+'</div>'+
-          '<div data-noi18n>'+hesc(it.detail||'')+'</div>'+
-          '<div style="color:'+(ok?'var(--gr)':'var(--re)')+'" data-noi18n>'+hesc(it.status||'')+'</div>'+
-        '</div>';
-      }).join('');
-    }catch(e){w.innerHTML='<div style="padding:14px 4px;font-size:.68rem;color:var(--re)">Lỗi tải lịch sử: '+hesc(e.message||String(e))+' — đã chạy supabase_remind_setup.sql chưa?</div>';}
-  },
-  fmtTime(iso){
-    // Hiển thị theo GMT+7 để khớp với giờ động cơ chấm mốc
-    const d=new Date(iso);if(isNaN(d))return String(iso||'');
-    const v=new Date(d.getTime()+7*3600000),p=n=>n<10?'0'+n:''+n;
-    return p(v.getUTCDate())+'/'+p(v.getUTCMonth()+1)+'/'+v.getUTCFullYear()+' '+p(v.getUTCHours())+':'+p(v.getUTCMinutes())+':'+p(v.getUTCSeconds());
   }
 };
 window.RM=RM;

@@ -180,10 +180,6 @@
     </div>
     <div id="rmMain" style="display:none">
       <div id="rmStatus" style="border-radius:8px;padding:9px 13px;margin-bottom:14px;font-size:.66rem"></div>
-      <div class="view-toggle">
-        <div class="vt-btn active" onclick="RM.setView('cfg',this)">Cấu Hình Nhắc Nhở</div>
-        <div class="vt-btn" onclick="RM.setView('log',this)">Lịch Sử Nhắc Nhở</div>
-      </div>
 
       <div id="rmPaneCfg">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
@@ -243,16 +239,6 @@
         </div>
       </div>
 
-      <div id="rmPaneLog" style="display:none">
-        <div class="chart-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-            <div class="chart-title" style="margin:0;color:var(--pu2)">Lịch sử nhắc nhở (200 dòng gần nhất)</div>
-            <button class="abtn abtn-pu abtn-sm" onclick="RM.loadLog()">🔄 Làm mới</button>
-          </div>
-          <div class="rm-log rm-log-hd"><div>Thời gian (GMT+7)</div><div>Loại</div><div>Người</div><div>Nội dung</div><div>Kết quả</div></div>
-          <div id="rmLogList"></div>
-        </div>
-      </div>
     </div>
   </div>
 
