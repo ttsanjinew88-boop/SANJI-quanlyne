@@ -347,6 +347,11 @@ function applyPerms(){
   if(tsb4)tsb4.style.display='';
   const sat=document.getElementById('sopAdminTools');
   if(sat)sat.style.display=isTTup?'inline-flex':'none';
+  // Kiểm Tra Nghiệp Vụ (T5): MỌI tài khoản đăng nhập đều LÀM BÀI được;
+  // ADMIN + Tổ Trưởng thêm 3 tab nhỏ Quản Lý Đề / Nhân Viên / Chấm Điểm
+  // (EX.renderViews lọc theo quyền, Edge Function + Apps Script kiểm lại lần nữa).
+  const tsb5=document.getElementById('tsb5');
+  if(tsb5)tsb5.style.display='';
   // nếu đang đứng ở BC tool mà mất quyền -> về tool 1
   if(!canView('bc')&&document.getElementById('t2').style.display!=='none'){
     switchTool('t1');

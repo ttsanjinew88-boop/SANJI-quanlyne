@@ -105,6 +105,7 @@
   <button class="tool-sw-btn" id="tsb2" onclick="switchTool('t2')">BÁO CÁO ĐẠI LÝ - GỬI FILE</button>
   <button class="tool-sw-btn" id="tsb3" onclick="switchTool('t3')">LỌC FILE NTK</button>
   <button class="tool-sw-btn" id="tsb4" style="display:none" onclick="switchTool('t4')">QUY TRÌNH LÀM VIỆC</button>
+  <button class="tool-sw-btn" id="tsb5" style="display:none" onclick="switchTool('t5')">KIỂM TRA NGHIỆP VỤ</button>
 </div>
 
 <div id="t1">
@@ -671,6 +672,12 @@
 <!-- ============ TAB: XẾP HẠNG ============ -->
 <div class="pg" id="pg-rank">
   <div class="sec-hdr pu">Xếp hạng — <span id="rkpl" style="color:var(--tx);text-transform:none;letter-spacing:0;font-size:.9em"></span></div>
+  <div class="view-toggle" id="rkViewToggle">
+    <button class="vt-btn active" id="rkvHs" onclick="srkv('hs')">Hiệu Suất</button>
+    <button class="vt-btn" id="rkvTest" onclick="srkv('test')">Test Nghiệp Vụ</button>
+  </div>
+  <div id="rk-test" style="display:none"></div>
+  <div id="rk-hs">
   <div class="trophy-section">
     <div class="trophy-banner vip-banner">&#9733; Vinh Danh FKVIP &#9733;</div>
     <div id="rk-vip"></div>
@@ -683,6 +690,7 @@
     <div class="dp-header"><div class="dp-name" id="dpn">-</div><span class="fk-card-type" id="dpb">-</span><div class="dp-stats"><span>Điểm: <b id="dp_sc">-</b></span><span>Đơn: <b id="dp_ct">-</b></span></div></div>
     <div style="height:160px"><canvas id="dp_ch"></canvas></div>
   </div>
+  </div><!-- /rk-hs -->
 </div>
 
 <!-- ============ TAB: LỊCH SỬ THAO TÁC ============ -->
@@ -1115,10 +1123,30 @@
   </div>
 </div><!-- /t4 -->
 
+<!-- ============ T5 — KIỂM TRA NGHIỆP VỤ (dữ liệu ở Google Sheet, đi qua Edge Function) ============ -->
+<div id="t5" style="display:none" class="pg active">
+  <div class="tool-hdr">
+    <img class="hdr-logo" src="https://media.88new11.com/public/new88/site-tong/73d3f524-a313-4761-8c67-6071cab90841.png" alt="SANJI" style="object-fit:cover">
+    <div>
+      <div class="tool-hdr-title">Kiểm Tra Nghiệp Vụ</div>
+      <div class="tool-hdr-sub">SANJI</div>
+    </div>
+    <div class="tool-hdr-note">Bài test nội bộ · dữ liệu lưu trên Google Sheet</div>
+    <div class="lang-sw" id="btnLang5" data-noi18n></div>
+  </div>
+  <div class="view-toggle" id="exViews"></div>
+  <div id="exBody"></div>
+
+  <div class="dr-modal" id="exModal" onclick="if(event.target===this)EX.closeModal()">
+    <div class="box" id="exModalBox"></div>
+  </div>
+</div><!-- /t5 -->
+
 <script>
 //#include js/bc.js
 //#include js/ntk.js
 //#include js/sop.js
+//#include js/exam.js
 </script>
 </body>
 </html>

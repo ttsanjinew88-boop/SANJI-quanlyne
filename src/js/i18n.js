@@ -1057,13 +1057,104 @@ const I18N={
   "Khác tên · cùng IP":"Different names · same IP",
   "Khác tên · cùng IP · cùng chi nhánh":"Different names · same IP · same branch",
   "Số tài khoản tối thiểu":"Minimum accounts",
-  "Gom theo IP (không cần cùng tên) — diện nghi ngờ, nhân viên check rồi tự chuyển sang tab Lạm Dụng.":"Grouped by IP (names need not match) — suspects for staff to review, then move to the Abuse tab."
+  "Gom theo IP (không cần cùng tên) — diện nghi ngờ, nhân viên check rồi tự chuyển sang tab Lạm Dụng.":"Grouped by IP (names need not match) — suspects for staff to review, then move to the Abuse tab.",
+
+  /* ---- T5 — KIỂM TRA NGHIỆP VỤ ---- */
+  "KIỂM TRA NGHIỆP VỤ":"SKILLS TEST",
+  "Kiểm Tra Nghiệp Vụ":"Skills Test",
+  "Bài test nội bộ · dữ liệu lưu trên Google Sheet":"Internal test · data stored in Google Sheets",
+  "Làm Bài":"Take Test","Bài Của Tôi":"My Tests","Quản Lý Đề":"Question Bank",
+  "Quản Lý Nhân Viên":"Staff Management","Chấm Điểm":"Grading",
+  "Hiệu Suất":"Performance","Test Nghiệp Vụ":"Skills Test",
+  /* màn giới thiệu + làm bài */
+  "Bài kiểm tra nghiệp vụ":"Skills assessment",
+  "Chúc bạn làm bài thật tốt. Đọc kỹ đề trước khi trả lời.":"Good luck. Read each question carefully before answering.",
+  "Tổng câu":"Questions","Phút":"Minutes","Có trả lời":"Answered",
+  "Bạn đang dùng":"You are using","đề riêng":"a custom exam","do Tổ Trưởng thiết lập.":"set by your Team Leader.",
+  "Bạn có một bài":"You have a test","đang làm dở":"in progress",
+  "Tài khoản:":"Account:","· Lượt còn lại:":"· Attempts left:","· Đã làm:":"· Taken:","lần":"times",
+  "Bạn đã hết lượt làm bài. Liên hệ Tổ Trưởng để được cấp thêm.":"You have no attempts left. Contact your Team Leader for more.",
+  "Bắt đầu làm bài →":"Start the test →","Làm tiếp bài dở →":"Resume test →","Đang chuẩn bị đề…":"Preparing your exam…",
+  "Đang tải dữ liệu bài test…":"Loading test data…","Đang tải bài đã nộp…":"Loading submitted tests…",
+  "Đang tải danh sách bài…":"Loading submissions…","Đang tải danh sách tài khoản…":"Loading accounts…",
+  "Đang tải nội dung bài…":"Loading test content…","Đang tải xếp hạng…":"Loading ranking…",
+  "← Câu trước":"← Previous","Câu tiếp →":"Next →","Nộp bài ✓":"Submit ✓","Nộp bài ngay":"Submit now",
+  "Danh sách câu":"Question list","Đã trả lời":"Answered","Bỏ trống":"Blank","(Bỏ trống)":"(Blank)",
+  "Đáp án được ẩn — chỉ Tổ Trưởng thấy khi chấm bài":"The model answer is hidden — only the Team Leader sees it when grading",
+  "Nhập câu trả lời của bạn…":"Type your answer…",
+  "Đã nộp bài":"Test submitted",
+  "Bài của bạn đã lưu về hệ thống, chờ Tổ Trưởng chấm điểm.":"Your test has been saved and is waiting to be graded.",
+  "Mã bài:":"Test ID:","Xem bài của tôi":"View my tests","Về trang đầu":"Back to start",
+  /* bài của tôi + chấm điểm */
+  "Bài đã nộp":"Submitted tests","Chờ chấm":"Awaiting grading","Đã chấm":"Graded",
+  "Bạn trả lời:":"Your answer:","Nhân viên trả lời:":"Staff answer:","✓ Đáp án mẫu:":"✓ Model answer:","✓ Đáp án:":"✓ Answer:",
+  "Điểm câu:":"Question score:",
+  "Bạn chưa có bài test nào.":"You have not taken any test yet.",
+  "Chưa có bài nào được nộp.":"No test has been submitted yet.",
+  "Chọn một bài bên trái để chấm.":"Pick a test on the left to grade.",
+  "Chưa có câu hỏi nào trong chủ đề này.":"No question in this topic yet.",
+  "Chưa có bài test nào được chấm điểm trong kỳ này.":"No graded test in this period yet.",
+  "Đáp án mẫu đang được ẩn. Tổ Trưởng có thể bật trong Quản Lý Đề → Cài đặt bài thi.":"Model answers are hidden. A Team Leader can turn them on in Question Bank → Test settings.",
+  "Mỗi câu tối đa 1 điểm — nhập được số lẻ. Tổng = cộng các câu / số câu.":"Each question is worth up to 1 point (decimals allowed). Total = sum of questions / question count.",
+  "Chấm điểm":"Grade","Ghi chú (tùy chọn)…":"Note (optional)…","Lưu chấm điểm":"Save grading",
+  /* "1 điểm" đã có ở khối trên (dòng ~329) — thêm lại sẽ ĐÈ bản cũ, âm thầm */
+  "0 điểm":"0 pt","0.25 điểm":"0.25 pt","0.5 điểm":"0.5 pt","0.75 điểm":"0.75 pt",
+  "Bài của":"Test by","↻ Tải lại danh sách":"↻ Reload list","↻ Tải lại":"↻ Reload",
+  /* quản lý đề */
+  "Chủ đề & số câu":"Topics & question count","Tất cả chủ đề":"All topics","＋ Thêm chủ đề":"＋ Add topic",
+  "Cài đặt bài thi":"Test settings","Thời gian làm bài (phút)":"Time limit (minutes)",
+  "Cho nhân viên xem đáp án mẫu khi tra cứu bài cũ":"Let staff see model answers when reviewing past tests",
+  "Lưu cài đặt":"Save settings","Thêm câu hỏi vào ngân hàng":"Add a question to the bank","Sửa câu hỏi":"Edit question",
+  "Độ khó":"Difficulty","Dễ":"Easy","Khó":"Hard",
+  "Nội dung câu hỏi":"Question text","Nhập nội dung câu hỏi…":"Type the question…",
+  "Link hình ảnh (tùy chọn)":"Image link (optional)","Dán link ảnh hoặc link Google Drive…":"Paste an image link or a Google Drive link…",
+  "Google Drive: chuột phải ảnh → Chia sẻ → “Bất kỳ ai có đường liên kết” → Sao chép liên kết → dán vào đây.":"Google Drive: right-click the image → Share → “Anyone with the link” → Copy link → paste it here.",
+  "✓ Đáp án mẫu (chỉ Tổ Trưởng thấy)":"✓ Model answer (Team Leader only)","Nhập đáp án đúng…":"Type the correct answer…",
+  "＋ Lưu câu hỏi":"＋ Save question","Hủy sửa":"Cancel edit","Ngân hàng câu hỏi":"Question bank",
+  "Ngân hàng:":"Bank:","câu":"questions",
+  "Thêm chủ đề mới":"New topic","Sửa chủ đề":"Edit topic","Tên chủ đề":"Topic name",
+  "Ví dụ: Sảnh — Xổ số":"Example: Lobby — Lottery","Màu nhận diện":"Colour",
+  /* quản lý nhân viên */
+  "Quản lý lượt test":"Test attempts","Vai trò":"Role","Cấu trúc đề":"Exam structure",
+  "Lượt còn lại":"Attempts left","Đã dùng":"Used","Đề riêng":"Custom exam","Đề chung":"Shared exam",
+  "Đề chung — dùng cấu trúc đề mặc định":"Shared exam — use the default structure",
+  "Reset đã dùng":"Reset used count","Cấu trúc đề riêng —":"Custom exam structure —","Lưu cấu trúc đề":"Save exam structure",
+  "Đặt số câu mỗi chủ đề cho riêng người này (chủ đề yếu thì cho nhiều câu hơn). Tích “Đề chung” để dùng cấu trúc đề mặc định.":"Set the number of questions per topic for this person (more questions on weaker topics). Tick “Shared exam” to use the default structure.",
+  "Danh sách lấy thẳng từ tài khoản đăng nhập của hệ thống — không phải gõ tay tên nhân viên.":"The list comes straight from system login accounts — no need to type staff names.",
+  "Ô Lượt còn lại tự giảm 1 mỗi lần bắt đầu bài; về 0 (ô đỏ) là hết lượt. Muốn cấp thêm thì gõ số mới rồi bấm Lưu.":"Attempts left drops by 1 each time a test starts; 0 (red box) means no attempts left. To grant more, type a new number and press Save.",
+  /* xếp hạng test */
+  "Tỷ lệ đúng":"Accuracy","Ngày làm":"Taken on",
+  /* thông báo */
+  "Đã lưu câu hỏi":"Question saved","Đã sửa câu hỏi":"Question updated","Đã xóa câu hỏi":"Question deleted",
+  "Đã thêm chủ đề":"Topic added","Đã sửa chủ đề":"Topic updated","Đã xóa chủ đề":"Topic deleted",
+  "Đã lưu cài đặt":"Settings saved","Đã lưu chấm điểm":"Grading saved","Đã reset":"Reset done",
+  "Đã khôi phục bài đang làm dở":"Resumed your test in progress",
+  "Xóa câu hỏi này?":"Delete this question?","Xóa chủ đề này?":"Delete this topic?",
+  "Bạn chắc chắn nộp bài?":"Are you sure you want to submit?",
+  "Vui lòng nhập nội dung câu hỏi.":"Please enter the question text.",
+  "Vui lòng nhập tên chủ đề.":"Please enter a topic name.",
+  "Chưa có chủ đề nào — tạo chủ đề trước.":"No topic yet — create one first.",
+  "Hết giờ! Bài của bạn sẽ được nộp.":"Time is up! Your test will be submitted.",
+  "CHẤM ĐIỂM TEST":"TEST GRADING"
   },
   /* ---- Chuỗi có số/biến: khớp bằng regex, giữ nguyên phần $1/$2 ---- */
   RX:[
     /* ⚠ THỨ TỰ QUAN TRỌNG: luật CỤ THỂ phải đứng trước luật tổng quát (vd ^Tháng (.+)$) */
     /* T4 — Quy Trình Làm Việc: chuỗi do JS ghép có kèm SỐ nên phải khớp bằng regex */
     /* ⚠ trs() TRIM chuỗi trước khi khớp -> regex KHÔNG được có khoảng trắng ở hai đầu */
+    /* T5 — Kiểm Tra Nghiệp Vụ: chuỗi ghép kèm SỐ */
+    [/^Câu (\d+) \/ (\d+) · Đã trả lời (\d+)$/,"Question $1 / $2 · $3 answered"],
+    [/^\((\d+) câu, bắt đầu (.+)\)\. Bấm nút dưới để làm tiếp — không tốn thêm lượt\.$/,"($1 questions, started $2). Press the button below to continue — no extra attempt is used."],
+    [/^Còn (\d+) bài chờ chấm$/,"$1 test(s) awaiting grading"],
+    [/^Tổng đề riêng: (\d+) câu$/,"Custom exam total: $1 questions"],
+    [/^Đã chấm · (.+)$/,"Graded · $1"],
+    [/^(\d+) phút (\d+) giây$/,"$1 min $2 sec"],
+    [/^(.+) · (\d+) phút (\d+) giây · (\d+) câu$/,"$1 · $2 min $3 sec · $4 questions"],
+    [/^(.+) · (\d+) phút (\d+) giây$/,"$1 · $2 min $3 sec"],
+    [/^Chủ đề này có (\d+) câu hỏi, xóa sẽ mất luôn cả (\d+) câu\. Tiếp tục\?$/,"This topic has $1 questions; deleting it removes all $2. Continue?"],
+    [/^Bạn còn (\d+) câu chưa trả lời\. Vẫn nộp bài\?$/,"You still have $1 unanswered question(s). Submit anyway?"],
+    [/^Đưa số lần "Đã dùng" của (.+) về 0\? \(không đổi lượt còn lại\)$/,"Reset the used count of $1 to 0? (attempts left unchanged)"],
+    [/^Đã lưu (.+)$/,"Saved $1"],
     /* Nhắc Nhở Telegram — chuỗi ghép kèm SỐ */
     [/^(\d+) mốc nhắc · (\d+) đang bật$/,"$1 reminders · $2 enabled"],
     [/^✅ Động cơ đang chạy — lượt kiểm tra gần nhất dưới 1 phút trước \(giờ Việt Nam GMT\+7\)\.$/,"✅ Engine running — last check less than 1 minute ago (Vietnam time GMT+7)."],
@@ -1260,7 +1351,7 @@ function i18nSyncBtn(){
   const html=
     '<button type="button" class="lang-opt'+(en?"":" on")+'" onclick="setLang(\'vi\')" title="Tiếng Việt">'+I18N_FLAG.vi+'<span>VI</span></button>'+
     '<button type="button" class="lang-opt'+(en?" on":"")+'" onclick="setLang(\'en\')" title="English">'+I18N_FLAG.en+'<span>EN</span></button>';
-  ["btnLang","btnLang2","btnLang3","btnLang4"].forEach(id=>{
+  ["btnLang","btnLang2","btnLang3","btnLang4","btnLang5"].forEach(id=>{
     const b=document.getElementById(id);
     if(b)b.innerHTML=html;
   });

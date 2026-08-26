@@ -21,7 +21,8 @@ $includes = @(
   @('//#include js/shift-rank.js',  'js/shift-rank.js'),
   @('//#include js/bc.js',          'js/bc.js'),
   @('//#include js/ntk.js',         'js/ntk.js'),
-  @('//#include js/sop.js',         'js/sop.js')
+  @('//#include js/sop.js',         'js/sop.js'),
+  @('//#include js/exam.js',        'js/exam.js')
 )
 
 $tpl = [IO.File]::ReadAllText((Join-Path $root 'src/dashboard_v2.src.html'), $enc)

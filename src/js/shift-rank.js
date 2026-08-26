@@ -451,7 +451,19 @@ function rShift(){
 }
 
 // ===== TAB: XẾP HẠNG =====
+// Tab Xếp Hạng có 2 view: Hiệu Suất (ảnh cúp theo điểm duyệt đơn/KM) và
+// Test Nghiệp Vụ (điểm bài test, dữ liệu ở Google Sheet — module EX ở T5).
+let rkView='hs';
+function srkv(v){
+  rkView=v;
+  document.getElementById('rkvHs').classList.toggle('active',v==='hs');
+  document.getElementById('rkvTest').classList.toggle('active',v==='test');
+  document.getElementById('rk-hs').style.display=v==='hs'?'':'none';
+  document.getElementById('rk-test').style.display=v==='test'?'':'none';
+  if(v==='test'&&typeof EX!=='undefined')EX.renderRank('rk-test',CUR_MONTH);
+}
 function rRank(){
+  if(rkView==='test'){if(typeof EX!=='undefined')EX.renderRank('rk-test',CUR_MONTH);return;}
   // Tháng hiện tại: ẩn tên vinh danh từ ngày 1-25 (BXH còn biến động), hiện từ ngày 26; tháng cũ luôn hiện
   const hideNames=(CUR_MONTH===curMonthKey())&&(new Date().getDate()<=25);
   document.getElementById("rkpl").innerHTML="Tháng "+D.month+(hideNames?" <span style='color:var(--go);font-size:.85em'>— tên vinh danh sẽ hiển thị từ ngày 26 hàng tháng</span>":"");
