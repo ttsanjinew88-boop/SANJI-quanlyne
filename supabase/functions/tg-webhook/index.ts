@@ -19,10 +19,6 @@
 //                   Nguồn chính giờ là bảng reports type='tgadmins' month='all'
 //                   (Admin quản lý qua dashboard -> tab Quản Trị). RỖNG cả hai
 //                   nguồn = cho phép tất cả (như trước).
-//    GS_EXAM_URL   = URL Web App /exec của google_sheet_test.gs (tab Kiểm Tra
-//                    Nghiệp Vụ). Dữ liệu test nằm trong Google Sheet, hàm này
-//                    chỉ chuyển tiếp và gắn danh tính đã xác thực.
-//    GS_EXAM_TOKEN = chuỗi bí mật trùng với biến TOKEN trong file .gs đó.
 // ============================================================
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -171,76 +167,6 @@ async function sendReport(req: Request): Promise<Response> {
   }
 }
 
-// ============================================================
-// KIỂM TRA NGHIỆP VỤ (tab T5) — proxy tới Google Apps Script
-// ------------------------------------------------------------
-// Vì sao phải đi qua đây thay vì gọi thẳng Apps Script từ HTML:
-// repo là PUBLIC, mọi URL/token nằm trong dashboard đều đọc được -> người
-// ngoài sẽ lấy sạch ĐÁP ÁN MẪU và gọi được cả hàm sửa điểm. Ở đây URL và
-// token nằm trong secret, và danh tính + vai trò do server xác định (JWT),
-// frontend KHÔNG thể tự khai mình là Tổ Trưởng.
-// Dữ liệu vẫn nằm 100% trong Google Sheet — Supabase chỉ chuyển tiếp, không lưu.
-// Secret cần thêm: GS_EXAM_URL (URL /exec) · GS_EXAM_TOKEN (trùng TOKEN trong .gs)
-// ============================================================
-const GS_EXAM_URL = Deno.env.get("GS_EXAM_URL") ?? "";
-const GS_EXAM_TOKEN = Deno.env.get("GS_EXAM_TOKEN") ?? "";
-// Hành động chỉ dành cho Tổ Trưởng trở lên (Apps Script kiểm lại lần nữa)
-const EXAM_TT_ONLY = new Set([
-  "members", "saveMember", "resetUsed", "saveMemberCfg", "list", "sub", "grade",
-  "addQ", "updQ", "delQ", "addT", "updT", "delT", "setCfg", "setSettings",
-]);
-
-async function examProxy(
-  body: any,
-  caller: { id: string; username: string; role: string },
-): Promise<Response> {
-  if (!GS_EXAM_URL || !GS_EXAM_TOKEN) {
-    return new Response(JSON.stringify({ ok: false, description: "Chưa cấu hình secret GS_EXAM_URL / GS_EXAM_TOKEN" }), { headers: CORS });
-  }
-  const ex = body.ex ?? {};
-  const exAction = String(ex.action ?? "");
-  const isTT = caller.role === "admin" || caller.role === "totruong";
-  if (EXAM_TT_ONLY.has(exAction) && !isTT) {
-    return new Response(JSON.stringify({ ok: false, description: "Chức năng này chỉ dành cho Tổ Trưởng trở lên" }), { status: 403, headers: CORS });
-  }
-
-  // Màn "Quản Lý Nhân Viên" cần danh sách tài khoản -> lấy từ profiles rồi gửi kèm,
-  // để Apps Script hợp nhất với sheet Members (khỏi phải gõ tay tên nhân viên).
-  let profiles: unknown = null;
-  if (exAction === "members") {
-    const { data } = await sb.from("profiles").select("user_id, username, is_admin, perms").order("username");
-    profiles = (data ?? []).map((p: any) => ({
-      user_id: p.user_id,
-      username: p.username,
-      role: p.is_admin ? "admin" : (p.perms?._role === "totruong" ? "totruong" : "nhanvien"),
-    }));
-  }
-
-  try {
-    const r = await fetch(GS_EXAM_URL, {
-      method: "POST",
-      // text/plain: Apps Script không trả lời preflight OPTIONS
-      headers: { "content-type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({
-        token: GS_EXAM_TOKEN,
-        action: exAction,
-        payload: ex.payload ?? {},
-        caller,
-        profiles,
-      }),
-      redirect: "follow",
-    });
-    const txt = await r.text();
-    let j: any = null;
-    try { j = JSON.parse(txt); } catch (_e) { /* Apps Script trả HTML lỗi */ }
-    if (!j) return new Response(JSON.stringify({ ok: false, description: "Apps Script không trả JSON — kiểm tra lại deploy (Web app · Anyone) và URL /exec" }), { headers: CORS });
-    if (!j.ok) return new Response(JSON.stringify({ ok: false, description: j.error || "Lỗi Apps Script" }), { headers: CORS });
-    return new Response(JSON.stringify({ ok: true, data: j.data }), { headers: CORS });
-  } catch (e) {
-    return new Response(JSON.stringify({ ok: false, description: String((e as any)?.message || e) }), { headers: CORS });
-  }
-}
-
 // Thao tác quản trị trên 1 tài khoản khác:
 //   reset_2fa   — chỉ ADMIN (hoặc Tổ Trưởng với Nhân viên)
 //   delete_user — CHỈ ADMIN, xóa hẳn tài khoản (auth + profile + login_security)
@@ -250,16 +176,11 @@ async function handleAction(req: Request): Promise<Response> {
   const { data: uinfo, error: uerr } = await anon.auth.getUser(jwt);
   if (uerr || !uinfo?.user) return new Response(JSON.stringify({ ok: false, description: "Phiên không hợp lệ" }), { status: 401, headers: CORS });
   const body = await req.json().catch(() => ({}));
-  if (body.action !== "reset_2fa" && body.action !== "delete_user" && body.action !== "exam")
+  if (body.action !== "reset_2fa" && body.action !== "delete_user")
     return new Response(JSON.stringify({ ok: false, description: "Hành động không hợp lệ" }), { status: 400, headers: CORS });
 
   const { data: caller } = await sb.from("profiles").select("is_admin, perms, username").eq("user_id", uinfo.user.id).maybeSingle();
   const callerRole = caller?.is_admin ? "admin" : (caller?.perms?._role === "totruong" ? "totruong" : "nhanvien");
-
-  // ----- KIỂM TRA NGHIỆP VỤ (tab T5): proxy sang Apps Script -----
-  if (body.action === "exam") {
-    return await examProxy(body, { id: uinfo.user.id, username: caller?.username || "", role: callerRole });
-  }
 
   const targetId = String(body.target || "");
   const { data: target } = await sb.from("profiles").select("is_admin, perms, username").eq("user_id", targetId).maybeSingle();

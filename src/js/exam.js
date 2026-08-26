@@ -1,12 +1,16 @@
 // ===================== T5 — KIỂM TRA NGHIỆP VỤ =====================
-// Dữ liệu nằm 100% trong Google Sheet (Apps Script `google_sheet_test.gs`).
-// Mọi request đi qua Edge Function `super-function` (action 'exam'): URL + token
-// nằm trong secret Supabase, danh tính/vai trò do server xác định từ JWT.
-// Frontend KHÔNG bao giờ nhận đáp án mẫu khi đang làm bài, và không thể tự khai
-// mình là Tổ Trưởng (repo public — mọi thứ trong file này đều đọc được).
+// Dữ liệu nằm trong Supabase (bảng exam_*, xem supabase_exam_setup.sql).
 //
-// Khóa dữ liệu theo user_id (UUID Supabase) chứ không theo tên: đổi tên tài khoản
-// vẫn giữ nguyên lịch sử test (bài học từ vụ CHAMY -> SOLIS ở bảng bất thường).
+// ⚠ Repo PUBLIC + dashboard chạy bằng anon key -> KHÔNG tin frontend. Bảo mật do
+// RLS + RPC ở tầng Postgres quyết định, không phải do code trong file này:
+//   • Nhân viên KHÔNG có quyền SELECT trên exam_questions/submissions/answers.
+//     Họ chỉ gọi được các RPC exam_* (SECURITY DEFINER) — đề trả về đã cắt bỏ
+//     đáp án mẫu, và số lượt/điểm do server ghi.
+//   • Tổ Trưởng trở lên mới đọc ghi thẳng các bảng (dùng cho 3 tab quản lý).
+// Vì vậy ẩn nút ở đây chỉ là cho gọn mắt; chặn thật nằm trong SQL.
+//
+// Khóa dữ liệu theo user_id (UUID) chứ không theo tên: đổi tên tài khoản vẫn giữ
+// nguyên lịch sử test (bài học từ vụ CHAMY -> SOLIS ở bảng bất thường).
 const EX = {
   VIEWS: [
     { k: 'lam',  t: 'Làm Bài' },
@@ -16,38 +20,25 @@ const EX = {
     { k: 'cham', t: 'Chấm Điểm', tt: 1 }
   ],
   view: 'lam',
-  D: null,          // dữ liệu boot: {topics,bank,config,settings,me,pending}
+  D: null,          // {topics,config,settings,me,pending}
+  bank: null,       // ngân hàng câu hỏi — CHỈ tải khi là Tổ Trưởng trở lên
   loading: false,
   stage: 'intro',   // intro | doing | done
-  run: null,        // bài đang làm: {sid,startedAt,duration,questions,answers,cur}
+  run: null,        // bài đang làm: {id,code,duration,t0,questions,answers,cur}
   tmr: null,
-  subs: null,       // danh sách bài cho TT (tab Chấm Điểm)
-  mine: null,       // bài của chính mình
-  members: null,
-  editQ: null,      // id câu hỏi đang sửa
-  editT: null,      // id chủ đề đang sửa
-  bankFilter: 'all',
-  selTopic: null,   // chủ đề đang xem ở rail tab Quản Lý Đề
-  selSub: null,     // mã bài đang chấm
+  subs: null, mine: null, members: null,
+  editQ: null, editT: null, selTopic: null, selSub: null, _qt: null,
 
   canEdit() { const r = CUR_PROFILE ? roleOf(CUR_PROFILE) : null; return !!(CUR_PROFILE && (CUR_PROFILE.is_admin || (r && r.key === 'totruong'))); },
 
-  // ---------- gọi Edge Function ----------
-  async call(action, payload) {
+  // ---------- gọi Supabase ----------
+  async rpc(fn, args) {
     if (!SB.ready()) throw new Error('Chưa cấu hình cloud');
-    const { data: sess } = await SB.client().auth.getSession();
-    const token = sess && sess.session && sess.session.access_token;
-    if (!token) throw new Error('Phiên hết hạn, đăng nhập lại');
-    const r = await fetch(SB_URL + '/functions/v1/super-function', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'exam', ex: { action, payload: payload || {} } })
-    });
-    let j = null; try { j = await r.json(); } catch (e) {}
-    if (!j) throw new Error('Không gọi được máy chủ (đã deploy lại super-function chưa?)');
-    if (!j.ok) throw new Error(j.description || 'Lỗi không rõ');
-    return j.data;
+    const { data, error } = await SB.client().rpc(fn, args || {});
+    if (error) throw new Error(error.message || 'Lỗi máy chủ');
+    return data;
   },
+  tbl(name) { return SB.client().from(name); },
 
   // ---------- nạp dữ liệu (gọi khi mở tab lần đầu) ----------
   // Render SAU khi nạp xong: render trước rồi mới nạp sẽ khiến thao tác trong lúc
@@ -59,22 +50,44 @@ const EX = {
     const body = document.getElementById('exBody');
     if (body) body.innerHTML = '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Đang tải dữ liệu bài test…</div>';
     try {
-      this.D = await this.call('boot');
+      this.D = await this.rpc('exam_boot');
+      if (this.canEdit()) await this.loadBank();
       this.loading = false;
       this.renderViews();
       this.render();
     } catch (e) {
       this.loading = false;
       if (body) body.innerHTML = '<div class="chart-card" style="color:var(--re);font-size:.72rem">Lỗi tải dữ liệu: ' + hesc(e.message || e) +
-        '<div style="color:var(--mu);margin-top:8px;font-weight:400">Kiểm tra: đã deploy lại <b>super-function</b>, đã đặt 2 secret <b>GS_EXAM_URL</b> / <b>GS_EXAM_TOKEN</b>, và đã Deploy bản mới của <b>google_sheet_test.gs</b> chưa.</div></div>';
+        '<div style="color:var(--mu);margin-top:8px;font-weight:400">Nếu báo không tìm thấy hàm <b>exam_boot</b>: bạn chưa chạy file <b>supabase_exam_setup.sql</b> trong SQL Editor của Supabase.</div></div>';
     }
+  },
+  async loadBank() {
+    const { data, error } = await this.tbl('exam_questions').select('id,topic_id,level,question,image_url,answer,active').eq('active', true).order('created_at');
+    if (error) throw new Error(error.message);
+    this.bank = data || [];
   },
 
   // ---------- tiện ích ----------
   topicById(id) { return (this.D.topics || []).find(t => t.id === id) || { id: id, name: '(đã xóa)', color: '#64748b' }; },
   fmtScore(n) { n = Number(n) || 0; return Number.isInteger(n) ? String(n) : n.toFixed(2); },
   fmtDur(sec) { sec = Number(sec) || 0; return Math.floor(sec / 60) + ' phút ' + (sec % 60) + ' giây'; },
-  fmtTime(t) { const m = String(t).match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}:\d{2}):\d{2}/); return m ? (m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4]) : String(t); },
+  fmtTime(t) {
+    if (!t) return '';
+    const d = new Date(t);
+    if (isNaN(d.getTime())) return String(t);
+    const p = n => String(n).padStart(2, '0');
+    return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  },
+  // Link Google Drive -> link ảnh hiển thị được (giống bản Apps Script cũ)
+  normImg(url) {
+    if (!url) return '';
+    url = String(url).trim();
+    if (url.indexOf('drive.google.com') > -1 || url.indexOf('docs.google.com') > -1) {
+      const m = url.match(/\/file\/d\/([a-zA-Z0-9_-]{10,})/) || url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/) || url.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+      if (m) return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w1200';
+    }
+    return url;
+  },
   imgHtml(url, max) {
     if (!url) return '';
     return '<div class="ex-img"' + (max ? ' style="max-width:' + max + '"' : '') + '><img src="' + hesc(url) +
@@ -116,7 +129,7 @@ const EX = {
   renderLam(b) {
     if (this.stage === 'doing') { this.renderDoing(b); return; }
     if (this.stage === 'done') { this.renderDone(b); return; }
-    const me = this.D.me, st = this.D.settings, cfg = this.D.me.examCfg || this.D.config;
+    const me = this.D.me, st = this.D.settings, cfg = me.exam_cfg || this.D.config || {};
     const total = Object.keys(cfg).reduce((a, k) => a + (Number(cfg[k]) || 0), 0);
     const chips = (this.D.topics || []).filter(t => (cfg[t.id] || 0) > 0).map(t =>
       '<div class="ex-chip"><div class="ex-chip-n" style="color:' + hesc(t.color) + '">' + (cfg[t.id] || 0) + '</div><div class="ex-chip-l" data-noi18n>' + hesc(String(t.name).replace('Sảnh — ', '')) + '</div></div>').join('');
@@ -130,9 +143,9 @@ const EX = {
             '<div class="ex-chip"><div class="ex-chip-n">' + total + '</div><div class="ex-chip-l">Tổng câu</div></div>' +
             '<div class="ex-chip"><div class="ex-chip-n">' + (st.duration || 45) + '</div><div class="ex-chip-l">Phút</div></div>' +
           '</div>' +
-          (me.examCfg ? '<div class="ex-note ex-note-go">Bạn đang dùng <b>đề riêng</b> do Tổ Trưởng thiết lập.</div>' : '') +
-          (pend ? '<div class="ex-note ex-note-go">Bạn có một bài <b>đang làm dở</b> <span>(' + pend.count + ' câu, bắt đầu ' + this.fmtTime(pend.startedAt) + '). Bấm nút dưới để làm tiếp — không tốn thêm lượt.</span></div>' : '') +
-          '<div class="ex-meta">Tài khoản: <b>' + hesc((CUR_PROFILE && CUR_PROFILE.username) || '') + '</b> · Lượt còn lại: <b class="' + (me.remaining > 0 ? 'ex-ok' : 'ex-bad') + '">' + me.remaining + '</b> · Đã làm: <b>' + me.used + '</b> lần</div>' +
+          (me.exam_cfg ? '<div class="ex-note ex-note-go">Bạn đang dùng <b>đề riêng</b> do Tổ Trưởng thiết lập.</div>' : '') +
+          (pend ? '<div class="ex-note ex-note-go">Bạn có một bài <b>đang làm dở</b> <span>(' + pend.count + ' câu, bắt đầu ' + Math.floor((pend.elapsed || 0) / 60) + ' phút trước). Bấm nút dưới để làm tiếp — không tốn thêm lượt.</span></div>' : '') +
+          '<div class="ex-meta">Tài khoản: <b data-noi18n>' + hesc((CUR_PROFILE && CUR_PROFILE.username) || '') + '</b> · Lượt còn lại: <b class="' + (me.remaining > 0 ? 'ex-ok' : 'ex-bad') + '">' + me.remaining + '</b> · Đã làm: <b>' + me.used + '</b> lần</div>' +
           (me.remaining <= 0 && !pend ? '<div class="ex-note ex-note-re">Bạn đã hết lượt làm bài. Liên hệ Tổ Trưởng để được cấp thêm.</div>' : '') +
           '<div style="margin-top:16px"><button class="abtn abtn-pu" id="exStartBtn" onclick="EX.start()"' + ((me.remaining <= 0 && !pend) ? ' disabled' : '') + '>' + (pend ? 'Làm tiếp bài dở →' : 'Bắt đầu làm bài →') + '</button></div>' +
         '</div>' +
@@ -142,13 +155,12 @@ const EX = {
     const btn = document.getElementById('exStartBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'Đang chuẩn bị đề…'; }
     try {
-      const r = await this.call('start');
-      const draft = this.draftGet(r.sid);
-      // Mốc hết giờ suy từ `elapsed` (giây, do SERVER tính) chứ không parse chuỗi
-      // thời gian của Apps Script: chuỗi không mang múi giờ, máy nhân viên lệch
-      // múi giờ là đồng hồ chạy sai hoặc báo hết giờ ngay lập tức.
+      const r = await this.rpc('exam_start');
+      const draft = this.draftGet(r.code);
+      // Mốc hết giờ suy từ `elapsed` (giây, do SERVER tính) — không parse chuỗi thời
+      // gian phía client: máy nhân viên lệch múi giờ là đồng hồ sai / báo hết giờ ngay.
       this.run = {
-        sid: r.sid, startedAt: r.startedAt, duration: r.duration,
+        id: r.id, code: r.code, duration: r.duration,
         t0: Date.now() - (Number(r.elapsed) || 0) * 1000,
         questions: r.questions, answers: r.questions.map((q, i) => (draft && draft[i]) || ''), cur: 0
       };
@@ -163,13 +175,13 @@ const EX = {
     }
   },
   // Nháp lưu ngay trên máy: đóng nhầm tab / mất điện vẫn còn chữ đã gõ
-  draftKey(sid) { return 'ex_draft_' + sid; },
-  draftGet(sid) { try { return JSON.parse(localStorage.getItem(this.draftKey(sid)) || 'null'); } catch (e) { return null; } },
-  draftSave() { try { localStorage.setItem(this.draftKey(this.run.sid), JSON.stringify(this.run.answers)); } catch (e) {} },
-  draftClear(sid) { try { localStorage.removeItem(this.draftKey(sid)); } catch (e) {} },
+  draftKey(code) { return 'ex_draft_' + code; },
+  draftGet(code) { try { return JSON.parse(localStorage.getItem(this.draftKey(code)) || 'null'); } catch (e) { return null; } },
+  draftSave() { try { localStorage.setItem(this.draftKey(this.run.code), JSON.stringify(this.run.answers)); } catch (e) {} },
+  draftClear(code) { try { localStorage.removeItem(this.draftKey(code)); } catch (e) {} },
 
   renderDoing(b) {
-    const r = this.run, q = r.questions[r.cur], t = this.topicById(q.topic);
+    const r = this.run, q = r.questions[r.cur];
     const nav = r.questions.map((_, i) =>
       '<button class="ex-qn' + (i === r.cur ? ' on' : '') + (r.answers[i] ? ' filled' : '') + '" onclick="EX.goQ(' + i + ')" title="Câu ' + (i + 1) + '">' + (i + 1) + '</button>').join('');
     const filled = r.answers.filter(a => a && a.trim()).length;
@@ -181,9 +193,9 @@ const EX = {
       '</div>' +
       '<div class="ex-doing">' +
         '<div class="chart-card ex-qcard">' +
-          '<span class="ex-badge" style="background:' + hesc(t.color) + '22;color:' + hesc(t.color) + '" data-noi18n>' + hesc(t.name) + '</span>' +
+          '<span class="ex-badge ex-b-mu" data-noi18n>' + hesc(q.topic || '') + '</span>' +
           '<div class="ex-q" data-noi18n>' + hesc(q.question) + '</div>' +
-          this.imgHtml(q.imageUrl) +
+          this.imgHtml(q.image_url) +
           '<textarea class="ex-ta" id="exAns" placeholder="Nhập câu trả lời của bạn…" oninput="EX.onType()">' + hesc(r.answers[r.cur] || '') + '</textarea>' +
           '<div class="ex-lock">Đáp án được ẩn — chỉ Tổ Trưởng thấy khi chấm bài</div>' +
           '<div class="ex-actions">' +
@@ -202,20 +214,13 @@ const EX = {
   },
   onType() { const el = document.getElementById('exAns'); if (!el) return; this.run.answers[this.run.cur] = el.value; this.draftSave(); },
   saveCur() { const el = document.getElementById('exAns'); if (el) this.run.answers[this.run.cur] = el.value.trim(); this.draftSave(); },
-  goQ(i) {
-    if (i < 0 || i >= this.run.questions.length) return;
-    this.saveCur(); this.run.cur = i; this.render();
-  },
+  goQ(i) { if (i < 0 || i >= this.run.questions.length) return; this.saveCur(); this.run.cur = i; this.render(); },
   next() {
     this.saveCur();
     if (this.run.cur < this.run.questions.length - 1) { this.run.cur++; this.render(); }
     else this.submit();
   },
-  // Đồng hồ tính từ startedAt của SERVER -> F5 hay đổi máy vẫn đúng giờ còn lại
-  startTimer() {
-    clearInterval(this.tmr);
-    this.tmr = setInterval(() => this.paintTimer(), 1000);
-  },
+  startTimer() { clearInterval(this.tmr); this.tmr = setInterval(() => this.paintTimer(), 1000); },
   leftSec() { return Math.max(0, Math.round((this.run.t0 + this.run.duration * 60000 - Date.now()) / 1000)); },
   paintTimer() {
     const el = document.getElementById('exTimer');
@@ -234,12 +239,12 @@ const EX = {
     }
     clearInterval(this.tmr); this.tmr = null;
     const dur = Math.max(1, Math.round((Date.now() - this.run.t0) / 1000));
-    const snap = { sid: this.run.sid, count: this.run.questions.length, filled: this.run.answers.filter(a => a && a.trim()).length, dur: dur };
+    const snap = { code: this.run.code, count: this.run.questions.length, filled: this.run.answers.filter(a => a && a.trim()).length, dur: dur };
     try {
-      await this.call('submit', { sid: this.run.sid, answers: this.run.answers, durationSec: dur });
-      this.draftClear(this.run.sid);
+      await this.rpc('exam_submit', { p_id: this.run.id, p_answers: this.run.answers, p_duration: dur });
+      this.draftClear(this.run.code);
       this.D.pending = null;
-      this.mine = null;
+      this.mine = null; this.subs = null;
       this.stage = 'done'; this.doneInfo = snap; this.run = null;
       this.render();
     } catch (e) {
@@ -248,7 +253,7 @@ const EX = {
     }
   },
   renderDone(b) {
-    const d = this.doneInfo || { count: 0, filled: 0, dur: 0, sid: '' };
+    const d = this.doneInfo || { count: 0, filled: 0, dur: 0, code: '' };
     b.innerHTML =
       '<div class="ex-narrow"><div class="chart-card" style="text-align:center;padding:32px 20px">' +
         '<div class="ex-done-ic">✓</div>' +
@@ -259,7 +264,7 @@ const EX = {
           '<div class="ex-chip"><div class="ex-chip-n">' + d.filled + '</div><div class="ex-chip-l">Có trả lời</div></div>' +
           '<div class="ex-chip"><div class="ex-chip-n" style="font-size:.9rem">' + this.fmtDur(d.dur) + '</div><div class="ex-chip-l">Thời gian</div></div>' +
         '</div>' +
-        '<div class="ex-meta" style="margin-top:14px">Mã bài: <b data-noi18n>' + hesc(d.sid) + '</b></div>' +
+        '<div class="ex-meta" style="margin-top:14px">Mã bài: <b data-noi18n>' + hesc(d.code) + '</b></div>' +
         '<div style="margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">' +
           '<button class="abtn abtn-ghost" onclick="EX.setView(\'bai\')">Xem bài của tôi</button>' +
           '<button class="abtn abtn-pu" onclick="EX.stage=\'intro\';EX.boot(true)">Về trang đầu</button>' +
@@ -271,34 +276,33 @@ const EX = {
   async renderBai(b) {
     if (!this.mine) {
       b.innerHTML = '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Đang tải bài đã nộp…</div>';
-      try { this.mine = await this.call('mine'); } catch (e) { b.innerHTML = '<div class="chart-card" style="color:var(--re);font-size:.72rem">Lỗi: ' + hesc(e.message || e) + '</div>'; return; }
+      try { this.mine = await this.rpc('exam_my_list'); } catch (e) { b.innerHTML = '<div class="chart-card" style="color:var(--re);font-size:.72rem">Lỗi: ' + hesc(e.message || e) + '</div>'; return; }
       if (this.view !== 'bai') return;
     }
     const res = this.mine;
     if (!res.submissions.length) { b.innerHTML = '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Bạn chưa có bài test nào.</div>'; return; }
     b.innerHTML = '<div class="sec-hdr pu">Bài đã nộp <span class="cnt-badge">' + res.submissions.length + '</span></div>' +
-      res.submissions.map((s, i) => this.subCardHtml(s, i, 'mine')).join('') +
-      (res.showAnswer ? '' : '<div class="ex-meta" style="margin-top:10px">Đáp án mẫu đang được ẩn. Tổ Trưởng có thể bật trong Quản Lý Đề → Cài đặt bài thi.</div>');
-  },
-  subCardHtml(s, i, kind) {
-    const badge = s.graded
-      ? '<span class="ex-badge ex-b-ok">Đã chấm · ' + this.fmtScore(s.total) + '/' + s.count + '</span>'
-      : '<span class="ex-badge ex-b-wait">Chờ chấm</span>';
-    return '<div class="chart-card ex-subcard" style="margin-bottom:10px">' +
-      '<div class="ex-subh" onclick="EX.toggleMine(' + i + ')">' +
-        '<div><div class="ex-subt" data-noi18n>' + hesc(s.id) + '</div>' +
-        '<div class="ex-meta">' + this.fmtTime(s.time) + ' · ' + this.fmtDur(s.durationSec) + ' · ' + s.count + ' câu</div></div>' + badge +
-      '</div><div id="exMine' + i + '" style="display:none"></div></div>';
+      res.submissions.map((s, i) => {
+        const badge = s.graded
+          ? '<span class="ex-badge ex-b-ok">Đã chấm · ' + this.fmtScore(s.total) + '/' + s.count + '</span>'
+          : '<span class="ex-badge ex-b-wait">Chờ chấm</span>';
+        return '<div class="chart-card ex-subcard" style="margin-bottom:10px">' +
+          '<div class="ex-subh" onclick="EX.toggleMine(' + i + ')">' +
+            '<div><div class="ex-subt" data-noi18n>' + hesc(s.code) + '</div>' +
+            '<div class="ex-meta">' + this.fmtTime(s.time) + ' · ' + this.fmtDur(s.duration_sec) + ' · ' + s.count + ' câu</div></div>' + badge +
+          '</div><div id="exMine' + i + '" style="display:none"></div></div>';
+      }).join('') +
+      (res.show_answer ? '' : '<div class="ex-meta" style="margin-top:10px">Đáp án mẫu đang được ẩn. Tổ Trưởng có thể bật trong Quản Lý Đề → Cài đặt bài thi.</div>');
   },
   toggleMine(i) {
     const box = document.getElementById('exMine' + i);
     if (box.style.display !== 'none') { box.style.display = 'none'; return; }
     const s = this.mine.submissions[i];
-    box.innerHTML = s.items.map(it => {
+    box.innerHTML = (s.items || []).map(it => {
       const has = it.score !== '' && it.score != null;
       return '<div class="ex-rev">' +
         '<div class="ex-revq"><span class="ex-badge ex-b-mu" data-noi18n>' + hesc(it.topic) + '</span><span data-noi18n>' + hesc(it.question) + '</span></div>' +
-        this.imgHtml(it.imageUrl, '420px') +
+        this.imgHtml(it.image_url, '420px') +
         '<div class="ex-reply"><b>Bạn trả lời:</b> ' + (it.reply ? '<span data-noi18n>' + hesc(it.reply) + '</span>' : '<i>(Bỏ trống)</i>') + '</div>' +
         (it.answer ? '<div class="ex-correct"><b>✓ Đáp án mẫu:</b> <span data-noi18n>' + hesc(it.answer) + '</span></div>' : '') +
         (has ? '<div class="ex-meta">Điểm câu: <b>' + this.fmtScore(it.score) + '</b>' + (it.note ? ' · <span data-noi18n>' + hesc(it.note) + '</span>' : '') + '</div>' : '') +
@@ -309,21 +313,20 @@ const EX = {
 
   /* ==================== TAB: QUẢN LÝ ĐỀ (TT) ==================== */
   renderDe(b) {
-    const st = this.D.settings;
-    const topics = this.D.topics || [], bank = this.D.bank || [];
-    const total = Object.values(this.D.config).reduce((a, v) => a + (Number(v) || 0), 0);
+    const st = this.D.settings, topics = this.D.topics || [], bank = this.bank || [];
+    const total = Object.values(this.D.config || {}).reduce((a, v) => a + (Number(v) || 0), 0);
     const rail = topics.map(t => {
-      const avail = bank.filter(x => x.topic === t.id).length;
+      const avail = bank.filter(x => x.topic_id === t.id).length;
       return '<div class="ex-trow' + (this.selTopic === t.id ? ' on' : '') + '" onclick="EX.pickTopic(\'' + t.id + '\')">' +
         '<span class="ex-tdot" style="background:' + hesc(t.color) + '"></span>' +
         '<span class="ex-tname" data-noi18n>' + hesc(t.name) + '</span>' +
-        '<span class="ex-tavail">' + (this.D.config[t.id] || 0) + '/' + avail + '</span>' +
-        '<input type="number" class="ex-num" min="0" max="' + avail + '" value="' + (this.D.config[t.id] || 0) + '" onclick="event.stopPropagation()" onchange="EX.setCfg(\'' + t.id + '\',this.value,' + avail + ')">' +
+        '<span class="ex-tavail">' + ((this.D.config || {})[t.id] || 0) + '/' + avail + '</span>' +
+        '<input type="number" class="ex-num" min="0" max="' + avail + '" value="' + ((this.D.config || {})[t.id] || 0) + '" onclick="event.stopPropagation()" onchange="EX.setCfg(\'' + t.id + '\',this.value,' + avail + ')">' +
         '<button class="ex-mini" onclick="event.stopPropagation();EX.openTopic(\'' + t.id + '\')" title="Sửa">✎</button>' +
         '<button class="ex-mini del" onclick="event.stopPropagation();EX.delTopic(\'' + t.id + '\')" title="Xóa">×</button>' +
       '</div>';
     }).join('');
-    const items = bank.filter(x => this.selTopic ? x.topic === this.selTopic : true);
+    const items = bank.filter(x => this.selTopic ? x.topic_id === this.selTopic : true);
     b.innerHTML =
       '<div class="ex-2col">' +
         '<div class="chart-card ex-rail">' +
@@ -334,12 +337,13 @@ const EX = {
           '<div class="ex-railh" style="margin-top:18px">Cài đặt bài thi</div>' +
           '<label class="ex-lab">Thời gian làm bài (phút)</label>' +
           '<input class="ex-inp" type="number" id="exSetDur" min="1" max="240" value="' + (st.duration || 45) + '">' +
-          '<label class="ex-check"><input type="checkbox" id="exSetAns"' + (st.showAnswerOnLookup ? ' checked' : '') + '> Cho nhân viên xem đáp án mẫu khi tra cứu bài cũ</label>' +
+          '<label class="ex-check"><input type="checkbox" id="exSetAns"' + (st.show_answer ? ' checked' : '') + '> <span>Cho nhân viên xem đáp án mẫu khi tra cứu bài cũ</span></label>' +
           '<button class="abtn abtn-ok abtn-sm" style="margin-top:10px;width:100%;justify-content:center" onclick="EX.saveSettings()">Lưu cài đặt</button>' +
         '</div>' +
         '<div>' +
           '<div class="chart-card" style="margin-bottom:14px">' +
-            '<div class="ex-railh" id="exQFormT">' + (this.editQ ? 'Sửa câu hỏi' : 'Thêm câu hỏi vào ngân hàng') + '</div>' +
+            '<div class="ex-railh">' + (this.editQ ? 'Sửa câu hỏi' : 'Thêm câu hỏi vào ngân hàng') +
+              (this.editQ ? '' : '<button class="abtn abtn-ghost abtn-sm" style="margin-left:auto" onclick="EX.openPaste()">📋 Dán hàng loạt từ Excel</button>') + '</div>' +
             '<div class="ex-frow">' +
               '<div style="flex:2;min-width:180px"><label class="ex-lab">Chủ đề</label><select class="ex-inp" id="exQTopic">' + topics.map(t => '<option value="' + hesc(t.id) + '"' + (this._qt === t.id ? ' selected' : '') + ' data-noi18n>' + hesc(t.name) + '</option>').join('') + '</select></div>' +
               '<div style="flex:1;min-width:130px"><label class="ex-lab">Độ khó</label><select class="ex-inp" id="exQLevel"><option>Dễ</option><option selected>Trung bình</option><option>Khó</option></select></div>' +
@@ -363,7 +367,7 @@ const EX = {
   },
   pickTopic(id) { this.selTopic = id; this.render(); },
   bankItemHtml(q) {
-    const t = this.topicById(q.topic);
+    const t = this.topicById(q.topic_id);
     return '<div class="chart-card ex-bank' + (q.id === this.editQ ? ' editing' : '') + '">' +
       '<div class="ex-bankh">' +
         '<span class="ex-badge" style="background:' + hesc(t.color) + '22;color:' + hesc(t.color) + '" data-noi18n>' + hesc(t.name) + '</span>' +
@@ -374,47 +378,48 @@ const EX = {
         '</span>' +
       '</div>' +
       '<div class="ex-bankq" data-noi18n>' + hesc(q.question) + '</div>' +
-      (q.imageUrl ? this.imgHtml(q.imageUrl, '220px') : '') +
+      (q.image_url ? this.imgHtml(q.image_url, '220px') : '') +
       (q.answer ? '<div class="ex-correct"><b>✓ Đáp án:</b> <span data-noi18n>' + hesc(q.answer) + '</span></div>' : '') +
     '</div>';
   },
   previewImg() {
     const el = document.getElementById('exQImg'), pv = document.getElementById('exQImgPrev');
-    if (pv) pv.innerHTML = el && el.value.trim() ? this.imgHtml(el.value.trim(), '320px') : '';
+    if (pv) pv.innerHTML = el && el.value.trim() ? this.imgHtml(this.normImg(el.value.trim()), '320px') : '';
   },
-  pickQ(id) { this.editQ = id; const q = this.D.bank.find(x => x.id === id); this._qt = q ? q.topic : null; this.render(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
+  pickQ(id) { this.editQ = id; const q = this.bank.find(x => x.id === id); this._qt = q ? q.topic_id : null; this.render(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
   cancelQ() { this.editQ = null; this._qt = null; this.render(); },
   fillQForm() {
-    const q = this.D.bank.find(x => x.id === this.editQ);
+    const q = this.bank.find(x => x.id === this.editQ);
     if (!q) return;
-    document.getElementById('exQTopic').value = q.topic;
+    document.getElementById('exQTopic').value = q.topic_id;
     document.getElementById('exQLevel').value = q.level || 'Trung bình';
     document.getElementById('exQText').value = q.question || '';
-    document.getElementById('exQImg').value = q.imageUrl || '';
+    document.getElementById('exQImg').value = q.image_url || '';
     document.getElementById('exQAns').value = q.answer || '';
     this.previewImg();
   },
   async saveQ() {
     const o = {
-      topic: document.getElementById('exQTopic').value,
+      topic_id: document.getElementById('exQTopic').value,
       level: document.getElementById('exQLevel').value,
       question: document.getElementById('exQText').value.trim(),
-      imageUrl: document.getElementById('exQImg').value.trim(),
+      image_url: this.normImg(document.getElementById('exQImg').value.trim()),
       answer: document.getElementById('exQAns').value.trim()
     };
     if (!o.question) { alert('Vui lòng nhập nội dung câu hỏi.'); return; }
-    if (!o.topic) { alert('Chưa có chủ đề nào — tạo chủ đề trước.'); return; }
+    if (!o.topic_id) { alert('Chưa có chủ đề nào — tạo chủ đề trước.'); return; }
     try {
       if (this.editQ) {
-        o.id = this.editQ;
-        const r = await this.call('updQ', o);
-        Object.assign(this.D.bank.find(x => x.id === o.id), r);
+        const { error } = await this.tbl('exam_questions').update(o).eq('id', this.editQ);
+        if (error) throw new Error(error.message);
+        Object.assign(this.bank.find(x => x.id === this.editQ), o);
         this.editQ = null; this._qt = null;
         this.toast('Đã sửa câu hỏi');
       } else {
-        const r = await this.call('addQ', o);
-        this.D.bank.push(r);
-        this._qt = o.topic;
+        const { data, error } = await this.tbl('exam_questions').insert(o).select().single();
+        if (error) throw new Error(error.message);
+        this.bank.push(data);
+        this._qt = o.topic_id;
         this.toast('Đã lưu câu hỏi');
       }
       this.render();
@@ -424,8 +429,9 @@ const EX = {
   async delQ(id) {
     if (!confirm('Xóa câu hỏi này?')) return;
     try {
-      await this.call('delQ', { id });
-      this.D.bank = this.D.bank.filter(x => x.id !== id);
+      const { error } = await this.tbl('exam_questions').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+      this.bank = this.bank.filter(x => x.id !== id);
       if (this.editQ === id) this.editQ = null;
       this.render(); this.toast('Đã xóa câu hỏi');
     } catch (e) { alert('Lỗi xóa: ' + (e.message || e)); }
@@ -433,23 +439,97 @@ const EX = {
   async setCfg(id, v, max) {
     v = Math.max(0, Math.min(parseInt(v) || 0, max));
     this.D.config[id] = v;
-    try { await this.call('setCfg', { topicId: id, count: v }); this.render(); }
-    catch (e) { alert('Lỗi lưu cấu trúc đề: ' + (e.message || e)); }
+    try {
+      const { error } = await this.tbl('exam_config').upsert({ topic_id: id, count: v }, { onConflict: 'topic_id' });
+      if (error) throw new Error(error.message);
+      this.render();
+    } catch (e) { alert('Lỗi lưu cấu trúc đề: ' + (e.message || e)); }
   },
   async saveSettings() {
     const d = parseInt(document.getElementById('exSetDur').value) || 45;
     const sa = document.getElementById('exSetAns').checked;
     try {
-      await this.call('setSettings', { duration: d, showAnswerOnLookup: sa });
-      this.D.settings = { duration: d, showAnswerOnLookup: sa };
+      const { error } = await this.tbl('exam_settings').upsert([
+        { key: 'duration', value: String(d) },
+        { key: 'show_answer', value: sa ? 'yes' : 'no' }
+      ], { onConflict: 'key' });
+      if (error) throw new Error(error.message);
+      this.D.settings = { duration: d, show_answer: sa };
       this.toast('Đã lưu cài đặt');
     } catch (e) { alert('Lỗi lưu cài đặt: ' + (e.message || e)); }
   },
+
+  /* ---- DÁN HÀNG LOẠT TỪ EXCEL ----
+     Giữ lại cái tiện duy nhất của bảng tính: nhập 100 câu bằng cách dán một lần,
+     thay vì gõ từng câu qua giao diện. */
+  openPaste() {
+    this.modal(
+      '<div class="ex-modalh">Dán hàng loạt từ Excel</div>' +
+      '<div class="ex-meta">Bôi đen vùng dữ liệu trong Excel/Google Sheet rồi Ctrl+C, bấm vào ô dưới và Ctrl+V. Mỗi dòng là một câu hỏi, các cột cách nhau bằng Tab (đúng thứ tự):</div>' +
+      '<div class="ex-meta" style="margin-top:6px"><b>Chủ đề · Độ khó · Câu hỏi · Đáp án mẫu · Link ảnh</b> — hai cột cuối để trống cũng được.</div>' +
+      '<div class="ex-meta" style="margin-top:6px">Chủ đề chưa có trong hệ thống sẽ được tạo mới tự động.</div>' +
+      '<textarea class="ex-ta" id="exPasteTa" style="min-height:180px;margin-top:10px;font-family:monospace;font-size:.68rem" placeholder="Tự luận nghiệp vụ&#9;Trung bình&#9;Khách rút 200k chưa đủ vòng cược?&#9;Từ chối và giải thích điều kiện." data-noi18n></textarea>' +
+      '<div class="ex-meta" id="exPasteInfo" style="margin-top:6px"></div>' +
+      '<div class="ex-actions"><button class="abtn abtn-pu" onclick="EX.runPaste()">Nhập vào ngân hàng</button>' +
+      '<button class="abtn abtn-ghost" onclick="EX.closeModal()">Đóng</button></div>', '640px');
+    const ta = document.getElementById('exPasteTa');
+    ta.addEventListener('input', () => {
+      const n = EX.parsePaste(ta.value).length;
+      document.getElementById('exPasteInfo').textContent = n ? ('Đọc được ' + n + ' câu hỏi') : '';
+    });
+    setTimeout(() => ta.focus(), 50);
+  },
+  parsePaste(txt) {
+    const LV = { 'dễ': 'Dễ', 'de': 'Dễ', 'trung bình': 'Trung bình', 'trung binh': 'Trung bình', 'khó': 'Khó', 'kho': 'Khó' };
+    return String(txt || '').split(/\r?\n/).map(line => {
+      const c = line.split('\t');
+      if (c.length < 3) return null;
+      const topic = (c[0] || '').trim(), question = (c[2] || '').trim();
+      if (!topic || !question) return null;
+      return {
+        topic: topic,
+        level: LV[(c[1] || '').trim().toLowerCase()] || 'Trung bình',
+        question: question,
+        answer: (c[3] || '').trim(),
+        image_url: this.normImg((c[4] || '').trim())
+      };
+    }).filter(Boolean);
+  },
+  async runPaste() {
+    const rows = this.parsePaste(document.getElementById('exPasteTa').value);
+    if (!rows.length) { alert('Không đọc được dòng nào. Cần ít nhất 3 cột: Chủ đề · Độ khó · Câu hỏi, cách nhau bằng Tab.'); return; }
+    // Chủ đề chưa có -> tạo mới (khớp tên không phân biệt hoa/thường)
+    const byName = {};
+    (this.D.topics || []).forEach(t => { byName[t.name.trim().toLowerCase()] = t.id; });
+    const missing = [...new Set(rows.map(r => r.topic).filter(t => !byName[t.trim().toLowerCase()]))];
+    if (!confirm('Nhập ' + rows.length + ' câu hỏi vào ngân hàng?' + (missing.length ? ('\n\nSẽ tạo mới ' + missing.length + ' chủ đề: ' + missing.join(', ')) : ''))) return;
+    try {
+      if (missing.length) {
+        const { data, error } = await this.tbl('exam_topics')
+          .insert(missing.map((n, i) => ({ name: n, color: this.COLORS[i % this.COLORS.length] }))).select();
+        if (error) throw new Error(error.message);
+        (data || []).forEach(t => { this.D.topics.push(t); byName[t.name.trim().toLowerCase()] = t.id; this.D.config[t.id] = 0; });
+        await this.tbl('exam_config').upsert((data || []).map(t => ({ topic_id: t.id, count: 0 })), { onConflict: 'topic_id' });
+      }
+      const payload = rows.map(r => ({
+        topic_id: byName[r.topic.trim().toLowerCase()], level: r.level,
+        question: r.question, answer: r.answer, image_url: r.image_url
+      }));
+      const { data, error } = await this.tbl('exam_questions').insert(payload).select();
+      if (error) throw new Error(error.message);
+      (data || []).forEach(q => this.bank.push(q));
+      this.closeModal(); this.render();
+      this.toast('Đã nhập ' + (data || []).length + ' câu hỏi');
+      logAction('NHẬP CÂU HỎI TEST', (data || []).length + ' câu');
+    } catch (e) { alert('Lỗi nhập hàng loạt: ' + (e.message || e)); }
+  },
+
   // ---- chủ đề (modal) ----
+  COLORS: ['#7c3aed', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#f43f5e', '#a78bfa'],
   openTopic(id) {
     this.editT = id;
-    const t = id ? this.topicById(id) : { name: '', color: EX.COLORS[0] };
-    this._tc = t.color || EX.COLORS[0];
+    const t = id ? this.topicById(id) : { name: '', color: this.COLORS[0] };
+    this._tc = t.color || this.COLORS[0];
     this.modal(
       '<div class="ex-modalh">' + (id ? 'Sửa chủ đề' : 'Thêm chủ đề mới') + '</div>' +
       '<label class="ex-lab">Tên chủ đề</label><input class="ex-inp" id="exTName" value="' + hesc(t.name) + '" placeholder="Ví dụ: Sảnh — Xổ số">' +
@@ -457,7 +537,6 @@ const EX = {
       '<div class="ex-actions"><button class="abtn abtn-pu" onclick="EX.saveTopic()">' + (id ? 'Lưu thay đổi' : 'Thêm') + '</button>' +
       '<button class="abtn abtn-ghost" onclick="EX.closeModal()">Đóng</button></div>', '380px');
   },
-  COLORS: ['#7c3aed', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#f43f5e', '#a78bfa'],
   swatchHtml() { return this.COLORS.map(c => '<button style="background:' + c + '" class="' + (c === this._tc ? 'sel' : '') + '" onclick="EX.pickColor(\'' + c + '\')"></button>').join(''); },
   pickColor(c) { this._tc = c; document.getElementById('exSwatch').innerHTML = this.swatchHtml(); },
   async saveTopic() {
@@ -465,24 +544,28 @@ const EX = {
     if (!name) { alert('Vui lòng nhập tên chủ đề.'); return; }
     try {
       if (this.editT) {
-        const r = await this.call('updT', { id: this.editT, name, color: this._tc });
-        Object.assign(this.topicById(this.editT), r);
+        const { error } = await this.tbl('exam_topics').update({ name, color: this._tc }).eq('id', this.editT);
+        if (error) throw new Error(error.message);
+        Object.assign(this.topicById(this.editT), { name, color: this._tc });
         this.toast('Đã sửa chủ đề');
       } else {
-        const r = await this.call('addT', { name, color: this._tc });
-        this.D.topics.push(r); this.D.config[r.id] = 0;
+        const { data, error } = await this.tbl('exam_topics').insert({ name, color: this._tc }).select().single();
+        if (error) throw new Error(error.message);
+        this.D.topics.push(data); this.D.config[data.id] = 0;
+        await this.tbl('exam_config').upsert({ topic_id: data.id, count: 0 }, { onConflict: 'topic_id' });
         this.toast('Đã thêm chủ đề');
       }
       this.closeModal(); this.render();
     } catch (e) { alert('Lỗi lưu chủ đề: ' + (e.message || e)); }
   },
   async delTopic(id) {
-    const cnt = this.D.bank.filter(b => b.topic === id).length;
+    const cnt = (this.bank || []).filter(b => b.topic_id === id).length;
     if (!confirm(cnt ? ('Chủ đề này có ' + cnt + ' câu hỏi, xóa sẽ mất luôn cả ' + cnt + ' câu. Tiếp tục?') : 'Xóa chủ đề này?')) return;
     try {
-      await this.call('delT', { id });
+      const { error } = await this.tbl('exam_topics').delete().eq('id', id);   // câu hỏi + cấu trúc đề xóa theo (on delete cascade)
+      if (error) throw new Error(error.message);
       this.D.topics = this.D.topics.filter(t => t.id !== id);
-      this.D.bank = this.D.bank.filter(b => b.topic !== id);
+      this.bank = this.bank.filter(b => b.topic_id !== id);
       delete this.D.config[id];
       if (this.selTopic === id) this.selTopic = null;
       this.render(); this.toast('Đã xóa chủ đề');
@@ -493,15 +576,15 @@ const EX = {
   async renderNv(b) {
     if (!this.members) {
       b.innerHTML = '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Đang tải danh sách tài khoản…</div>';
-      try { this.members = await this.call('members'); } catch (e) { b.innerHTML = '<div class="chart-card" style="color:var(--re);font-size:.72rem">Lỗi: ' + hesc(e.message || e) + '</div>'; return; }
+      try { this.members = await this.rpc('exam_members_list'); } catch (e) { b.innerHTML = '<div class="chart-card" style="color:var(--re);font-size:.72rem">Lỗi: ' + hesc(e.message || e) + '</div>'; return; }
       if (this.view !== 'nv') return;
     }
     const rows = this.members.map((m, i) => {
       const zero = m.remaining <= 0;
       return '<tr>' +
         '<td class="ex-nm" data-noi18n>' + hesc(m.username || '(không tên)') + '</td>' +
-        '<td>' + hesc(m.role === 'admin' ? 'Admin' : (m.role === 'totruong' ? 'Tổ Trưởng' : (m.role === 'nhanvien' ? 'Nhân viên' : m.role))) + '</td>' +
-        '<td><button class="abtn abtn-sm ' + (m.examCfg ? 'abtn-cy' : 'abtn-ghost') + '" onclick="EX.openMemberCfg(' + i + ')">' + (m.examCfg ? 'Đề riêng' : 'Đề chung') + '</button></td>' +
+        '<td>' + (m.role === 'admin' ? 'Admin' : (m.role === 'totruong' ? 'Tổ Trưởng' : 'Nhân viên')) + '</td>' +
+        '<td><button class="abtn abtn-sm ' + (m.exam_cfg ? 'abtn-cy' : 'abtn-ghost') + '" onclick="EX.openMemberCfg(' + i + ')">' + (m.exam_cfg ? 'Đề riêng' : 'Đề chung') + '</button></td>' +
         '<td><input class="ex-num' + (zero ? ' zero' : '') + '" type="number" min="0" id="exRem' + i + '" value="' + m.remaining + '"></td>' +
         '<td>' + m.used + '</td>' +
         '<td><button class="abtn abtn-sm abtn-pu" onclick="EX.saveMember(' + i + ')">Lưu</button> ' +
@@ -522,22 +605,29 @@ const EX = {
   async saveMember(i) {
     const m = this.members[i];
     const rem = parseInt(document.getElementById('exRem' + i).value) || 0;
-    try { await this.call('saveMember', { user_id: m.user_id, username: m.username, remaining: rem }); m.remaining = rem; this.render(); this.toast('Đã lưu ' + m.username); }
-    catch (e) { alert('Lỗi: ' + (e.message || e)); }
+    try {
+      const { error } = await this.tbl('exam_members').upsert({ user_id: m.user_id, remaining: rem, used: m.used, exam_cfg: m.exam_cfg }, { onConflict: 'user_id' });
+      if (error) throw new Error(error.message);
+      m.remaining = rem; this.render(); this.toast('Đã lưu ' + m.username);
+      logAction('CẤP LƯỢT TEST', (m.username || '') + ' · còn ' + rem + ' lượt');
+    } catch (e) { alert('Lỗi: ' + (e.message || e)); }
   },
   async resetUsed(i) {
     const m = this.members[i];
     if (!confirm('Đưa số lần "Đã dùng" của ' + m.username + ' về 0? (không đổi lượt còn lại)')) return;
-    try { await this.call('resetUsed', { user_id: m.user_id, username: m.username }); m.used = 0; this.render(); this.toast('Đã reset'); }
-    catch (e) { alert('Lỗi: ' + (e.message || e)); }
+    try {
+      const { error } = await this.tbl('exam_members').upsert({ user_id: m.user_id, remaining: m.remaining, used: 0, exam_cfg: m.exam_cfg }, { onConflict: 'user_id' });
+      if (error) throw new Error(error.message);
+      m.used = 0; this.render(); this.toast('Đã reset');
+    } catch (e) { alert('Lỗi: ' + (e.message || e)); }
   },
   openMemberCfg(i) {
     const m = this.members[i];
     this._mi = i;
-    const def = !m.examCfg;
+    const def = !m.exam_cfg;
     const list = (this.D.topics || []).map(t => {
-      const avail = (this.D.bank || []).filter(x => x.topic === t.id).length;
-      const val = m.examCfg ? (Number(m.examCfg[t.id]) || 0) : (this.D.config[t.id] || 0);
+      const avail = (this.bank || []).filter(x => x.topic_id === t.id).length;
+      const val = m.exam_cfg ? (Number(m.exam_cfg[t.id]) || 0) : ((this.D.config || {})[t.id] || 0);
       return '<div class="ex-trow"><span class="ex-tdot" style="background:' + hesc(t.color) + '"></span>' +
         '<span class="ex-tname" data-noi18n>' + hesc(t.name) + '</span><span class="ex-tavail">/ ' + avail + ' câu</span>' +
         '<input type="number" class="ex-num ex-mcfg" min="0" max="' + avail + '" value="' + val + '" data-topic="' + hesc(t.id) + '" oninput="EX.mcfgTotal()"></div>';
@@ -565,11 +655,15 @@ const EX = {
   async saveMemberCfg() {
     const m = this.members[this._mi];
     const useDefault = document.getElementById('exMcfgDef').checked;
-    let cfg = {};
-    if (!useDefault) document.querySelectorAll('.ex-mcfg').forEach(i => { const n = parseInt(i.value) || 0; if (n > 0) cfg[i.dataset.topic] = n; });
+    let cfg = null;
+    if (!useDefault) {
+      cfg = {};
+      document.querySelectorAll('.ex-mcfg').forEach(i => { const n = parseInt(i.value) || 0; if (n > 0) cfg[i.dataset.topic] = n; });
+    }
     try {
-      await this.call('saveMemberCfg', { user_id: m.user_id, username: m.username, useDefault, cfg });
-      m.examCfg = useDefault ? null : cfg;
+      const { error } = await this.tbl('exam_members').upsert({ user_id: m.user_id, remaining: m.remaining, used: m.used, exam_cfg: cfg }, { onConflict: 'user_id' });
+      if (error) throw new Error(error.message);
+      m.exam_cfg = cfg;
       this.closeModal(); this.render(); this.toast('Đã lưu cấu trúc đề cho ' + m.username);
     } catch (e) { alert('Lỗi: ' + (e.message || e)); }
   },
@@ -578,7 +672,7 @@ const EX = {
   async renderCham(b) {
     if (!this.subs) {
       b.innerHTML = '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Đang tải danh sách bài…</div>';
-      try { this.subs = await this.call('list'); } catch (e) { b.innerHTML = '<div class="chart-card" style="color:var(--re);font-size:.72rem">Lỗi: ' + hesc(e.message || e) + '</div>'; return; }
+      try { this.subs = await this.rpc('exam_list'); } catch (e) { b.innerHTML = '<div class="chart-card" style="color:var(--re);font-size:.72rem">Lỗi: ' + hesc(e.message || e) + '</div>'; return; }
       if (this.view !== 'cham') return;
     }
     const wait = this.subs.filter(s => !s.graded).length;
@@ -586,8 +680,8 @@ const EX = {
       '<div class="ex-srow' + (this.selSub === s.id ? ' on' : '') + '" onclick="EX.openSub(' + i + ')">' +
         '<div class="ex-srow-t"><b data-noi18n>' + hesc(s.username || '?') + '</b>' +
         (s.graded ? '<span class="ex-badge ex-b-ok">' + this.fmtScore(s.total) + '/' + s.count + '</span>' : '<span class="ex-badge ex-b-wait">Chờ chấm</span>') + '</div>' +
-        '<div class="ex-meta" data-noi18n>' + hesc(s.id) + '</div>' +
-        '<div class="ex-meta">' + this.fmtTime(s.time) + ' · ' + this.fmtDur(s.durationSec) + '</div>' +
+        '<div class="ex-meta" data-noi18n>' + hesc(s.code) + '</div>' +
+        '<div class="ex-meta">' + this.fmtTime(s.time) + ' · ' + this.fmtDur(s.duration_sec) + '</div>' +
       '</div>').join('');
     b.innerHTML =
       '<div class="ex-2col">' +
@@ -608,8 +702,13 @@ const EX = {
     const pane = document.getElementById('exGradePane');
     if (!s.items) {
       pane.innerHTML = '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Đang tải nội dung bài…</div>';
-      try { s.items = await this.call('sub', { sid: s.id }); }
-      catch (e) { pane.innerHTML = '<div class="chart-card" style="color:var(--re);font-size:.72rem">Lỗi tải bài: ' + hesc(e.message || e) + '</div>'; return; }
+      try {
+        const { data, error } = await this.tbl('exam_answers')
+          .select('idx,topic_name,question,image_url,sample_answer,reply,score,note')
+          .eq('submission_id', s.id).order('idx');
+        if (error) throw new Error(error.message);
+        s.items = data || [];
+      } catch (e) { pane.innerHTML = '<div class="chart-card" style="color:var(--re);font-size:.72rem">Lỗi tải bài: ' + hesc(e.message || e) + '</div>'; return; }
       if (this.selSub !== s.id) return;
     }
     this.paintGrade();
@@ -617,16 +716,15 @@ const EX = {
   paintGrade() {
     const s = this.subs.find(x => x.id === this.selSub);
     const pane = document.getElementById('exGradePane');
-    if (!s || !pane) return;
-    if (!s.items) return;
+    if (!s || !pane || !s.items) return;
     const OPTS = [0, 0.25, 0.5, 0.75, 1];
     const body = s.items.map((it, i) => {
       const sc = (it.score !== '' && it.score != null) ? Number(it.score) : '';
       return '<div class="ex-rev">' +
-        '<div class="ex-revq"><span class="ex-badge ex-b-mu" data-noi18n>' + hesc(it.topic) + '</span><span data-noi18n>' + hesc(it.question) + '</span></div>' +
-        this.imgHtml(it.imageUrl, '460px') +
+        '<div class="ex-revq"><span class="ex-badge ex-b-mu" data-noi18n>' + hesc(it.topic_name || '') + '</span><span data-noi18n>' + hesc(it.question) + '</span></div>' +
+        this.imgHtml(it.image_url, '460px') +
         '<div class="ex-reply"><b>Nhân viên trả lời:</b> ' + (it.reply ? '<span data-noi18n>' + hesc(it.reply) + '</span>' : '<i>(Bỏ trống)</i>') + '</div>' +
-        (it.answer ? '<div class="ex-correct"><b>✓ Đáp án mẫu:</b> <span data-noi18n>' + hesc(it.answer) + '</span></div>' : '') +
+        (it.sample_answer ? '<div class="ex-correct"><b>✓ Đáp án mẫu:</b> <span data-noi18n>' + hesc(it.sample_answer) + '</span></div>' : '') +
         '<div class="ex-grow">' +
           '<select class="ex-inp ex-gsel" id="exGs' + i + '"><option value="">Chấm điểm</option>' +
             OPTS.map(v => '<option value="' + v + '"' + (sc !== '' && sc === v ? ' selected' : '') + '>' + v + ' điểm</option>').join('') +
@@ -636,9 +734,9 @@ const EX = {
       '</div>';
     }).join('');
     pane.innerHTML = '<div class="chart-card">' +
-      '<div class="ex-railh">Bài của <span data-noi18n>' + hesc(s.username || '') + '</span> · <span data-noi18n>' + hesc(s.id) + '</span></div>' +
+      '<div class="ex-railh">Bài của <span data-noi18n>' + hesc(s.username || '') + '</span> · <span data-noi18n>' + hesc(s.code) + '</span></div>' +
       '<div class="ex-meta">Mỗi câu tối đa 1 điểm — nhập được số lẻ. Tổng = cộng các câu / số câu.</div>' +
-      '<div class="ex-meta" style="margin-bottom:10px">' + this.fmtTime(s.time) + ' · ' + this.fmtDur(s.durationSec) + ' · ' + s.count + ' câu</div>' +
+      '<div class="ex-meta" style="margin-bottom:10px">' + this.fmtTime(s.time) + ' · ' + this.fmtDur(s.duration_sec) + ' · ' + s.count + ' câu</div>' +
       body +
       '<div class="ex-actions"><button class="abtn abtn-ok" onclick="EX.saveGrades()">Lưu chấm điểm</button>' +
       '<button class="abtn abtn-ghost" onclick="EX.selSub=null;EX.render()">Đóng</button></div>' +
@@ -652,12 +750,12 @@ const EX = {
       note: document.getElementById('exGn' + i).value
     }));
     try {
-      await this.call('grade', { sid: s.id, grades });
-      s.items.forEach((it, i) => { it.score = grades[i].score === '' ? 0 : (Number(grades[i].score) || 0); it.note = grades[i].note; });
+      await this.rpc('exam_grade', { p_id: s.id, p_grades: grades });
+      s.items.forEach((it, i) => { it.score = grades[i].score === '' ? null : Number(grades[i].score); it.note = grades[i].note; });
       s.total = s.items.reduce((a, it) => a + (Number(it.score) || 0), 0);
-      s.graded = true;
+      s.graded = s.items.some(it => it.score != null);
       this.mine = null;                     // bài của chính mình có thể vừa được chấm
-      logAction('CHẤM ĐIỂM TEST', (s.username || '') + ' · ' + s.id + ' · ' + this.fmtScore(s.total) + '/' + s.count);
+      logAction('CHẤM ĐIỂM TEST', (s.username || '') + ' · ' + s.code + ' · ' + this.fmtScore(s.total) + '/' + s.count);
       this.render(); this.toast('Đã lưu chấm điểm');
     } catch (e) { alert('Lỗi lưu chấm điểm: ' + (e.message || e)); }
   },
@@ -669,8 +767,8 @@ const EX = {
     if (!el) return;
     el.innerHTML = '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Đang tải xếp hạng…</div>';
     try {
-      const r = await this.call('rank', { month: month || 'all' });
-      el.innerHTML = this.rankHtml(r.list || []);
+      const list = await this.rpc('exam_rank', { p_month: month || 'all' });
+      el.innerHTML = this.rankHtml(list || []);
     } catch (e) {
       el.innerHTML = '<div class="chart-card" style="color:var(--re);font-size:.72rem">Lỗi tải xếp hạng: ' + hesc(e.message || e) + '</div>';
     }
@@ -706,11 +804,10 @@ const EX = {
 
   /* ==================== MODAL CHUNG ==================== */
   modal(html, w) {
-    const m = document.getElementById('exModal');
     const box = document.getElementById('exModalBox');
     box.style.maxWidth = w || '440px';
     box.innerHTML = html;
-    m.classList.add('show');
+    document.getElementById('exModal').classList.add('show');
   },
   closeModal() { const m = document.getElementById('exModal'); if (m) m.classList.remove('show'); }
 };

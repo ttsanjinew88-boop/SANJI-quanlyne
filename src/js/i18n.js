@@ -1112,6 +1112,14 @@ const I18N={
   "✓ Đáp án mẫu (chỉ Tổ Trưởng thấy)":"✓ Model answer (Team Leader only)","Nhập đáp án đúng…":"Type the correct answer…",
   "＋ Lưu câu hỏi":"＋ Save question","Hủy sửa":"Cancel edit","Ngân hàng câu hỏi":"Question bank",
   "Ngân hàng:":"Bank:","câu":"questions",
+  "📋 Dán hàng loạt từ Excel":"📋 Bulk paste from Excel","Dán hàng loạt từ Excel":"Bulk paste from Excel",
+  "Bôi đen vùng dữ liệu trong Excel/Google Sheet rồi Ctrl+C, bấm vào ô dưới và Ctrl+V. Mỗi dòng là một câu hỏi, các cột cách nhau bằng Tab (đúng thứ tự):":"Select the data range in Excel/Google Sheets, press Ctrl+C, click the box below and press Ctrl+V. One question per line, columns separated by Tab, in this order:",
+  "Chủ đề · Độ khó · Câu hỏi · Đáp án mẫu · Link ảnh":"Topic · Difficulty · Question · Model answer · Image link",
+  "— hai cột cuối để trống cũng được.":"— the last two columns may be left empty.",
+  "Chủ đề chưa có trong hệ thống sẽ được tạo mới tự động.":"Topics not yet in the system are created automatically.",
+  "Nhập vào ngân hàng":"Import into bank",
+  "Không đọc được dòng nào. Cần ít nhất 3 cột: Chủ đề · Độ khó · Câu hỏi, cách nhau bằng Tab.":"No line could be read. At least 3 Tab-separated columns are required: Topic · Difficulty · Question.",
+  "(không tên)":"(unnamed)",
   "Thêm chủ đề mới":"New topic","Sửa chủ đề":"Edit topic","Tên chủ đề":"Topic name",
   "Ví dụ: Sảnh — Xổ số":"Example: Lobby — Lottery","Màu nhận diện":"Colour",
   /* quản lý nhân viên */
@@ -1144,7 +1152,10 @@ const I18N={
     /* ⚠ trs() TRIM chuỗi trước khi khớp -> regex KHÔNG được có khoảng trắng ở hai đầu */
     /* T5 — Kiểm Tra Nghiệp Vụ: chuỗi ghép kèm SỐ */
     [/^Câu (\d+) \/ (\d+) · Đã trả lời (\d+)$/,"Question $1 / $2 · $3 answered"],
-    [/^\((\d+) câu, bắt đầu (.+)\)\. Bấm nút dưới để làm tiếp — không tốn thêm lượt\.$/,"($1 questions, started $2). Press the button below to continue — no extra attempt is used."],
+    [/^\((\d+) câu, bắt đầu (\d+) phút trước\)\. Bấm nút dưới để làm tiếp — không tốn thêm lượt\.$/,"($1 questions, started $2 minutes ago). Press the button below to continue — no extra attempt is used."],
+    [/^Đọc được (\d+) câu hỏi$/,"$1 questions parsed"],
+    [/^Đã nhập (\d+) câu hỏi$/,"Imported $1 questions"],
+    [/^Không bắt đầu được: (.+)$/,"Could not start: $1"],
     [/^Còn (\d+) bài chờ chấm$/,"$1 test(s) awaiting grading"],
     [/^Tổng đề riêng: (\d+) câu$/,"Custom exam total: $1 questions"],
     [/^Đã chấm · (.+)$/,"Graded · $1"],
