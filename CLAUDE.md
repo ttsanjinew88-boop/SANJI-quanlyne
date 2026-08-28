@@ -19,7 +19,7 @@
 - User **tự chạy SQL** và **tự deploy Edge Function**. Không tự làm hộ.
 - **Đừng sửa file trực tiếp trên GitHub** khi Claude đang sửa local (gây lệch, phải `git pull --rebase`).
 - Deploy: `git commit → push → chờ GitHub Actions`. Poll API `until grep '"conclusion"'`.
-- **BUILD (chốt 24/07/2026)**: `dashboard_v2.html` là FILE SINH RA từ `src/` — **ĐỪNG sửa thẳng file này** (build ghi đè). `build.ps1` (root) ghép các mảnh bằng `.Replace` chuỗi thô (giữ CRLF, marker mỗi cái 1 dòng, file con không có newline thừa → byte-identical). `serve.ps1` tự chạy `build.ps1` trước khi phục vụ. **Phép thử vàng: build xong `git diff dashboard_v2.html` phải RỖNG** (SHA256 khớp). CHƯA nối vào `deploy.yml` — CI vẫn deploy `dashboard_v2.html` đã commit (nên phải commit cả file sinh ra). Muốn tự sinh trên CI thì thêm 1 step `pwsh build.ps1` trước `upload-pages-artifact`.
+- **BUILD (chốt 24/07/2026)**: `dashboard_v2.html` là FILE SINH RA từ `src/` — **ĐỪNG sửa thẳng file này** (build ghi đè). `build.ps1` (root) ghép các mảnh bằng `.Replace` chuỗi thô (giữ CRLF, marker mỗi cái 1 dòng, file con không có newline thừa → byte-identical). `serve.ps1` tự chạy `build.ps1` trước khi phục vụ. **Phép thử vàng: build xong `git diff dashboard_v2.html` phải RỖNG** (SHA256 khớp). `deploy.yml` ĐÃ có step `./build.ps1` trước `upload-pages-artifact` (CI tự sinh lại), nhưng **vẫn nên commit cả `dashboard_v2.html`** để bản trong repo khớp với bản deploy. `upload-pages-artifact` lấy `path: '.'` ⇒ **mọi file trong repo đều được GitHub Pages phục vụ** (vd `assets/favicon-*.png`).
   - `src/dashboard_v2.src.html` (~856 dòng) — khung: gần như toàn bộ HTML (body/modal/login/tabs) + các dòng marker `//#include`. **JS đã tách hết ra `src/js/`.**
   - `src/styles.css` — toàn bộ CSS (khối `<style>`).
   - **JS khối T1** (thứ tự trong file gộp): `src/js/i18n.js` (song ngữ VI/EN — xem mục "Song ngữ") → `src/js/core.js` (util, cấu hình cột Nghi Ngờ, module `SB` Supabase, profile/quyền) → `auth.js` (AUTH đăng nhập + phân quyền + white-IP lúc login) → `admin.js` (rAdminPanel, 2FA, white-IP quản lý, Lịch Sử, xóa/xuất tháng) → `data-boot.js` (tháng/dataset/bootData, KO_OV/KO_AN localStorage, URL handler Telegram, progress UI, hàm chấm điểm) → `upload.js` (upload dropdown, parse Excel, helper Đơn Rút, cộng dồn add-mode) → `nav-donrut.js` (navigation sw/switchTool/rAll + module `DR` Báo Cáo Đơn Rút) → `render.js` (thống kê KM, render tab Dữ Liệu, Hiệu Suất Duyệt Đơn, Tổng Quan, Bất Thường, Hạn Mức) → `shift-rank.js` (Phân Ca, Công Việc, Xếp Hạng, màu FK).
@@ -27,6 +27,9 @@
   - **JS khối T3**: `src/js/ntk.js` (module `NTK`: Lọc File NTK — xem mục riêng bên dưới).
   - **JS khối T5**: `src/js/exam.js` (module `EX`: Kiểm Tra Nghiệp Vụ — xem mục riêng bên dưới).
   - ⚠ Số dòng trong bảng "Bố cục" & "Bản đồ chức năng" bên dưới là theo FILE GỘP; khi sửa thì mở đúng file `src/js/*` tương ứng (grep tên hàm để định vị trong file con).
+
+### Favicon (chốt 28/08/2026)
+`assets/favicon-32.png` · `favicon-64.png` · `favicon-180.png` (apple-touch) — sinh từ logo NE gốc (`media.88new11.com/.../73d3f524….png`, 1254×1254). Bản 32/64 **cắt sát vào giữa 66%** để chữ NE còn đọc được ở cỡ tab trình duyệt (để nguyên logo đầy đủ thì ở 32px chỉ còn một đốm cam); bản 180 giữ nguyên toàn khung. Link nằm trong `<head>` của `src/dashboard_v2.src.html`, đường dẫn TƯƠNG ĐỐI (`assets/…`) để chạy đúng cả trên GitHub Pages project-site lẫn `serve.ps1`. Đổi logo thì tạo lại 3 file bằng System.Drawing rồi commit đè, không cần sửa HTML.
 
 ## Bố cục file `dashboard_v2.html` (số dòng theo FILE GỘP; sửa thì vào `src/`)
 | Vùng | Dòng | Nội dung |

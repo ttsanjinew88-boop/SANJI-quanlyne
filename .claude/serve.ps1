@@ -13,6 +13,9 @@ while ($l.IsListening) {
   if ((Test-Path $f -PathType Leaf) -and $f.StartsWith($root)) {
     $b = [IO.File]::ReadAllBytes($f)
     if ($f -match '\.html$') { $c.Response.ContentType = 'text/html; charset=utf-8' }
+    elseif ($f -match '\.png$') { $c.Response.ContentType = 'image/png' }
+    elseif ($f -match '\.svg$') { $c.Response.ContentType = 'image/svg+xml' }
+    elseif ($f -match '\.ico$') { $c.Response.ContentType = 'image/x-icon' }
     $c.Response.OutputStream.Write($b, 0, $b.Length)
   } else { $c.Response.StatusCode = 404 }
   $c.Response.Close()
