@@ -594,10 +594,11 @@ const NTK={
       card('Nhóm lạm dụng',nn(st.abuseGroups),'var(--re)');
 
     // ---- 3 tab nhỏ (thứ tự: Nhiều TK -> Check -> Lạm Dụng, theo luồng xử lý của nhân viên) ----
+    // Dùng .tab (kích cỡ chuẩn dùng chung với T1/T2/T4/T5), không tự chế kích cỡ khác
     document.getElementById('ntkViews').innerHTML=
-      '<div class="vt-btn'+(NTK.view==='ntk'?' active':'')+'" onclick="NTK.setView(\'ntk\')">Nhóm Nhiều Tài Khoản ('+nn(st.ntkGroups)+')</div>'+
-      '<div class="vt-btn'+(NTK.view==='check'?' active':'')+'" onclick="NTK.setView(\'check\')">Check Lạm Dụng ('+nn(st.checkGroups)+')</div>'+
-      '<div class="vt-btn'+(NTK.view==='abuse'?' active':'')+'" onclick="NTK.setView(\'abuse\')">Nhóm Lạm Dụng ('+nn(st.abuseGroups)+')</div>';
+      '<div class="tab'+(NTK.view==='ntk'?' active':'')+'" onclick="NTK.setView(\'ntk\')">Nhóm Nhiều Tài Khoản ('+nn(st.ntkGroups)+')</div>'+
+      '<div class="tab'+(NTK.view==='check'?' active':'')+'" onclick="NTK.setView(\'check\')">Check Lạm Dụng ('+nn(st.checkGroups)+')</div>'+
+      '<div class="tab'+(NTK.view==='abuse'?' active':'')+'" onclick="NTK.setView(\'abuse\')">Nhóm Lạm Dụng ('+nn(st.abuseGroups)+')</div>';
 
     // ---- Bảng minh bạch phần bị loại ----
     const drop=[

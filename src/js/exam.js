@@ -181,7 +181,8 @@ const EX = {
     if (!el) return;
     const list = this.VIEWS.filter(v => !v.tt || tt);
     if (!list.some(v => v.k === this.view)) this.view = 'lam';
-    el.innerHTML = list.map(v => '<button class="vt-btn' + (this.view === v.k ? ' active' : '') + '" onclick="EX.setView(\'' + v.k + '\')">' + v.t + '</button>').join('');
+    // .tab = kích cỡ chuẩn dùng chung với T1/T2/T3/T4 (xem chú thích ở .tab trong styles.css)
+    el.innerHTML = list.map(v => '<div class="tab' + (this.view === v.k ? ' active' : '') + '" onclick="EX.setView(\'' + v.k + '\')">' + v.t + '</div>').join('');
   },
   setView(k) {
     if (this.stage === 'doing' && k !== 'lam') {

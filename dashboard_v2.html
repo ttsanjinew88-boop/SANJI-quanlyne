@@ -92,9 +92,14 @@ input#fh{display:none}
 
 /* TABS */
 .tabs-wrap{background:#0a0d20;border-bottom:1px solid var(--border);overflow-x:auto;display:flex;gap:0;padding:0 8px;position:sticky;top:67px;z-index:99}
+/* ⚠ KÍCH CỠ CHUẨN cho tab nhỏ (cấp 1) của MỌI tab lớn — T1 là bản gốc, T2/T3/T4/T5
+   đều dùng chung. Thêm tab lớn mới thì bọc `.tabs-wrap.tabs-inline` + `.tab`,
+   ĐỪNG tự chế kích cỡ khác. */
 .tab{padding:12px 18px;font-size:.7rem;font-weight:700;cursor:pointer;color:var(--mu);letter-spacing:.06em;text-transform:uppercase;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:6px}
 .tab:hover{color:var(--tx)}
 .tab.active{color:var(--pu2);border-bottom-color:var(--pu);background:rgba(124,58,237,.06)}
+/* Hàng tab nằm TRONG trang (T3/T4/T5) — khác T1 ở chỗ không dính đầu màn hình */
+.tabs-inline{position:static;top:auto;margin-bottom:14px;border-radius:10px;border:1px solid var(--border)}
 
 /* PANELS */
 .pg{display:none;padding:20px 24px}.pg.active{display:block}
@@ -357,11 +362,16 @@ select.wk-code{cursor:pointer;outline:none}
 .bc-tool .file-tag .rm:hover{color:#ef4444}
 .bc-tool .progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px;display:none}
 .bc-tool .progress-fill{height:100%;background:linear-gradient(90deg,var(--pu),var(--bl));transition:width .3s;width:0}
-.bc-tool .bc-tabs{display:flex;background:var(--card2);border-bottom:1px solid var(--border)}
-.bc-tool .bc-tab{padding:11px 22px;color:var(--mu2);cursor:pointer;font-weight:bold;font-size:12px;border-right:1px solid var(--border);transition:all .2s;white-space:nowrap;letter-spacing:.05em}
-.bc-tool .bc-tab:hover{background:rgba(124,58,237,.07);color:var(--pu2)}
-.bc-tool .bc-tab.active{background:rgba(124,58,237,.1);color:var(--pu2);border-bottom:3px solid var(--pu)}
-.bc-tool .data-source-badge{font-size:10px;background:var(--pu);color:#fff;padding:2px 7px;border-radius:8px;margin-left:8px;font-weight:bold}
+/* Tab nhỏ của T2 — dùng ĐÚNG kích cỡ .tab chuẩn (xem chú thích ở .tab).
+   Bản cũ tự đặt 11px 22px / 12px / viền phải / gạch dưới 3px nên lệch với T1. */
+.bc-tool .bc-tabs{display:flex;background:#0a0d20;border-bottom:1px solid var(--border);overflow-x:auto;padding:0 8px}
+.bc-tool .bc-tab{padding:12px 18px;font-size:.7rem;font-weight:700;cursor:pointer;color:var(--mu);letter-spacing:.06em;text-transform:uppercase;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.bc-tool .bc-tab:hover{color:var(--tx)}
+.bc-tool .bc-tab.active{color:var(--pu2);border-bottom-color:var(--pu);background:rgba(124,58,237,.06)}
+/* line-height:1 -> badge cao 14px, THẤP HƠN dòng chữ của tab (15px) nên không đội
+   hàng tab cao lên: tab của T2 giữ đúng 41px như T1. Bỏ margin-left vì .bc-tab đã
+   có gap:6px. Đổi font-size badge thì kiểm lại chiều cao tab. */
+.bc-tool .data-source-badge{font-size:10px;line-height:1;background:var(--pu);color:#fff;padding:2px 7px;border-radius:8px;font-weight:bold}
 .bc-tool .bc-panel{display:none;padding:16px 24px}
 .bc-tool .bc-panel.active{display:block}
 .bc-tool .cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
@@ -577,7 +587,8 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .sop-t{font-size:1.05rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--bl2)}
 .sop-m{font-size:.63rem;color:var(--mu);margin-top:4px}
 /* Tab nhỏ T4: viết hoa ĐẦU CHỮ (đè .tab của T1 vốn uppercase toàn bộ) */
-#sopTabs .tab{text-transform:none;letter-spacing:.02em;font-size:.75rem;padding:11px 18px}
+/* #sopTabs dùng NGUYÊN kích cỡ .tab chuẩn — bản cũ tự đặt riêng (.75rem, 11px 18px,
+   không in hoa) làm tab nhỏ của T4 lệch hẳn so với T1. */
 .sop-saved{font-size:.6rem;color:var(--gr);opacity:.45;transition:opacity .3s}
 .sop-empty{border:1px dashed var(--border2);border-radius:10px;padding:16px;text-align:center;color:var(--mu);font-size:.7rem;margin:8px 0}
 .sop-empty.sm{padding:7px;font-size:.62rem;border:none}
@@ -7360,7 +7371,7 @@ rAll();
     <div class="stats-row" id="ntkCards"></div>
     <div class="chart-card" id="ntkDropStat" style="margin-bottom:16px"></div>
 
-    <div class="view-toggle" id="ntkViews"></div>
+    <div class="tabs-wrap tabs-inline" id="ntkViews"></div>
     <div class="chart-card" style="margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
       <span style="font-size:.62rem;color:var(--mu2);font-weight:700;text-transform:uppercase;letter-spacing:.1em">Ngưỡng nhận diện lạm dụng</span>
       <label style="font-size:.64rem;color:var(--tx);display:flex;align-items:center;gap:6px">Chênh lệch tiền nạp ≤
@@ -7436,7 +7447,7 @@ rAll();
     <span id="sopUpStatus" style="font-size:.58rem;color:var(--cy);text-transform:none;letter-spacing:0;font-weight:400"></span>
   </div>
 
-  <div class="tabs-wrap" id="sopTabs" style="position:static;top:auto;margin-bottom:14px;border-radius:10px;border:1px solid var(--border)"></div>
+  <div class="tabs-wrap tabs-inline" id="sopTabs"></div>
 
   <div class="sop-wrap">
     <div class="sop-rail" id="sopRail"></div>
@@ -7484,7 +7495,7 @@ rAll();
     <div class="tool-hdr-note">Bài test nội bộ · đề và bài làm lưu trên hệ thống</div>
     <div class="lang-sw" id="btnLang5" data-noi18n></div>
   </div>
-  <div class="view-toggle" id="exViews"></div>
+  <div class="tabs-wrap tabs-inline" id="exViews"></div>
   <div id="exBody"></div>
 
   <div class="dr-modal" id="exModal" onclick="if(event.target===this)EX.closeModal()">
@@ -9172,10 +9183,11 @@ const NTK={
       card('Nhóm lạm dụng',nn(st.abuseGroups),'var(--re)');
 
     // ---- 3 tab nhỏ (thứ tự: Nhiều TK -> Check -> Lạm Dụng, theo luồng xử lý của nhân viên) ----
+    // Dùng .tab (kích cỡ chuẩn dùng chung với T1/T2/T4/T5), không tự chế kích cỡ khác
     document.getElementById('ntkViews').innerHTML=
-      '<div class="vt-btn'+(NTK.view==='ntk'?' active':'')+'" onclick="NTK.setView(\'ntk\')">Nhóm Nhiều Tài Khoản ('+nn(st.ntkGroups)+')</div>'+
-      '<div class="vt-btn'+(NTK.view==='check'?' active':'')+'" onclick="NTK.setView(\'check\')">Check Lạm Dụng ('+nn(st.checkGroups)+')</div>'+
-      '<div class="vt-btn'+(NTK.view==='abuse'?' active':'')+'" onclick="NTK.setView(\'abuse\')">Nhóm Lạm Dụng ('+nn(st.abuseGroups)+')</div>';
+      '<div class="tab'+(NTK.view==='ntk'?' active':'')+'" onclick="NTK.setView(\'ntk\')">Nhóm Nhiều Tài Khoản ('+nn(st.ntkGroups)+')</div>'+
+      '<div class="tab'+(NTK.view==='check'?' active':'')+'" onclick="NTK.setView(\'check\')">Check Lạm Dụng ('+nn(st.checkGroups)+')</div>'+
+      '<div class="tab'+(NTK.view==='abuse'?' active':'')+'" onclick="NTK.setView(\'abuse\')">Nhóm Lạm Dụng ('+nn(st.abuseGroups)+')</div>';
 
     // ---- Bảng minh bạch phần bị loại ----
     const drop=[
@@ -10768,7 +10780,8 @@ const EX = {
     if (!el) return;
     const list = this.VIEWS.filter(v => !v.tt || tt);
     if (!list.some(v => v.k === this.view)) this.view = 'lam';
-    el.innerHTML = list.map(v => '<button class="vt-btn' + (this.view === v.k ? ' active' : '') + '" onclick="EX.setView(\'' + v.k + '\')">' + v.t + '</button>').join('');
+    // .tab = kích cỡ chuẩn dùng chung với T1/T2/T3/T4 (xem chú thích ở .tab trong styles.css)
+    el.innerHTML = list.map(v => '<div class="tab' + (this.view === v.k ? ' active' : '') + '" onclick="EX.setView(\'' + v.k + '\')">' + v.t + '</div>').join('');
   },
   setView(k) {
     if (this.stage === 'doing' && k !== 'lam') {
