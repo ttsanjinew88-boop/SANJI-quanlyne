@@ -819,6 +819,8 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 /* Bố cục: 2 cột (rail trái + pane phải) cho các màn quản lý, nhưng màn LÀM BÀI
    giữ cột đọc hẹp (.ex-narrow / .ex-qcard) — dòng chữ dài quá ~85 ký tự rất khó đọc. */
 .ex-2col{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
+/* Quản Lý Đề: rail rộng hơn vì mỗi chủ đề chiếm 2 dòng (tên đầy đủ ở trên) */
+.ex-2col-wide{grid-template-columns:340px minmax(0,1fr)}
 .ex-rail{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto}
 .ex-narrow{max-width:900px;margin:0 auto}
 .ex-h1{font-size:1.05rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--bl2)}
@@ -879,6 +881,17 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .ex-tdot{width:11px;height:11px;border-radius:50%;flex:none}
 .ex-tname{flex:1;font-size:.68rem;font-weight:700;color:var(--mu2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ex-tavail{font-size:.58rem;color:var(--mu);white-space:nowrap}
+/* chủ đề 2 dòng: dòng trên TÊN ĐẦY ĐỦ (không cắt), dòng dưới ô số câu + 2 nút */
+.ex-trow2{border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;
+  cursor:pointer;display:flex;flex-direction:column;gap:7px;transition:all .18s;background:transparent}
+.ex-trow2:hover{border-color:var(--pu);background:rgba(124,58,237,.08)}
+.ex-trow2.on{background:linear-gradient(135deg,var(--pu),var(--bl));border-color:transparent;box-shadow:0 4px 14px rgba(124,58,237,.3)}
+.ex-trow2.on .ex-tname,.ex-trow2.on .ex-tavail{color:#fff}
+.ex-trow2.on .ex-mini{border-color:rgba(255,255,255,.35);color:#fff}
+.ex-trow2 .ex-tname{white-space:normal;overflow:visible;text-overflow:clip}
+.ex-trow2-t{display:flex;align-items:center;gap:8px}
+.ex-trow2-b{display:flex;align-items:center;gap:7px;padding-left:19px}
+.ex-trow2-b .ex-tavail{flex:1}
 .ex-mini{width:24px;height:24px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--mu2);cursor:pointer;font-size:.7rem;line-height:1;flex:none}
 .ex-mini:hover{border-color:var(--pu);color:var(--tx)}
 .ex-mini.del:hover{border-color:var(--re);color:var(--re)}
@@ -911,10 +924,20 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .ex-tbl td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--border);color:var(--tx)}
 .ex-tbl tr:hover td{background:rgba(124,58,237,.05)}
 .ex-tbl .ex-nm{font-weight:800;color:var(--pu2)}
-/* ảnh */
+/* ảnh — tải thẳng lên Storage như tab Quy Trình, không dán link */
 .ex-img{border-radius:10px;overflow:hidden;border:1px solid var(--border);margin:12px 0;background:var(--card2)}
-.ex-img img{width:100%;display:block}
+.ex-img img{width:100%;display:block;cursor:zoom-in}
 .ex-imgerr{display:block;padding:12px;font-size:.62rem;color:var(--re)}
+.ex-drop{border:2px dashed var(--border2);border-radius:10px;padding:16px 14px;text-align:center;
+  cursor:pointer;display:flex;flex-direction:column;gap:5px;transition:all .18s;background:var(--card2)}
+.ex-drop:hover,.ex-drop.over{border-color:var(--pu);background:rgba(124,58,237,.08)}
+.ex-drop b{font-size:.68rem;font-weight:700;color:var(--tx)}
+.ex-drop span{font-size:.6rem;color:var(--mu)}
+.ex-imgone{display:flex;flex-direction:column;gap:8px}
+.ex-imgone .ex-img{margin:0}
+.ex-imgb{display:flex;gap:8px;flex-wrap:wrap}
+.ex-lb{max-height:76vh;overflow:auto;border-radius:8px}
+.ex-lb img{width:100%;display:block;border-radius:8px}
 /* modal + toast */
 .ex-modalh{font-size:.82rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--bl2);margin-bottom:10px}
 .ex-swatch{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px}
@@ -2741,7 +2764,7 @@ const I18N={
   /* ---- T5 — KIỂM TRA NGHIỆP VỤ ---- */
   "KIỂM TRA NGHIỆP VỤ":"SKILLS TEST",
   "Kiểm Tra Nghiệp Vụ":"Skills Test",
-  "Bài test nội bộ · dữ liệu lưu trên Google Sheet":"Internal test · data stored in Google Sheets",
+  "Bài test nội bộ · đề và bài làm lưu trên hệ thống":"Internal test · questions and submissions stored in the system",
   "Làm Bài":"Take Test","Bài Của Tôi":"My Tests","Quản Lý Đề":"Question Bank",
   "Quản Lý Nhân Viên":"Staff Management","Chấm Điểm":"Grading",
   "Hiệu Suất":"Performance","Test Nghiệp Vụ":"Skills Test",
@@ -2786,8 +2809,11 @@ const I18N={
   "Lưu cài đặt":"Save settings","Thêm câu hỏi vào ngân hàng":"Add a question to the bank","Sửa câu hỏi":"Edit question",
   "Độ khó":"Difficulty","Dễ":"Easy","Khó":"Hard",
   "Nội dung câu hỏi":"Question text","Nhập nội dung câu hỏi…":"Type the question…",
-  "Link hình ảnh (tùy chọn)":"Image link (optional)","Dán link ảnh hoặc link Google Drive…":"Paste an image link or a Google Drive link…",
-  "Google Drive: chuột phải ảnh → Chia sẻ → “Bất kỳ ai có đường liên kết” → Sao chép liên kết → dán vào đây.":"Google Drive: right-click the image → Share → “Anyone with the link” → Copy link → paste it here.",
+  "Hình ảnh minh họa (tùy chọn)":"Illustration (optional)",
+  "Kéo ảnh vào đây, dán ảnh chụp màn hình (Ctrl+V), hoặc bấm để chọn file":"Drag an image here, paste a screenshot (Ctrl+V), or click to pick a file",
+  "Ảnh được nén còn tối đa 1920px rồi lưu thẳng lên hệ thống — không cần link.":"Images are compressed to 1920px and stored in the system — no link needed.",
+  "Đang tải ảnh lên…":"Uploading image…","Đổi ảnh":"Replace image","Xóa ảnh":"Remove image",
+  "Không tải được ảnh.":"Image could not be loaded.","Bấm để phóng to":"Click to enlarge",
   "✓ Đáp án mẫu (chỉ Tổ Trưởng thấy)":"✓ Model answer (Team Leader only)","Nhập đáp án đúng…":"Type the correct answer…",
   "＋ Lưu câu hỏi":"＋ Save question","Hủy sửa":"Cancel edit","Ngân hàng câu hỏi":"Question bank",
   "Ngân hàng:":"Bank:","câu":"questions",
@@ -2833,6 +2859,9 @@ const I18N={
     [/^Câu (\d+) \/ (\d+) · Đã trả lời (\d+)$/,"Question $1 / $2 · $3 answered"],
     [/^\((\d+) câu, bắt đầu (\d+) phút trước\)\. Bấm nút dưới để làm tiếp — không tốn thêm lượt\.$/,"($1 questions, started $2 minutes ago). Press the button below to continue — no extra attempt is used."],
     [/^Đọc được (\d+) câu hỏi$/,"$1 questions parsed"],
+    [/^\/ (\d+) câu có sẵn$/,"/ $1 available"],
+    [/^(\d+) câu trong ngân hàng$/,"$1 questions in the bank"],
+    [/^Tải ảnh thất bại: (.+)$/,"Image upload failed: $1"],
     [/^Đã nhập (\d+) câu hỏi$/,"Imported $1 questions"],
     [/^Không bắt đầu được: (.+)$/,"Could not start: $1"],
     [/^Còn (\d+) bài chờ chấm$/,"$1 test(s) awaiting grading"],
@@ -7440,7 +7469,7 @@ rAll();
       <div class="tool-hdr-title">Kiểm Tra Nghiệp Vụ</div>
       <div class="tool-hdr-sub">SANJI</div>
     </div>
-    <div class="tool-hdr-note">Bài test nội bộ · dữ liệu lưu trên Google Sheet</div>
+    <div class="tool-hdr-note">Bài test nội bộ · đề và bài làm lưu trên hệ thống</div>
     <div class="lang-sw" id="btnLang5" data-noi18n></div>
   </div>
   <div class="view-toggle" id="exViews"></div>
@@ -10624,7 +10653,17 @@ const EX = {
     const p = n => String(n).padStart(2, '0');
     return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
   },
-  // Link Google Drive -> link ảnh hiển thị được (giống bản Apps Script cũ)
+  /* ---------- ẢNH CÂU HỎI ----------
+     Cơ chế y hệt tab Quy Trình Làm Việc: bucket PRIVATE `baitest`, nén WebP ngay
+     trên trình duyệt rồi tải thẳng lên, hiển thị bằng signed URL 1 giờ có cache
+     trong RAM. Người soạn KHÔNG phải dán link.
+     `image_url` giờ chứa ĐƯỜNG DẪN trong bucket (vd 'q/p1a2b3c4.webp'); các giá
+     trị cũ dạng http(s) vẫn hiển thị bình thường (dán hàng loạt từ Excel vẫn
+     nhận link) — imgHtml tự phân biệt. */
+  BUCKET: 'baitest',
+  _urls: {},
+  uid(p) { return (p || 'p') + Math.random().toString(36).slice(2, 10); },
+  // Link Google Drive -> link ảnh hiển thị được (chỉ còn dùng cho ô dán hàng loạt)
   normImg(url) {
     if (!url) return '';
     url = String(url).trim();
@@ -10634,10 +10673,64 @@ const EX = {
     }
     return url;
   },
-  imgHtml(url, max) {
-    if (!url) return '';
-    return '<div class="ex-img"' + (max ? ' style="max-width:' + max + '"' : '') + '><img src="' + hesc(url) +
-      '" loading="lazy" onerror="this.parentNode.innerHTML=\'<span class=&quot;ex-imgerr&quot;>Không tải được ảnh — kiểm tra link đã chia sẻ công khai chưa.</span>\'"></div>';
+  imgHtml(src, max) {
+    if (!src) return '';
+    const isUrl = /^https?:\/\//i.test(src);
+    const attr = isUrl ? ('src="' + hesc(src) + '"') : ('data-p="' + hesc(src) + '"');
+    return '<div class="ex-img"' + (max ? ' style="max-width:' + max + '"' : '') + '><img ' + attr +
+      ' loading="lazy" onclick="EX.lightbox(this.src)" title="Bấm để phóng to"' +
+      ' onerror="this.parentNode.innerHTML=\'<span class=&quot;ex-imgerr&quot;>Không tải được ảnh.</span>\'"></div>';
+  },
+  // Nén: tối đa 1920px, WebP 0.85 (~120-250 KB/ảnh chụp màn hình, chữ vẫn sắc)
+  compress(file) {
+    return new Promise((res, rej) => {
+      if (!/^image\//.test(file.type)) { rej(new Error('Không phải file ảnh')); return; }
+      const img = new Image(), url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const MAX = 1920, sc = Math.min(1, MAX / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(b => b ? res(b) : rej(new Error('Nén ảnh lỗi')), 'image/webp', .85);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('Không đọc được ảnh')); };
+      img.src = url;
+    });
+  },
+  async signed(path) {
+    if (this._urls[path] && this._urls[path].exp > Date.now()) return this._urls[path].u;
+    const { data, error } = await SB.client().storage.from(this.BUCKET).createSignedUrl(path, 3600);
+    if (error || !data) return '';
+    this._urls[path] = { u: data.signedUrl, exp: Date.now() + 50 * 60 * 1000 };
+    return data.signedUrl;
+  },
+  // Ký URL cho mọi <img data-p> vừa render (gọi sau render, giống SOP.hydrateImgs)
+  async hydrateImgs() {
+    for (const el of [...document.querySelectorAll('#t5 img[data-p]')]) {
+      const u = await this.signed(el.getAttribute('data-p'));
+      if (u) { el.src = u; el.removeAttribute('data-p'); }
+      else el.parentNode.innerHTML = '<span class="ex-imgerr">Không tải được ảnh.</span>';
+    }
+  },
+  lightbox(src) {
+    if (!src) return;
+    this.modal('<div class="ex-lb"><img src="' + hesc(src) + '" alt=""></div>' +
+      '<div class="ex-actions" style="justify-content:flex-end">' +
+      '<a class="abtn abtn-ghost" href="' + hesc(src) + '" target="_blank" rel="noopener" style="text-decoration:none">Mở ảnh gốc</a>' +
+      '<button class="abtn abtn-pu" onclick="EX.closeModal()">Đóng</button></div>', '94vw');
+  },
+  // Tải 1 ảnh lên bucket, trả về đường dẫn đã lưu
+  async uploadImg(file) {
+    const blob = await this.compress(file);
+    const path = 'q/' + this.uid('p') + '.webp';
+    const { error } = await SB.client().storage.from(this.BUCKET).upload(path, blob, { contentType: 'image/webp', upsert: false });
+    if (error) throw new Error(error.message);
+    return path;
+  },
+  async dropImg(path) {
+    if (!path || /^https?:\/\//i.test(path)) return;   // link ngoài thì không có gì để xoá
+    try { await SB.client().storage.from(this.BUCKET).remove([path]); } catch (e) { console.warn('xoá ảnh', e); }
   },
   toast(m) {
     let t = document.getElementById('exToast');
@@ -10666,9 +10759,10 @@ const EX = {
     if (!b || !this.D) return;
     if (this.view === 'lam') this.renderLam(b);
     else if (this.view === 'bai') this.renderBai(b);
-    else if (this.view === 'de') this.renderDe(b);
+    else if (this.view === 'de') { this.renderDe(b); this.wireDrop(); }
     else if (this.view === 'nv') this.renderNv(b);
     else if (this.view === 'cham') this.renderCham(b);
+    this.hydrateImgs();   // ký URL cho ảnh vừa render (các hàm async tự gọi lại)
   },
 
   /* ==================== TAB: LÀM BÀI ==================== */
@@ -10839,6 +10933,7 @@ const EX = {
           '</div><div id="exMine' + i + '" style="display:none"></div></div>';
       }).join('') +
       (res.show_answer ? '' : '<div class="ex-meta" style="margin-top:10px">Đáp án mẫu đang được ẩn. Tổ Trưởng có thể bật trong Quản Lý Đề → Cài đặt bài thi.</div>');
+    this.hydrateImgs();
   },
   toggleMine(i) {
     const box = document.getElementById('exMine' + i);
@@ -10855,29 +10950,38 @@ const EX = {
       '</div>';
     }).join('');
     box.style.display = 'block';
+    this.hydrateImgs();
   },
 
   /* ==================== TAB: QUẢN LÝ ĐỀ (TT) ==================== */
   renderDe(b) {
     const st = this.D.settings, topics = this.D.topics || [], bank = this.bank || [];
     const total = Object.values(this.D.config || {}).reduce((a, v) => a + (Number(v) || 0), 0);
+    // Mỗi chủ đề chiếm 2 dòng: trên là TÊN ĐẦY ĐỦ (không cắt), dưới là ô số câu +
+    // 2 nút. Nhồi cả 6 thứ vào 1 dòng như bản đầu làm tên chủ đề bị cắt cụt.
     const rail = topics.map(t => {
       const avail = bank.filter(x => x.topic_id === t.id).length;
-      return '<div class="ex-trow' + (this.selTopic === t.id ? ' on' : '') + '" onclick="EX.pickTopic(\'' + t.id + '\')">' +
-        '<span class="ex-tdot" style="background:' + hesc(t.color) + '"></span>' +
-        '<span class="ex-tname" data-noi18n>' + hesc(t.name) + '</span>' +
-        '<span class="ex-tavail">' + ((this.D.config || {})[t.id] || 0) + '/' + avail + '</span>' +
-        '<input type="number" class="ex-num" min="0" max="' + avail + '" value="' + ((this.D.config || {})[t.id] || 0) + '" onclick="event.stopPropagation()" onchange="EX.setCfg(\'' + t.id + '\',this.value,' + avail + ')">' +
-        '<button class="ex-mini" onclick="event.stopPropagation();EX.openTopic(\'' + t.id + '\')" title="Sửa">✎</button>' +
-        '<button class="ex-mini del" onclick="event.stopPropagation();EX.delTopic(\'' + t.id + '\')" title="Xóa">×</button>' +
+      const cur = (this.D.config || {})[t.id] || 0;
+      return '<div class="ex-trow2' + (this.selTopic === t.id ? ' on' : '') + '" onclick="EX.pickTopic(\'' + t.id + '\')">' +
+        '<div class="ex-trow2-t"><span class="ex-tdot" style="background:' + hesc(t.color) + '"></span>' +
+        '<span class="ex-tname" data-noi18n>' + hesc(t.name) + '</span></div>' +
+        '<div class="ex-trow2-b" onclick="event.stopPropagation()">' +
+          '<input type="number" class="ex-num" min="0" max="' + avail + '" value="' + cur + '" onchange="EX.setCfg(\'' + t.id + '\',this.value,' + avail + ')" title="Số câu bốc vào đề">' +
+          '<span class="ex-tavail">/ ' + avail + ' câu có sẵn</span>' +
+          '<button class="ex-mini" onclick="EX.openTopic(\'' + t.id + '\')" title="Sửa">✎</button>' +
+          '<button class="ex-mini del" onclick="EX.delTopic(\'' + t.id + '\')" title="Xóa">×</button>' +
+        '</div>' +
       '</div>';
     }).join('');
     const items = bank.filter(x => this.selTopic ? x.topic_id === this.selTopic : true);
     b.innerHTML =
-      '<div class="ex-2col">' +
+      '<div class="ex-2col ex-2col-wide">' +
         '<div class="chart-card ex-rail">' +
           '<div class="ex-railh">Chủ đề &amp; số câu <span class="cnt-badge">' + total + '</span></div>' +
-          '<div class="ex-trow' + (this.selTopic ? '' : ' on') + '" onclick="EX.pickTopic(null)"><span class="ex-tdot" style="background:var(--mu)"></span><span class="ex-tname">Tất cả chủ đề</span><span class="ex-tavail">' + bank.length + '</span></div>' +
+          '<div class="ex-trow2' + (this.selTopic ? '' : ' on') + '" onclick="EX.pickTopic(null)">' +
+            '<div class="ex-trow2-t"><span class="ex-tdot" style="background:var(--mu)"></span><span class="ex-tname">Tất cả chủ đề</span></div>' +
+            '<div class="ex-trow2-b"><span class="ex-tavail">' + bank.length + ' câu trong ngân hàng</span></div>' +
+          '</div>' +
           rail +
           '<button class="abtn abtn-pu abtn-sm" style="margin-top:10px;width:100%;justify-content:center" onclick="EX.openTopic(null)">＋ Thêm chủ đề</button>' +
           '<div class="ex-railh" style="margin-top:18px">Cài đặt bài thi</div>' +
@@ -10895,9 +10999,9 @@ const EX = {
               '<div style="flex:1;min-width:130px"><label class="ex-lab">Độ khó</label><select class="ex-inp" id="exQLevel"><option>Dễ</option><option selected>Trung bình</option><option>Khó</option></select></div>' +
             '</div>' +
             '<label class="ex-lab">Nội dung câu hỏi</label><textarea class="ex-ta" id="exQText" style="min-height:76px" placeholder="Nhập nội dung câu hỏi…"></textarea>' +
-            '<label class="ex-lab">Link hình ảnh (tùy chọn)</label><input class="ex-inp" id="exQImg" placeholder="Dán link ảnh hoặc link Google Drive…" oninput="EX.previewImg()">' +
-            '<div class="ex-meta">Google Drive: chuột phải ảnh → Chia sẻ → “Bất kỳ ai có đường liên kết” → Sao chép liên kết → dán vào đây.</div>' +
-            '<div id="exQImgPrev"></div>' +
+            '<label class="ex-lab">Hình ảnh minh họa (tùy chọn)</label>' +
+            '<div id="exQImgBox">' + this.imgBoxHtml() + '</div>' +
+            '<input type="file" id="exQImgFile" accept="image/*" style="display:none" onchange="EX.onImgFile(this.files)">' +
             '<label class="ex-lab" style="color:var(--gr)">✓ Đáp án mẫu (chỉ Tổ Trưởng thấy)</label><textarea class="ex-ta" id="exQAns" style="min-height:60px" placeholder="Nhập đáp án đúng…"></textarea>' +
             '<div class="ex-actions">' +
               '<button class="abtn abtn-pu" onclick="EX.saveQ()">' + (this.editQ ? 'Lưu thay đổi' : '＋ Lưu câu hỏi') + '</button>' +
@@ -10928,28 +11032,76 @@ const EX = {
       (q.answer ? '<div class="ex-correct"><b>✓ Đáp án:</b> <span data-noi18n>' + hesc(q.answer) + '</span></div>' : '') +
     '</div>';
   },
-  previewImg() {
-    const el = document.getElementById('exQImg'), pv = document.getElementById('exQImgPrev');
-    if (pv) pv.innerHTML = el && el.value.trim() ? this.imgHtml(this.normImg(el.value.trim()), '320px') : '';
+  /* ---- khu vực ảnh trong ô soạn câu hỏi ----
+     Kéo thả · bấm chọn · dán ảnh chụp màn hình (Ctrl+V) — không dán link. */
+  imgBoxHtml() {
+    if (this._qimg) {
+      return '<div class="ex-imgone">' + this.imgHtml(this._qimg, '260px') +
+        '<div class="ex-imgb"><button class="abtn abtn-ghost abtn-sm" onclick="EX.pickImg()">Đổi ảnh</button>' +
+        '<button class="abtn abtn-danger abtn-sm" onclick="EX.clearImg()">Xóa ảnh</button></div></div>';
+    }
+    return '<div class="ex-drop" id="exQDrop" onclick="EX.pickImg()">' +
+      '<b>Kéo ảnh vào đây, dán ảnh chụp màn hình (Ctrl+V), hoặc bấm để chọn file</b>' +
+      '<span>Ảnh được nén còn tối đa 1920px rồi lưu thẳng lên hệ thống — không cần link.</span></div>';
   },
-  pickQ(id) { this.editQ = id; const q = this.bank.find(x => x.id === id); this._qt = q ? q.topic_id : null; this.render(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
-  cancelQ() { this.editQ = null; this._qt = null; this.render(); },
+  refreshImgBox() {
+    const el = document.getElementById('exQImgBox');
+    if (!el) return;
+    el.innerHTML = this.imgBoxHtml();
+    this.wireDrop();
+    this.hydrateImgs();
+  },
+  wireDrop() {
+    const d = document.getElementById('exQDrop');
+    if (!d) return;
+    d.addEventListener('dragover', e => { e.preventDefault(); d.classList.add('over'); });
+    d.addEventListener('dragleave', () => d.classList.remove('over'));
+    d.addEventListener('drop', e => { e.preventDefault(); d.classList.remove('over'); EX.onImgFile(e.dataTransfer.files); });
+  },
+  pickImg() { const f = document.getElementById('exQImgFile'); if (f) { f.value = ''; f.click(); } },
+  async onImgFile(files) {
+    if (!files || !files.length) return;
+    const box = document.getElementById('exQImgBox');
+    if (box) box.innerHTML = '<div class="ex-drop"><b>Đang tải ảnh lên…</b></div>';
+    try {
+      const path = await this.uploadImg(files[0]);
+      const old = this._qimg;
+      this._qimg = path;
+      if (old) await this.dropImg(old);       // thay ảnh -> dọn ảnh cũ khỏi kho
+      this.refreshImgBox();
+    } catch (e) {
+      alert('Tải ảnh thất bại: ' + (e.message || e));
+      this.refreshImgBox();
+    }
+  },
+  async clearImg() {
+    const old = this._qimg;
+    this._qimg = '';
+    this.refreshImgBox();
+    if (old) await this.dropImg(old);
+  },
+  pickQ(id) {
+    this.editQ = id;
+    const q = this.bank.find(x => x.id === id);
+    this._qt = q ? q.topic_id : null;
+    this._qimg = q ? (q.image_url || '') : '';
+    this.render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+  },
+  cancelQ() { this.editQ = null; this._qt = null; this._qimg = ''; this.render(); },
   fillQForm() {
     const q = this.bank.find(x => x.id === this.editQ);
     if (!q) return;
     document.getElementById('exQTopic').value = q.topic_id;
     document.getElementById('exQLevel').value = q.level || 'Trung bình';
     document.getElementById('exQText').value = q.question || '';
-    document.getElementById('exQImg').value = q.image_url || '';
     document.getElementById('exQAns').value = q.answer || '';
-    this.previewImg();
   },
   async saveQ() {
     const o = {
       topic_id: document.getElementById('exQTopic').value,
       level: document.getElementById('exQLevel').value,
       question: document.getElementById('exQText').value.trim(),
-      image_url: this.normImg(document.getElementById('exQImg').value.trim()),
+      image_url: this._qimg || '',
       answer: document.getElementById('exQAns').value.trim()
     };
     if (!o.question) { alert('Vui lòng nhập nội dung câu hỏi.'); return; }
@@ -10959,13 +11111,13 @@ const EX = {
         const { error } = await this.tbl('exam_questions').update(o).eq('id', this.editQ);
         if (error) throw new Error(error.message);
         Object.assign(this.bank.find(x => x.id === this.editQ), o);
-        this.editQ = null; this._qt = null;
+        this.editQ = null; this._qt = null; this._qimg = '';
         this.toast('Đã sửa câu hỏi');
       } else {
         const { data, error } = await this.tbl('exam_questions').insert(o).select().single();
         if (error) throw new Error(error.message);
         this.bank.push(data);
-        this._qt = o.topic_id;
+        this._qt = o.topic_id; this._qimg = '';
         this.toast('Đã lưu câu hỏi');
       }
       this.render();
@@ -10975,8 +11127,10 @@ const EX = {
   async delQ(id) {
     if (!confirm('Xóa câu hỏi này?')) return;
     try {
+      const q = this.bank.find(x => x.id === id);
       const { error } = await this.tbl('exam_questions').delete().eq('id', id);
       if (error) throw new Error(error.message);
+      if (q && q.image_url) await this.dropImg(q.image_url);   // dọn luôn ảnh trong kho
       this.bank = this.bank.filter(x => x.id !== id);
       if (this.editQ === id) this.editQ = null;
       this.render(); this.toast('Đã xóa câu hỏi');
@@ -11287,6 +11441,7 @@ const EX = {
       '<div class="ex-actions"><button class="abtn abtn-ok" onclick="EX.saveGrades()">Lưu chấm điểm</button>' +
       '<button class="abtn abtn-ghost" onclick="EX.selSub=null;EX.render()">Đóng</button></div>' +
     '</div>';
+    this.hydrateImgs();
   },
   async saveGrades() {
     const s = this.subs.find(x => x.id === this.selSub);
@@ -11360,6 +11515,18 @@ const EX = {
 // const X={} nằm ở global LEXICAL scope, KHÔNG có trên window -> phải phơi tường minh
 // (đúng cái bẫy đã làm 2 ô OTP trượt âm thầm và i18n không thấy SOP).
 window.EX = EX;
+
+// Dán ảnh chụp màn hình thẳng vào ô soạn câu hỏi (Ctrl+V) — tiện nhất khi ra đề.
+// Chỉ nhận khi ĐANG ở tab T5 / màn Quản Lý Đề và clipboard có FILE ảnh, nên không
+// cướp sự kiện dán của Đơn Rút (T1) / NTK (T3), cũng không cản dán chữ vào textarea.
+document.addEventListener('paste', e => {
+  const t5 = document.getElementById('t5');
+  if (!t5 || t5.style.display === 'none' || EX.view !== 'de' || !EX.canEdit()) return;
+  const files = e.clipboardData && e.clipboardData.files;
+  if (!files || !files.length || !/^image\//.test(files[0].type)) return;
+  e.preventDefault();
+  EX.onImgFile(files);
+});
 
 </script>
 </body>

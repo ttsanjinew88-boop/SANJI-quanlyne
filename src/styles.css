@@ -805,6 +805,8 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 /* Bố cục: 2 cột (rail trái + pane phải) cho các màn quản lý, nhưng màn LÀM BÀI
    giữ cột đọc hẹp (.ex-narrow / .ex-qcard) — dòng chữ dài quá ~85 ký tự rất khó đọc. */
 .ex-2col{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
+/* Quản Lý Đề: rail rộng hơn vì mỗi chủ đề chiếm 2 dòng (tên đầy đủ ở trên) */
+.ex-2col-wide{grid-template-columns:340px minmax(0,1fr)}
 .ex-rail{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto}
 .ex-narrow{max-width:900px;margin:0 auto}
 .ex-h1{font-size:1.05rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--bl2)}
@@ -865,6 +867,17 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .ex-tdot{width:11px;height:11px;border-radius:50%;flex:none}
 .ex-tname{flex:1;font-size:.68rem;font-weight:700;color:var(--mu2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ex-tavail{font-size:.58rem;color:var(--mu);white-space:nowrap}
+/* chủ đề 2 dòng: dòng trên TÊN ĐẦY ĐỦ (không cắt), dòng dưới ô số câu + 2 nút */
+.ex-trow2{border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;
+  cursor:pointer;display:flex;flex-direction:column;gap:7px;transition:all .18s;background:transparent}
+.ex-trow2:hover{border-color:var(--pu);background:rgba(124,58,237,.08)}
+.ex-trow2.on{background:linear-gradient(135deg,var(--pu),var(--bl));border-color:transparent;box-shadow:0 4px 14px rgba(124,58,237,.3)}
+.ex-trow2.on .ex-tname,.ex-trow2.on .ex-tavail{color:#fff}
+.ex-trow2.on .ex-mini{border-color:rgba(255,255,255,.35);color:#fff}
+.ex-trow2 .ex-tname{white-space:normal;overflow:visible;text-overflow:clip}
+.ex-trow2-t{display:flex;align-items:center;gap:8px}
+.ex-trow2-b{display:flex;align-items:center;gap:7px;padding-left:19px}
+.ex-trow2-b .ex-tavail{flex:1}
 .ex-mini{width:24px;height:24px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--mu2);cursor:pointer;font-size:.7rem;line-height:1;flex:none}
 .ex-mini:hover{border-color:var(--pu);color:var(--tx)}
 .ex-mini.del:hover{border-color:var(--re);color:var(--re)}
@@ -897,10 +910,20 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .ex-tbl td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--border);color:var(--tx)}
 .ex-tbl tr:hover td{background:rgba(124,58,237,.05)}
 .ex-tbl .ex-nm{font-weight:800;color:var(--pu2)}
-/* ảnh */
+/* ảnh — tải thẳng lên Storage như tab Quy Trình, không dán link */
 .ex-img{border-radius:10px;overflow:hidden;border:1px solid var(--border);margin:12px 0;background:var(--card2)}
-.ex-img img{width:100%;display:block}
+.ex-img img{width:100%;display:block;cursor:zoom-in}
 .ex-imgerr{display:block;padding:12px;font-size:.62rem;color:var(--re)}
+.ex-drop{border:2px dashed var(--border2);border-radius:10px;padding:16px 14px;text-align:center;
+  cursor:pointer;display:flex;flex-direction:column;gap:5px;transition:all .18s;background:var(--card2)}
+.ex-drop:hover,.ex-drop.over{border-color:var(--pu);background:rgba(124,58,237,.08)}
+.ex-drop b{font-size:.68rem;font-weight:700;color:var(--tx)}
+.ex-drop span{font-size:.6rem;color:var(--mu)}
+.ex-imgone{display:flex;flex-direction:column;gap:8px}
+.ex-imgone .ex-img{margin:0}
+.ex-imgb{display:flex;gap:8px;flex-wrap:wrap}
+.ex-lb{max-height:76vh;overflow:auto;border-radius:8px}
+.ex-lb img{width:100%;display:block;border-radius:8px}
 /* modal + toast */
 .ex-modalh{font-size:.82rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--bl2);margin-bottom:10px}
 .ex-swatch{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px}
