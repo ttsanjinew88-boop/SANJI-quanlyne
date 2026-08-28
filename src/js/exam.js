@@ -126,16 +126,20 @@ const EX = {
   async signed(path) {
     if (this._urls[path] && this._urls[path].exp > Date.now()) return this._urls[path].u;
     const { data, error } = await SB.client().storage.from(this.BUCKET).createSignedUrl(path, 3600);
-    if (error || !data) return '';
+    if (error || !data) { this._urlErr = error && (error.message || error); return ''; }
     this._urls[path] = { u: data.signedUrl, exp: Date.now() + 50 * 60 * 1000 };
     return data.signedUrl;
   },
   // Ký URL cho mọi <img data-p> vừa render (gọi sau render, giống SOP.hydrateImgs)
   async hydrateImgs() {
     for (const el of [...document.querySelectorAll('#t5 img[data-p]')]) {
-      const u = await this.signed(el.getAttribute('data-p'));
+      const p = el.getAttribute('data-p');
+      const u = await this.signed(p);
       if (u) { el.src = u; el.removeAttribute('data-p'); }
-      else el.parentNode.innerHTML = '<span class="ex-imgerr">Không tải được ảnh.</span>';
+      else if (el.parentNode) {
+        console.warn('[EX] không ký được URL ảnh:', p, this._urlErr);
+        el.parentNode.innerHTML = '<span class="ex-imgerr">Không tải được ảnh — file có thể đã bị xóa khỏi kho.</span>';
+      }
     }
   },
   lightbox(src) {
@@ -153,6 +157,12 @@ const EX = {
     if (error) throw new Error(error.message);
     return path;
   },
+  /* ⚠ CHỈ xoá ảnh của câu hỏi CHƯA lưu (vừa tải nhầm rồi đổi/bỏ ngay).
+     Ảnh của câu hỏi ĐÃ lưu thì TUYỆT ĐỐI KHÔNG xoá, kể cả khi sửa hay xoá câu
+     hỏi đó: mọi bài nhân viên đã nộp trước đó vẫn trỏ tới đúng file ảnh này
+     (exam_answers.image_url là bản chụp lúc bốc đề). Xoá file = bài cũ hiện
+     "Không tải được ảnh" — đã dính đúng lỗi này ngày 28/08/2026.
+     Ảnh mồ côi chỉ tốn ~200 KB, đổi lại lịch sử chấm điểm không bao giờ vỡ. */
   async dropImg(path) {
     if (!path || /^https?:\/\//i.test(path)) return;   // link ngoài thì không có gì để xoá
     try { await SB.client().storage.from(this.BUCKET).remove([path]); } catch (e) { console.warn('xoá ảnh', e); }
@@ -492,7 +502,9 @@ const EX = {
       const path = await this.uploadImg(files[0]);
       const old = this._qimg;
       this._qimg = path;
-      if (old) await this.dropImg(old);       // thay ảnh -> dọn ảnh cũ khỏi kho
+      // chỉ dọn ảnh vừa tải nhầm của câu hỏi CHƯA lưu; đang sửa câu hỏi cũ thì giữ
+      // nguyên ảnh cũ vì các bài đã nộp còn trỏ tới nó
+      if (old && !this.editQ) await this.dropImg(old);
       this.refreshImgBox();
     } catch (e) {
       alert('Tải ảnh thất bại: ' + (e.message || e));
@@ -503,7 +515,7 @@ const EX = {
     const old = this._qimg;
     this._qimg = '';
     this.refreshImgBox();
-    if (old) await this.dropImg(old);
+    if (old && !this.editQ) await this.dropImg(old);   // xem chú thích ở dropImg
   },
   pickQ(id) {
     this.editQ = id;
@@ -552,10 +564,9 @@ const EX = {
   async delQ(id) {
     if (!confirm('Xóa câu hỏi này?')) return;
     try {
-      const q = this.bank.find(x => x.id === id);
       const { error } = await this.tbl('exam_questions').delete().eq('id', id);
       if (error) throw new Error(error.message);
-      if (q && q.image_url) await this.dropImg(q.image_url);   // dọn luôn ảnh trong kho
+      // KHÔNG xoá ảnh: bài đã nộp trước đó vẫn hiển thị câu hỏi này kèm ảnh
       this.bank = this.bank.filter(x => x.id !== id);
       if (this.editQ === id) this.editQ = null;
       this.render(); this.toast('Đã xóa câu hỏi');
@@ -806,7 +817,8 @@ const EX = {
         '<div class="ex-srow-t"><b data-noi18n>' + hesc(s.username || '?') + '</b>' +
         (s.graded ? '<span class="ex-badge ex-b-ok">' + this.fmtScore(s.total) + '/' + s.count + '</span>' : '<span class="ex-badge ex-b-wait">Chờ chấm</span>') + '</div>' +
         '<div class="ex-meta" data-noi18n>' + hesc(s.code) + '</div>' +
-        '<div class="ex-meta">' + this.fmtTime(s.time) + ' · ' + this.fmtDur(s.duration_sec) + '</div>' +
+        '<div class="ex-srow-f"><span class="ex-meta">' + this.fmtTime(s.time) + ' · ' + this.fmtDur(s.duration_sec) + '</span>' +
+        '<button class="ex-mini del" onclick="event.stopPropagation();EX.delSub(' + i + ')" title="Xóa bài này">×</button></div>' +
       '</div>').join('');
     b.innerHTML =
       '<div class="ex-2col">' +
@@ -864,9 +876,27 @@ const EX = {
       '<div class="ex-meta" style="margin-bottom:10px">' + this.fmtTime(s.time) + ' · ' + this.fmtDur(s.duration_sec) + ' · ' + s.count + ' câu</div>' +
       body +
       '<div class="ex-actions"><button class="abtn abtn-ok" onclick="EX.saveGrades()">Lưu chấm điểm</button>' +
-      '<button class="abtn abtn-ghost" onclick="EX.selSub=null;EX.render()">Đóng</button></div>' +
+      '<button class="abtn abtn-ghost" onclick="EX.selSub=null;EX.render()">Đóng</button>' +
+      '<button class="abtn abtn-danger" style="margin-left:auto" onclick="EX.delSub(' + this.subs.indexOf(s) + ')">Xóa bài này</button></div>' +
     '</div>';
     this.hydrateImgs();
+  },
+  /* Xóa hẳn 1 bài đã nộp (Tổ Trưởng trở lên) — dùng khi dọn bài test thử, bài nộp
+     nhầm, hoặc bài của tài khoản đã nghỉ. Câu trả lời xóa theo (cascade) và bài
+     biến mất khỏi xếp hạng. KHÔNG hoàn lượt test đã trừ — muốn cấp lại thì vào
+     tab Quản Lý Nhân Viên gõ số lượt mới. */
+  async delSub(i) {
+    const s = this.subs[i];
+    if (!s) return;
+    if (!confirm('Xóa hẳn bài ' + s.code + ' của ' + (s.username || '?') + '?\n\nMọi câu trả lời và điểm đã chấm của bài này sẽ mất, bài cũng biến mất khỏi bảng xếp hạng. Không hoàn tác được.\n\nLượt test đã trừ KHÔNG được hoàn lại — muốn cấp thêm thì vào tab Quản Lý Nhân Viên.')) return;
+    try {
+      await this.rpc('exam_delete', { p_id: s.id });
+      logAction('XÓA BÀI TEST', (s.username || '') + ' · ' + s.code);
+      this.subs.splice(i, 1);
+      if (this.selSub === s.id) this.selSub = null;
+      this.mine = null;
+      this.render(); this.toast('Đã xóa bài ' + s.code);
+    } catch (e) { alert('Lỗi xóa bài: ' + (e.message || e)); }
   },
   async saveGrades() {
     const s = this.subs.find(x => x.id === this.selSub);

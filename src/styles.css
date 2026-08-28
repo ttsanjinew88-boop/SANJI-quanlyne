@@ -903,6 +903,9 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .ex-srow:hover{border-color:var(--pu);background:rgba(124,58,237,.08)}
 .ex-srow.on{border-color:var(--pu);background:rgba(124,58,237,.14)}
 .ex-srow-t{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.72rem;color:var(--tx)}
+.ex-srow-f{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ex-srow .ex-mini{opacity:0;transition:opacity .15s}
+.ex-srow:hover .ex-mini,.ex-srow.on .ex-mini{opacity:1}
 /* bảng */
 .ex-tblwrap{overflow-x:auto}
 .ex-tbl{width:100%;border-collapse:collapse;font-size:.68rem}
