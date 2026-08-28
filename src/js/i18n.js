@@ -1116,6 +1116,15 @@ const I18N={
   "✓ Đáp án mẫu (chỉ Tổ Trưởng thấy)":"✓ Model answer (Team Leader only)","Nhập đáp án đúng…":"Type the correct answer…",
   "＋ Lưu câu hỏi":"＋ Save question","Hủy sửa":"Cancel edit","Ngân hàng câu hỏi":"Question bank",
   "Ngân hàng:":"Bank:","câu":"questions",
+  /* bản dịch nội dung đề (song ngữ T5) */
+  "Bản dịch tiếng Anh":"English translation",
+  "Xuất ra file JSON gồm tên chủ đề, câu hỏi và đáp án mẫu; dịch phần “en” rồi nhập ngược lại. Câu chưa dịch vẫn hiện tiếng Việt khi bật EN. Ảnh riêng cho bản EN thì tải trực tiếp ở từng câu bên dưới.":"Exports a JSON file with topic names, questions and model answers; translate the “en” part and import it back. Untranslated questions still show in Vietnamese when EN is on. EN-only images are uploaded per question below.",
+  "Chưa dịch:":"Untranslated:","câu · Bản dịch đã cũ:":"questions · Outdated translation:",
+  "Chưa dịch":"Untranslated","Đã dịch":"Translated","Bản dịch đã cũ":"Translation outdated",
+  "Ô soạn dưới đây luôn ghi bản tiếng Việt, kể cả khi giao diện đang bật EN. Bản tiếng Anh nhập bằng nút Nhập bản dịch.":"The form below always writes the Vietnamese version, even while the interface is in EN. The English version is added with the Import translation button.",
+  "Gỡ ảnh bản EN của câu hỏi này? Bản tiếng Anh sẽ dùng lại ảnh gốc.":"Remove the EN image of this question? The English version will fall back to the original image.",
+  "Đã lưu ảnh bản EN":"EN image saved","Đã gỡ ảnh bản EN":"EN image removed",
+  "Sai định dạng: file thiếu danh sách topics/questions.":"Wrong format: the file has no topics/questions list.",
   "📋 Dán hàng loạt từ Excel":"📋 Bulk paste from Excel","Dán hàng loạt từ Excel":"Bulk paste from Excel",
   "Bôi đen vùng dữ liệu trong Excel/Google Sheet rồi Ctrl+C, bấm vào ô dưới và Ctrl+V. Mỗi dòng là một câu hỏi, các cột cách nhau bằng Tab (đúng thứ tự):":"Select the data range in Excel/Google Sheets, press Ctrl+C, click the box below and press Ctrl+V. One question per line, columns separated by Tab, in this order:",
   "Chủ đề · Độ khó · Câu hỏi · Đáp án mẫu · Link ảnh":"Topic · Difficulty · Question · Model answer · Image link",
@@ -1164,6 +1173,10 @@ const I18N={
     [/^Đã xóa bài (.+)$/,"Deleted test $1"],
     [/^Lỗi xóa bài: (.+)$/,"Could not delete the test: $1"],
     [/^Đã nhập (\d+) câu hỏi$/,"Imported $1 questions"],
+    [/^Đã nhập bản dịch: (\d+) câu hỏi, (\d+) chủ đề$/,"Translation imported: $1 questions, $2 topics"],
+    [/^Lỗi nhập bản dịch: (.+)$/,"Could not import the translation: $1"],
+    [/^Không đọc được file: (.+)$/,"Could not read the file: $1"],
+    [/^Lỗi gỡ ảnh: (.+)$/,"Could not remove the image: $1"],
     [/^Không bắt đầu được: (.+)$/,"Could not start: $1"],
     [/^Còn (\d+) bài chờ chấm$/,"$1 test(s) awaiting grading"],
     [/^Tổng đề riêng: (\d+) câu$/,"Custom exam total: $1 questions"],
@@ -1388,6 +1401,9 @@ function setLang(l){
   try{if(window.BC&&BC.rows&&BC.rows.length&&typeof BC.renderAll==="function")BC.renderAll();}catch(e){}
   // T4: nội dung do người dùng gõ có thể có bản dịch riêng (o.en) -> vẽ lại để đổi bản
   try{if(window.SOP&&SOP.booted)SOP.render();}catch(e){}
+  // T5: đề/đáp án có bản dịch riêng (cột en_*) -> vẽ lại để đổi bản. Câu trả lời đang gõ
+  // đã nằm trong EX.run.answers (lưu ở mỗi lần gõ) nên vẽ lại không mất chữ.
+  try{if(window.EX&&EX.D)EX.render();}catch(e){}
 }
 function i18nToggle(){setLang(I18N.on()?"vi":"en");}
 /* Nội dung render sau này (bảng, thẻ, modal) — dịch ngay khi được chèn vào DOM */

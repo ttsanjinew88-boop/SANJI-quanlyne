@@ -62,13 +62,38 @@ const EX = {
     }
   },
   async loadBank() {
-    const { data, error } = await this.tbl('exam_questions').select('id,topic_id,level,question,image_url,answer,active').eq('active', true).order('created_at');
+    // Cột song ngữ do supabase_exam_i18n.sql tạo. CHƯA chạy file SQL đó thì Postgres
+    // báo "column ... does not exist" và cả tab chết -> tự lùi về bộ cột cũ, tab vẫn
+    // chạy bình thường (chỉ không có bản EN). Cờ _noI18nCols để ẩn phần bản dịch.
+    let { data, error } = await this.tbl('exam_questions')
+      .select('id,topic_id,level,question,image_url,answer,active,en_question,en_answer,en_image_url,envi_question,envi_answer')
+      .eq('active', true).order('created_at');
+    if (error && /en_question|en_answer|en_image_url|envi_/.test(error.message || '')) {
+      this._noI18nCols = true;
+      ({ data, error } = await this.tbl('exam_questions')
+        .select('id,topic_id,level,question,image_url,answer,active')
+        .eq('active', true).order('created_at'));
+    }
     if (error) throw new Error(error.message);
     this.bank = data || [];
   },
 
   // ---------- tiện ích ----------
   topicById(id) { return (this.D.topics || []).find(t => t.id === id) || { id: id, name: '(đã xóa)', color: '#64748b' }; },
+
+  /* ---------- SONG NGỮ NỘI DUNG ĐỀ ----------
+     Giống hệt cách làm ở T4: bản tiếng Việt nằm ở cột gốc, bản tiếng Anh ở cột
+     `en_<field>` (thiếu thì RƠI VỀ tiếng Việt, nên câu chưa dịch vẫn đọc được).
+     Cột `envi_<field>` giữ dấu vết bản VI lúc dịch -> biết bản dịch đã cũ chưa.
+     ⚠ Ô soạn câu hỏi LUÔN ghi vào bản tiếng Việt, kể cả khi giao diện đang bật
+     EN — đúng cái bẫy đã làm hỏng 3 bảng ở T4 ngày 24/08/2026 (nhập bản dịch ghi
+     đè thẳng lên bản gốc, mất hẳn tiếng Việt). Bản EN chỉ vào bằng file dịch. */
+  en() { return typeof I18N !== 'undefined' && I18N.lang === 'en'; },
+  tx(o, f) { const e = o && o['en_' + f]; return (e && this.en()) ? e : ((o && o[f]) || ''); },
+  // ảnh: có ảnh riêng bản EN thì dùng khi đang bật EN
+  imgOf(o, f) { f = f || 'image_url'; const e = o && o['en_' + f]; return (e && this.en()) ? e : ((o && o[f]) || ''); },
+  isStale(o, f) { const en = o && o['en_' + f], cu = o && o['envi_' + f]; return !!(en && cu && cu !== (o[f] || '')); },
+
   fmtScore(n) { n = Number(n) || 0; return Number.isInteger(n) ? String(n) : n.toFixed(2); },
   fmtDur(sec) { sec = Number(sec) || 0; return Math.floor(sec / 60) + ' phút ' + (sec % 60) + ' giây'; },
   fmtTime(t) {
@@ -208,7 +233,7 @@ const EX = {
     const me = this.D.me, st = this.D.settings, cfg = me.exam_cfg || this.D.config || {};
     const total = Object.keys(cfg).reduce((a, k) => a + (Number(cfg[k]) || 0), 0);
     const chips = (this.D.topics || []).filter(t => (cfg[t.id] || 0) > 0).map(t =>
-      '<div class="ex-chip"><div class="ex-chip-n" style="color:' + hesc(t.color) + '">' + (cfg[t.id] || 0) + '</div><div class="ex-chip-l" data-noi18n>' + hesc(String(t.name).replace('Sảnh — ', '')) + '</div></div>').join('');
+      '<div class="ex-chip"><div class="ex-chip-n" style="color:' + hesc(t.color) + '">' + (cfg[t.id] || 0) + '</div><div class="ex-chip-l" data-noi18n>' + hesc(String(this.tx(t, 'name')).replace(/^(Sảnh|Lobby)\s*—\s*/, '')) + '</div></div>').join('');
     const pend = this.D.pending;
     b.innerHTML =
       '<div class="ex-narrow">' +
@@ -269,9 +294,9 @@ const EX = {
       '</div>' +
       '<div class="ex-doing">' +
         '<div class="chart-card ex-qcard">' +
-          '<span class="ex-badge ex-b-mu" data-noi18n>' + hesc(q.topic || '') + '</span>' +
-          '<div class="ex-q" data-noi18n>' + hesc(q.question) + '</div>' +
-          this.imgHtml(q.image_url) +
+          '<span class="ex-badge ex-b-mu" data-noi18n>' + hesc(this.tx(q, 'topic')) + '</span>' +
+          '<div class="ex-q" data-noi18n>' + hesc(this.tx(q, 'question')) + '</div>' +
+          this.imgHtml(this.imgOf(q)) +
           '<textarea class="ex-ta" id="exAns" placeholder="Nhập câu trả lời của bạn…" oninput="EX.onType()">' + hesc(r.answers[r.cur] || '') + '</textarea>' +
           '<div class="ex-lock">Đáp án được ẩn — chỉ Tổ Trưởng thấy khi chấm bài</div>' +
           '<div class="ex-actions">' +
@@ -378,10 +403,10 @@ const EX = {
     box.innerHTML = (s.items || []).map(it => {
       const has = it.score !== '' && it.score != null;
       return '<div class="ex-rev">' +
-        '<div class="ex-revq"><span class="ex-badge ex-b-mu" data-noi18n>' + hesc(it.topic) + '</span><span data-noi18n>' + hesc(it.question) + '</span></div>' +
-        this.imgHtml(it.image_url, '420px') +
+        '<div class="ex-revq"><span class="ex-badge ex-b-mu" data-noi18n>' + hesc(this.tx(it, 'topic')) + '</span><span data-noi18n>' + hesc(this.tx(it, 'question')) + '</span></div>' +
+        this.imgHtml(this.imgOf(it), '420px') +
         '<div class="ex-reply"><b>Bạn trả lời:</b> ' + (it.reply ? '<span data-noi18n>' + hesc(it.reply) + '</span>' : '<i>(Bỏ trống)</i>') + '</div>' +
-        (it.answer ? '<div class="ex-correct"><b>✓ Đáp án mẫu:</b> <span data-noi18n>' + hesc(it.answer) + '</span></div>' : '') +
+        (it.answer ? '<div class="ex-correct"><b>✓ Đáp án mẫu:</b> <span data-noi18n>' + hesc(this.tx(it, 'answer')) + '</span></div>' : '') +
         (has ? '<div class="ex-meta">Điểm câu: <b>' + this.fmtScore(it.score) + '</b>' + (it.note ? ' · <span data-noi18n>' + hesc(it.note) + '</span>' : '') + '</div>' : '') +
       '</div>';
     }).join('');
@@ -400,7 +425,7 @@ const EX = {
       const cur = (this.D.config || {})[t.id] || 0;
       return '<div class="ex-trow2' + (this.selTopic === t.id ? ' on' : '') + '" onclick="EX.pickTopic(\'' + t.id + '\')">' +
         '<div class="ex-trow2-t"><span class="ex-tdot" style="background:' + hesc(t.color) + '"></span>' +
-        '<span class="ex-tname" data-noi18n>' + hesc(t.name) + '</span></div>' +
+        '<span class="ex-tname" data-noi18n>' + hesc(this.tx(t, 'name')) + '</span></div>' +
         '<div class="ex-trow2-b" onclick="event.stopPropagation()">' +
           '<input type="number" class="ex-num" min="0" max="' + avail + '" value="' + cur + '" onchange="EX.setCfg(\'' + t.id + '\',this.value,' + avail + ')" title="Số câu bốc vào đề">' +
           '<span class="ex-tavail">/ ' + avail + ' câu có sẵn</span>' +
@@ -430,8 +455,10 @@ const EX = {
           '<div class="chart-card" style="margin-bottom:14px">' +
             '<div class="ex-railh">' + (this.editQ ? 'Sửa câu hỏi' : 'Thêm câu hỏi vào ngân hàng') +
               (this.editQ ? '' : '<button class="abtn abtn-ghost abtn-sm" style="margin-left:auto" onclick="EX.openPaste()">📋 Dán hàng loạt từ Excel</button>') + '</div>' +
+            // ô soạn LUÔN ghi bản tiếng Việt — bản EN chỉ vào bằng file dịch (xem chú thích ở tx())
+            (this.en() ? '<div class="ex-meta" style="color:var(--go)">Ô soạn dưới đây luôn ghi bản tiếng Việt, kể cả khi giao diện đang bật EN. Bản tiếng Anh nhập bằng nút Nhập bản dịch.</div>' : '') +
             '<div class="ex-frow">' +
-              '<div style="flex:2;min-width:180px"><label class="ex-lab">Chủ đề</label><select class="ex-inp" id="exQTopic">' + topics.map(t => '<option value="' + hesc(t.id) + '"' + (this._qt === t.id ? ' selected' : '') + ' data-noi18n>' + hesc(t.name) + '</option>').join('') + '</select></div>' +
+              '<div style="flex:2;min-width:180px"><label class="ex-lab">Chủ đề</label><select class="ex-inp" id="exQTopic">' + topics.map(t => '<option value="' + hesc(t.id) + '"' + (this._qt === t.id ? ' selected' : '') + ' data-noi18n>' + hesc(this.tx(t, 'name')) + '</option>').join('') + '</select></div>' +
               '<div style="flex:1;min-width:130px"><label class="ex-lab">Độ khó</label><select class="ex-inp" id="exQLevel"><option>Dễ</option><option selected>Trung bình</option><option>Khó</option></select></div>' +
             '</div>' +
             '<label class="ex-lab">Nội dung câu hỏi</label><textarea class="ex-ta" id="exQText" style="min-height:76px" placeholder="Nhập nội dung câu hỏi…"></textarea>' +
@@ -445,6 +472,19 @@ const EX = {
               '<span class="ex-meta">Ngân hàng: <b>' + bank.length + '</b> câu</span>' +
             '</div>' +
           '</div>' +
+          (this._noI18nCols
+            ? '<div class="chart-card" style="margin-bottom:14px;color:var(--go);font-size:.72rem">Chưa bật phần song ngữ: hãy chạy file <b>supabase_exam_i18n.sql</b> trong SQL Editor của Supabase rồi tải lại trang.</div>'
+            : '<div class="chart-card" style="margin-bottom:14px">' +
+            '<div class="ex-railh">Bản dịch tiếng Anh' +
+              '<span style="margin-left:auto;display:flex;gap:8px">' +
+                '<button class="abtn abtn-ghost abtn-sm" onclick="EX.exportTrans()">Xuất nội dung</button>' +
+                '<button class="abtn abtn-ghost abtn-sm" onclick="EX.importTrans()">Nhập bản dịch</button>' +
+              '</span></div>' +
+            '<div class="ex-meta">Xuất ra file JSON gồm tên chủ đề, câu hỏi và đáp án mẫu; dịch phần “en” rồi nhập ngược lại. Câu chưa dịch vẫn hiện tiếng Việt khi bật EN. Ảnh riêng cho bản EN thì tải trực tiếp ở từng câu bên dưới.</div>' +
+            '<div class="ex-meta" style="margin-top:6px">Chưa dịch: <b>' + bank.filter(q => !q.en_question).length + '</b> câu · Bản dịch đã cũ: <b>' + bank.filter(q => this.isStale(q, 'question') || this.isStale(q, 'answer')).length + '</b> câu</div>' +
+            '<input type="file" id="exTransFile" accept=".json,application/json" style="display:none" onchange="EX.onTransFile(this)">' +
+            '<input type="file" id="exEnImgFile" accept="image/*" style="display:none" onchange="EX.onEnImgFile(this.files)">' +
+          '</div>') +
           '<div class="sec-hdr pu">Ngân hàng câu hỏi <span class="cnt-badge">' + items.length + '</span></div>' +
           (items.length ? items.map(q => this.bankItemHtml(q)).join('') : '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Chưa có câu hỏi nào trong chủ đề này.</div>') +
         '</div>' +
@@ -454,18 +494,30 @@ const EX = {
   pickTopic(id) { this.selTopic = id; this.render(); },
   bankItemHtml(q) {
     const t = this.topicById(q.topic_id);
+    const stale = this.isStale(q, 'question') || this.isStale(q, 'answer');
+    const trans = this._noI18nCols ? '' : q.en_question
+      ? (stale ? '<span class="ex-badge ex-b-wait">Bản dịch đã cũ</span>' : '<span class="ex-badge ex-b-ok">Đã dịch</span>')
+      : '<span class="ex-badge ex-b-mu">Chưa dịch</span>';
+    const showEn = this.en() && q.en_image_url;
     return '<div class="chart-card ex-bank' + (q.id === this.editQ ? ' editing' : '') + '">' +
       '<div class="ex-bankh">' +
-        '<span class="ex-badge" style="background:' + hesc(t.color) + '22;color:' + hesc(t.color) + '" data-noi18n>' + hesc(t.name) + '</span>' +
-        '<span class="ex-badge ex-b-mu">' + hesc(q.level || '') + '</span>' +
+        '<span class="ex-badge" style="background:' + hesc(t.color) + '22;color:' + hesc(t.color) + '" data-noi18n>' + hesc(this.tx(t, 'name')) + '</span>' +
+        '<span class="ex-badge ex-b-mu">' + hesc(q.level || '') + '</span>' + trans +
         '<span style="margin-left:auto;display:flex;gap:6px">' +
           '<button class="ex-mini" onclick="EX.pickQ(\'' + q.id + '\')" title="Sửa">✎</button>' +
           '<button class="ex-mini del" onclick="EX.delQ(\'' + q.id + '\')" title="Xóa">×</button>' +
         '</span>' +
       '</div>' +
-      '<div class="ex-bankq" data-noi18n>' + hesc(q.question) + '</div>' +
-      (q.image_url ? this.imgHtml(q.image_url, '220px') : '') +
-      (q.answer ? '<div class="ex-correct"><b>✓ Đáp án:</b> <span data-noi18n>' + hesc(q.answer) + '</span></div>' : '') +
+      '<div class="ex-bankq" data-noi18n>' + hesc(this.tx(q, 'question')) + '</div>' +
+      (this.imgOf(q) ? this.imgHtml(this.imgOf(q), '220px') : '') +
+      (showEn ? '<div class="ex-meta" style="color:var(--cy)">Đang xem: ảnh bản EN</div>' : '') +
+      (this._noI18nCols ? '' : '<div class="ex-imgb" style="margin-top:6px">' +
+        (q.en_image_url
+          ? '<button class="abtn abtn-ghost abtn-sm" onclick="EX.pickEnImg(\'' + q.id + '\')">Đổi ảnh EN</button>' +
+            '<button class="abtn abtn-danger abtn-sm" onclick="EX.clearEnImg(\'' + q.id + '\')">Xoá ảnh EN</button>'
+          : '<button class="abtn abtn-ghost abtn-sm" onclick="EX.pickEnImg(\'' + q.id + '\')">＋ Ảnh bản EN</button>') +
+      '</div>') +
+      (this.tx(q, 'answer') ? '<div class="ex-correct"><b>✓ Đáp án:</b> <span data-noi18n>' + hesc(this.tx(q, 'answer')) + '</span></div>' : '') +
     '</div>';
   },
   /* ---- khu vực ảnh trong ô soạn câu hỏi ----
@@ -518,6 +570,103 @@ const EX = {
     this.refreshImgBox();
     if (old && !this.editQ) await this.dropImg(old);   // xem chú thích ở dropImg
   },
+  /* ---- ẢNH RIÊNG CHO BẢN EN ----
+     Ảnh chụp màn hình giao diện tiếng Anh: hiện thay ảnh gốc khi người xem bật EN
+     (EX.imgOf), thiếu thì vẫn dùng ảnh tiếng Việt.
+     ⚠ Cùng luật an toàn với ảnh gốc: KHÔNG xoá file trên kho khi đổi/gỡ ảnh của
+     câu hỏi đã lưu — mọi bài đã nộp còn trỏ tới đúng file đó (exam_answers giữ
+     bản chụp). Chỉ gỡ liên kết trong ngân hàng câu hỏi. */
+  pickEnImg(id) {
+    this._enTarget = id;
+    const f = document.getElementById('exEnImgFile');
+    if (f) { f.value = ''; f.click(); }
+  },
+  async onEnImgFile(files) {
+    const id = this._enTarget;
+    if (!files || !files.length || !id) return;
+    this.toast('Đang tải ảnh lên…');
+    try {
+      const path = await this.uploadImg(files[0]);
+      const { error } = await this.tbl('exam_questions').update({ en_image_url: path }).eq('id', id);
+      if (error) throw new Error(error.message);
+      const q = this.bank.find(x => x.id === id); if (q) q.en_image_url = path;
+      this._enTarget = null;
+      this.render(); this.toast('Đã lưu ảnh bản EN');
+    } catch (e) { this._enTarget = null; alert('Tải ảnh thất bại: ' + (e.message || e)); }
+  },
+  async clearEnImg(id) {
+    if (!confirm('Gỡ ảnh bản EN của câu hỏi này? Bản tiếng Anh sẽ dùng lại ảnh gốc.')) return;
+    try {
+      const { error } = await this.tbl('exam_questions').update({ en_image_url: null }).eq('id', id);
+      if (error) throw new Error(error.message);
+      const q = this.bank.find(x => x.id === id); if (q) q.en_image_url = null;
+      this.render(); this.toast('Đã gỡ ảnh bản EN');
+    } catch (e) { alert('Lỗi gỡ ảnh: ' + (e.message || e)); }
+  },
+
+  /* ---- XUẤT / NHẬP BẢN DỊCH (JSON, cùng khuôn với T4) ----
+     Xuất: gom tên chủ đề + câu hỏi + đáp án mẫu kèm cờ `stale` (bản VI đã sửa sau
+     lần dịch trước). Nhập: chỉ ghi vào cột en_* và envi_*, TUYỆT ĐỐI không đụng
+     cột tiếng Việt — đây đúng là chỗ T4 từng ghi đè mất bản gốc. */
+  exportTrans() {
+    if (!this.canEdit()) return;
+    const row = (o, f, p) => ({ p: p, vi: o[f] || '', en: o['en_' + f] || '', stale: this.isStale(o, f) });
+    const out = { v: 1, at: new Date().toISOString(), topics: [], questions: [] };
+    (this.D.topics || []).forEach(t => {
+      if (!(t.name || '').trim()) return;
+      out.topics.push({ id: t.id, rows: [row(t, 'name', 'name')] });
+    });
+    (this.bank || []).forEach(q => {
+      const rows = [row(q, 'question', 'question')];
+      if ((q.answer || '').trim()) rows.push(row(q, 'answer', 'answer'));
+      out.questions.push({ id: q.id, topic: this.topicById(q.topic_id).name, level: q.level || '', rows: rows });
+    });
+    const blob = new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'de_kiem_tra_nghiep_vu_' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  },
+  importTrans() { if (this.canEdit()) { const f = document.getElementById('exTransFile'); if (f) { f.value = ''; f.click(); } } },
+  async onTransFile(inp) {
+    const f = (inp.files || [])[0]; inp.value = '';
+    if (!f || !this.canEdit()) return;
+    let data;
+    try { data = JSON.parse(await f.text()); } catch (e) { alert('Không đọc được file: ' + (e.message || e)); return; }
+    if (!data || (!Array.isArray(data.topics) && !Array.isArray(data.questions))) { alert('Sai định dạng: file thiếu danh sách topics/questions.'); return; }
+    // gom bản dịch thành payload update, bỏ qua dòng chưa dịch
+    const patch = (rec, src) => {
+      const o = {};
+      (rec.rows || []).forEach(r => {
+        if (!r.en || !String(r.en).trim() || !/^(name|question|answer)$/.test(r.p || '')) return;
+        o['en_' + r.p] = r.en;
+        o['envi_' + r.p] = src ? (src[r.p] || '') : (r.vi || '');   // dấu vết bản VI lúc dịch
+      });
+      return o;
+    };
+    let nT = 0, nQ = 0, nS = 0;
+    try {
+      for (const rec of (data.topics || [])) {
+        const t = (this.D.topics || []).find(x => x.id === rec.id); if (!t) continue;
+        const o = patch(rec, t); if (!Object.keys(o).length) continue;
+        const { error } = await this.tbl('exam_topics').update(o).eq('id', t.id);
+        if (error) throw new Error(error.message);
+        Object.assign(t, o); nT++; nS += Object.keys(o).length / 2;
+      }
+      for (const rec of (data.questions || [])) {
+        const q = (this.bank || []).find(x => x.id === rec.id); if (!q) continue;
+        const o = patch(rec, q); if (!Object.keys(o).length) continue;
+        const { error } = await this.tbl('exam_questions').update(o).eq('id', q.id);
+        if (error) throw new Error(error.message);
+        Object.assign(q, o); nQ++; nS += Object.keys(o).length / 2;
+      }
+    } catch (e) { alert('Lỗi nhập bản dịch: ' + (e.message || e)); this.render(); return; }
+    this.render();
+    this.toast('Đã nhập bản dịch: ' + nQ + ' câu hỏi, ' + nT + ' chủ đề');
+    logAction('NHẬP BẢN DỊCH ĐỀ TEST', nS + ' chuỗi · ' + nQ + ' câu · ' + nT + ' chủ đề');
+  },
+
   pickQ(id) {
     this.editQ = id;
     const q = this.bank.find(x => x.id === id);
@@ -841,9 +990,14 @@ const EX = {
     if (!s.items) {
       pane.innerHTML = '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Đang tải nội dung bài…</div>';
       try {
-        const { data, error } = await this.tbl('exam_answers')
-          .select('idx,topic_name,question,image_url,sample_answer,reply,score,note')
+        let { data, error } = await this.tbl('exam_answers')
+          .select('idx,topic_name,question,image_url,sample_answer,reply,score,note,en_topic_name,en_question,en_image_url,en_sample_answer')
           .eq('submission_id', s.id).order('idx');
+        if (error && /en_/.test(error.message || '')) {   // chưa chạy supabase_exam_i18n.sql
+          ({ data, error } = await this.tbl('exam_answers')
+            .select('idx,topic_name,question,image_url,sample_answer,reply,score,note')
+            .eq('submission_id', s.id).order('idx'));
+        }
         if (error) throw new Error(error.message);
         s.items = data || [];
       } catch (e) { pane.innerHTML = '<div class="chart-card" style="color:var(--re);font-size:.72rem">Lỗi tải bài: ' + hesc(e.message || e) + '</div>'; return; }
@@ -859,10 +1013,10 @@ const EX = {
     const body = s.items.map((it, i) => {
       const sc = (it.score !== '' && it.score != null) ? Number(it.score) : '';
       return '<div class="ex-rev">' +
-        '<div class="ex-revq"><span class="ex-badge ex-b-mu" data-noi18n>' + hesc(it.topic_name || '') + '</span><span data-noi18n>' + hesc(it.question) + '</span></div>' +
-        this.imgHtml(it.image_url, '460px') +
+        '<div class="ex-revq"><span class="ex-badge ex-b-mu" data-noi18n>' + hesc(this.tx(it, 'topic_name')) + '</span><span data-noi18n>' + hesc(this.tx(it, 'question')) + '</span></div>' +
+        this.imgHtml(this.imgOf(it), '460px') +
         '<div class="ex-reply"><b>Nhân viên trả lời:</b> ' + (it.reply ? '<span data-noi18n>' + hesc(it.reply) + '</span>' : '<i>(Bỏ trống)</i>') + '</div>' +
-        (it.sample_answer ? '<div class="ex-correct"><b>✓ Đáp án mẫu:</b> <span data-noi18n>' + hesc(it.sample_answer) + '</span></div>' : '') +
+        (it.sample_answer ? '<div class="ex-correct"><b>✓ Đáp án mẫu:</b> <span data-noi18n>' + hesc(this.tx(it, 'sample_answer')) + '</span></div>' : '') +
         '<div class="ex-grow">' +
           '<select class="ex-inp ex-gsel" id="exGs' + i + '"><option value="">Chấm điểm</option>' +
             OPTS.map(v => '<option value="' + v + '"' + (sc !== '' && sc === v ? ' selected' : '') + '>' + v + ' điểm</option>').join('') +
