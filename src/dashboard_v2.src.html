@@ -32,12 +32,12 @@
     <!-- Trạng thái: đã bật -->
     <div id="tfa-on" style="display:none">
       <div style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);border-radius:8px;padding:12px;font-size:.75rem;color:#10b981;font-weight:700;margin-bottom:14px">✓ Tài khoản của bạn ĐÃ BẬT 2FA</div>
-      <button onclick="disable2fa()" style="width:100%;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171;border-radius:8px;padding:10px;font-size:.75rem;font-weight:800;cursor:pointer">Tắt 2FA</button>
+      <button onclick="disable2fa()" class="abtn abtn-danger" style="width:100%;justify-content:center">Tắt 2FA</button>
     </div>
     <!-- Trạng thái: chưa bật -> nút bật -->
     <div id="tfa-off" style="display:none">
       <div style="font-size:.72rem;color:var(--mu2);line-height:1.7;margin-bottom:14px">Bật 2FA để mỗi lần đăng nhập cần thêm mã 6 số từ điện thoại — an toàn hơn nhiều.</div>
-      <button onclick="start2faEnroll()" style="width:100%;background:linear-gradient(135deg,var(--pu),var(--bl));border:none;color:#fff;border-radius:8px;padding:11px;font-size:.78rem;font-weight:800;cursor:pointer;box-shadow:0 4px 15px rgba(124,58,237,.3)">Bật 2FA — Google Authenticator</button>
+      <button onclick="start2faEnroll()" class="abtn abtn-pu" style="width:100%;justify-content:center">Bật 2FA — Google Authenticator</button>
     </div>
     <!-- Bước quét QR + nhập mã xác nhận -->
     <div id="tfa-enroll" style="display:none">
@@ -47,10 +47,10 @@
       <div id="tfa-secret" style="font-family:monospace;font-size:.72rem;font-weight:800;color:var(--cy);background:var(--card2);border:1px solid var(--border2);border-radius:6px;padding:8px;margin-bottom:14px;word-break:break-all;cursor:pointer" title="Bấm để copy" onclick="copy2faSecret()"></div>
       <div style="font-size:.7rem;color:var(--mu2);margin-bottom:8px">2. Nhập mã 6 số đang hiện trong app để xác nhận:</div>
       <div class="otp-wrap" data-for="tfa-code" data-submit="confirm2faEnroll"></div>
-      <button onclick="confirm2faEnroll()" style="width:100%;background:linear-gradient(135deg,var(--pu),var(--bl));border:none;color:#fff;border-radius:8px;padding:10px;font-size:.75rem;font-weight:800;cursor:pointer;margin-top:6px">Xác nhận bật 2FA</button>
+      <button onclick="confirm2faEnroll()" class="abtn abtn-pu" style="width:100%;justify-content:center;margin-top:6px">Xác nhận bật 2FA</button>
     </div>
     <div id="tfa-err" style="font-size:.68rem;color:var(--re);margin-top:10px;min-height:16px;font-weight:600"></div>
-    <button onclick="close2faModal()" style="width:100%;margin-top:12px;background:transparent;border:1px solid var(--border2);color:var(--mu2);border-radius:8px;padding:9px;font-size:.7rem;font-weight:700;cursor:pointer">Đóng</button>
+    <button onclick="close2faModal()" class="abtn abtn-ghost" style="width:100%;justify-content:center;margin-top:12px">Đóng</button>
   </div>
 </div>
 
@@ -63,7 +63,7 @@
     <div id="pasteMsg" style="font-size:.68rem;min-height:16px;margin:8px 0;font-weight:600"></div>
     <div style="display:flex;gap:10px">
       <button class="upload-btn" onclick="applyPaste()">Áp dụng</button>
-      <button onclick="closePasteModal()" style="padding:8px 18px;background:transparent;border:1px solid var(--border2);color:var(--mu2);border-radius:8px;cursor:pointer;font-size:.72rem;font-weight:700">Đóng</button>
+      <button onclick="closePasteModal()" class="abtn abtn-ghost">Đóng</button>
     </div>
   </div>
 </div>
@@ -78,14 +78,14 @@
     <div id="lg-step1">
       <input class="login-inp" id="lg-user" placeholder="Tên đăng nhập" autocomplete="username">
       <input class="login-inp" id="lg-pass" type="password" placeholder="Mật khẩu" autocomplete="current-password" onkeydown="if(event.key==='Enter')AUTH.login()">
-      <button class="login-btn" id="lg-btn" onclick="AUTH.login()">Đăng nhập</button>
+      <button class="abtn abtn-pu" id="lg-btn" style="width:100%;justify-content:center;margin-top:4px" onclick="AUTH.login()">Đăng nhập</button>
     </div>
     <!-- Bước 2: mã 2FA Google Authenticator (tài khoản đã bật 2FA) -->
     <div id="lg-step2fa" style="display:none">
       <div style="font-size:.72rem;color:var(--mu2);margin-bottom:12px;line-height:1.6">Nhập mã <b style="color:var(--tx)">6 số</b> từ ứng dụng <b style="color:var(--pu2)">Google Authenticator</b></div>
       <div class="otp-wrap" data-for="lg-2fa-code" data-submit="AUTH.verifyLogin2fa"></div>
-      <button class="login-btn" id="lg-2fa-btn" onclick="AUTH.verifyLogin2fa()">Xác Minh</button>
-      <button onclick="AUTH.cancel2fa()" style="width:100%;margin-top:8px;background:transparent;border:1px solid var(--border2);color:var(--mu2);border-radius:8px;padding:9px;font-size:.7rem;font-weight:700;cursor:pointer">Quay lại</button>
+      <button class="abtn abtn-pu" id="lg-2fa-btn" style="width:100%;justify-content:center" onclick="AUTH.verifyLogin2fa()">Xác Minh</button>
+      <button onclick="AUTH.cancel2fa()" class="abtn abtn-ghost" style="width:100%;justify-content:center;margin-top:8px">Quay lại</button>
     </div>
     <!-- Bước 3: BẮT BUỘC thiết lập 2FA (tài khoản chưa có) -->
     <div id="lg-stepEnroll" style="display:none">
@@ -96,8 +96,8 @@
       <div id="lg-secret" style="font-family:monospace;font-size:.68rem;font-weight:800;color:var(--cy);background:var(--card2);border:1px solid var(--border2);border-radius:6px;padding:7px;margin-bottom:10px;word-break:break-all;cursor:pointer" title="Bấm để copy" onclick="AUTH.copyEnrollSecret()"></div>
       <div style="font-size:.68rem;color:var(--mu2);margin-bottom:6px">2. Nhập mã 6 số đang hiện trong app:</div>
       <div class="otp-wrap" data-for="lg-enroll-code" data-submit="AUTH.confirmEnrollLogin"></div>
-      <button class="login-btn" id="lg-enroll-btn" onclick="AUTH.confirmEnrollLogin()">Xác nhận &amp; vào hệ thống</button>
-      <button onclick="AUTH.cancel2fa()" style="width:100%;margin-top:8px;background:transparent;border:1px solid var(--border2);color:var(--mu2);border-radius:8px;padding:9px;font-size:.7rem;font-weight:700;cursor:pointer">Hủy</button>
+      <button class="abtn abtn-pu" id="lg-enroll-btn" style="width:100%;justify-content:center" onclick="AUTH.confirmEnrollLogin()">Xác nhận &amp; vào hệ thống</button>
+      <button onclick="AUTH.cancel2fa()" class="abtn abtn-ghost" style="width:100%;justify-content:center;margin-top:8px">Hủy</button>
     </div>
     <div class="login-err" id="lg-err"></div>
   </div>
@@ -281,7 +281,7 @@
       <div class="chart-card" style="margin-bottom:12px;padding:10px 16px">
         <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:0">
           <span>Màu đại diện từng FK (2 chart bên dưới)</span>
-          <button onclick="toggleFKColorPicker()" style="flex-shrink:0;font-size:.62rem;padding:3px 10px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);color:var(--pu2);border-radius:5px;cursor:pointer;font-weight:700">Tùy chỉnh màu</button>
+          <button onclick="toggleFKColorPicker()" class="vt-btn" style="flex-shrink:0">Tùy chỉnh màu</button>
         </div>
         <div id="fk-color-picker" style="display:none;flex-wrap:wrap;gap:6px;padding:10px 0 2px"></div>
       </div>
@@ -313,7 +313,7 @@
           <b style="font-size:.74rem">Thả file Excel vào đây, dán (Ctrl+V) dữ liệu Excel, hoặc bấm Chọn file</b>
           <div style="color:var(--mu);font-size:.6rem;margin-top:3px">Dữ liệu chỉ nằm trong phiên này — tải lại trang (F5) sẽ mất. Không gửi lên cloud.</div>
         </div>
-        <button id="drPick" style="background:var(--go);color:#1a1408;border:none;border-radius:7px;padding:8px 14px;font-size:.7rem;font-weight:700;cursor:pointer">Chọn file…</button>
+        <button id="drPick" class="abtn abtn-go">Chọn file…</button>
         <input type="file" id="drFile" accept=".xlsx,.xls,.csv" style="display:none">
         <div id="drStatus" style="width:100%;font-size:.62rem"></div>
       </div>
@@ -326,7 +326,7 @@
             <div class="stat-lbl" style="color:var(--cy)">Xin ý kiến TT (Telegram)</div>
             <textarea id="drTgText" rows="2" placeholder="Dán text nhóm Telegram (có mã Số thứ tự đơn) vào đây..." spellcheck="false" style="width:100%;margin-top:6px;background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:6px;padding:6px 8px;font-size:.6rem;font-family:monospace;line-height:1.5;resize:vertical;outline:none"></textarea>
             <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-              <button onclick="drTgCheck()" style="background:var(--cy);color:#062a30;border:none;border-radius:6px;padding:5px 12px;font-size:.62rem;font-weight:800;cursor:pointer">Đối chiếu</button>
+              <button onclick="drTgCheck()" class="abtn abtn-sm abtn-cy">Đối chiếu</button>
               <span id="drTgSum" style="font-size:.58rem;color:var(--mu)"></span>
             </div>
           </div>
@@ -361,12 +361,12 @@
 <!-- MODAL: Sửa mốc tiền Báo Cáo Đơn Rút -->
 <div class="dr-modal" id="drBrModal">
   <div class="box">
-    <div style="display:flex;align-items:center;margin-bottom:12px"><b style="color:var(--pu2);font-size:.8rem;letter-spacing:.4px">✎ SỬA MỐC TIỀN</b><button onclick="drCloseBrModal()" style="margin-left:auto;background:none;border:none;color:var(--mu);font-size:16px;cursor:pointer">✕</button></div>
+    <div style="display:flex;align-items:center;margin-bottom:12px"><b style="color:var(--pu2);font-size:.8rem;letter-spacing:.4px">✎ SỬA MỐC TIỀN</b><button onclick="drCloseBrModal()" class="icon-x" style="margin-left:auto">✕</button></div>
     <textarea id="drBrText" rows="7" spellcheck="false"></textarea>
     <div style="color:var(--mu);font-size:.64rem;margin:8px 0 10px;line-height:1.6">Mỗi dòng một mốc dạng <b style="color:var(--tx)">từ - đến</b> (ví dụ <b style="color:var(--tx)">200 - 5000</b>). Viết 5.000 hay 5000 đều được. Bấm <b style="color:var(--go)">Áp dụng</b> để tính lại toàn bộ theo mốc mới.</div>
     <div style="display:flex;gap:8px">
-      <button onclick="drApplyBr()" style="background:var(--go);color:#1a1408;border:none;border-radius:7px;padding:8px 15px;font-size:.72rem;font-weight:700;cursor:pointer">Áp dụng</button>
-      <button onclick="drResetBr()" style="background:var(--card2);border:1px solid var(--border2);color:var(--mu);border-radius:7px;padding:8px 15px;font-size:.72rem;font-weight:700;cursor:pointer">Về mặc định</button>
+      <button onclick="drApplyBr()" class="abtn abtn-go">Áp dụng</button>
+      <button onclick="drResetBr()" class="abtn abtn-ghost">Về mặc định</button>
     </div>
     <div id="drBrErr" style="color:var(--re);font-size:.64rem;margin-top:8px"></div>
   </div>
@@ -375,7 +375,7 @@
 <!-- MODAL: Toàn bộ thông tin 1 FK (Báo Cáo Đơn Rút) -->
 <div class="dr-modal" id="drFkModal">
   <div class="box" style="max-width:860px;max-height:84vh;overflow:auto">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;position:sticky;top:0;background:var(--card);padding-bottom:6px;z-index:1"><span id="drFkTitle"></span><button onclick="drCloseFk()" style="margin-left:auto;background:none;border:none;color:var(--mu);font-size:16px;cursor:pointer">✕</button></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;position:sticky;top:0;background:var(--card);padding-bottom:6px;z-index:1"><span id="drFkTitle"></span><button onclick="drCloseFk()" class="icon-x" style="margin-left:auto">✕</button></div>
     <div id="drFkBody"></div>
   </div>
 </div>
@@ -387,7 +387,7 @@
       <div class="dp-name" id="koCmName" style="font-size:1rem;font-weight:800">-</div>
       <span class="fk-card-type" id="koCmBadge">-</span>
       <div class="dp-stats" style="margin-left:auto;display:flex;gap:16px;font-size:.68rem;color:var(--mu2)"><span>Điểm: <b id="koCmSc" style="color:var(--tx)">-</b></span><span>Đơn: <b id="koCmCt" style="color:var(--tx)">-</b></span></div>
-      <button onclick="koCloseChart()" style="background:none;border:none;color:var(--mu);font-size:16px;cursor:pointer">✕</button>
+      <button onclick="koCloseChart()" class="icon-x">✕</button>
     </div>
     <div style="height:300px"><canvas id="koCmCh"></canvas></div>
   </div>
@@ -398,7 +398,7 @@
   <div class="box" style="max-width:640px;width:100%">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
       <div style="font-size:1rem;font-weight:800;color:var(--pu2)">Quản lý nhân viên</div>
-      <button onclick="rosterCloseModal()" style="margin-left:auto;background:none;border:none;color:var(--mu);font-size:16px;cursor:pointer">✕</button>
+      <button onclick="rosterCloseModal()" class="icon-x" style="margin-left:auto">✕</button>
     </div>
     <div style="font-size:.62rem;color:var(--mu);margin-bottom:12px">Thêm/ẩn nhân viên áp dụng cho TOÀN hệ thống (Hiệu Suất + Báo Cáo Đại Lý). Ẩn nhân viên vẫn GIỮ dữ liệu lịch sử các tháng cũ. Mã nhận diện = chuỗi con trong cột FK của file Excel duyệt đơn.</div>
     <!-- Form thêm -->
@@ -412,7 +412,7 @@
         </select>
         <input id="rosterAddSearch" placeholder="Mã nhận diện Excel (tùy chọn)" style="flex:1;min-width:120px;background:var(--card);border:1px solid var(--border);color:var(--tx);padding:6px 9px;border-radius:6px;font-size:.7rem">
         <input id="rosterAddCol" type="color" value="#7c3aed" style="width:34px;height:32px;border:1px solid var(--border);border-radius:6px;padding:0;background:none;cursor:pointer">
-        <button onclick="rosterAddMember()" style="background:linear-gradient(135deg,var(--pu),var(--bl));border:none;color:#fff;border-radius:8px;padding:7px 16px;font-size:.68rem;font-weight:800;cursor:pointer;white-space:nowrap;box-shadow:0 4px 15px rgba(124,58,237,.3)">Thêm</button>
+        <button onclick="rosterAddMember()" class="abtn abtn-pu" style="white-space:nowrap">Thêm</button>
       </div>
       <div id="rosterAddMsg" style="font-size:.62rem;margin-top:6px;min-height:14px"></div>
     </div>
@@ -426,7 +426,7 @@
   <div class="box" style="max-width:440px;width:100%">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
       <div style="font-size:1rem;font-weight:800;color:var(--cy)">⇄ Chuyển hạn mức duyệt</div>
-      <button onclick="limCloseTransfer()" style="margin-left:auto;background:none;border:none;color:var(--mu);font-size:16px;cursor:pointer">✕</button>
+      <button onclick="limCloseTransfer()" class="icon-x" style="margin-left:auto">✕</button>
     </div>
     <div id="limCopyDesc" style="font-size:.64rem;color:var(--mu);margin-bottom:12px">Chọn tháng để chuyển toàn bộ hạn mức của tháng hiện tại sang.</div>
     <div id="limCopyList" style="display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow:auto"></div>
@@ -446,7 +446,7 @@
   <div class="ko-view" id="ko-overview">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px">
       <div style="font-size:.6rem;color:var(--mu)">Ngày làm việc và Ghi chú có thể click để sửa. Khác: chọn trạng thái từ dropdown. Cộng/Trừ tự động tính theo hiệu suất tổng hợp.</div>
-      <button id="rosterEditBtn" onclick="rosterOpenModal()" style="display:none;flex:0 0 auto;background:linear-gradient(135deg,var(--pu),var(--bl));border:none;color:#fff;border-radius:8px;padding:6px 14px;font-size:.66rem;font-weight:800;cursor:pointer;white-space:nowrap;box-shadow:0 4px 15px rgba(124,58,237,.3)">Quản lý nhân viên</button>
+      <button id="rosterEditBtn" onclick="rosterOpenModal()" class="abtn abtn-pu" style="display:none;flex:0 0 auto;white-space:nowrap">Quản lý nhân viên</button>
     </div>
     <div class="sec-hdr" style="color:var(--vip-c)">FK ONLINE VIP <span class="cnt-badge" id="ovVipCount">0 người</span></div>
     <div class="mtbl-wrap" style="margin-bottom:8px"><table class="mtbl ko-ov-tbl" id="ovVipTbl"></table></div>
@@ -499,14 +499,14 @@
       <div class="vt-btn" onclick="smv('don',this)">Số đơn</div>
     </div>
 
-    <div class="sec-hdr" style="color:var(--pu2)">Hiệu Suất Duyệt Đơn <button onclick="openPasteModal('don')" style="font-size:.58rem;padding:2px 10px;background:rgba(6,182,212,.15);border:1px solid rgba(6,182,212,.35);color:var(--cy);border-radius:5px;cursor:pointer;font-weight:700;text-transform:none;letter-spacing:0">Dán từ Excel</button></div>
+    <div class="sec-hdr" style="color:var(--pu2)">Hiệu Suất Duyệt Đơn <button onclick="openPasteModal('don')" class="abtn abtn-sm abtn-cy" style="text-transform:none;letter-spacing:0">Dán từ Excel</button></div>
     <div class="sec-hdr" style="color:var(--vip-c)">FKVIP <span class="cnt-badge" id="vipCount">0 người</span></div>
     <div class="fk-grid-compact" id="perfVipGrid" style="margin-bottom:12px"></div>
     <div class="sec-hdr" style="color:var(--onl-c)">FKONL <span class="cnt-badge" id="onlCount">0 người</span></div>
     <div class="fk-grid-compact" id="perfOnlGrid" style="margin-bottom:12px"></div>
     <div class="mtbl-wrap" id="perfCombinedTable" style="margin-bottom:26px"></div>
 
-    <div class="sec-hdr" style="color:#10b981">Hiệu Suất Duyệt Khuyến Mãi <span class="cnt-badge" id="kmStatusBadge" style="background:rgba(239,68,68,.15);color:#ef4444">Chưa có dữ liệu</span> <button onclick="openPasteModal('km')" style="font-size:.58rem;padding:2px 10px;background:rgba(6,182,212,.15);border:1px solid rgba(6,182,212,.35);color:var(--cy);border-radius:5px;cursor:pointer;font-weight:700;text-transform:none;letter-spacing:0">Dán từ Excel</button></div>
+    <div class="sec-hdr" style="color:#10b981">Hiệu Suất Duyệt Khuyến Mãi <span class="cnt-badge" id="kmStatusBadge" style="background:rgba(239,68,68,.15);color:#ef4444">Chưa có dữ liệu</span> <button onclick="openPasteModal('km')" class="abtn abtn-sm abtn-cy" style="text-transform:none;letter-spacing:0">Dán từ Excel</button></div>
     <div id="kmEmptyState" style="font-size:.65rem;color:var(--mu);padding:14px;border:1px dashed var(--border2);border-radius:8px;text-align:center">
       Chưa có dữ liệu khuyến mãi tháng này — bấm <label for="fhKM" style="color:#10b981;font-weight:700;cursor:pointer;text-decoration:underline">Upload Excel Khuyến Mãi</label> ở góc trên để tải lên.
     </div>
@@ -572,7 +572,7 @@
       <div class="si-group"><div class="si-dot" style="background:var(--cy)"></div><label>Ca Sáng:</label><input type="number" id="sf" value="8" min="0" max="23">H →<input type="number" id="st" value="17" min="0" max="23">H</div>
       <div class="si-group"><div class="si-dot" style="background:#a78bfa"></div><label>Ca Trung:</label><input type="number" id="tf" value="22" min="0" max="23">H →<input type="number" id="tt" value="4" min="0" max="23">H<span style="font-size:.6rem;color:var(--mu)">(qua đêm)</span></div>
       <div class="si-group"><div class="si-dot" style="background:#f59e0b"></div><label>Ca Gãy:</label><input type="number" id="g1f" value="10" min="0" max="23">H →<input type="number" id="g1t" value="14" min="0" max="23">H<span style="font-size:.6rem;color:var(--mu)">&amp;</span><input type="number" id="g2f" value="18" min="0" max="23">H →<input type="number" id="g2t" value="22" min="0" max="23">H</div>
-      <button class="shift-update-btn" onclick="shUpdateHours()">Cập nhật</button>
+      <button class="abtn abtn-sm abtn-pu" onclick="shUpdateHours()">Cập nhật</button>
     </div>
     <div class="shift-cols" style="grid-template-columns:1fr 1fr 1fr">
       <div class="shift-col"><div class="shift-col-hdr"><div class="si-dot" style="background:var(--cy)"></div><div style="font-size:.7rem;font-weight:700;color:var(--cy)">CA SÁNG</div></div><div style="font-size:.6rem;color:var(--mu);margin-bottom:7px" id="sh_sang_hrs"></div><div class="fk-chips" id="sh_sang_fks"></div></div>
@@ -622,9 +622,9 @@
         <span>Công việc hằng ngày FK — <span id="wk_month" style="color:var(--pu2)"></span></span>
         <span style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <span id="wk_chips" style="display:flex;gap:6px;flex-wrap:wrap;text-transform:none;letter-spacing:0"></span>
-          <button class="vt-btn" onclick="openPasteModal('work')" style="color:var(--cy);border-color:rgba(6,182,212,.4)">Dán từ Excel</button>
-          <button class="vt-btn active" onclick="wkAutoAssign()">Tự Động Phân Công</button>
-          <button id="wkClearBtn" class="vt-btn" onclick="wkClearAll()" style="display:none;color:#f87171;border-color:rgba(239,68,68,.4)">Xóa Phân Công</button>
+          <button class="abtn abtn-sm abtn-cy" onclick="openPasteModal('work')">Dán từ Excel</button>
+          <button class="abtn abtn-sm abtn-pu" onclick="wkAutoAssign()">Tự Động Phân Công</button>
+          <button id="wkClearBtn" class="abtn abtn-sm abtn-danger" onclick="wkClearAll()" style="display:none">Xóa Phân Công</button>
         </span>
       </div>
       <div class="mtbl-wrap"><table class="mtbl" id="wkTbl"></table></div>
@@ -633,7 +633,7 @@
       <div class="chart-card">
         <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
           <span>Số ngày công việc — thống kê công bằng</span>
-          <button onclick="wkOffOpen()" style="font-size:.62rem;padding:4px 12px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:#f87171;border-radius:5px;cursor:pointer;font-weight:700">Báo cáo OFF / Chuyển ngày</button>
+          <button onclick="wkOffOpen()" class="abtn abtn-sm abtn-danger">Báo cáo OFF / Chuyển ngày</button>
         </div>
         <div class="mtbl-wrap"><table class="mtbl" id="wkSum"></table></div>
       </div>
@@ -670,7 +670,7 @@
     <div id="wkOffMsg" style="font-size:.68rem;min-height:16px;margin:10px 0;font-weight:600"></div>
     <div style="display:flex;gap:10px">
       <button class="upload-btn" onclick="wkOffConfirm()">Xác nhận báo cáo</button>
-      <button onclick="document.getElementById('wkOffModal').style.display='none'" style="padding:8px 18px;background:transparent;border:1px solid var(--border2);color:var(--mu2);border-radius:8px;cursor:pointer;font-size:.72rem;font-weight:700">Đóng</button>
+      <button onclick="document.getElementById('wkOffModal').style.display='none'" class="abtn abtn-ghost">Đóng</button>
     </div>
   </div>
 </div>
@@ -703,7 +703,7 @@
 <div class="pg" id="pg-log">
   <div class="sec-hdr pu">LỊCH SỬ THAO TÁC (GMT+7)</div>
   <div class="chart-card">
-    <div class="chart-title">300 thao tác gần nhất <button onclick="rLogPanel()" style="flex-shrink:0;font-size:.62rem;padding:3px 10px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);color:var(--pu2);border-radius:5px;cursor:pointer;font-weight:700">Làm mới</button></div>
+    <div class="chart-title">300 thao tác gần nhất <button onclick="rLogPanel()" class="abtn abtn-sm abtn-pu" style="flex-shrink:0">Làm mới</button></div>
     <div id="logList" style="overflow-x:auto"></div>
   </div>
 </div>
@@ -827,8 +827,8 @@
       <div class="file-tags" id="bc-ft3"></div>
     </div>
     <div class="upload-actions" style="position:relative">
-      <button class="btn-process" id="bc-btn-process" onclick="BC.processFiles()" disabled>Tính toán</button>
-      <button class="btn-reset" onclick="BC.resetToDefault()">Xóa Dữ Liệu</button>
+      <button class="abtn abtn-pu" id="bc-btn-process" onclick="BC.processFiles()" disabled>Tính toán</button>
+      <button class="abtn abtn-danger" onclick="BC.resetToDefault()">Xóa Dữ Liệu</button>
       <div class="progress-bar" id="bc-prog-bar"><div class="progress-fill" id="bc-prog-fill"></div></div>
     </div>
     <div class="upload-log hidden" id="bc-upload-log"></div>
@@ -848,7 +848,7 @@
   <div class="tbl-toolbar">
     <input type="text" id="bc-s-all" placeholder="Tìm ID, Họ tên, Đại lý, Ngân hàng... (dán nhiều đại lý: a, b, c)" oninput="BC.filterAll()" style="width:340px">
     <span class="bc-badge" id="bc-cnt-all"></span>
-    <button class="export-btn" onclick="BC.exportCSV('all')">⬇ Xuất CSV</button>
+    <button class="abtn abtn-ok" style="margin-left:auto" onclick="BC.exportCSV('all')">⬇ Xuất CSV</button>
   </div>
   <div class="tbl-wrap">
     <table><thead><tr>
@@ -866,7 +866,7 @@
 <div class="bc-panel" id="bc-panel-agents">
   <div class="ph">
     <div><div class="ph-title">Danh Sách Đại Lý Đủ Điều Kiện</div><div class="ph-sub">Đại lý có ≥ 3 KH hợp lệ</div></div>
-    <button class="export-btn" onclick="BC.exportCSV('agents')">⬇ Xuất CSV</button>
+    <button class="abtn abtn-ok" style="margin-left:auto" onclick="BC.exportCSV('agents')">⬇ Xuất CSV</button>
   </div>
   <div class="tbl-toolbar">
     <input type="text" id="bc-s-agents" placeholder="Tìm tên đại lý..." oninput="BC.filterAgents()">
@@ -913,12 +913,12 @@
       <div class="ph-sub">Tích ô "Nghi ngờ" ở cột Đại Lý (tab Tổng Hợp) để đưa vào đây · bấm vào Ô trong bảng Chi tiết KH để tô/bỏ tô điểm nghi ngờ (lưu cloud) · lưu trên cloud</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <button id="bcSusSepBtn" style="display:none;font-size:11px;padding:6px 14px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.45);color:var(--go);border-radius:6px;cursor:pointer;font-weight:700;white-space:nowrap" title="Chỉ ADMIN — chèn phân cách: các đại lý đánh dấu SAU điểm này thuộc giai đoạn kế tiếp" onclick="BC.addSuspectSep()">➕ Phân cách giai đoạn</button>
+      <button id="bcSusSepBtn" class="abtn abtn-sm abtn-go" style="display:none;white-space:nowrap" title="Chỉ ADMIN — chèn phân cách: các đại lý đánh dấu SAU điểm này thuộc giai đoạn kế tiếp" onclick="BC.addSuspectSep()">➕ Phân cách giai đoạn</button>
       <div style="position:relative">
-        <button id="bcSusSheetBtn" style="display:none;font-size:11px;padding:6px 14px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.45);color:#f87171;border-radius:6px;cursor:pointer;font-weight:700;white-space:nowrap" title="Chỉ Tổ Trưởng trở lên — gửi danh sách nghi ngờ (theo giai đoạn nếu có phân cách, kèm màu tô) sang Google Sheet" onclick="BC.clickSheetBtn()">Báo Cáo Đại Lý Bất Thường ⇢ Google Sheet</button>
+        <button id="bcSusSheetBtn" class="abtn abtn-sm abtn-danger" style="display:none;white-space:nowrap" title="Chỉ Tổ Trưởng trở lên — gửi danh sách nghi ngờ (theo giai đoạn nếu có phân cách, kèm màu tô) sang Google Sheet" onclick="BC.clickSheetBtn()">Báo Cáo Đại Lý Bất Thường ⇢ Google Sheet</button>
         <div id="bcSusPhaseMenu" style="display:none;position:absolute;right:0;top:calc(100% + 5px);z-index:60;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px;min-width:240px;box-shadow:0 10px 28px rgba(0,0,0,.45)"></div>
       </div>
-      <button onclick="toggleSuspectColsPanel()" style="font-size:11px;padding:6px 14px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:var(--bl2);border-radius:6px;cursor:pointer;font-weight:700;white-space:nowrap">Cột hiển thị</button>
+      <button onclick="toggleSuspectColsPanel()" class="abtn abtn-sm abtn-bl" style="white-space:nowrap">Cột hiển thị</button>
     </div>
   </div>
   <div id="bc-suspect-cols" style="display:none;flex-wrap:wrap;gap:7px;margin-bottom:14px;align-items:center"></div>

@@ -26,7 +26,7 @@ html,body{min-height:100vh;background:var(--bg);color:var(--tx);font-family:"Seg
 .tool-hdr-title{font-size:1.1rem;font-weight:800;letter-spacing:.05em;color:var(--tx)}
 .tool-hdr-sub{font-size:.65rem;color:var(--mu2);margin-top:2px}
 .tool-hdr-note{font-size:.65rem;color:var(--mu2);margin-left:auto}
-.upload-btn{background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:.72rem;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(124,58,237,.3);transition:all .2s}
+.upload-btn{background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:.72rem;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(124,58,237,.3);transition:all .2s}
 .upload-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,.45)}
 /* ===== Chuyển ngôn ngữ VI/EN kèm CỜ (dùng chung cho CẢ 3 tab lớn) =====
    ⚠ NHÂN ĐÔI class (.lang-sw.lang-sw) là CỐ Ý: khối T2 có reset `.bc-tool *{margin:0;padding:0}`
@@ -51,6 +51,13 @@ html,body{min-height:100vh;background:var(--bg);color:var(--tx);font-family:"Seg
 .abtn-ghost:hover{border-color:var(--pu);color:var(--tx)}
 /* biến thể nhỏ cho ô trong bảng */
 .abtn-sm{padding:4px 12px;font-size:.62rem;border-radius:6px;gap:4px}
+/* Biến thể màu bổ sung — thêm ở đây thay vì viết style thẳng trong thẻ nút */
+.abtn-go{background:linear-gradient(135deg,var(--go),#d97706);box-shadow:0 4px 14px rgba(245,158,11,.28);color:#1a1408}
+.abtn-bl{background:linear-gradient(135deg,var(--bl),#1d4ed8);box-shadow:0 4px 14px rgba(59,130,246,.28)}
+/* Nút đóng ✕ của mọi hộp thoại — một cỡ duy nhất, đừng tự đặt font-size khác */
+.icon-x{background:none;border:none;color:var(--mu);font-size:16px;line-height:1;cursor:pointer;
+  padding:2px 7px;border-radius:6px;font-family:inherit;transition:color .15s,background .15s}
+.icon-x:hover{color:var(--tx);background:rgba(255,255,255,.07)}
 input#fh{display:none}
 .upload-dd-wrap{position:relative}
 .upload-dd-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:6px;min-width:180px;box-shadow:0 12px 32px rgba(0,0,0,.5);z-index:50}
@@ -221,7 +228,7 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:3;text
 .si-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .si-group label{color:var(--mu)}
 .si-group input[type=number]{background:var(--card2);border:1px solid var(--border);color:var(--tx);padding:3px 7px;border-radius:5px;font-size:.67rem;width:46px;text-align:center}
-.shift-update-btn{background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;border:none;padding:5px 14px;border-radius:6px;font-weight:700;font-size:.68rem;cursor:pointer}
+
 .shift-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 .shift-col{background:var(--card2);border-radius:10px;padding:12px}
 .shift-col-hdr{display:flex;align-items:center;gap:7px;margin-bottom:8px}
@@ -315,6 +322,13 @@ select.wk-code{cursor:pointer;outline:none}
 /* ===== BC-TOOL SCOPED CSS ===== */
 .bc-tool{font-family:"Segoe UI",Arial,sans-serif;font-size:12px;background:var(--bg);color:var(--tx);min-height:calc(100vh - 52px)}
 .bc-tool *{box-sizing:border-box;margin:0;padding:0}
+/* ⚠ Reset ở trên có specificity (0,1,1) nên ĐÈ CẢ `.abtn{padding:...}` (0,1,0) -> nút
+   chuẩn đặt trong T2 bị mất sạch padding. Trả lại đúng kích cỡ chuẩn ở đây; thêm
+   biến thể nút mới thì nhớ khai thêm dòng tương ứng cho T2. */
+.bc-tool .abtn{padding:8px 18px}
+.bc-tool .abtn-sm{padding:4px 12px}
+.bc-tool .vt-btn{padding:5px 14px}
+.bc-tool .icon-x{padding:2px 7px}
 .bc-tool .topbar{background:linear-gradient(135deg,#1a1040 0%,#0f0d2a 50%,#0a1535 100%);border-bottom:1px solid var(--border2);padding:12px 24px;display:flex;align-items:center;gap:12px}
 .bc-tool .topbar-title{font-size:15px;font-weight:bold;letter-spacing:.5px;color:var(--tx)}
 .bc-tool .topbar-sub{font-size:11px;color:var(--mu2);margin-left:auto}
@@ -329,11 +343,11 @@ select.wk-code{cursor:pointer;outline:none}
 .bc-tool .drop-zone.loaded{border-color:#22c55e;background:rgba(34,197,94,.08)}
 .bc-tool .drop-zone.loaded .dz-icon{color:#22c55e}
 .bc-tool .upload-actions{display:flex;flex-direction:column;gap:8px;justify-content:center}
-.bc-tool .btn-process{padding:10px 22px;background:linear-gradient(135deg,var(--pu),var(--bl));color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;white-space:nowrap;box-shadow:0 4px 15px rgba(124,58,237,.3)}
-.bc-tool .btn-process:hover{opacity:.9;transform:translateY(-1px)}
-.bc-tool .btn-process:disabled{background:var(--border2);color:var(--mu);cursor:not-allowed;transform:none;box-shadow:none}
-.bc-tool .btn-reset{padding:7px 16px;background:transparent;color:var(--pu2);border:2px solid var(--pu);border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold}
-.bc-tool .btn-reset:hover{background:rgba(124,58,237,.1)}
+
+
+
+
+
 .bc-tool .upload-log{background:#050710;color:#00ff88;font-family:monospace;font-size:11px;padding:10px 12px;border-radius:6px;max-height:90px;overflow-y:auto;min-width:260px;flex:1;white-space:pre-wrap;line-height:1.5}
 .bc-tool .upload-log.hidden{display:none}
 .bc-tool .file-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
@@ -362,8 +376,8 @@ select.wk-code{cursor:pointer;outline:none}
 .bc-tool .tbl-toolbar input{padding:6px 11px;border:1px solid var(--border2);border-radius:4px;width:240px;font-size:11px;background:var(--card2);color:var(--tx);outline:none}
 .bc-tool .tbl-toolbar input:focus{border-color:var(--pu)}
 .bc-tool .bc-badge{background:var(--pu);color:white;padding:3px 9px;border-radius:10px;font-size:10px}
-.bc-tool .export-btn{padding:6px 14px;background:#16a34a;color:white;border:none;border-radius:5px;cursor:pointer;font-size:11px;font-weight:bold;margin-left:auto}
-.bc-tool .export-btn:hover{background:#15803d}
+
+
 .bc-tool .tbl-wrap{overflow-x:auto}
 .bc-tool table{width:100%;border-collapse:collapse;background:var(--card)}
 .bc-tool thead tr{background:linear-gradient(135deg,var(--pu),var(--bl))}
@@ -472,9 +486,9 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .otp-box{flex:1 1 0;min-width:0;max-width:54px;height:52px;text-align:center;font-size:1.3rem;font-weight:800;color:var(--tx);background:var(--card2);border:1px solid var(--border2);border-radius:9px;outline:none;font-family:inherit;box-sizing:border-box;caret-color:var(--pu2);transition:border-color .15s,box-shadow .15s}
 .otp-box:focus{border-color:var(--pu2);box-shadow:0 0 0 3px rgba(124,58,237,.20)}
 .otp-box.filled{border-color:var(--pu)}
-.login-btn{width:100%;background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;border:none;border-radius:8px;padding:11px;font-size:.8rem;font-weight:800;cursor:pointer;box-shadow:0 4px 15px rgba(124,58,237,.3);margin-top:4px;letter-spacing:.05em}
-.login-btn:hover{opacity:.9}
-.login-btn:disabled{background:var(--border2);color:var(--mu);cursor:not-allowed;box-shadow:none}
+
+
+
 .login-err{font-size:.68rem;color:var(--re);margin-top:10px;min-height:16px;font-weight:600}
 .user-chip{display:flex;align-items:center;gap:8px;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);border-radius:20px;padding:4px 6px 4px 12px;font-size:.68rem;font-weight:700;color:var(--pu2)}
 .user-chip .lo-btn{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:14px;padding:2px 10px;font-size:.62rem;font-weight:700;cursor:pointer}

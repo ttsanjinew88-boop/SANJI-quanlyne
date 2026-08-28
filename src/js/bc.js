@@ -634,8 +634,8 @@ const BC={
         <b style="font-size:14px;color:#f87171">${s.dai_ly}</b>
         <span style="font-size:10px;color:var(--mu)">Đánh dấu: ${t} · bởi ${(s.by||'').toUpperCase()}</span>
         <button class="view-btn" onclick="BC.goAgent('${String(s.dai_ly).replace(/'/g,"\\'")}')">Kiểm tra lại</button>
-        <button onclick="BC.suspectToggleDetail(${idx})" style="padding:2px 9px;background:var(--card2);color:var(--mu2);border:1px solid var(--border2);border-radius:4px;cursor:pointer;font-size:10px">Chi tiết KH (${(s.members||[]).length})</button>
-        <button onclick="BC.toggleSuspect('${String(s.dai_ly).replace(/'/g,"\\'")}',null)" style="padding:2px 9px;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.35);border-radius:4px;cursor:pointer;font-size:10px;margin-left:auto">Bỏ nghi ngờ</button>
+        <button onclick="BC.suspectToggleDetail(${idx})" class="abtn abtn-sm abtn-ghost">Chi tiết KH (${(s.members||[]).length})</button>
+        <button onclick="BC.toggleSuspect('${String(s.dai_ly).replace(/'/g,"\\'")}',null)" class="abtn abtn-sm abtn-danger" style="margin-left:auto">Bỏ nghi ngờ</button>
       </div>
       <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:var(--mu2)">${stats}</div>
       <div id="bc-suspect-detail-${idx}" style="display:none;margin-top:10px;overflow-x:auto">
@@ -664,7 +664,7 @@ const BC={
       if(g.sepIdx>=0)h+=`<div style="display:flex;align-items:center;gap:10px;margin:0 0 16px">
         <div style="flex:1;height:2px;background:repeating-linear-gradient(90deg,var(--go) 0 10px,transparent 10px 18px)"></div>
         <span style="font-size:10px;color:var(--go);font-weight:700;white-space:nowrap">— PHÂN CÁCH GIAI ĐOẠN —</span>
-        ${isAdm?`<button onclick="BC.removeSuspectSep(${g.sepIdx})" title="Xóa phân cách này (gộp lại với giai đoạn sau)" style="padding:2px 9px;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.35);border-radius:4px;cursor:pointer;font-size:10px;white-space:nowrap">✕ Xóa phân cách</button>`:''}
+        ${isAdm?`<button onclick="BC.removeSuspectSep(${g.sepIdx})" title="Xóa phân cách này (gộp lại với giai đoạn sau)" class="abtn abtn-sm abtn-danger" style="white-space:nowrap">✕ Xóa phân cách</button>`:''}
         <div style="flex:1;height:2px;background:repeating-linear-gradient(90deg,var(--go) 0 10px,transparent 10px 18px)"></div>
       </div>`;
       return h;

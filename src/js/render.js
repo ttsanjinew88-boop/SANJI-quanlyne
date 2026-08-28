@@ -410,10 +410,10 @@ function rosterRenderList(){
       `<td style="font-size:.58rem;color:var(--mu)">${hesc(m.search||m.key)}</td>`+
       `<td style="font-weight:700;color:${act?'#10b981':'#ef4444'}">${act?'Đang làm':'Đã nghỉ'}</td>`+
       `<td style="text-align:center;white-space:nowrap">`+
-        `<button onclick="rosterRename(${i})" style="background:none;border:1px solid var(--bl);color:var(--bl);border-radius:5px;padding:2px 8px;font-size:.58rem;font-weight:700;cursor:pointer;margin-right:4px">✎ Sửa tên/mã</button>`+
+        `<button onclick="rosterRename(${i})" class="abtn abtn-sm abtn-bl" style="margin-right:4px">✎ Sửa tên/mã</button>`+
         (act
-        ? `<button onclick="rosterToggleActive(${i})" style="background:none;border:1px solid #ef4444;color:#ef4444;border-radius:5px;padding:2px 8px;font-size:.58rem;font-weight:700;cursor:pointer">Ẩn (nghỉ)</button>`
-        : `<button onclick="rosterToggleActive(${i})" style="background:none;border:1px solid #10b981;color:#10b981;border-radius:5px;padding:2px 8px;font-size:.58rem;font-weight:700;cursor:pointer">Khôi phục</button>`)+`</td>`+
+        ? `<button onclick="rosterToggleActive(${i})" class="abtn abtn-sm abtn-danger">Ẩn (nghỉ)</button>`
+        : `<button onclick="rosterToggleActive(${i})" class="abtn abtn-sm abtn-ok">Khôi phục</button>`)+`</td>`+
       `</tr>`;
   });
   h+='</tbody>';
@@ -665,7 +665,7 @@ async function limOpenTransfer(){
     const months=[...set].sort().reverse();
     const hasLim=new Set((rows||[]).filter(r=>r.type==='limits').map(r=>r.month));
     box.innerHTML=months.map(m=>
-      `<button class="abtn abtn-ghost" style="justify-content:space-between;width:100%;padding:10px 14px" onclick="limTransferTo('${m}')">`+
+      `<button class="abtn abtn-ghost" style="justify-content:space-between;width:100%" onclick="limTransferTo('${m}')">`+
         `<span>Tháng ${dispMonth(m)}</span>`+
         `<span style="font-size:.6rem;color:${hasLim.has(m)?'var(--go)':'var(--mu)'}">${hasLim.has(m)?'đã có hạn mức':'trống'}</span>`+
       `</button>`).join('') || '<div style="color:var(--mu);font-size:.66rem;padding:8px">Không có tháng nào để chọn.</div>';

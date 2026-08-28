@@ -57,6 +57,22 @@ Cả 4 tab lớn đều mở đầu bằng một dải banner cùng kiểu (grad
 - Ví dụ: `<button class="abtn abtn-ok">Lưu</button>`, `<button class="abtn abtn-sm abtn-danger">Xóa</button>`.
 - `.upload-btn` (gradient tím, radius 8px) vẫn dùng cho nút header (Upload Excel, Tháng ▾) — KHÔNG đè inline lên nó (từng làm nút "Tháng ▾" lệch, đã bỏ). Cần thêm màu/biến thể thì bổ sung class `.abtn-*` mới, đừng inline.
 
+#### BẢNG KÍCH CỠ CHUẨN — chỉ được dùng đúng 4 cỡ này (chốt 28/08/2026)
+Lấy nút của **T1 Hiệu Suất Nhân Viên** làm chuẩn. Đã quét toàn dashboard bằng `getComputedStyle`: 0 nút nằm ngoài bảng.
+
+| Cỡ | Class | Kích thước | Dùng cho |
+|---|---|---|---|
+| Tab cấp 1 | `.tab` | `12px 18px · .7rem` (cao 41px) | điều hướng trong tab lớn — xem "QUY ƯỚC TAB NHỎ" |
+| Nút thường | `.abtn` (và `.upload-btn`) | `8px 18px · .72rem` | mọi nút hành động, nút trong hộp thoại, nút header |
+| Nút chuyển chế độ | `.vt-btn` trong `.view-toggle` | `5px 14px · .67rem` | chuyển view CẤP 2 (Tổng Quan / Duyệt Đơn / Bất Thường…) |
+| Nút nhỏ trong bảng | `.abtn abtn-sm` | `4px 12px · .62rem` | nút trong ô bảng, cụm nút phụ chật chỗ |
+
+- Nút đóng **✕** của mọi hộp thoại: class **`.icon-x`** (16px, nền trong suốt) — đừng viết `style="background:none;border:none;font-size:16px"` nữa.
+- Biến thể màu đủ bộ: `abtn-pu` (mặc định) · `abtn-ok` · `abtn-danger` · `abtn-cy` · `abtn-go` (vàng) · `abtn-bl` (xanh dương) · `abtn-ghost`.
+- **Ngoại lệ CỐ Ý** (đừng "sửa cho đồng bộ"): `.tool-sw-btn` (thanh tab LỚN cấp 0, 15px 20px) · `.lang-opt` (cờ VI/EN) · `.pg-btn` (số trang) · `.otp-box` (ô nhập mã 6 số).
+- ⚠ **Bẫy cascade ở T2**: `.bc-tool *{padding:0}` có specificity (0,1,1) nên **ĐÈ CẢ `.abtn`** (0,1,0) ⇒ nút chuẩn đặt trong T2 mất sạch padding. Đã vá bằng `.bc-tool .abtn/.abtn-sm/.vt-btn/.icon-x{padding:…}` ngay dưới dòng reset. **Thêm biến thể/cỡ nút mới thì phải khai thêm dòng tương ứng cho `.bc-tool`.**
+- *Dọn 28/08/2026*: đã gỡ ~35 nút viết style thẳng trong thẻ (T1/T2 + `bc.js`/`render.js`) và xoá 5 class nút cũ trùng vai trò (`login-btn`, `shift-update-btn`, `btn-process`, `btn-reset`, `export-btn`) — đừng tạo lại class nút riêng, cứ dùng `.abtn`.
+
 ### ⚠ QUY ƯỚC TAB NHỎ — MỘT KÍCH CỠ DUY NHẤT (chốt 28/08/2026, bắt buộc)
 **Mọi hàng tab nhỏ (cấp 1) bên trong MỌI tab lớn đều phải dùng class `.tab`, kích cỡ lấy từ T1 làm chuẩn: `padding:12px 18px · font-size:.7rem · font-weight:700 · letter-spacing:.06em · text-transform:uppercase · gạch dưới 2px` → cao đúng **41px**.** Trước đây mỗi tab lớn tự chế một cỡ (T2 `11px 22px/12px` + viền phải; T3/T5 dùng `.vt-btn` dạng viên nhỏ `5px 14px/.67rem`; T4 đè `.75rem/11px 18px` + không in hoa) nên nhìn lệch hẳn nhau — user chê 28/08/2026, đã gom hết về một chuẩn.
 - **Thêm tab lớn mới**: bọc `<div class="tabs-wrap tabs-inline" id="…">` rồi render các mục bằng `<div class="tab">`. `.tabs-inline` = biến thể nằm trong trang (bỏ `position:sticky`, thêm bo góc + viền) — T1 dùng `.tabs-wrap` trần vì nó dính đầu màn hình.
