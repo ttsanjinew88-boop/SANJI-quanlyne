@@ -1092,33 +1092,42 @@ const EX = {
       el.innerHTML = '<div class="chart-card" style="color:var(--re);font-size:.72rem">Lỗi tải xếp hạng: ' + hesc(e.message || e) + '</div>';
     }
   },
+  /* Ảnh cúp "TOP 3 XUẤT SẮC" dùng CHUNG với bảng vinh danh của T1 (shift-rank.js):
+     một ảnh nền, tên 3 người đặt tuyệt đối theo % nên co giãn theo bề ngang.
+     Toạ độ 3 chỗ đặt tên lấy y hệt mkTrophyRow — đổi ảnh thì phải chỉnh cả 2 nơi.
+     Điểm/tỷ lệ KHÔNG in lên ảnh: top 3 nằm ngay 3 dòng đầu của bảng (có huy chương
+     + tô nền theo hạng) để so sánh cùng cột với những người còn lại. */
+  RANK_IMG: 'https://media.88new11.com/public/new88/site-tong/8d45f036-33ce-42e4-86c7-6b4174a6e109.png',
+  RANK_SLOT: [
+    { i: 1, l: '18%',   t: '68%', c: '#c4b5fd', fs: 'clamp(1rem,3.2vw,1.5rem)' },
+    { i: 0, l: '50.8%', t: '67%', c: '#fbbf24', fs: 'clamp(1.3rem,4.2vw,1.95rem)' },
+    { i: 2, l: '83%',   t: '68%', c: '#93c5fd', fs: 'clamp(1rem,3.2vw,1.5rem)' }
+  ],
   rankHtml(list) {
     if (!list.length) return '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Chưa có bài test nào được chấm điểm trong kỳ này.</div>';
-    const top = list.slice(0, 3), rest = list.slice(3);
     const ICON = ['🥇', '🥈', '🥉'];
-    const slot = r => {
-      const it = top[r];
-      if (!it) return '<div class="pod-slot"></div>';
-      const n = r + 1;
-      return '<div class="pod-slot">' +
-        '<div class="pod-icon pod' + n + '-icon">' + ICON[r] + '</div>' +
-        '<div class="pod-name-frame pod' + n + '-frame">' +
-          '<div class="pod-rank-badge pod' + n + '-badge">' + n + '</div>' +
-          '<div class="pod-nm pod' + n + '-nm" data-noi18n>' + hesc(it.name || '?') + '</div>' +
-          '<div class="pod-sc pod' + n + '-sc">' + this.fmtScore(it.total) + '/' + it.count + '</div>' +
-          '<div class="pod-ct">' + Math.round(it.avg * 100) + '%</div>' +
-        '</div>' +
-        '<div class="pod-base pod' + n + '-base"></div>' +
-      '</div>';
-    };
-    const restHtml = rest.length
-      ? '<div class="chart-card" style="margin-top:16px"><div class="ex-tblwrap"><table class="ex-tbl">' +
-        '<thead><tr><th>#</th><th>Tài khoản</th><th>Điểm</th><th>Tỷ lệ đúng</th><th>Ngày làm</th></tr></thead><tbody>' +
-        rest.map((it, i) => '<tr><td>' + (i + 4) + '</td><td class="ex-nm" data-noi18n>' + hesc(it.name || '?') + '</td><td>' +
-          this.fmtScore(it.total) + '/' + it.count + '</td><td>' + Math.round(it.avg * 100) + '%</td><td>' + this.fmtTime(it.time) + '</td></tr>').join('') +
-        '</tbody></table></div></div>'
-      : '';
-    return '<div class="podium-row">' + slot(1) + slot(0) + slot(2) + '</div>' + restHtml;
+    const ov = this.RANK_SLOT.map(s => {
+      const it = list[s.i];
+      if (!it) return '';
+      const stroke = '-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff,0 0 10px ' + s.c;
+      return '<div style="position:absolute;left:' + s.l + ';top:' + s.t + ';transform:translate(-50%,-50%);text-align:center">' +
+        '<div data-noi18n style="color:' + s.c + ';font-weight:900;font-size:' + s.fs + ';text-shadow:' + stroke +
+        ';letter-spacing:1px;white-space:nowrap">' + hesc(it.name || '?') + '</div></div>';
+    }).join('');
+    const podium = '<div style="position:relative;border-radius:12px;overflow:hidden">' +
+      '<img src="' + this.RANK_IMG + '" style="width:100%;display:block" loading="lazy" alt="">' + ov + '</div>';
+    const rows = list.map((it, i) =>
+      '<tr' + (i < 3 ? ' class="ex-top' + (i + 1) + '"' : '') + '>' +
+        '<td>' + (i < 3 ? ICON[i] : (i + 1)) + '</td>' +
+        '<td class="ex-nm" data-noi18n>' + hesc(it.name || '?') + '</td>' +
+        '<td>' + this.fmtScore(it.total) + '/' + it.count + '</td>' +
+        '<td>' + Math.round(it.avg * 100) + '%</td>' +
+        '<td>' + this.fmtTime(it.time) + '</td>' +
+      '</tr>').join('');
+    return podium +
+      '<div class="chart-card" style="margin-top:16px"><div class="ex-tblwrap"><table class="ex-tbl">' +
+      '<thead><tr><th>#</th><th>Tài khoản</th><th>Điểm</th><th>Tỷ lệ đúng</th><th>Ngày làm</th></tr></thead><tbody>' +
+      rows + '</tbody></table></div></div>';
   },
 
   /* ==================== MODAL CHUNG ==================== */
