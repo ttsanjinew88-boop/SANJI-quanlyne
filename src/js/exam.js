@@ -1034,7 +1034,7 @@ const EX = {
       '</div>';
     }).join('');
     pane.innerHTML = '<div class="chart-card">' +
-      '<div class="ex-railh">Bài của <span data-noi18n>' + hesc(s.username || '') + '</span> · <span data-noi18n>' + hesc(s.code) + '</span></div>' +
+      '<div class="ex-railh">Bài của <span class="ex-user" data-noi18n>' + hesc(s.username || '') + '</span> · <span data-noi18n>' + hesc(s.code) + '</span></div>' +
       '<div class="ex-meta">Mỗi câu tối đa 1 điểm — nhập được số lẻ. Tổng = cộng các câu / số câu.</div>' +
       '<div class="ex-meta" style="margin-bottom:10px">' + this.fmtTime(s.time) + ' · ' + this.fmtDur(s.duration_sec) + ' · ' + s.count + ' câu</div>' +
       body +
@@ -1111,7 +1111,7 @@ const EX = {
       const stroke = '-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff,0 0 10px ' + s.c;
       return '<div style="position:absolute;left:' + s.l + ';top:' + s.t + ';transform:translate(-50%,-50%);text-align:center">' +
         '<div data-noi18n style="color:' + s.c + ';font-weight:900;font-size:' + s.fs + ';text-shadow:' + stroke +
-        ';letter-spacing:1px;white-space:nowrap">' + hesc(it.name || '?') + '</div></div>';
+        ';letter-spacing:1px;white-space:nowrap;text-transform:uppercase">' + hesc(it.name || '?') + '</div></div>';
     }).join('');
     const podium = '<div style="position:relative;border-radius:12px;overflow:hidden">' +
       '<img src="' + this.RANK_IMG + '" style="width:100%;display:block" loading="lazy" alt="">' + ov + '</div>';

@@ -939,7 +939,10 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .ex-tbl th{background:var(--card2);color:var(--mu2);font-size:.58rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:9px 10px;text-align:center;border-bottom:1px solid var(--border2);white-space:nowrap}
 .ex-tbl td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--border);color:var(--tx)}
 .ex-tbl tr:hover td{background:rgba(124,58,237,.05)}
-.ex-tbl .ex-nm{font-weight:800;color:var(--pu2)}
+/* tên tài khoản trong T5 luôn IN HOA — in hoa bằng CSS, KHÔNG bằng .toUpperCase() trong JS
+   (chuỗi in hoa từ JS sẽ trượt từ điển i18n; xem quy ước chữ trên chip/nhãn ở CLAUDE.md) */
+.ex-tbl .ex-nm{font-weight:800;color:var(--pu2);text-transform:uppercase}
+.ex-srow-t b,.ex-railh .ex-user{text-transform:uppercase}
 /* cột hạng: ghi CHỮ "Hạng N" (user chốt 28/08/2026, KHÔNG dùng icon huy chương) */
 .ex-tbl .ex-rk{font-weight:700;letter-spacing:.03em;color:var(--mu2);white-space:nowrap}
 .ex-tbl tr.ex-top1 .ex-rk{color:#fbbf24}
