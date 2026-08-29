@@ -940,6 +940,11 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .ex-tbl td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--border);color:var(--tx)}
 .ex-tbl tr:hover td{background:rgba(124,58,237,.05)}
 .ex-tbl .ex-nm{font-weight:800;color:var(--pu2)}
+/* cột hạng: ghi CHỮ "Hạng N" (user chốt 28/08/2026, KHÔNG dùng icon huy chương) */
+.ex-tbl .ex-rk{font-weight:700;letter-spacing:.03em;color:var(--mu2);white-space:nowrap}
+.ex-tbl tr.ex-top1 .ex-rk{color:#fbbf24}
+.ex-tbl tr.ex-top2 .ex-rk{color:#c4b5fd}
+.ex-tbl tr.ex-top3 .ex-rk{color:#93c5fd}
 /* 3 dòng đầu bảng xếp hạng test: tô nền + vạch màu theo hạng (vàng/tím/xanh, khớp màu tên trên ảnh cúp) */
 .ex-tbl tr.ex-top1 td{background:rgba(245,158,11,.10)}
 .ex-tbl tr.ex-top2 td{background:rgba(167,139,250,.10)}

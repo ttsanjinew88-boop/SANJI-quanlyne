@@ -1171,6 +1171,7 @@ const I18N={
     [/^\/ (\d+) câu có sẵn$/,"/ $1 available"],
     [/^(\d+) câu trong ngân hàng$/,"$1 questions in the bank"],
     [/^Tất cả chủ đề \((\d+)\)$/,"All topics ($1)"],
+    [/^Hạng (\d+)$/,"Rank $1"],
     [/^Tải ảnh thất bại: (.+)$/,"Image upload failed: $1"],
     [/^Đã xóa bài (.+)$/,"Deleted test $1"],
     [/^Lỗi xóa bài: (.+)$/,"Could not delete the test: $1"],

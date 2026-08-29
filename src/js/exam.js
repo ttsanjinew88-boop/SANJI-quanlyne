@@ -1105,7 +1105,6 @@ const EX = {
   ],
   rankHtml(list) {
     if (!list.length) return '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Chưa có bài test nào được chấm điểm trong kỳ này.</div>';
-    const ICON = ['🥇', '🥈', '🥉'];
     const ov = this.RANK_SLOT.map(s => {
       const it = list[s.i];
       if (!it) return '';
@@ -1118,7 +1117,7 @@ const EX = {
       '<img src="' + this.RANK_IMG + '" style="width:100%;display:block" loading="lazy" alt="">' + ov + '</div>';
     const rows = list.map((it, i) =>
       '<tr' + (i < 3 ? ' class="ex-top' + (i + 1) + '"' : '') + '>' +
-        '<td>' + (i < 3 ? ICON[i] : (i + 1)) + '</td>' +
+        '<td class="ex-rk">Hạng ' + (i + 1) + '</td>' +
         '<td class="ex-nm" data-noi18n>' + hesc(it.name || '?') + '</td>' +
         '<td>' + this.fmtScore(it.total) + '/' + it.count + '</td>' +
         '<td>' + Math.round(it.avg * 100) + '%</td>' +

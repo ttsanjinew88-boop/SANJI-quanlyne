@@ -960,6 +960,11 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .ex-tbl td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--border);color:var(--tx)}
 .ex-tbl tr:hover td{background:rgba(124,58,237,.05)}
 .ex-tbl .ex-nm{font-weight:800;color:var(--pu2)}
+/* cột hạng: ghi CHỮ "Hạng N" (user chốt 28/08/2026, KHÔNG dùng icon huy chương) */
+.ex-tbl .ex-rk{font-weight:700;letter-spacing:.03em;color:var(--mu2);white-space:nowrap}
+.ex-tbl tr.ex-top1 .ex-rk{color:#fbbf24}
+.ex-tbl tr.ex-top2 .ex-rk{color:#c4b5fd}
+.ex-tbl tr.ex-top3 .ex-rk{color:#93c5fd}
 /* 3 dòng đầu bảng xếp hạng test: tô nền + vạch màu theo hạng (vàng/tím/xanh, khớp màu tên trên ảnh cúp) */
 .ex-tbl tr.ex-top1 td{background:rgba(245,158,11,.10)}
 .ex-tbl tr.ex-top2 td{background:rgba(167,139,250,.10)}
@@ -2916,6 +2921,7 @@ const I18N={
     [/^\/ (\d+) câu có sẵn$/,"/ $1 available"],
     [/^(\d+) câu trong ngân hàng$/,"$1 questions in the bank"],
     [/^Tất cả chủ đề \((\d+)\)$/,"All topics ($1)"],
+    [/^Hạng (\d+)$/,"Rank $1"],
     [/^Tải ảnh thất bại: (.+)$/,"Image upload failed: $1"],
     [/^Đã xóa bài (.+)$/,"Deleted test $1"],
     [/^Lỗi xóa bài: (.+)$/,"Could not delete the test: $1"],
@@ -11745,7 +11751,6 @@ const EX = {
   ],
   rankHtml(list) {
     if (!list.length) return '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Chưa có bài test nào được chấm điểm trong kỳ này.</div>';
-    const ICON = ['🥇', '🥈', '🥉'];
     const ov = this.RANK_SLOT.map(s => {
       const it = list[s.i];
       if (!it) return '';
@@ -11758,7 +11763,7 @@ const EX = {
       '<img src="' + this.RANK_IMG + '" style="width:100%;display:block" loading="lazy" alt="">' + ov + '</div>';
     const rows = list.map((it, i) =>
       '<tr' + (i < 3 ? ' class="ex-top' + (i + 1) + '"' : '') + '>' +
-        '<td>' + (i < 3 ? ICON[i] : (i + 1)) + '</td>' +
+        '<td class="ex-rk">Hạng ' + (i + 1) + '</td>' +
         '<td class="ex-nm" data-noi18n>' + hesc(it.name || '?') + '</td>' +
         '<td>' + this.fmtScore(it.total) + '/' + it.count + '</td>' +
         '<td>' + Math.round(it.avg * 100) + '%</td>' +
