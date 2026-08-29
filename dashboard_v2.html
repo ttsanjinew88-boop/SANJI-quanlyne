@@ -902,6 +902,8 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .ex-num{width:62px;background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:6px;padding:5px 8px;font-size:.66rem;text-align:center;font-family:inherit;outline:none}
 .ex-num.zero{border-color:var(--re);color:#fda4af;font-weight:800}
 .ex-gsel{max-width:150px}
+/* ô lọc chủ đề ở tiêu đề Ngân hàng câu hỏi — order:1 để nằm SAU đường kẻ ::after (sát mép phải) */
+.sec-hdr .ex-filter{order:1;width:auto;max-width:260px;padding:4px 10px;font-size:.64rem;border-radius:6px;text-transform:none;letter-spacing:0;font-weight:600}
 .ex-grow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
 .ex-grow .ex-inp{flex:1;min-width:150px}
 /* chủ đề ở rail */
@@ -2852,6 +2854,7 @@ const I18N={
   "✓ Đáp án mẫu (chỉ Tổ Trưởng thấy)":"✓ Model answer (Team Leader only)","Nhập đáp án đúng…":"Type the correct answer…",
   "＋ Lưu câu hỏi":"＋ Save question","Hủy sửa":"Cancel edit","Ngân hàng câu hỏi":"Question bank",
   "Ngân hàng:":"Bank:","câu":"questions",
+  "Lọc theo chủ đề":"Filter by topic",
   /* bản dịch nội dung đề (song ngữ T5) */
   "Bản dịch tiếng Anh":"English translation",
   "Xuất ra file JSON gồm tên chủ đề, câu hỏi và đáp án mẫu; dịch phần “en” rồi nhập ngược lại. Câu chưa dịch vẫn hiện tiếng Việt khi bật EN. Ảnh riêng cho bản EN thì tải trực tiếp ở từng câu bên dưới.":"Exports a JSON file with topic names, questions and model answers; translate the “en” part and import it back. Untranslated questions still show in Vietnamese when EN is on. EN-only images are uploaded per question below.",
@@ -2905,6 +2908,7 @@ const I18N={
     [/^Đọc được (\d+) câu hỏi$/,"$1 questions parsed"],
     [/^\/ (\d+) câu có sẵn$/,"/ $1 available"],
     [/^(\d+) câu trong ngân hàng$/,"$1 questions in the bank"],
+    [/^Tất cả chủ đề \((\d+)\)$/,"All topics ($1)"],
     [/^Tải ảnh thất bại: (.+)$/,"Image upload failed: $1"],
     [/^Đã xóa bài (.+)$/,"Deleted test $1"],
     [/^Lỗi xóa bài: (.+)$/,"Could not delete the test: $1"],
@@ -11114,7 +11118,15 @@ const EX = {
             '<input type="file" id="exTransFile" accept=".json,application/json" style="display:none" onchange="EX.onTransFile(this)">' +
             '<input type="file" id="exEnImgFile" accept="image/*" style="display:none" onchange="EX.onEnImgFile(this.files)">' +
           '</div>') +
-          '<div class="sec-hdr pu">Ngân hàng câu hỏi <span class="cnt-badge">' + items.length + '</span></div>' +
+          // Lọc theo chủ đề ngay tại tiêu đề: dùng CÙNG biến selTopic với cột trái nên
+          // bấm chủ đề bên trái hay chọn ở đây đều cho cùng kết quả.
+          '<div class="sec-hdr pu">Ngân hàng câu hỏi <span class="cnt-badge">' + items.length + '</span>' +
+            '<select class="ex-inp ex-filter" onchange="EX.pickTopic(this.value||null)" title="Lọc theo chủ đề">' +
+              '<option value=""' + (this.selTopic ? '' : ' selected') + '>Tất cả chủ đề (' + bank.length + ')</option>' +
+              topics.map(t => '<option value="' + hesc(t.id) + '"' + (this.selTopic === t.id ? ' selected' : '') + ' data-noi18n>' +
+                hesc(this.tx(t, 'name')) + ' (' + bank.filter(x => x.topic_id === t.id).length + ')</option>').join('') +
+            '</select>' +
+          '</div>' +
           (items.length ? items.map(q => this.bankItemHtml(q)).join('') : '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Chưa có câu hỏi nào trong chủ đề này.</div>') +
         '</div>' +
       '</div>';

@@ -1116,6 +1116,7 @@ const I18N={
   "✓ Đáp án mẫu (chỉ Tổ Trưởng thấy)":"✓ Model answer (Team Leader only)","Nhập đáp án đúng…":"Type the correct answer…",
   "＋ Lưu câu hỏi":"＋ Save question","Hủy sửa":"Cancel edit","Ngân hàng câu hỏi":"Question bank",
   "Ngân hàng:":"Bank:","câu":"questions",
+  "Lọc theo chủ đề":"Filter by topic",
   /* bản dịch nội dung đề (song ngữ T5) */
   "Bản dịch tiếng Anh":"English translation",
   "Xuất ra file JSON gồm tên chủ đề, câu hỏi và đáp án mẫu; dịch phần “en” rồi nhập ngược lại. Câu chưa dịch vẫn hiện tiếng Việt khi bật EN. Ảnh riêng cho bản EN thì tải trực tiếp ở từng câu bên dưới.":"Exports a JSON file with topic names, questions and model answers; translate the “en” part and import it back. Untranslated questions still show in Vietnamese when EN is on. EN-only images are uploaded per question below.",
@@ -1169,6 +1170,7 @@ const I18N={
     [/^Đọc được (\d+) câu hỏi$/,"$1 questions parsed"],
     [/^\/ (\d+) câu có sẵn$/,"/ $1 available"],
     [/^(\d+) câu trong ngân hàng$/,"$1 questions in the bank"],
+    [/^Tất cả chủ đề \((\d+)\)$/,"All topics ($1)"],
     [/^Tải ảnh thất bại: (.+)$/,"Image upload failed: $1"],
     [/^Đã xóa bài (.+)$/,"Deleted test $1"],
     [/^Lỗi xóa bài: (.+)$/,"Could not delete the test: $1"],

@@ -485,7 +485,15 @@ const EX = {
             '<input type="file" id="exTransFile" accept=".json,application/json" style="display:none" onchange="EX.onTransFile(this)">' +
             '<input type="file" id="exEnImgFile" accept="image/*" style="display:none" onchange="EX.onEnImgFile(this.files)">' +
           '</div>') +
-          '<div class="sec-hdr pu">Ngân hàng câu hỏi <span class="cnt-badge">' + items.length + '</span></div>' +
+          // Lọc theo chủ đề ngay tại tiêu đề: dùng CÙNG biến selTopic với cột trái nên
+          // bấm chủ đề bên trái hay chọn ở đây đều cho cùng kết quả.
+          '<div class="sec-hdr pu">Ngân hàng câu hỏi <span class="cnt-badge">' + items.length + '</span>' +
+            '<select class="ex-inp ex-filter" onchange="EX.pickTopic(this.value||null)" title="Lọc theo chủ đề">' +
+              '<option value=""' + (this.selTopic ? '' : ' selected') + '>Tất cả chủ đề (' + bank.length + ')</option>' +
+              topics.map(t => '<option value="' + hesc(t.id) + '"' + (this.selTopic === t.id ? ' selected' : '') + ' data-noi18n>' +
+                hesc(this.tx(t, 'name')) + ' (' + bank.filter(x => x.topic_id === t.id).length + ')</option>').join('') +
+            '</select>' +
+          '</div>' +
           (items.length ? items.map(q => this.bankItemHtml(q)).join('') : '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Chưa có câu hỏi nào trong chủ đề này.</div>') +
         '</div>' +
       '</div>';

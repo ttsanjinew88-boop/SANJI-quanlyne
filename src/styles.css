@@ -882,6 +882,8 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .ex-num{width:62px;background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:6px;padding:5px 8px;font-size:.66rem;text-align:center;font-family:inherit;outline:none}
 .ex-num.zero{border-color:var(--re);color:#fda4af;font-weight:800}
 .ex-gsel{max-width:150px}
+/* ô lọc chủ đề ở tiêu đề Ngân hàng câu hỏi — order:1 để nằm SAU đường kẻ ::after (sát mép phải) */
+.sec-hdr .ex-filter{order:1;width:auto;max-width:260px;padding:4px 10px;font-size:.64rem;border-radius:6px;text-transform:none;letter-spacing:0;font-weight:600}
 .ex-grow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
 .ex-grow .ex-inp{flex:1;min-width:150px}
 /* chủ đề ở rail */
