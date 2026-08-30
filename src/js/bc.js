@@ -23,11 +23,12 @@ function switchRp(v){
   // không có quyền xem Báo Cáo Đại Lý -> chỉ còn Lọc File NTK
   if(v==='bc'&&typeof canView==='function'&&CUR_PROFILE&&!canView('bc'))v='ntk';
   RP_VIEW=v;
-  [['bc','t2','rpTabBc'],['ntk','t3','rpTabNtk']].forEach(([k,pid,tid])=>{
-    const pane=document.getElementById(pid),tab=document.getElementById(tid);
+  [['bc','t2'],['ntk','t3']].forEach(([k,pid])=>{
+    const pane=document.getElementById(pid);
     if(pane){pane.style.display=(k===v)?'':'none';pane.classList.toggle('active',k===v);}
-    if(tab)tab.classList.toggle('active',k===v);
   });
+  // hàng tab nhỏ có 2 BẢN (1 trong T2, 1 trong T3) để luôn nằm dưới banner -> đồng bộ cả hai
+  document.querySelectorAll('.rp-tab').forEach(t=>t.classList.toggle('active',t.dataset.v===v));
 }
 
 // ===== BC NAMESPACE =====

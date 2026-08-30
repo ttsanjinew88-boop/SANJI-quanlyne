@@ -783,12 +783,6 @@
 
 <!-- ===== T23: BÁO CÁO VÀ XỬ LÝ (gộp 2 tab nhỏ: Báo Cáo Đại Lý + Lọc File NTK) ===== -->
 <div id="t23" style="display:none">
-<div style="padding:14px 24px 0">
-  <div class="tabs-wrap tabs-inline" id="rpViews">
-    <div class="tab active" id="rpTabBc" onclick="switchRp('bc')">BÁO CÁO ĐẠI LÝ - GỬI FILE</div>
-    <div class="tab" id="rpTabNtk" onclick="switchRp('ntk')">LỌC FILE NTK</div>
-  </div>
-</div>
 
 <!-- ===== T2: BÁO CÁO ĐẠI LÝ ===== -->
 <div id="t2" style="display:none" class="bc-tool">
@@ -808,6 +802,14 @@
   </div>
   <div class="topbar-sub">Điều kiện: Nạp ≥ 1,000 · Cược ≥ 3,000 · Đại lý ≥ 3 KH hợp lệ</div>
   <div class="lang-sw" id="btnLang2" data-noi18n></div>
+</div>
+
+<!-- hàng tab nhỏ của T23 (bản trong T2) — mỗi tab nhỏ có 1 bản riêng, đặt NGAY DƯỚI banner -->
+<div class="rp-tabs-wrap">
+  <div class="tabs-wrap tabs-inline rp-tabs">
+    <div class="tab active rp-tab" data-v="bc" onclick="switchRp('bc')">BÁO CÁO ĐẠI LÝ - GỬI FILE</div>
+    <div class="tab rp-tab" data-v="ntk" onclick="switchRp('ntk')">LỌC FILE NTK</div>
+  </div>
 </div>
 
 <div class="upload-section">
@@ -997,6 +999,11 @@
     </div>
     <div class="tool-hdr-note">Gom nhóm theo Tên thật + IP · dùng 1 lần, F5 là mất</div>
     <div class="lang-sw" id="btnLang3" data-noi18n></div>
+  </div>
+  <!-- hàng tab nhỏ của T23 (bản trong T3) -->
+  <div class="tabs-wrap tabs-inline rp-tabs">
+    <div class="tab rp-tab" data-v="bc" onclick="switchRp('bc')">BÁO CÁO ĐẠI LÝ - GỬI FILE</div>
+    <div class="tab active rp-tab" data-v="ntk" onclick="switchRp('ntk')">LỌC FILE NTK</div>
   </div>
   <div class="sec-hdr pu">Lọc File NTK — Nhiều Tài Khoản
     <span style="font-size:.56rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— gom nhóm theo Tên thật + IP; nhóm từ 2 tài khoản khác nhau trở lên là nghi ngờ. Dùng 1 lần, F5 là mất, không lưu cloud.</span>

@@ -307,8 +307,7 @@ function applyPerms(){
   });
   // T23 "Báo Cáo và Xử Lý" gộp 2 tab nhỏ: Báo Cáo Đại Lý (cần quyền 'bc')
   // + Lọc File NTK (mọi vai trò) -> tab LỚN luôn hiện, chỉ ẩn tab nhỏ BC.
-  const rtb=document.getElementById('rpTabBc');
-  if(rtb)rtb.style.display=canView('bc')?'':'none';
+  document.querySelectorAll('.rp-tab[data-v="bc"]').forEach(t=>t.style.display=canView('bc')?'':'none');
   // Quản Trị: admin thấy đầy đủ; Tổ Trưởng thấy để đổi mật khẩu nhân viên
   const ta=document.getElementById('tabAdmin');
   if(ta)ta.style.display=(p.is_admin||roleOf(p).key==='totruong')?'':'none';

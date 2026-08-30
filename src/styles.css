@@ -329,6 +329,12 @@ select.wk-code{cursor:pointer;outline:none}
 .bc-tool .abtn-sm{padding:4px 12px}
 .bc-tool .vt-btn{padding:5px 14px}
 .bc-tool .icon-x{padding:2px 7px}
+/* Hàng tab nhỏ của T23 đặt TRONG T2 -> reset ở trên nuốt cả padding/margin, trả lại đây */
+.bc-tool .tab{padding:12px 18px}
+.bc-tool .tabs-wrap{padding:0 8px}
+.bc-tool .tabs-inline{margin-bottom:0}
+/* Bọc hàng tab bản-trong-T2: T2 không có padding trang như .pg nên tự chừa lề */
+.rp-tabs-wrap{padding:14px 24px 0}
 .bc-tool .topbar{background:linear-gradient(135deg,#1a1040 0%,#0f0d2a 50%,#0a1535 100%);border-bottom:1px solid var(--border2);padding:12px 24px;display:flex;align-items:center;gap:12px}
 .bc-tool .topbar-title{font-size:15px;font-weight:bold;letter-spacing:.5px;color:var(--tx)}
 .bc-tool .topbar-sub{font-size:11px;color:var(--mu2);margin-left:auto}
