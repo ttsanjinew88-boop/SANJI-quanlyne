@@ -779,8 +779,9 @@ const NTK={
   ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.style.borderColor='var(--border2)';}));
   drop.addEventListener('drop',e=>{const f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f)NTK.loadFile(f);});
   document.addEventListener('paste',e=>{
-    const t3=document.getElementById('t3');
-    if(!t3||t3.style.display==='none')return;          // chỉ nhận dán khi đang ở tab Lọc File NTK
+    const t3=document.getElementById('t3'),t23=document.getElementById('t23');
+    // chỉ nhận dán khi đang ở tab nhỏ Lọc File NTK VÀ tab lớn T23 đang mở
+    if(!t3||t3.style.display==='none'||!t23||t23.style.display==='none')return;
     if(e.target&&e.target.id==='ntkSearch')return;
     const items=e.clipboardData&&e.clipboardData.items;
     if(items)for(const it of items)if(it.kind==='file'){const f=it.getAsFile();if(f){e.preventDefault();NTK.loadFile(f);return;}}

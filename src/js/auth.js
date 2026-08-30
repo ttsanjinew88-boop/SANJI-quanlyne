@@ -305,8 +305,10 @@ function applyPerms(){
     const el=document.getElementById(t.el);
     if(el)el.style.display=canView(t.k)?'':'none';
   });
-  const tsb2=document.getElementById('tsb2');
-  if(tsb2)tsb2.style.display=canView('bc')?'':'none';
+  // T23 "Báo Cáo và Xử Lý" gộp 2 tab nhỏ: Báo Cáo Đại Lý (cần quyền 'bc')
+  // + Lọc File NTK (mọi vai trò) -> tab LỚN luôn hiện, chỉ ẩn tab nhỏ BC.
+  const rtb=document.getElementById('rpTabBc');
+  if(rtb)rtb.style.display=canView('bc')?'':'none';
   // Quản Trị: admin thấy đầy đủ; Tổ Trưởng thấy để đổi mật khẩu nhân viên
   const ta=document.getElementById('tabAdmin');
   if(ta)ta.style.display=(p.is_admin||roleOf(p).key==='totruong')?'':'none';
@@ -352,8 +354,8 @@ function applyPerms(){
   // (EX.renderViews lọc theo quyền, Edge Function + Apps Script kiểm lại lần nữa).
   const tsb5=document.getElementById('tsb5');
   if(tsb5)tsb5.style.display='';
-  // nếu đang đứng ở BC tool mà mất quyền -> về tool 1
+  // nếu đang đứng ở tab nhỏ Báo Cáo Đại Lý mà mất quyền -> nhảy sang Lọc File NTK
   if(!canView('bc')&&document.getElementById('t2').style.display!=='none'){
-    switchTool('t1');
+    switchRp('ntk');
   }
 }

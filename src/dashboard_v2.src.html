@@ -108,8 +108,7 @@
 
 <div class="tool-sw">
   <button class="tool-sw-btn on" id="tsb1" onclick="switchTool('t1')">HIỆU SUẤT NHÂN VIÊN</button>
-  <button class="tool-sw-btn" id="tsb2" onclick="switchTool('t2')">BÁO CÁO ĐẠI LÝ - GỬI FILE</button>
-  <button class="tool-sw-btn" id="tsb3" onclick="switchTool('t3')">LỌC FILE NTK</button>
+  <button class="tool-sw-btn" id="tsb2" onclick="switchTool('t23')">BÁO CÁO VÀ XỬ LÝ</button>
   <button class="tool-sw-btn" id="tsb4" style="display:none" onclick="switchTool('t4')">QUY TRÌNH LÀM VIỆC</button>
   <button class="tool-sw-btn" id="tsb5" style="display:none" onclick="switchTool('t5')">KIỂM TRA NGHIỆP VỤ</button>
 </div>
@@ -782,6 +781,15 @@
 </script>
 </div><!-- /t1 -->
 
+<!-- ===== T23: BÁO CÁO VÀ XỬ LÝ (gộp 2 tab nhỏ: Báo Cáo Đại Lý + Lọc File NTK) ===== -->
+<div id="t23" style="display:none">
+<div style="padding:14px 24px 0">
+  <div class="tabs-wrap tabs-inline" id="rpViews">
+    <div class="tab active" id="rpTabBc" onclick="switchRp('bc')">BÁO CÁO ĐẠI LÝ - GỬI FILE</div>
+    <div class="tab" id="rpTabNtk" onclick="switchRp('ntk')">LỌC FILE NTK</div>
+  </div>
+</div>
+
 <!-- ===== T2: BÁO CÁO ĐẠI LÝ ===== -->
 <div id="t2" style="display:none" class="bc-tool">
 
@@ -1068,6 +1076,7 @@
     </div>
   </div>
 </div><!-- /t3 -->
+</div><!-- /t23 -->
 
 <!-- ============ T4 — QUY TRÌNH LÀM VIỆC (lưu cloud; MỌI người xem, chỉ ADMIN sửa) ============ -->
 <div id="t4" style="display:none" class="pg active">

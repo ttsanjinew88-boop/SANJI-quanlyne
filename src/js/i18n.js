@@ -19,6 +19,7 @@ const I18N={
   "Hiệu Suất Nhân Viên":"Staff Performance",
   "Dashboard Hiệu Suất Nhân Viên":"Staff Performance Dashboard",
   "BÁO CÁO ĐẠI LÝ - GỬI FILE":"AFFILIATE REPORT - SEND FILE",
+  "BÁO CÁO VÀ XỬ LÝ":"REPORTS & PROCESSING",
   "Đổi MK":"Change PW",
   "Đăng xuất":"Log out",
   "Tháng ▾":"Month ▾",

@@ -1091,8 +1091,7 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 
 <div class="tool-sw">
   <button class="tool-sw-btn on" id="tsb1" onclick="switchTool('t1')">HIỆU SUẤT NHÂN VIÊN</button>
-  <button class="tool-sw-btn" id="tsb2" onclick="switchTool('t2')">BÁO CÁO ĐẠI LÝ - GỬI FILE</button>
-  <button class="tool-sw-btn" id="tsb3" onclick="switchTool('t3')">LỌC FILE NTK</button>
+  <button class="tool-sw-btn" id="tsb2" onclick="switchTool('t23')">BÁO CÁO VÀ XỬ LÝ</button>
   <button class="tool-sw-btn" id="tsb4" style="display:none" onclick="switchTool('t4')">QUY TRÌNH LÀM VIỆC</button>
   <button class="tool-sw-btn" id="tsb5" style="display:none" onclick="switchTool('t5')">KIỂM TRA NGHIỆP VỤ</button>
 </div>
@@ -1773,6 +1772,7 @@ const I18N={
   "Hiệu Suất Nhân Viên":"Staff Performance",
   "Dashboard Hiệu Suất Nhân Viên":"Staff Performance Dashboard",
   "BÁO CÁO ĐẠI LÝ - GỬI FILE":"AFFILIATE REPORT - SEND FILE",
+  "BÁO CÁO VÀ XỬ LÝ":"REPORTS & PROCESSING",
   "Đổi MK":"Change PW",
   "Đăng xuất":"Log out",
   "Tháng ▾":"Month ▾",
@@ -3735,8 +3735,10 @@ function applyPerms(){
     const el=document.getElementById(t.el);
     if(el)el.style.display=canView(t.k)?'':'none';
   });
-  const tsb2=document.getElementById('tsb2');
-  if(tsb2)tsb2.style.display=canView('bc')?'':'none';
+  // T23 "Báo Cáo và Xử Lý" gộp 2 tab nhỏ: Báo Cáo Đại Lý (cần quyền 'bc')
+  // + Lọc File NTK (mọi vai trò) -> tab LỚN luôn hiện, chỉ ẩn tab nhỏ BC.
+  const rtb=document.getElementById('rpTabBc');
+  if(rtb)rtb.style.display=canView('bc')?'':'none';
   // Quản Trị: admin thấy đầy đủ; Tổ Trưởng thấy để đổi mật khẩu nhân viên
   const ta=document.getElementById('tabAdmin');
   if(ta)ta.style.display=(p.is_admin||roleOf(p).key==='totruong')?'':'none';
@@ -3782,9 +3784,9 @@ function applyPerms(){
   // (EX.renderViews lọc theo quyền, Edge Function + Apps Script kiểm lại lần nữa).
   const tsb5=document.getElementById('tsb5');
   if(tsb5)tsb5.style.display='';
-  // nếu đang đứng ở BC tool mà mất quyền -> về tool 1
+  // nếu đang đứng ở tab nhỏ Báo Cáo Đại Lý mà mất quyền -> nhảy sang Lọc File NTK
   if(!canView('bc')&&document.getElementById('t2').style.display!=='none'){
-    switchTool('t1');
+    switchRp('ntk');
   }
 }
 // ===== ADMIN PANEL =====
@@ -7189,6 +7191,15 @@ rAll();
 </script>
 </div><!-- /t1 -->
 
+<!-- ===== T23: BÁO CÁO VÀ XỬ LÝ (gộp 2 tab nhỏ: Báo Cáo Đại Lý + Lọc File NTK) ===== -->
+<div id="t23" style="display:none">
+<div style="padding:14px 24px 0">
+  <div class="tabs-wrap tabs-inline" id="rpViews">
+    <div class="tab active" id="rpTabBc" onclick="switchRp('bc')">BÁO CÁO ĐẠI LÝ - GỬI FILE</div>
+    <div class="tab" id="rpTabNtk" onclick="switchRp('ntk')">LỌC FILE NTK</div>
+  </div>
+</div>
+
 <!-- ===== T2: BÁO CÁO ĐẠI LÝ ===== -->
 <div id="t2" style="display:none" class="bc-tool">
 
@@ -7475,6 +7486,7 @@ rAll();
     </div>
   </div>
 </div><!-- /t3 -->
+</div><!-- /t23 -->
 
 <!-- ============ T4 — QUY TRÌNH LÀM VIỆC (lưu cloud; MỌI người xem, chỉ ADMIN sửa) ============ -->
 <div id="t4" style="display:none" class="pg active">
@@ -7557,19 +7569,34 @@ rAll();
 
 <script>
 // ===== TOOL SWITCHER =====
-// Tổng quát hóa theo danh sách tab lớn -> thêm tab thứ 4 chỉ cần nối thêm vào TOOLS
-const TOOLS=['t1','t2','t3','t4','t5'];
+// Tổng quát hóa theo danh sách tab lớn -> thêm tab lớn mới chỉ cần nối thêm 1 cặp [pane,nút]
+// ⚠ id nút KHÔNG suy ra từ chỉ số nữa (t23 gộp 2 tab cũ nên tsb3 đã bị gỡ).
+const TOOLS=[['t1','tsb1'],['t23','tsb2'],['t4','tsb4'],['t5','tsb5']];
 function switchTool(id){
   // T4 nạp dữ liệu cloud lần đầu mở (khỏi tốn request khi không ai vào tab này)
   if(id==='t4'&&typeof SOP!=='undefined')SOP.boot();
   // T5 nạp bài test từ Google Sheet lần đầu mở (mỗi lần gọi là 1 request Apps Script)
   if(id==='t5'&&typeof EX!=='undefined')EX.boot();
-  TOOLS.forEach((t,i)=>{
-    const pane=document.getElementById(t),btn=document.getElementById('tsb'+(i+1));
-    // #t3 mang class .pg (CSS .pg{display:none}) nên sw() của T1 gỡ mất .active
-    // -> display:'' rơi về none = trang đen. Ép lại .active khi mở tab lớn.
+  TOOLS.forEach(([t,bid])=>{
+    const pane=document.getElementById(t),btn=document.getElementById(bid);
     if(pane){pane.style.display=(t===id)?'':'none';pane.classList.toggle('active',t===id);}
     if(btn)btn.classList.toggle('on',t===id);
+  });
+  // #t2/#t3 nằm TRONG #t23 -> phải áp lại tab nhỏ đang chọn (t3 mang class .pg,
+  // CSS .pg{display:none} nên sw() của T1 gỡ mất .active là trang đen).
+  if(id==='t23')switchRp(RP_VIEW);
+}
+
+// ===== TAB NHỎ của T23 (Báo Cáo Đại Lý / Lọc File NTK) =====
+let RP_VIEW='bc';
+function switchRp(v){
+  // không có quyền xem Báo Cáo Đại Lý -> chỉ còn Lọc File NTK
+  if(v==='bc'&&typeof canView==='function'&&CUR_PROFILE&&!canView('bc'))v='ntk';
+  RP_VIEW=v;
+  [['bc','t2','rpTabBc'],['ntk','t3','rpTabNtk']].forEach(([k,pid,tid])=>{
+    const pane=document.getElementById(pid),tab=document.getElementById(tid);
+    if(pane){pane.style.display=(k===v)?'':'none';pane.classList.toggle('active',k===v);}
+    if(tab)tab.classList.toggle('active',k===v);
   });
 }
 
@@ -9420,8 +9447,9 @@ const NTK={
   ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.style.borderColor='var(--border2)';}));
   drop.addEventListener('drop',e=>{const f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f)NTK.loadFile(f);});
   document.addEventListener('paste',e=>{
-    const t3=document.getElementById('t3');
-    if(!t3||t3.style.display==='none')return;          // chỉ nhận dán khi đang ở tab Lọc File NTK
+    const t3=document.getElementById('t3'),t23=document.getElementById('t23');
+    // chỉ nhận dán khi đang ở tab nhỏ Lọc File NTK VÀ tab lớn T23 đang mở
+    if(!t3||t3.style.display==='none'||!t23||t23.style.display==='none')return;
     if(e.target&&e.target.id==='ntkSearch')return;
     const items=e.clipboardData&&e.clipboardData.items;
     if(items)for(const it of items)if(it.kind==='file'){const f=it.getAsFile();if(f){e.preventDefault();NTK.loadFile(f);return;}}

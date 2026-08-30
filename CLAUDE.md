@@ -23,7 +23,7 @@
   - `src/dashboard_v2.src.html` (~856 dòng) — khung: gần như toàn bộ HTML (body/modal/login/tabs) + các dòng marker `//#include`. **JS đã tách hết ra `src/js/`.**
   - `src/styles.css` — toàn bộ CSS (khối `<style>`).
   - **JS khối T1** (thứ tự trong file gộp): `src/js/i18n.js` (song ngữ VI/EN — xem mục "Song ngữ") → `src/js/core.js` (util, cấu hình cột Nghi Ngờ, module `SB` Supabase, profile/quyền) → `auth.js` (AUTH đăng nhập + phân quyền + white-IP lúc login) → `admin.js` (rAdminPanel, 2FA, white-IP quản lý, Lịch Sử, xóa/xuất tháng) → `data-boot.js` (tháng/dataset/bootData, KO_OV/KO_AN localStorage, URL handler Telegram, progress UI, hàm chấm điểm) → `upload.js` (upload dropdown, parse Excel, helper Đơn Rút, cộng dồn add-mode) → `nav-donrut.js` (navigation sw/switchTool/rAll + module `DR` Báo Cáo Đơn Rút) → `render.js` (thống kê KM, render tab Dữ Liệu, Hiệu Suất Duyệt Đơn, Tổng Quan, Bất Thường, Hạn Mức) → `shift-rank.js` (Phân Ca, Công Việc, Xếp Hạng, màu FK).
-  - **JS khối T2**: `src/js/bc.js` (module `BC`: parse, render, Tổng Hợp/Nghi Ngờ, gửi Telegram/Sheet) + `switchTool` (nay chạy theo mảng `TOOLS=['t1','t2','t3']` — thêm tab lớn chỉ cần nối thêm phần tử + nút `#tsb<N>`).
+  - **JS khối T2**: `src/js/bc.js` (module `BC`: parse, render, Tổng Hợp/Nghi Ngờ, gửi Telegram/Sheet) + `switchTool` + `switchRp` (xem "GỘP T2+T3").
   - **JS khối T3**: `src/js/ntk.js` (module `NTK`: Lọc File NTK — xem mục riêng bên dưới).
   - **JS khối T5**: `src/js/exam.js` (module `EX`: Kiểm Tra Nghiệp Vụ — xem mục riêng bên dưới).
   - ⚠ Số dòng trong bảng "Bố cục" & "Bản đồ chức năng" bên dưới là theo FILE GỘP; khi sửa thì mở đúng file `src/js/*` tương ứng (grep tên hàm để định vị trong file con).
@@ -43,6 +43,13 @@
 ### Biến theme CSS (`:root`, dòng 15)
 `--bg --card --card2 --border --border2 --pu(#7c3aed) --pu2(#9f67ff) --bl(#3b82f6) --bl2 --cy(#06b6d4) --gr --go(#f59e0b) --re --pk --tx --mu --mu2 --vip-c(#06b6d4) --onl-c(#a78bfa)`
 → Khi thêm UI, dùng các biến này (KHÔNG hardcode màu vàng/teal của PROMAX).
+
+### GỘP T2+T3 → tab lớn "BÁO CÁO VÀ XỬ LÝ" (chốt 30/08/2026)
+- Thanh tab LỚN nay còn **4 nút**: `#tsb1` (t1) · `#tsb2` → **`switchTool('t23')`** nhãn "BÁO CÁO VÀ XỬ LÝ" · `#tsb4` (t4) · `#tsb5` (t5). **`#tsb3` ĐÃ BỊ GỠ** — id nút không còn suy ra từ chỉ số, `TOOLS` trong `bc.js` giờ là mảng CẶP `[['t1','tsb1'],['t23','tsb2'],['t4','tsb4'],['t5','tsb5']]`. Thêm tab lớn mới = nối thêm 1 cặp.
+- `#t23` là div bọc, chứa hàng **tab nhỏ** `.tabs-wrap.tabs-inline` `#rpViews` (2 mục `#rpTabBc` / `#rpTabNtk`, class `.tab` chuẩn) rồi tới `#t2` (`.bc-tool`) và `#t3` (`.pg`) **nguyên vẹn, không đụng nội dung**. Mỗi tab lớn/nhỏ vẫn giữ banner riêng của nó (`.topbar` của T2, `.tool-hdr` của T3) nên nút VI/EN `#btnLang2`/`#btnLang3` không đổi.
+- `switchRp(v)` (`bc.js`, cạnh `switchTool`) đổi tab nhỏ, nhớ ở biến `RP_VIEW`; `switchTool('t23')` gọi lại `switchRp(RP_VIEW)` để **áp lại `.active` cho `#t3`** (`.pg{display:none}` — không áp lại là trang đen).
+- **Quyền**: tab LỚN luôn hiện (NTK mọi vai trò dùng được); `applyPerms` chỉ ẩn **tab nhỏ** `#rpTabBc` khi `!canView('bc')`, và `switchRp('bc')` tự rơi về `'ntk'` nếu thiếu quyền (thay cho `switchTool('t1')` cũ).
+- ⚠ Handler dán của NTK phải kiểm **cả `#t23` lẫn `#t3`** (t3 ẩn/hiện theo tab nhỏ, nhưng khi ở tab lớn khác thì `#t3.style.display` vẫn là `''`).
 
 ### Banner đầu trang của 4 tab lớn (chốt 21/08/2026)
 Cả 4 tab lớn đều mở đầu bằng một dải banner cùng kiểu (gradient tím-xanh `#1a1040→#0f0d2a→#0a1535`, logo NE 38px, tên tab 1.1rem, dòng "SANJI", ghi chú đẩy sang phải, nút VI/EN cuối cùng):
@@ -210,7 +217,7 @@ Lịch sử tháng: `toggleHistMenu` 1995, `loadHistMonth` 2025.
 - `google_sheet_baocao.gs` BẢN 2 (trong repo; user tự dán vào Apps Script của Sheet đích gid `1340440362`, hướng dẫn ở đầu file): `doPost` khớp field theo TIÊU ĐỀ HÀNG 1 (`HEADER_FIELD`, không còn cột Cổng/Khu vực), mỗi đại lý 1 khối cách 1 dòng trống (cách cả hàng tiêu đề) + merge cột Đại lý + viền ngoài khối MEDIUM, Tahoma 9 đậm, nền: tiêu đề `#F8CBAD`, ô Đại lý `#F4B084`, ô tô `#FFE599`, Âm/Dương tô `#FFC7CE`, **Cấp bậc ĐỔI ĐẦU (`isDoiDau_`: "đổi/đối đầu"/DD-) TỰ ĐỘNG `#FFC7CE`**, thường `#FFF2CC`, ô trống điền "-"; dashboard gửi Thiết bị dạng "Máy Tính"/"Điện Thoại"; `monthlyRotate` trigger 06:00 ngày 1 hằng tháng — nhân bản sheet thành "Báo cáo đại lý ngoài tháng M - YYYY" (M = tháng vừa kết thúc) rồi breakApart + xóa dữ liệu chừa dòng 1; `setupTrigger` chạy tay 1 lần. **Sửa .gs xong user phải Deploy → Manage deployments → ✎ → New version** (URL không đổi).
 
 ### T3 — LỌC FILE NTK (nhiều tài khoản, chốt 14/08/2026)
-- Tab lớn thứ 3 (`#t3`, nút `#tsb3`), **SESSION-ONLY**: toàn bộ trong RAM, F5 là mất, KHÔNG lưu cloud, KHÔNG cần SQL/Edge Function. **Mọi vai trò đều dùng được** (không gate quyền).
+- Nay là **tab nhỏ thứ 2 của tab lớn "Báo Cáo và Xử Lý"** (`#t3` trong `#t23`, nút `#rpTabNtk` — xem "GỘP T2+T3"), **SESSION-ONLY**: toàn bộ trong RAM, F5 là mất, KHÔNG lưu cloud, KHÔNG cần SQL/Edge Function. **Mọi vai trò đều dùng được** (không gate quyền).
 - Port từ Apps Script `locNhomNTK` (script rời của user, không nằm trong repo). Công dụng: gom nhóm theo **chuẩn_hóa(Tên thật) + IP**; nhóm có **≥2 TÀI KHOẢN KHÁC NHAU** = nghi ngờ 1 người nhiều TK → sinh câu lệnh xử lý dán sang hệ thống nghiệp vụ.
 - Loại bỏ trước khi gom: thiếu ID/Tên/IP · IP bắt đầu `104.` (`NTK.IP_SKIP`, dải proxy/CDN) · cấp độ nằm trong `NTK.BANNED_RAW` (11 nhóm LD/CC/NTK/DD/QS…). Số dòng bị loại từng loại hiện ở card "Thống kê dòng bị loại" (không bỏ âm thầm).
 - Hàm chính trong `src/js/ntk.js`: `loadFile` (thả/dán/chọn file riêng, độc lập upload chính) → `process` (lọc + gom, chia lô `CHUNK=5000`, có thanh tiến trình) → `render` (phân trang **theo NHÓM**, `PS=25`) · `exportCsv` (CSV + BOM UTF-8) · `copyCmd` · `toggleSort` · `clearAll`.
