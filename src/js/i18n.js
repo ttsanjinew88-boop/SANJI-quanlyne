@@ -1117,6 +1117,7 @@ const I18N={
   "＋ Lưu câu hỏi":"＋ Save question","Hủy sửa":"Cancel edit","Ngân hàng câu hỏi":"Question bank",
   "Ngân hàng:":"Bank:","câu":"questions",
   "Lọc theo chủ đề":"Filter by topic",
+  "🏆 Bảng Xếp Hạng":"🏆 Leaderboard","Bảng Xếp Hạng Test Nghiệp Vụ":"Skills Test Leaderboard",
   /* bản dịch nội dung đề (song ngữ T5) */
   "Bản dịch tiếng Anh":"English translation",
   "Xuất ra file JSON gồm tên chủ đề, câu hỏi và đáp án mẫu; dịch phần “en” rồi nhập ngược lại. Câu chưa dịch vẫn hiện tiếng Việt khi bật EN. Ảnh riêng cho bản EN thì tải trực tiếp ở từng câu bên dưới.":"Exports a JSON file with topic names, questions and model answers; translate the “en” part and import it back. Untranslated questions still show in Vietnamese when EN is on. EN-only images are uploaded per question below.",

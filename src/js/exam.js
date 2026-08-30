@@ -382,7 +382,8 @@ const EX = {
     }
     const res = this.mine;
     if (!res.submissions.length) { b.innerHTML = '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Bạn chưa có bài test nào.</div>'; return; }
-    b.innerHTML = '<div class="sec-hdr pu">Bài đã nộp <span class="cnt-badge">' + res.submissions.length + '</span></div>' +
+    b.innerHTML = '<div class="sec-hdr pu">Bài đã nộp <span class="cnt-badge">' + res.submissions.length + '</span>' +
+        '<button class="abtn abtn-pu abtn-sm sec-act" onclick="EX.gotoRank()">🏆 Bảng Xếp Hạng</button></div>' +
       res.submissions.map((s, i) => {
         const badge = s.graded
           ? '<span class="ex-badge ex-b-ok">Đã chấm · ' + this.fmtScore(s.total) + '/' + s.count + '</span>'
@@ -1103,6 +1104,26 @@ const EX = {
     { i: 0, l: '50.8%', t: '67%', c: '#fbbf24', fs: 'clamp(1.3rem,4.2vw,1.95rem)' },
     { i: 2, l: '83%',   t: '68%', c: '#93c5fd', fs: 'clamp(1rem,3.2vw,1.5rem)' }
   ],
+  /* Nút "🏆 Bảng Xếp Hạng" ở tab Bài Của Tôi.
+     BXH test nằm ở tab lớn T1 → Xếp Hạng → view Test Nghiệp Vụ, nhưng NHÂN VIÊN
+     thường KHÔNG có quyền xem tab Xếp Hạng của T1 (preset chỉ có data + ko) ⇒ với
+     họ mở thẳng bảng trong hộp thoại, dữ liệu lấy từ cùng RPC `exam_rank` (RPC này
+     không chặn vai trò nên ai đăng nhập cũng xem được thứ hạng của mình). */
+  gotoRank() {
+    const mk = (typeof CUR_MONTH !== 'undefined' && CUR_MONTH) ? CUR_MONTH : 'all';
+    const tab = document.getElementById('tabRank');
+    if (typeof canView === 'function' && canView('rank') && tab && typeof sw === 'function') {
+      if (typeof switchTool === 'function') switchTool('t1');
+      sw('rank', tab);
+      if (typeof srkv === 'function') srkv('test');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    this.modal('<div class="ex-modalh">Bảng Xếp Hạng Test Nghiệp Vụ</div>' +
+      '<div id="exRankBox"></div>' +
+      '<div class="ex-actions"><button class="abtn abtn-ghost" onclick="EX.closeModal()">Đóng</button></div>', '880px');
+    this.renderRank('exRankBox', mk);
+  },
   rankHtml(list) {
     if (!list.length) return '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Chưa có bài test nào được chấm điểm trong kỳ này.</div>';
     const ov = this.RANK_SLOT.map(s => {
