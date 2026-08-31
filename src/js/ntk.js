@@ -315,6 +315,7 @@ const NTK={
      hiện thành nhãn để người xử lý nhìn ra ngay, và dùng để xếp thứ tự nhóm đáng ngờ lên trước. */
   MAX_SPREAD:0.20,
   MIN_ACCS:5,
+  ZERO_MIN_ACCS:3,   // luật "chênh lệch 0%" chỉ áp cho nhóm từ 3 TK trở lên (chốt 31/08/2026)
   manual:{},   // key nhóm -> true (ép Lạm Dụng) / false (ép về Nhiều TK); do người dùng bấm tay
 
   // Chuyển tay 1 nhóm giữa 2 tab. Bấm lại lần nữa ở tab kia là trả về đúng kết quả tự động.
@@ -442,9 +443,14 @@ const NTK={
     NTK.groups.forEach(g=>{
       NTK.analyze(g);
       const n=g.accs.length;
-      // Chênh lệch ĐÚNG 0% (mọi TK nạp y hệt nhau) -> luôn là lạm dụng, KHÔNG cần đủ số lượng TK.
+      // Chênh lệch ĐÚNG 0% -> lạm dụng, NHƯNG phải từ ZERO_MIN_ACCS tài khoản trở lên.
+      // (Cột tiền của file xuất là tiền nạp LẦN ĐẦU nên 2 người lạ cùng nạp mốc tròn
+      //  100/300/500/1000 là chuyện thường -> luật 0% không kèm số lượng thì nuốt gần hết:
+      //  đo trên file thật 388k dòng ngày 31/08/2026 là 1.840/2.379 nhóm, trong đó 1.729
+      //  nhóm chỉ có 2 TK. Chặn ở >=3 TK còn 111 nhóm.)
       // Ngoài ra mới xét theo cặp điều kiện số TK + ngưỡng chênh lệch.
-      const auto=(g.spread!==null)&&(g.spread===0||((n>NTK.MIN_ACCS)&&g.spread<=NTK.MAX_SPREAD));
+      const auto=(g.spread!==null)&&
+        ((g.spread===0&&n>=NTK.ZERO_MIN_ACCS)||((n>NTK.MIN_ACCS)&&g.spread<=NTK.MAX_SPREAD));
       // Người dùng chuyển tay ĐÈ lên kết quả tự động, và giữ nguyên khi đổi ngưỡng
       const man=NTK.manual[g.key];
       g.auto=auto;
@@ -460,8 +466,8 @@ const NTK={
       const nameKeys=new Set(g.accs.map(a=>NTK.norm(a.name)+'||'+a.ip));
       g.dupOfAbuse=(nameKeys.size===1&&abuseKeys.has(nameKeys.values().next().value));
       g.hits=NTK.critHits(g);
+      NTK.verdict(g);            // phải chấm điểm TRƯỚC: checkMatch loại nhóm 0 điểm
       g.match=NTK.checkMatch(g);
-      NTK.verdict(g);
       const man=NTK.manual[g.key];
       g.abuse=(man===true);
       g.moved=g.abuse;
@@ -470,7 +476,7 @@ const NTK={
     NTK.stats.ntkGroups=NTK.groups.length-NTK.groups.filter(g=>g.abuse).length;
     const chk=NTK.ipGroups.filter(g=>g.match&&!g.abuse&&!g.dupOfAbuse);
     NTK.stats.checkGroups=chk.length;
-    NTK.stats.checkSuggest=chk.filter(g=>g.score>=6).length;   // số nhóm hệ thống khuyên đưa sang Lạm Dụng
+    NTK.stats.checkSuggest=chk.filter(g=>g.score>=NTK.SUGGEST_SCORE).length;   // số nhóm hệ thống khuyên đưa sang Lạm Dụng
   },
 
   /* Tiêu chí tab Check Lạm Dụng — chọn trên giao diện (#ntkCrit), ngưỡng số TK ở #ntkCheckMin:
@@ -506,11 +512,15 @@ const NTK={
     if(g.sameBranch)s+=1;
     if(g.accs.length>=NTK.CHECK_MIN*2)s+=1;
     g.score=s;
-    g.verdict=s>=6?'Nên đưa vào Lạm Dụng':(s>=4?'Nghi ngờ cao':'Cần xem thêm');
-    g.vColor=s>=6?'var(--re)':(s>=4?'var(--go)':'var(--mu2)');
+    g.verdict=s>=NTK.SUGGEST_SCORE?'Nên đưa vào Lạm Dụng':(s>=NTK.SUGGEST_SCORE-1?'Nghi ngờ cao':'Cần xem thêm');
+    g.vColor=s>=NTK.SUGGEST_SCORE?'var(--re)':(s>=NTK.SUGGEST_SCORE-1?'var(--go)':'var(--mu2)');
   },
+  // Ngưỡng "Nên đưa vào Lạm Dụng". Để 6 thì trên file thật chỉ 1/1.145 nhóm đạt (nhóm theo IP
+  // hầu như khác tên nên không có điểm chi nhánh, chênh lệch cũng hiếm khi bằng 0) -> hạ về 4.
+  SUGGEST_SCORE:4,
   checkMatch(g){
     if(g.accs.length<NTK.CHECK_MIN)return false;
+    if(!g.score)return false;   // 0 điểm = không có dấu hiệu nào -> không đưa vào diện chờ check
     if(NTK.CRIT==='all')return g.hits.length>0;   // gộp: khớp BẤT KỲ tiêu chí nào là vào
     if(NTK.CRIT==='a')return g.namesCount>=2;
     if(NTK.CRIT==='b')return g.namesCount>=2&&g.sameBranch;
