@@ -41,6 +41,12 @@ const WK_CODES={
 };
 // Các mã "nghỉ trọn ngày": không tính ngày công, bị loại khỏi tự động phân công.
 const WK_OFFISH=['OFF','SN'];
+// Số người tối thiểu CÓ MẶT trong ca để vẫn cắt ra 1 suất HT.
+// Ca chỉ còn 3 người thì bỏ HT (chỉ 1 KM + 2 DD): với 3 người mà cắt cả KM lẫn HT thì
+// chỉ còn ĐÚNG 1 người trực DD, và luật "≥1 fkvip trực DD" ép suất đó luôn về fkvip
+// ⇒ người ngoài nhóm fkvip trong ca mỏng KHÔNG BAO GIỜ được trực DD (BRENNA/SEREN chỉ
+// đạt 8–9 ngày DD trong khi đồng nghiệp 17–18). Đặt lại 3 là quay về cách chia cũ.
+const WK_HT_MIN=4;
 function isOffish(v){return v==='OFF'||v==='SN';}
 // Nhân viên Học Việc: xác định qua cột "Khác" ở Tổng Quan (KO_OV.khac==='Học Việc').
 // Mặc định cả tháng là HV, bị loại khỏi tự động phân công (không nhận DD/KM/HT).
@@ -127,31 +133,43 @@ function rWork(){
     return `<div style="padding:5px 0;border-bottom:1px solid rgba(30,37,69,.5)"><b style="color:var(--tx)">${FK_NAMES[r.fk]||r.fk}</b> · ${what} · <span style="color:var(--mu)">${t} · bởi ${(r.by||'').toUpperCase()}</span></div>`;
   }).join(''):'<div style="color:var(--mu);padding:5px 0">Chưa có báo cáo nào trong tháng.</div>';
 }
-// ===== TỰ ĐỘNG PHÂN CÔNG: chia đều DD/KM/HT theo từng ca, giữ nguyên OFF =====
-// Luật: mỗi ngày mỗi ca 1 KM + 1 HT (nếu đủ người), còn lại DD; ngẫu nhiên nhưng cân bằng;
-//       Thứ 2: mỗi nhân viên tối đa 1 lần KM trong tháng
-// Lõi phân công tự động từ ngày startDay đến cuối tháng.
-// Ưu tiên cân bằng: KM và DD đều nhất có thể trước, sau đó tới HT.
-// Giữ nguyên OFF; ngày trước startDay giữ nguyên và được đếm vào bộ đếm cân bằng.
+// ===== TỰ ĐỘNG PHÂN CÔNG: DD ĐỀU TRƯỚC, KM/HT bù sau (đổi 01/09/2026) =====
+// Luật nghiệp vụ giữ nguyên: mỗi ngày mỗi ca 1 KM + 1 HT (nếu đủ người), phần còn lại DD,
+// trong tập DD luôn còn ≥1 fkvip, Thứ 2 mỗi người tối đa 1 lần KM trong tháng.
+// Giữ nguyên OFF/SN; ngày trước startDay giữ nguyên và được đếm vào bộ đếm cân bằng.
+//
+// CÁCH CHIA CŨ (đã bỏ) làm DD lệch nặng: nó giữ CHỖ DD riêng cho fkvip mỗi ngày rồi
+// chọn KM theo "ai ít KM nhất" — DD chỉ là PHẦN DƯ. Hậu quả: fkvip ăn hết suất DD được
+// giữ chỗ (DD 17–18 ngày), còn người ngoài nhóm fkvip trong ca ít người bị đẩy hết vào
+// KM/HT nên DD tụt xuống 8–9 ngày (đúng ca của BRENNA / SEREN tháng 08/2026).
+//
+// CÁCH CHIA MỚI: DD là ưu tiên số 1 — mỗi ngày lấy ra 2 người ĐANG DƯ DD NHẤT
+// (tỉ lệ DD / số ngày đã được xếp việc) để giao KM và HT; ai đang THIẾU DD thì được
+// GIỮ LẠI ở DD. Chỗ dành cho fkvip đổi từ "giữ chỗ cứng" thành RÀNG BUỘC mềm: chỉ cần
+// tập DD còn ≥1 fkvip là đủ, không ép fkvip phải trực DD khi họ đã dư DD.
+// KM/HT thành ưu tiên 2: trong 2 người bị rút ra mới xét ai ít KM / ít HT hơn.
 function wkAssignCore(startDay){
   const nD=daysInViewMonth();
   const parts=(CUR_MONTH||curMonthKey()).split('-');
   const y=+parts[0],mo=+parts[1];
   const isMon=d=>new Date(y,mo-1,d).getDay()===1;
-  const kmCount={},htCount={},ddCount={},kmMon={};
-  FK_KEYS.forEach(fk=>{kmCount[fk]=0;htCount[fk]=0;ddCount[fk]=0;kmMon[fk]=0;});
+  // asg = số ngày ĐÃ được xếp việc (KM+DD+HT), dùng để chuẩn hóa tỉ lệ DD
+  // giữa những người có số ngày OFF khác nhau.
+  const kmCount={},htCount={},ddCount={},kmMon={},asg={};
+  FK_KEYS.forEach(fk=>{kmCount[fk]=0;htCount[fk]=0;ddCount[fk]=0;kmMon[fk]=0;asg[fk]=0;});
   FK_KEYS.forEach(fk=>{
     const m2=WORK[fk]||{};
     // đếm các ngày đã chốt trước startDay để cân bằng tiếp nối
     for(let d=1;d<startDay;d++){
       const v=m2[d];
-      if(v==='KM'){kmCount[fk]++;if(isMon(d))kmMon[fk]++;}
-      else if(v==='HT')htCount[fk]++;
-      else if(v==='DD')ddCount[fk]++;
+      if(v==='KM'){kmCount[fk]++;asg[fk]++;if(isMon(d))kmMon[fk]++;}
+      else if(v==='HT'){htCount[fk]++;asg[fk]++;}
+      else if(v==='DD'){ddCount[fk]++;asg[fk]++;}
     }
     // xóa phân công từ startDay trở đi, giữ OFF / SN (nghỉ trọn ngày)
     for(let d=startDay;d<=nD;d++){if(m2[d]&&!isOffish(m2[d]))delete m2[d];}
   });
+  const ddRate=fk=>asg[fk]?ddCount[fk]/asg[fk]:0;
   ['sang','gay','trung'].forEach(ca=>{
     // Loại nhân viên Học Việc khỏi tự động phân công — họ mặc định HV cả tháng.
     const members=FK_KEYS.filter(fk=>shAssign[fk]===ca&&!isTrainee(fk));
@@ -160,42 +178,35 @@ function wkAssignCore(startDay){
       const avail=members.filter(fk=>!isOffish((WORK[fk]||{})[d]));
       if(!avail.length)continue;
       const mon=isMon(d);
-      // ÉP mỗi ngày ≥1 fkvip trực DD (fkvip = duyệt chính DD/đối đầu): giữ chỗ 1 fkvip
-      // (ít DD nhất → xoay vòng công bằng giữa các fkvip trong ca), loại khỏi pool KM/HT.
-      // fkvip còn lại vẫn KM/HT/DD bình thường. Ngày cả ca không còn fkvip (đều OFF) thì bỏ qua.
-      const vipAvail=avail.filter(fk=>FKVIP.includes(fk));
-      let ddVip=null;
-      if(vipAvail.length){
-        const minDd=Math.min(...vipAvail.map(fk=>ddCount[fk]));
-        const vc=vipAvail.filter(fk=>ddCount[fk]===minDd);
-        ddVip=vc[Math.floor(Math.random()*vc.length)];
+      // Số suất phải RÚT KHỎI DD hôm nay: 2 (KM+HT) khi ca có ≥WK_HT_MIN người, 1 khi mỏng hơn.
+      // Luôn chừa lại ít nhất 1 người trực DD (DD là việc chính, không được để trống).
+      const nOff=avail.length>=WK_HT_MIN?2:(avail.length>=2?1:0);
+      // Xáo trước rồi sort (Array.sort ổn định) ⇒ người ngang tỉ lệ DD được chọn ngẫu nhiên,
+      // không ai bị thiệt cố định vì đứng trước trong danh sách.
+      const sorted=avail.slice();
+      for(let i=sorted.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=sorted[i];sorted[i]=sorted[j];sorted[j]=t;}
+      sorted.sort((a,b)=>{const r=ddRate(b)-ddRate(a);return Math.abs(r)>1e-9?r:ddCount[b]-ddCount[a];});
+      // Rút người DƯ DD nhất ra làm KM/HT, nhưng phải chừa lại ≥1 fkvip ở tập DD.
+      let vipLeft=avail.reduce((n,fk)=>n+(FKVIP.includes(fk)?1:0),0);
+      const off=[];
+      for(const fk of sorted){
+        if(off.length>=nOff)break;
+        const isVip=FKVIP.includes(fk);
+        if(isVip&&vipLeft===1)continue; // fkvip cuối cùng của ca phải ở lại DD
+        off.push(fk);if(isVip)vipLeft--;
       }
-      // Pool được chọn KM/HT = available trừ fkvip giữ-DD (fkvip đó đứng ngoài, chắc chắn nằm DD).
-      const selPool=avail.filter(fk=>fk!==ddVip);
-      // KM (ưu tiên 1): người ít KM nhất trong pool. Thứ 2: loại người đã có KM-thứ-2;
-      // nhưng ÉP luôn có 1 KM/ca — nếu Thứ 2 mọi người đã hết suất thì fallback về cả pool.
-      let kmPool=selPool.filter(fk=>!mon||kmMon[fk]<1);
-      if(!kmPool.length)kmPool=selPool;
-      let kmPick=null;
-      if(kmPool.length){
-        const min=Math.min(...kmPool.map(fk=>kmCount[fk]));
-        const cands=kmPool.filter(fk=>kmCount[fk]===min);
-        kmPick=cands[Math.floor(Math.random()*cands.length)];
-      }
-      // HT (ưu tiên 3 — "HT sau"): HT dùng để GÁNH lệch cho DD.
-      // Cân bằng KM & DD trước: cho người đang NHIỀU DD nhất làm HT (để họ khỏi phải DD hôm nay)
-      // -> DD san đều hơn; hòa DD thì mới xét người ít HT nhất.
-      let htPick=null;
-      const htPool=selPool.filter(fk=>fk!==kmPick);
-      if(htPool.length){
-        const maxDd=Math.max(...htPool.map(fk=>ddCount[fk]));
-        let cands=htPool.filter(fk=>ddCount[fk]===maxDd);
-        const minHt=Math.min(...cands.map(fk=>htCount[fk]));
-        cands=cands.filter(fk=>htCount[fk]===minHt);
-        htPick=cands[Math.floor(Math.random()*cands.length)];
+      // Trong nhóm bị rút: ai ít KM hơn (và còn suất KM Thứ 2) đi KM, người còn lại đi HT.
+      let kmPick=null,htPick=null;
+      if(off.length){
+        const free=off.filter(fk=>!mon||kmMon[fk]<1);
+        const pool=free.length?free:off; // Thứ 2 hết suất thì vẫn ÉP đủ 1 KM cho ca
+        kmPick=pool.reduce((a,b)=>kmCount[b]<kmCount[a]?b:a);
+        const rest=off.filter(fk=>fk!==kmPick);
+        if(rest.length)htPick=rest.reduce((a,b)=>htCount[b]<htCount[a]?b:a);
       }
       avail.forEach(fk=>{
         if(!WORK[fk])WORK[fk]={};
+        asg[fk]++;
         if(fk===kmPick){WORK[fk][d]='KM';kmCount[fk]++;if(mon)kmMon[fk]++;}
         else if(fk===htPick){WORK[fk][d]='HT';htCount[fk]++;}
         else{WORK[fk][d]='DD';ddCount[fk]++;}
@@ -205,7 +216,7 @@ function wkAssignCore(startDay){
 }
 function wkAutoAssign(){
   if(!canEdit('shift')){alert('Bạn chỉ có quyền XEM.');return;}
-  if(!confirm('TỰ ĐỘNG PHÂN CÔNG tháng '+dispMonth(CUR_MONTH||curMonthKey())+'?\n\n— Giữ nguyên các ô OFF / SN (sinh nhật) đã điền\n— Mỗi ngày mỗi ca: 1 KM + 1 HT, còn lại DD — ưu tiên chia đều KM và DD trước, HT sau\n— Mỗi ngày mỗi ca ÉP ≥1 fkvip trực DD (fkvip vẫn được chia đều KM/HT)\n— Thứ 2: mỗi người tối đa 1 lần KM/tháng\n\nPhân công cũ (không phải OFF) sẽ bị GHI ĐÈ.'))return;
+  if(!confirm('TỰ ĐỘNG PHÂN CÔNG tháng '+dispMonth(CUR_MONTH||curMonthKey())+'?\n\n— Giữ nguyên các ô OFF / SN (sinh nhật) đã điền\n— ƯU TIÊN 1: chia đều DD giữa các nhân viên trong ca\n— ƯU TIÊN 2: KM và HT giao cho người đang DƯ DD, rồi mới cân bằng với nhau\n— Mỗi ngày mỗi ca: 1 KM + 1 HT, còn lại DD; tập DD luôn còn ≥1 fkvip\n— Ca chỉ còn 3 người có mặt: bỏ suất HT (1 KM + 2 DD) để DD không dồn hết cho fkvip\n— Thứ 2: mỗi người tối đa 1 lần KM/tháng\n\nPhân công cũ (không phải OFF) sẽ bị GHI ĐÈ.'))return;
   wkAssignCore(1);
   _wkChanges.push('Tự Động Phân Công toàn tháng');
   clearTimeout(_wkTimer);
