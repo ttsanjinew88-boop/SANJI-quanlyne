@@ -30,12 +30,40 @@ const sb = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
+// ⚠ CHỈ LÀ FALLBACK CUỐI. Danh sách hardcode này ĐỨNG YÊN khi user đổi tên nhân viên
+// trong roster (key giữ nguyên, chỉ name đổi) nên nó ĐÃ LỖI THỜI: fkchamy nay là SOLIS.
+// Tên hiển thị THẬT lấy từ roster trong DB qua fkNameOf() bên dưới.
 const NAMES: Record<string, string> = {
   fkjade: "JADE", fkcarbon: "CARBON", fkmember: "MEMBER", fkangel: "ANGEL",
   fkgeon: "GEON", fkdante: "DANTE", fkpiu: "PIU", fkchamy: "CHAMY",
   fkluby: "LUBY", fkaimee: "AIMEE", fkantony: "ANTONY", fktrucia: "TRUCIA",
   fkminty: "MINTY", fkbrenna: "BRENNA", fkseren: "SEREN",
 };
+
+// key roster -> TÊN đang dùng. Dashboard gửi lên KEY (fkcole trước đây tên LEWIN thì key vẫn
+// là fklewin) nên không được suy tên từ key: sẽ in ra tên CŨ (vụ COLE hiện thành LEWIN
+// 01/09/2026). Đọc reports type='roster'; bản tháng MỚI NHẤT thắng, 'all' là bản cũ nhất.
+let _roster: { at: number; map: Record<string, string> } | null = null;
+async function fkNameOf(fk: string): Promise<string> {
+  if (!_roster || Date.now() - _roster.at > 60000) {
+    const map: Record<string, string> = {};
+    const { data } = await sb.from("reports").select("month,data").eq("type", "roster");
+    const rows = (data || []).slice().sort((a, b) => {
+      // 'all' luôn xếp trước mọi 'YYYY-MM' (so sánh chuỗi thì 'all' > '2026-09', phải ép tay)
+      if (a.month === b.month) return 0;
+      if (a.month === "all") return -1;
+      if (b.month === "all") return 1;
+      return a.month < b.month ? -1 : 1;
+    });
+    for (const r of rows) {
+      for (const m of ((r?.data as any)?.members || [])) {
+        if (m?.key && m?.name) map[String(m.key)] = String(m.name);
+      }
+    }
+    _roster = { at: Date.now(), map };
+  }
+  return _roster.map[fk] || NAMES[fk] || fk.replace(/^fk/, "").toUpperCase();
+}
 
 async function tg(method: string, body: unknown) {
   try {
@@ -118,7 +146,7 @@ async function sendReport(req: Request): Promise<Response> {
   const rm = mode === "dai_ly"
     ? { inline_keyboard: [[{ text: "✅ Xác Nhận", callback_data: `cf|${fk}|${isoDate}|m|3|${rid}` }, { text: "👁 Theo Dõi Thêm", callback_data: `wt|${fk}|${isoDate}|${rid}` }]] }
     : { inline_keyboard: [[{ text: "✅ Xác Nhận", callback_data: `cf|${fk}|${isoDate}|a|1|${rid}` }, { text: "❌ Hủy Bỏ", callback_data: `dm|${fk}|${isoDate}|${rid}` }]] };
-  const fkName = (NAMES[fk] || fk.replace(/^fk/, "").toUpperCase());
+  const fkName = await fkNameOf(fk);
   const head = mode === "dai_ly" ? "BÁO CÁO ĐẠI LÝ BẤT THƯỜNG" : "BÁO CÁO CƯỢC BẤT THƯỜNG";
   let txt = `${head}\nNgày: ${dateStr}\nKO: ${fkName}`;
   if (mode === "dai_ly") txt += `\nĐại Lý: ${agent || "-"}`;
@@ -294,6 +322,7 @@ Deno.serve(async (req) => {
 
     if (act === "cf") {
       const fk = parts[1], date = parts[2];
+      const nm = await fkNameOf(fk);
       const cat = parts[3] === "m" ? "mkt" : "abuse";
       const cnt = Number(parts[4]) || 1;
       const mk = date.slice(0, 7);
@@ -310,28 +339,30 @@ Deno.serve(async (req) => {
       await sb.from("audit_log").insert({
         username: "telegram:" + who,
         action: "Xác nhận bất thường (Telegram)",
-        detail: `${NAMES[fk] || fk} · +${cnt} · ngày ${date} · ${cat === "mkt" ? "Đại lý ngoài" : "Cược lạm dụng"}`,
+        detail: `${nm} · +${cnt} · ngày ${date} · ${cat === "mkt" ? "Đại lý ngoài" : "Cược lạm dụng"}`,
       });
-      await answer(`✅ Đã cộng +${cnt} điểm cho ${NAMES[fk] || fk} ngày ${date}`);
-      doneLabel = `✅ Đã duyệt +${cnt} · ${NAMES[fk] || fk} · bởi ${who}`;
+      await answer(`✅ Đã cộng +${cnt} điểm cho ${nm} ngày ${date}`);
+      doneLabel = `✅ Đã duyệt +${cnt} · ${nm} · bởi ${who}`;
     } else if (act === "wt") {
       const fk = parts[1], date = parts[2];
+      const nm = await fkNameOf(fk);
       await sb.from("audit_log").insert({
         username: "telegram:" + who,
         action: "Theo dõi thêm (Telegram)",
-        detail: `${NAMES[fk] || fk} · ngày ${date}`,
+        detail: `${nm} · ngày ${date}`,
       });
-      await answer(`👁 Đã ghi nhận Theo Dõi Thêm cho ${NAMES[fk] || fk}`);
-      doneLabel = `👁 Theo dõi thêm · ${NAMES[fk] || fk} · bởi ${who}`;
+      await answer(`👁 Đã ghi nhận Theo Dõi Thêm cho ${nm}`);
+      doneLabel = `👁 Theo dõi thêm · ${nm} · bởi ${who}`;
     } else {
       const fk = parts[1], date = parts[2];
+      const nm = await fkNameOf(fk);
       await sb.from("audit_log").insert({
         username: "telegram:" + who,
         action: "Hủy báo cáo (Telegram)",
-        detail: `${NAMES[fk] || fk} · ngày ${date}`,
+        detail: `${nm} · ngày ${date}`,
       });
-      await answer(`❌ Đã hủy bỏ báo cáo của ${NAMES[fk] || fk}`);
-      doneLabel = `❌ Đã hủy · ${NAMES[fk] || fk} · bởi ${who}`;
+      await answer(`❌ Đã hủy bỏ báo cáo của ${nm}`);
+      doneLabel = `❌ Đã hủy · ${nm} · bởi ${who}`;
     }
 
     if (rid) {
