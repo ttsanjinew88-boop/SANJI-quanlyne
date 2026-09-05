@@ -806,10 +806,9 @@
 
 <!-- hàng tab nhỏ của T23 (bản trong T2) — mỗi tab nhỏ có 1 bản riêng, đặt NGAY DƯỚI banner -->
 <div class="rp-tabs-wrap">
-  <div class="tabs-wrap tabs-inline rp-tabs">
-    <div class="tab active rp-tab" data-v="bc" onclick="switchRp('bc')">BÁO CÁO ĐẠI LÝ - GỬI FILE</div>
-    <div class="tab rp-tab" data-v="ntk" onclick="switchRp('ntk')">LỌC FILE NTK</div>
-  </div>
+  <!-- Hàng tab nhỏ SINH BẰNG JS (renderRpTabs trong bc.js) -> mọi bản luôn khớp nhau.
+       Trước đây mỗi bản viết tay, thêm tab thứ 3 là 9 chỗ markup phải sửa đúng. -->
+  <div class="tabs-wrap tabs-inline rp-tabs" data-rp-tabs></div>
 </div>
 
 <div class="upload-section">
@@ -1000,11 +999,8 @@
     <div class="tool-hdr-note">Gom nhóm theo Tên thật + IP · dùng 1 lần, F5 là mất</div>
     <div class="lang-sw" id="btnLang3" data-noi18n></div>
   </div>
-  <!-- hàng tab nhỏ của T23 (bản trong T3) -->
-  <div class="tabs-wrap tabs-inline rp-tabs">
-    <div class="tab rp-tab" data-v="bc" onclick="switchRp('bc')">BÁO CÁO ĐẠI LÝ - GỬI FILE</div>
-    <div class="tab active rp-tab" data-v="ntk" onclick="switchRp('ntk')">LỌC FILE NTK</div>
-  </div>
+  <!-- hàng tab nhỏ của T23 (bản trong T3) — nội dung do renderRpTabs() sinh -->
+  <div class="tabs-wrap tabs-inline rp-tabs" data-rp-tabs></div>
   <div class="sec-hdr pu">Lọc File NTK — Nhiều Tài Khoản
     <span style="font-size:.56rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— gom nhóm theo Tên thật + IP; nhóm từ 2 tài khoản khác nhau trở lên là nghi ngờ. Dùng 1 lần, F5 là mất, không lưu cloud.</span>
   </div>
@@ -1083,6 +1079,25 @@
     </div>
   </div>
 </div><!-- /t3 -->
+
+<!-- ===== Tab nhỏ 3: TỪ KHÓA CẢNH BÁO (đồng bộ sang extension Cảnh Báo NE) =====
+     MỌI người xem · ADMIN + Tổ Trưởng sửa. Lưu reports type='warnkw' month='all'. -->
+<div id="tkw" style="display:none" class="pg active">
+  <div class="tool-hdr">
+    <img class="hdr-logo" src="https://media.88new11.com/public/new88/site-tong/73d3f524-a313-4761-8c67-6071cab90841.png" alt="SANJI" style="object-fit:cover">
+    <div>
+      <div class="tool-hdr-title">Từ Khóa Cảnh Báo</div>
+      <div class="tool-hdr-sub">SANJI</div>
+    </div>
+    <div class="tool-hdr-note">Đẩy thẳng sang extension Cảnh Báo NE của cả tổ</div>
+    <div class="lang-sw" id="btnLang6" data-noi18n></div>
+  </div>
+  <div class="tabs-wrap tabs-inline rp-tabs" data-rp-tabs></div>
+  <div class="sec-hdr pu">Từ Khóa Cảnh Báo
+    <span style="font-size:.56rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— sửa xong là extension của cả tổ nhận trong vài giây, không ai phải làm gì thêm.</span>
+  </div>
+  <div id="wkBody"></div>
+</div><!-- /tkw -->
 </div><!-- /t23 -->
 
 <!-- ============ T4 — QUY TRÌNH LÀM VIỆC (lưu cloud; MỌI người xem, chỉ ADMIN sửa) ============ -->
@@ -1167,6 +1182,7 @@
 <script>
 //#include js/bc.js
 //#include js/ntk.js
+//#include js/warnkw.js
 //#include js/sop.js
 //#include js/exam.js
 </script>

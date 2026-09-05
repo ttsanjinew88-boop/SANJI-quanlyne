@@ -328,6 +328,10 @@ function applyPerms(){
   // Nguồn "Nhắc Nhở" trong tab Dữ Liệu: ADMIN + Tổ Trưởng (server cũng chặn, không chỉ ẩn nút)
   const rsb=document.getElementById('rmSrcBtn');
   if(rsb)rsb.style.display=isTTup?'':'none';
+  // Từ Khóa Cảnh Báo: nạp ngay lúc đăng nhập (KHÔNG chờ mở tab) để còn đẩy sang
+  // extension trên máy này và bắt đầu nghe nhịp Realtime suốt ca. Tab luôn hiện —
+  // mọi vai trò XEM được, WK.canEdit() chặn ghi (server chặn lại lần nữa qua RLS).
+  try{if(window.WK)WK.boot();}catch(e){console.error('WK.boot',e);}
   // Quản lý nhân viên (roster) ở Tổng Quan: ADMIN + Tổ Trưởng
   const reb=document.getElementById('rosterEditBtn');
   if(reb)reb.style.display=isTTup?'':'none';

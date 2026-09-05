@@ -2918,13 +2918,45 @@ const I18N={
   "Vui lòng nhập tên chủ đề.":"Please enter a topic name.",
   "Chưa có chủ đề nào — tạo chủ đề trước.":"No topic yet — create one first.",
   "Hết giờ! Bài của bạn sẽ được nộp.":"Time is up! Your test will be submitted.",
-  "CHẤM ĐIỂM TEST":"TEST GRADING"
+  "CHẤM ĐIỂM TEST":"TEST GRADING",
+  /* ---- T23 tab nhỏ 3 — Từ Khóa Cảnh Báo (đồng bộ sang extension Cảnh Báo NE) ---- */
+  "TỪ KHÓA CẢNH BÁO":"ALERT KEYWORDS",
+  "Từ Khóa Cảnh Báo":"Alert Keywords",
+  "Đẩy thẳng sang extension Cảnh Báo NE của cả tổ":"Pushed straight to the whole team's Alert NE extension",
+  "— sửa xong là extension của cả tổ nhận trong vài giây, không ai phải làm gì thêm.":"— once saved, the whole team's extension picks it up within seconds; nobody has to do anything.",
+  "⟳ Đẩy lại":"⟳ Push again",
+  "Mã extension":"Extension ID",
+  "+ Thêm nhóm":"+ Add group",
+  "Đang tải…":"Loading…",
+  "Chưa có nhóm nào.":"No groups yet.",
+  "Chưa có nhóm nào. Bấm “+ Thêm nhóm” để bắt đầu.":"No groups yet. Press “+ Add group” to start.",
+  "Từ khóa — mỗi dòng một từ, hoặc ngăn bằng dấu phẩy":"Keywords — one per line, or separated by commas",
+  "Chỉ tô trên domain":"Highlight only on domain",
+  "để trống = mọi trang extension được phép chạy":"leave empty = every site the extension may run on",
+  "Lưu nhóm này":"Save this group",
+  "✎ Tên":"✎ Name",
+  "Tắt":"Off",
+  "Bật":"On",
+  "mọi trang đã cho phép":"every allowed site",
+  "Bạn có quyền XEM. Sửa từ khóa: ADMIN hoặc Tổ Trưởng.":"You have VIEW access. Editing keywords: ADMIN or Team Leader.",
+  "✓ Đã đẩy sang extension trên máy này":"✓ Pushed to the extension on this machine",
+  "⚠ Chưa thấy extension trên máy này — kiểm tra đã cài và bật chưa":"⚠ Extension not found on this machine — check it is installed and enabled",
+  "Chưa đặt mã extension":"Extension ID not set yet",
+  "Trình duyệt này không chạy được extension":"This browser cannot run the extension",
+  "Chưa đẩy lần nào":"Not pushed yet",
+  "Chỉ ADMIN / Tổ Trưởng được sửa từ khóa cảnh báo.":"Only ADMIN / Team Leader may edit alert keywords.",
+  "Chỉ ADMIN đặt được mã extension.":"Only ADMIN can set the extension ID.",
+  "Đổi màu":"Change colour"
   },
   /* ---- Chuỗi có số/biến: khớp bằng regex, giữ nguyên phần $1/$2 ---- */
   RX:[
     /* ⚠ THỨ TỰ QUAN TRỌNG: luật CỤ THỂ phải đứng trước luật tổng quát (vd ^Tháng (.+)$) */
     /* T4 — Quy Trình Làm Việc: chuỗi do JS ghép có kèm SỐ nên phải khớp bằng regex */
     /* ⚠ trs() TRIM chuỗi trước khi khớp -> regex KHÔNG được có khoảng trắng ở hai đầu */
+    /* T23 tab Từ Khóa Cảnh Báo: chuỗi ghép kèm SỐ */
+    [/^(\d+) nhóm · (\d+) từ khóa$/,"$1 groups · $2 keywords"],
+    [/^(\d+) từ · mọi trang đã cho phép$/,"$1 keywords · every allowed site"],
+    [/^(\d+) từ · (.+)$/,"$1 keywords · $2"],
     /* T5 — Kiểm Tra Nghiệp Vụ: chuỗi ghép kèm SỐ */
     [/^Câu (\d+) \/ (\d+) · Đã trả lời (\d+)$/,"Question $1 / $2 · $3 answered"],
     [/^\((\d+) câu, bắt đầu (\d+) phút trước\)\. Bấm nút dưới để làm tiếp — không tốn thêm lượt\.$/,"($1 questions, started $2 minutes ago). Press the button below to continue — no extra attempt is used."],
@@ -3148,7 +3180,7 @@ function i18nSyncBtn(){
   const html=
     '<button type="button" class="lang-opt'+(en?"":" on")+'" onclick="setLang(\'vi\')" title="Tiếng Việt">'+I18N_FLAG.vi+'<span>VI</span></button>'+
     '<button type="button" class="lang-opt'+(en?" on":"")+'" onclick="setLang(\'en\')" title="English">'+I18N_FLAG.en+'<span>EN</span></button>';
-  ["btnLang","btnLang2","btnLang3","btnLang4","btnLang5"].forEach(id=>{
+  ["btnLang","btnLang2","btnLang3","btnLang4","btnLang5","btnLang6"].forEach(id=>{
     const b=document.getElementById(id);
     if(b)b.innerHTML=html;
   });
@@ -3764,6 +3796,10 @@ function applyPerms(){
   // Nguồn "Nhắc Nhở" trong tab Dữ Liệu: ADMIN + Tổ Trưởng (server cũng chặn, không chỉ ẩn nút)
   const rsb=document.getElementById('rmSrcBtn');
   if(rsb)rsb.style.display=isTTup?'':'none';
+  // Từ Khóa Cảnh Báo: nạp ngay lúc đăng nhập (KHÔNG chờ mở tab) để còn đẩy sang
+  // extension trên máy này và bắt đầu nghe nhịp Realtime suốt ca. Tab luôn hiện —
+  // mọi vai trò XEM được, WK.canEdit() chặn ghi (server chặn lại lần nữa qua RLS).
+  try{if(window.WK)WK.boot();}catch(e){console.error('WK.boot',e);}
   // Quản lý nhân viên (roster) ở Tổng Quan: ADMIN + Tổ Trưởng
   const reb=document.getElementById('rosterEditBtn');
   if(reb)reb.style.display=isTTup?'':'none';
@@ -7232,10 +7268,9 @@ rAll();
 
 <!-- hàng tab nhỏ của T23 (bản trong T2) — mỗi tab nhỏ có 1 bản riêng, đặt NGAY DƯỚI banner -->
 <div class="rp-tabs-wrap">
-  <div class="tabs-wrap tabs-inline rp-tabs">
-    <div class="tab active rp-tab" data-v="bc" onclick="switchRp('bc')">BÁO CÁO ĐẠI LÝ - GỬI FILE</div>
-    <div class="tab rp-tab" data-v="ntk" onclick="switchRp('ntk')">LỌC FILE NTK</div>
-  </div>
+  <!-- Hàng tab nhỏ SINH BẰNG JS (renderRpTabs trong bc.js) -> mọi bản luôn khớp nhau.
+       Trước đây mỗi bản viết tay, thêm tab thứ 3 là 9 chỗ markup phải sửa đúng. -->
+  <div class="tabs-wrap tabs-inline rp-tabs" data-rp-tabs></div>
 </div>
 
 <div class="upload-section">
@@ -7426,11 +7461,8 @@ rAll();
     <div class="tool-hdr-note">Gom nhóm theo Tên thật + IP · dùng 1 lần, F5 là mất</div>
     <div class="lang-sw" id="btnLang3" data-noi18n></div>
   </div>
-  <!-- hàng tab nhỏ của T23 (bản trong T3) -->
-  <div class="tabs-wrap tabs-inline rp-tabs">
-    <div class="tab rp-tab" data-v="bc" onclick="switchRp('bc')">BÁO CÁO ĐẠI LÝ - GỬI FILE</div>
-    <div class="tab active rp-tab" data-v="ntk" onclick="switchRp('ntk')">LỌC FILE NTK</div>
-  </div>
+  <!-- hàng tab nhỏ của T23 (bản trong T3) — nội dung do renderRpTabs() sinh -->
+  <div class="tabs-wrap tabs-inline rp-tabs" data-rp-tabs></div>
   <div class="sec-hdr pu">Lọc File NTK — Nhiều Tài Khoản
     <span style="font-size:.56rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— gom nhóm theo Tên thật + IP; nhóm từ 2 tài khoản khác nhau trở lên là nghi ngờ. Dùng 1 lần, F5 là mất, không lưu cloud.</span>
   </div>
@@ -7509,6 +7541,25 @@ rAll();
     </div>
   </div>
 </div><!-- /t3 -->
+
+<!-- ===== Tab nhỏ 3: TỪ KHÓA CẢNH BÁO (đồng bộ sang extension Cảnh Báo NE) =====
+     MỌI người xem · ADMIN + Tổ Trưởng sửa. Lưu reports type='warnkw' month='all'. -->
+<div id="tkw" style="display:none" class="pg active">
+  <div class="tool-hdr">
+    <img class="hdr-logo" src="https://media.88new11.com/public/new88/site-tong/73d3f524-a313-4761-8c67-6071cab90841.png" alt="SANJI" style="object-fit:cover">
+    <div>
+      <div class="tool-hdr-title">Từ Khóa Cảnh Báo</div>
+      <div class="tool-hdr-sub">SANJI</div>
+    </div>
+    <div class="tool-hdr-note">Đẩy thẳng sang extension Cảnh Báo NE của cả tổ</div>
+    <div class="lang-sw" id="btnLang6" data-noi18n></div>
+  </div>
+  <div class="tabs-wrap tabs-inline rp-tabs" data-rp-tabs></div>
+  <div class="sec-hdr pu">Từ Khóa Cảnh Báo
+    <span style="font-size:.56rem;color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400">— sửa xong là extension của cả tổ nhận trong vài giây, không ai phải làm gì thêm.</span>
+  </div>
+  <div id="wkBody"></div>
+</div><!-- /tkw -->
 </div><!-- /t23 -->
 
 <!-- ============ T4 — QUY TRÌNH LÀM VIỆC (lưu cloud; MỌI người xem, chỉ ADMIN sửa) ============ -->
@@ -7610,18 +7661,32 @@ function switchTool(id){
   if(id==='t23')switchRp(RP_VIEW);
 }
 
-// ===== TAB NHỎ của T23 (Báo Cáo Đại Lý / Lọc File NTK) =====
+// ===== TAB NHỎ của T23 (Báo Cáo Đại Lý / Lọc File NTK / Từ Khóa Cảnh Báo) =====
+// Mỗi tab nhỏ có banner riêng nên hàng tab phải nằm DƯỚI banner của chính nó -> có
+// nhiều bản. Trước đây viết tay từng bản, thêm tab thứ 3 là 9 chỗ markup phải khớp.
+// Nay khai MỘT chỗ ở RP_TABS và sinh vào mọi container [data-rp-tabs].
+// Thêm tab nhỏ mới = thêm 1 dòng vào mảng + 1 div pane có id tương ứng.
 let RP_VIEW='bc';
+const RP_TABS=[
+  ['bc', 'BÁO CÁO ĐẠI LÝ - GỬI FILE','t2'],
+  ['ntk','LỌC FILE NTK',             't3'],
+  ['kw', 'TỪ KHÓA CẢNH BÁO',         'tkw']
+];
+function renderRpTabs(){
+  const html=RP_TABS.map(([v,label])=>
+    '<div class="tab rp-tab" data-v="'+v+'" onclick="switchRp(\''+v+'\')">'+label+'</div>').join('');
+  document.querySelectorAll('[data-rp-tabs]').forEach(el=>{el.innerHTML=html;});
+}
 function switchRp(v){
   // không có quyền xem Báo Cáo Đại Lý -> chỉ còn Lọc File NTK
   if(v==='bc'&&typeof canView==='function'&&CUR_PROFILE&&!canView('bc'))v='ntk';
   RP_VIEW=v;
-  [['bc','t2'],['ntk','t3']].forEach(([k,pid])=>{
+  RP_TABS.forEach(([k,,pid])=>{
     const pane=document.getElementById(pid);
     if(pane){pane.style.display=(k===v)?'':'none';pane.classList.toggle('active',k===v);}
   });
-  // hàng tab nhỏ có 2 BẢN (1 trong T2, 1 trong T3) để luôn nằm dưới banner -> đồng bộ cả hai
   document.querySelectorAll('.rp-tab').forEach(t=>t.classList.toggle('active',t.dataset.v===v));
+  if(v==='kw'&&window.WK)WK.shown();
 }
 
 // ===== BC NAMESPACE =====
@@ -8688,6 +8753,7 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
   }
 };
 
+renderRpTabs();   // phải chạy TRƯỚC applyPerms (nó ẩn .rp-tab[data-v="bc"] theo selector)
 BC.rebuildAll();
 AUTH.init();
 /* ===== T3 — LỌC FILE NTK (Nhiều Tài Khoản) =====
@@ -9492,6 +9558,251 @@ const NTK={
       NTK.applyPasted(text.replace(/\r/g,'').split('\n').map(l=>l.split('\t')));}
   });
 })();
+
+// ============================================================
+// TỪ KHÓA CẢNH BÁO (module WK) — tab nhỏ thứ 3 của T23
+//
+// Nguồn sự thật: reports type='warnkw' month='all' = {groups:[...], extId:'...'}.
+// Bảng warnkw_pulse CHỈ chứa một số phiên bản, dùng làm "chuông cửa" Realtime.
+//
+// Vì sao KHÔNG bật Realtime thẳng trên `reports`: bảng đó chứa dataset don/km cả
+// tháng (hàng trăm KB mỗi dòng) -> mỗi lần ai upload Excel là cả dòng bay qua
+// WebSocket tới mọi dashboard đang mở. Xem ghi chú trong supabase_warnkw_setup.sql.
+//
+// Đường đi của một lần sửa:
+//   TT bấm Lưu -> ghi reports + tăng số ở warnkw_pulse
+//   -> Realtime báo cho MỌI dashboard đang mở (nhân viên mở suốt ca)
+//   -> mỗi dashboard tự đọc lại bộ từ khóa và đẩy sang extension trên MÁY ĐÓ
+//      qua chrome.runtime.sendMessage (manifest khai externally_connectable).
+// Nhờ vậy extension không cần mật khẩu, token hay mã thiết bị nào.
+//
+// ⚠ CHỈ ĐẨY DỮ LIỆU (tên/màu/từ khóa/domain). Không bao giờ đẩy CSS thô hay mã để
+//   chạy — extension chạy trên máy nhân viên, ranh giới này phải giữ tuyệt đối.
+// ============================================================
+const WK={
+  cfg:{groups:[],extId:''},
+  booted:false, loading:false, _ch:null,
+  _push:'', _pushAt:0,
+
+  COLORS:['#ef4444','#f97316','#f59e0b','#22c55e','#06b6d4','#3b82f6','#7c3aed','#ec4899'],
+
+  canEdit(){return !!(CUR_PROFILE&&(CUR_PROFILE.is_admin||roleOf(CUR_PROFILE).key==='totruong'));},
+  visible(){const el=document.getElementById('tkw');return !!(el&&el.style.display!=='none');},
+
+  // ===== Nạp / lưu =====
+  async boot(){
+    if(WK.booted||WK.loading||!SB.ready())return;
+    WK.loading=true;
+    try{
+      const d=await SB.loadReport('warnkw','all');
+      if(d&&typeof d==='object'){
+        WK.cfg.groups=Array.isArray(d.groups)?d.groups:[];
+        WK.cfg.extId=String(d.extId||'');
+      }
+      WK.booted=true;
+      WK.subscribe();
+      WK.push();               // đẩy ngay lúc đăng nhập đầu ca
+    }catch(e){console.error('WK.boot',e);}
+    WK.loading=false;
+    if(WK.visible())WK.render();
+  },
+
+  subscribe(){
+    if(WK._ch||!SB.ready())return;
+    try{
+      WK._ch=SB.client().channel('warnkw-pulse')
+        .on('postgres_changes',{event:'UPDATE',schema:'public',table:'warnkw_pulse'},()=>WK.onPulse())
+        .subscribe();
+    }catch(e){console.error('WK.subscribe',e);}
+  },
+
+  // Có người sửa từ khóa ở máy khác -> đọc lại rồi đẩy sang extension của MÁY NÀY
+  async onPulse(){
+    try{
+      const d=await SB.loadReport('warnkw','all');
+      if(d&&typeof d==='object'){
+        WK.cfg.groups=Array.isArray(d.groups)?d.groups:[];
+        WK.cfg.extId=String(d.extId||WK.cfg.extId||'');
+      }
+      WK.push();
+      if(WK.visible())WK.render();
+    }catch(e){console.error('WK.onPulse',e);}
+  },
+
+  async save(label){
+    if(!WK.canEdit()){alert('Chỉ ADMIN / Tổ Trưởng được sửa từ khóa cảnh báo.');return;}
+    try{
+      await SB.saveReport('warnkw','all',{groups:WK.cfg.groups,extId:WK.cfg.extId});
+      // Bấm chuông: mọi dashboard đang mở nhận trong dưới 1 giây
+      await SB.client().from('warnkw_pulse').update({v:Date.now(),at:new Date().toISOString()}).eq('id',1);
+      if(typeof logAction==='function')logAction('TỪ KHÓA CẢNH BÁO',label||'cập nhật');
+      WK.push();
+      WK.render();
+    }catch(e){
+      console.error('WK.save',e);
+      alert('Lỗi lưu: '+(e.message||e)+'\n\nNếu báo thiếu quyền: chạy supabase_warnkw_setup.sql.');
+    }
+  },
+
+  // ===== Đẩy sang extension trên máy này =====
+  push(){
+    const id=String(WK.cfg.extId||'').trim();
+    if(!id){WK._push='noid';return;}
+    if(typeof chrome==='undefined'||!chrome.runtime||!chrome.runtime.sendMessage){WK._push='nochrome';return;}
+    try{
+      chrome.runtime.sendMessage(id,{type:'SANJI_SYNC',groups:WK.cfg.groups},()=>{
+        WK._push=(chrome.runtime.lastError)?'fail':'ok';
+        WK._pushAt=Date.now();
+        if(WK.visible())WK.render();
+      });
+    }catch(e){WK._push='fail';}
+  },
+
+  shown(){ if(!WK.booted)WK.boot(); else WK.render(); },
+
+  // ===== Thao tác trên nhóm =====
+  _g(i){return WK.cfg.groups[i];},
+  addGroup(){
+    if(!WK.canEdit())return;
+    const name=prompt('Tên nhóm mới (chữ này sẽ hiện trong ô cảnh báo: "Trùng ‹tên nhóm›"):');
+    if(!name||!name.trim())return;
+    WK.cfg.groups.push({
+      id:'g'+Date.now().toString(36),
+      name:name.trim(),
+      color:WK.COLORS[WK.cfg.groups.length%WK.COLORS.length],
+      keywords:[],domains:[],enabled:true
+    });
+    WK.save('thêm nhóm '+name.trim());
+  },
+  renameGroup(i){
+    if(!WK.canEdit())return;
+    const g=WK._g(i);if(!g)return;
+    const n=prompt('Tên nhóm:',g.name);
+    if(!n||!n.trim())return;
+    const old=g.name;g.name=n.trim();
+    WK.save('đổi tên nhóm '+old+' → '+g.name);
+  },
+  setColor(i,c){
+    if(!WK.canEdit())return;
+    const g=WK._g(i);if(!g)return;
+    g.color=c;WK.save('đổi màu nhóm '+g.name);
+  },
+  toggleGroup(i){
+    if(!WK.canEdit())return;
+    const g=WK._g(i);if(!g)return;
+    g.enabled=g.enabled===false;
+    WK.save((g.enabled?'bật':'tắt')+' nhóm '+g.name);
+  },
+  delGroup(i){
+    if(!WK.canEdit())return;
+    const g=WK._g(i);if(!g)return;
+    if(!confirm('Xóa nhóm "'+g.name+'"?\n\nCả tổ sẽ mất nhóm này ngay khi đồng bộ.'))return;
+    WK.cfg.groups.splice(i,1);
+    WK.save('xóa nhóm '+g.name);
+  },
+  saveKw(i){
+    if(!WK.canEdit())return;
+    const g=WK._g(i);if(!g)return;
+    const ta=document.getElementById('wkKw'+i);if(!ta)return;
+    // Ngăn cách bằng xuống dòng HOẶC dấu phẩy; bỏ rỗng và trùng (không phân biệt hoa thường)
+    const seen=new Set();
+    g.keywords=ta.value.split(/[\n,]/).map(s=>s.trim()).filter(s=>{
+      if(!s)return false;
+      const k=s.toLowerCase();
+      if(seen.has(k))return false;
+      seen.add(k);return true;
+    });
+    WK.save('cập nhật từ khóa nhóm '+g.name+' ('+g.keywords.length+' từ)');
+  },
+  saveDomains(i){
+    if(!WK.canEdit())return;
+    const g=WK._g(i);if(!g)return;
+    const inp=document.getElementById('wkDm'+i);if(!inp)return;
+    g.domains=inp.value.split(/[\n,\s]+/).map(s=>s.trim().toLowerCase())
+      .filter(s=>/^[a-z0-9.-]+$/.test(s));
+    WK.save('cập nhật domain nhóm '+g.name);
+  },
+  setExtId(){
+    if(!(CUR_PROFILE&&CUR_PROFILE.is_admin)){alert('Chỉ ADMIN đặt được mã extension.');return;}
+    const v=prompt('Mã extension (Extension ID trong chrome://extensions):',WK.cfg.extId||'');
+    if(v===null)return;
+    WK.cfg.extId=v.trim();
+    WK.save('đặt mã extension');
+  },
+
+  // ===== Giao diện =====
+  statusHtml(){
+    const m={
+      ok:['var(--gr)','✓ Đã đẩy sang extension trên máy này'],
+      fail:['var(--go)','⚠ Chưa thấy extension trên máy này — kiểm tra đã cài và bật chưa'],
+      noid:['var(--mu2)','Chưa đặt mã extension'],
+      nochrome:['var(--mu2)','Trình duyệt này không chạy được extension']
+    }[WK._push]||['var(--mu2)','Chưa đẩy lần nào'];
+    const t=WK._pushAt?new Date(WK._pushAt).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}):'';
+    // Giờ tách sang span data-noi18n riêng: dính vào câu thì chuỗi không còn khớp
+    // NGUYÊN VĂN khóa trong I18N.EN nữa và sẽ kẹt tiếng Việt khi bật EN.
+    return '<span style="color:'+m[0]+';font-size:.68rem">'+hesc(m[1])+
+           (t?'<span data-noi18n> · '+t+'</span>':'')+'</span>';
+  },
+
+  render(){
+    const b=document.getElementById('wkBody');if(!b)return;
+    if(WK.loading){b.innerHTML='<div class="chart-card" style="text-align:center;color:var(--mu)">Đang tải…</div>';return;}
+    const ed=WK.canEdit();
+    const totalKw=WK.cfg.groups.reduce((n,g)=>n+(g.keywords||[]).length,0);
+
+    let h='<div class="chart-card" style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px">'+
+      '<span style="font-size:.72rem;color:var(--tx);font-weight:700">'+WK.cfg.groups.length+' nhóm · '+totalKw+' từ khóa</span>'+
+      '<span style="flex:1"></span>'+WK.statusHtml()+
+      '<button class="abtn abtn-sm abtn-ghost" onclick="WK.push()">⟳ Đẩy lại</button>'+
+      (CUR_PROFILE&&CUR_PROFILE.is_admin?'<button class="abtn abtn-sm abtn-ghost" onclick="WK.setExtId()">Mã extension</button>':'')+
+      (ed?'<button class="abtn abtn-sm abtn-pu" onclick="WK.addGroup()">+ Thêm nhóm</button>':'')+
+      '</div>';
+
+    if(!WK.cfg.groups.length){
+      h+='<div class="chart-card" style="text-align:center;color:var(--mu);padding:26px">'+
+         'Chưa có nhóm nào.'+(ed?' Bấm “+ Thêm nhóm” để bắt đầu.':'')+'</div>';
+      b.innerHTML=h;return;
+    }
+
+    WK.cfg.groups.forEach((g,i)=>{
+      const on=g.enabled!==false;
+      h+='<div class="chart-card" style="margin-bottom:12px;border-left:4px solid '+hesc(g.color||'#ef4444')+(on?'':';opacity:.55')+'">'+
+        '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-bottom:10px">'+
+          '<span style="font-size:.86rem;font-weight:700;color:var(--tx)" data-noi18n>'+hesc(g.name)+'</span>'+
+          '<span style="font-size:.62rem;color:var(--mu)">'+(g.keywords||[]).length+' từ · '+
+            ((g.domains||[]).length?hesc((g.domains||[]).join(', ')):'mọi trang đã cho phép')+'</span>'+
+          '<span style="flex:1"></span>'+
+          (ed?
+            WK.COLORS.map(c=>'<span onclick="WK.setColor('+i+',\''+c+'\')" title="Đổi màu" style="width:15px;height:15px;border-radius:4px;background:'+c+';cursor:pointer;display:inline-block;border:2px solid '+(g.color===c?'var(--tx)':'transparent')+'"></span>').join('')+
+            '<button class="abtn abtn-sm abtn-ghost" onclick="WK.renameGroup('+i+')">✎ Tên</button>'+
+            '<button class="abtn abtn-sm '+(on?'abtn-ghost':'abtn-ok')+'" onclick="WK.toggleGroup('+i+')">'+(on?'Tắt':'Bật')+'</button>'+
+            '<button class="abtn abtn-sm abtn-danger" onclick="WK.delGroup('+i+')">Xóa</button>'
+          :'')+
+        '</div>'+
+        '<label style="display:block;font-size:.62rem;color:var(--mu);margin-bottom:4px">Từ khóa — mỗi dòng một từ, hoặc ngăn bằng dấu phẩy</label>'+
+        '<textarea id="wkKw'+i+'" data-noi18n '+(ed?'':'readonly')+
+          ' style="width:100%;min-height:78px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--tx);padding:8px 10px;font-size:.72rem;font-family:inherit;resize:vertical">'+
+          hesc((g.keywords||[]).join('\n'))+'</textarea>'+
+        '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px">'+
+          '<label style="font-size:.62rem;color:var(--mu)">Chỉ tô trên domain</label>'+
+          // KHÔNG gắn data-noi18n ở đây: giá trị domain nằm trong thuộc tính `value`
+          // (i18n không đụng tới), còn placeholder thì CẦN được dịch.
+          '<input id="wkDm'+i+'" '+(ed?'':'readonly')+' value="'+hesc((g.domains||[]).join(', '))+'"'+
+            ' placeholder="để trống = mọi trang extension được phép chạy"'+
+            ' style="flex:1;min-width:200px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--tx);padding:6px 10px;font-size:.68rem">'+
+          (ed?'<button class="abtn abtn-sm abtn-ok" onclick="WK.saveKw('+i+');WK.saveDomains('+i+')">Lưu nhóm này</button>':'')+
+        '</div>'+
+      '</div>';
+    });
+
+    if(!ed)h+='<div style="font-size:.66rem;color:var(--mu);text-align:center;padding:6px">Bạn có quyền XEM. Sửa từ khóa: ADMIN hoặc Tổ Trưởng.</div>';
+    b.innerHTML=h;
+  }
+};
+// Phơi ra window: `const WK={}` nằm ở global LEXICAL scope, không tự có trên window
+// (cùng bẫy với AUTH/SOP/EX). switchRp trong bc.js kiểm `window.WK`.
+window.WK=WK;
 
 // ===== T4 — QUY TRÌNH LÀM VIỆC (SOP) =====
 // 4 tab nhỏ dùng CHUNG một bộ khối nội dung: qt (quy trình duyệt đơn) · ld (nhóm lạm dụng)

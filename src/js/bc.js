@@ -17,18 +17,32 @@ function switchTool(id){
   if(id==='t23')switchRp(RP_VIEW);
 }
 
-// ===== TAB NHỎ của T23 (Báo Cáo Đại Lý / Lọc File NTK) =====
+// ===== TAB NHỎ của T23 (Báo Cáo Đại Lý / Lọc File NTK / Từ Khóa Cảnh Báo) =====
+// Mỗi tab nhỏ có banner riêng nên hàng tab phải nằm DƯỚI banner của chính nó -> có
+// nhiều bản. Trước đây viết tay từng bản, thêm tab thứ 3 là 9 chỗ markup phải khớp.
+// Nay khai MỘT chỗ ở RP_TABS và sinh vào mọi container [data-rp-tabs].
+// Thêm tab nhỏ mới = thêm 1 dòng vào mảng + 1 div pane có id tương ứng.
 let RP_VIEW='bc';
+const RP_TABS=[
+  ['bc', 'BÁO CÁO ĐẠI LÝ - GỬI FILE','t2'],
+  ['ntk','LỌC FILE NTK',             't3'],
+  ['kw', 'TỪ KHÓA CẢNH BÁO',         'tkw']
+];
+function renderRpTabs(){
+  const html=RP_TABS.map(([v,label])=>
+    '<div class="tab rp-tab" data-v="'+v+'" onclick="switchRp(\''+v+'\')">'+label+'</div>').join('');
+  document.querySelectorAll('[data-rp-tabs]').forEach(el=>{el.innerHTML=html;});
+}
 function switchRp(v){
   // không có quyền xem Báo Cáo Đại Lý -> chỉ còn Lọc File NTK
   if(v==='bc'&&typeof canView==='function'&&CUR_PROFILE&&!canView('bc'))v='ntk';
   RP_VIEW=v;
-  [['bc','t2'],['ntk','t3']].forEach(([k,pid])=>{
+  RP_TABS.forEach(([k,,pid])=>{
     const pane=document.getElementById(pid);
     if(pane){pane.style.display=(k===v)?'':'none';pane.classList.toggle('active',k===v);}
   });
-  // hàng tab nhỏ có 2 BẢN (1 trong T2, 1 trong T3) để luôn nằm dưới banner -> đồng bộ cả hai
   document.querySelectorAll('.rp-tab').forEach(t=>t.classList.toggle('active',t.dataset.v===v));
+  if(v==='kw'&&window.WK)WK.shown();
 }
 
 // ===== BC NAMESPACE =====
@@ -1095,5 +1109,6 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
   }
 };
 
+renderRpTabs();   // phải chạy TRƯỚC applyPerms (nó ẩn .rp-tab[data-v="bc"] theo selector)
 BC.rebuildAll();
 AUTH.init();

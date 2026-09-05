@@ -1159,13 +1159,45 @@ const I18N={
   "Vui lòng nhập tên chủ đề.":"Please enter a topic name.",
   "Chưa có chủ đề nào — tạo chủ đề trước.":"No topic yet — create one first.",
   "Hết giờ! Bài của bạn sẽ được nộp.":"Time is up! Your test will be submitted.",
-  "CHẤM ĐIỂM TEST":"TEST GRADING"
+  "CHẤM ĐIỂM TEST":"TEST GRADING",
+  /* ---- T23 tab nhỏ 3 — Từ Khóa Cảnh Báo (đồng bộ sang extension Cảnh Báo NE) ---- */
+  "TỪ KHÓA CẢNH BÁO":"ALERT KEYWORDS",
+  "Từ Khóa Cảnh Báo":"Alert Keywords",
+  "Đẩy thẳng sang extension Cảnh Báo NE của cả tổ":"Pushed straight to the whole team's Alert NE extension",
+  "— sửa xong là extension của cả tổ nhận trong vài giây, không ai phải làm gì thêm.":"— once saved, the whole team's extension picks it up within seconds; nobody has to do anything.",
+  "⟳ Đẩy lại":"⟳ Push again",
+  "Mã extension":"Extension ID",
+  "+ Thêm nhóm":"+ Add group",
+  "Đang tải…":"Loading…",
+  "Chưa có nhóm nào.":"No groups yet.",
+  "Chưa có nhóm nào. Bấm “+ Thêm nhóm” để bắt đầu.":"No groups yet. Press “+ Add group” to start.",
+  "Từ khóa — mỗi dòng một từ, hoặc ngăn bằng dấu phẩy":"Keywords — one per line, or separated by commas",
+  "Chỉ tô trên domain":"Highlight only on domain",
+  "để trống = mọi trang extension được phép chạy":"leave empty = every site the extension may run on",
+  "Lưu nhóm này":"Save this group",
+  "✎ Tên":"✎ Name",
+  "Tắt":"Off",
+  "Bật":"On",
+  "mọi trang đã cho phép":"every allowed site",
+  "Bạn có quyền XEM. Sửa từ khóa: ADMIN hoặc Tổ Trưởng.":"You have VIEW access. Editing keywords: ADMIN or Team Leader.",
+  "✓ Đã đẩy sang extension trên máy này":"✓ Pushed to the extension on this machine",
+  "⚠ Chưa thấy extension trên máy này — kiểm tra đã cài và bật chưa":"⚠ Extension not found on this machine — check it is installed and enabled",
+  "Chưa đặt mã extension":"Extension ID not set yet",
+  "Trình duyệt này không chạy được extension":"This browser cannot run the extension",
+  "Chưa đẩy lần nào":"Not pushed yet",
+  "Chỉ ADMIN / Tổ Trưởng được sửa từ khóa cảnh báo.":"Only ADMIN / Team Leader may edit alert keywords.",
+  "Chỉ ADMIN đặt được mã extension.":"Only ADMIN can set the extension ID.",
+  "Đổi màu":"Change colour"
   },
   /* ---- Chuỗi có số/biến: khớp bằng regex, giữ nguyên phần $1/$2 ---- */
   RX:[
     /* ⚠ THỨ TỰ QUAN TRỌNG: luật CỤ THỂ phải đứng trước luật tổng quát (vd ^Tháng (.+)$) */
     /* T4 — Quy Trình Làm Việc: chuỗi do JS ghép có kèm SỐ nên phải khớp bằng regex */
     /* ⚠ trs() TRIM chuỗi trước khi khớp -> regex KHÔNG được có khoảng trắng ở hai đầu */
+    /* T23 tab Từ Khóa Cảnh Báo: chuỗi ghép kèm SỐ */
+    [/^(\d+) nhóm · (\d+) từ khóa$/,"$1 groups · $2 keywords"],
+    [/^(\d+) từ · mọi trang đã cho phép$/,"$1 keywords · every allowed site"],
+    [/^(\d+) từ · (.+)$/,"$1 keywords · $2"],
     /* T5 — Kiểm Tra Nghiệp Vụ: chuỗi ghép kèm SỐ */
     [/^Câu (\d+) \/ (\d+) · Đã trả lời (\d+)$/,"Question $1 / $2 · $3 answered"],
     [/^\((\d+) câu, bắt đầu (\d+) phút trước\)\. Bấm nút dưới để làm tiếp — không tốn thêm lượt\.$/,"($1 questions, started $2 minutes ago). Press the button below to continue — no extra attempt is used."],
@@ -1389,7 +1421,7 @@ function i18nSyncBtn(){
   const html=
     '<button type="button" class="lang-opt'+(en?"":" on")+'" onclick="setLang(\'vi\')" title="Tiếng Việt">'+I18N_FLAG.vi+'<span>VI</span></button>'+
     '<button type="button" class="lang-opt'+(en?" on":"")+'" onclick="setLang(\'en\')" title="English">'+I18N_FLAG.en+'<span>EN</span></button>';
-  ["btnLang","btnLang2","btnLang3","btnLang4","btnLang5"].forEach(id=>{
+  ["btnLang","btnLang2","btnLang3","btnLang4","btnLang5","btnLang6"].forEach(id=>{
     const b=document.getElementById(id);
     if(b)b.innerHTML=html;
   });
