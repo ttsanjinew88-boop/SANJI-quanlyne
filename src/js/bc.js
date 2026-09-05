@@ -17,7 +17,7 @@ function switchTool(id){
   if(id==='t23')switchRp(RP_VIEW);
 }
 
-// ===== TAB NHỎ của T23 (Báo Cáo Đại Lý / Lọc File NTK / Từ Khóa Cảnh Báo) =====
+// ===== TAB NHỎ của T23 (Báo Cáo Đại Lý / Lọc File NTK / Điều Kiện Cảnh Báo) =====
 // Mỗi tab nhỏ có banner riêng nên hàng tab phải nằm DƯỚI banner của chính nó -> có
 // nhiều bản. Trước đây viết tay từng bản, thêm tab thứ 3 là 9 chỗ markup phải khớp.
 // Nay khai MỘT chỗ ở RP_TABS và sinh vào mọi container [data-rp-tabs].

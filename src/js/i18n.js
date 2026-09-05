@@ -1160,7 +1160,7 @@ const I18N={
   "Chưa có chủ đề nào — tạo chủ đề trước.":"No topic yet — create one first.",
   "Hết giờ! Bài của bạn sẽ được nộp.":"Time is up! Your test will be submitted.",
   "CHẤM ĐIỂM TEST":"TEST GRADING",
-  /* ---- T23 tab nhỏ 3 — Từ Khóa Cảnh Báo (đồng bộ sang extension Cảnh Báo NE) ---- */
+  /* ---- T23 tab nhỏ 3 — Điều Kiện Cảnh Báo (đồng bộ sang extension Cảnh Báo NE) ---- */
   "ĐIỀU KIỆN CẢNH BÁO":"ALERT CONDITIONS",
   "Điều Kiện Cảnh Báo":"Alert Conditions",
   "Nhóm điều kiện dùng chung cho cả tổ · nhân viên chỉ xem":"Shared condition groups for the whole team · staff can only view",
@@ -1204,7 +1204,7 @@ const I18N={
     /* ⚠ THỨ TỰ QUAN TRỌNG: luật CỤ THỂ phải đứng trước luật tổng quát (vd ^Tháng (.+)$) */
     /* T4 — Quy Trình Làm Việc: chuỗi do JS ghép có kèm SỐ nên phải khớp bằng regex */
     /* ⚠ trs() TRIM chuỗi trước khi khớp -> regex KHÔNG được có khoảng trắng ở hai đầu */
-    /* T23 tab Từ Khóa Cảnh Báo: chuỗi ghép kèm SỐ */
+    /* T23 tab Điều Kiện Cảnh Báo: chuỗi ghép kèm SỐ */
     [/^(\d+) nhóm điều kiện$/,"$1 condition groups"],
     [/^cần đủ (\d+)\/(\d+) điều kiện · mọi trang đã cho phép$/,"requires $1/$2 conditions · every allowed site"],
     [/^cần đủ (\d+)\/(\d+) điều kiện · (.+)$/,"requires $1/$2 conditions · $3"],

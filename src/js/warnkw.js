@@ -1,5 +1,5 @@
 // ============================================================
-// TỪ KHÓA CẢNH BÁO (module WK) — tab nhỏ thứ 3 của T23
+// ĐIỀU KIỆN CẢNH BÁO (module WK) — tab nhỏ thứ 3 của T23
 //
 // PHÂN VAI (chốt 03/09/2026):
 //   • NHÓM ĐIỀU KIỆN (tab KM của extension) -> HỆ THỐNG quản lý TẠI ĐÂY.

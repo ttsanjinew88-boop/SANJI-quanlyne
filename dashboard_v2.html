@@ -2919,7 +2919,7 @@ const I18N={
   "Chưa có chủ đề nào — tạo chủ đề trước.":"No topic yet — create one first.",
   "Hết giờ! Bài của bạn sẽ được nộp.":"Time is up! Your test will be submitted.",
   "CHẤM ĐIỂM TEST":"TEST GRADING",
-  /* ---- T23 tab nhỏ 3 — Từ Khóa Cảnh Báo (đồng bộ sang extension Cảnh Báo NE) ---- */
+  /* ---- T23 tab nhỏ 3 — Điều Kiện Cảnh Báo (đồng bộ sang extension Cảnh Báo NE) ---- */
   "ĐIỀU KIỆN CẢNH BÁO":"ALERT CONDITIONS",
   "Điều Kiện Cảnh Báo":"Alert Conditions",
   "Nhóm điều kiện dùng chung cho cả tổ · nhân viên chỉ xem":"Shared condition groups for the whole team · staff can only view",
@@ -2963,7 +2963,7 @@ const I18N={
     /* ⚠ THỨ TỰ QUAN TRỌNG: luật CỤ THỂ phải đứng trước luật tổng quát (vd ^Tháng (.+)$) */
     /* T4 — Quy Trình Làm Việc: chuỗi do JS ghép có kèm SỐ nên phải khớp bằng regex */
     /* ⚠ trs() TRIM chuỗi trước khi khớp -> regex KHÔNG được có khoảng trắng ở hai đầu */
-    /* T23 tab Từ Khóa Cảnh Báo: chuỗi ghép kèm SỐ */
+    /* T23 tab Điều Kiện Cảnh Báo: chuỗi ghép kèm SỐ */
     [/^(\d+) nhóm điều kiện$/,"$1 condition groups"],
     [/^cần đủ (\d+)\/(\d+) điều kiện · mọi trang đã cho phép$/,"requires $1/$2 conditions · every allowed site"],
     [/^cần đủ (\d+)\/(\d+) điều kiện · (.+)$/,"requires $1/$2 conditions · $3"],
@@ -3807,7 +3807,7 @@ function applyPerms(){
   // Nguồn "Nhắc Nhở" trong tab Dữ Liệu: ADMIN + Tổ Trưởng (server cũng chặn, không chỉ ẩn nút)
   const rsb=document.getElementById('rmSrcBtn');
   if(rsb)rsb.style.display=isTTup?'':'none';
-  // Từ Khóa Cảnh Báo: nạp ngay lúc đăng nhập (KHÔNG chờ mở tab) để còn đẩy sang
+  // Điều Kiện Cảnh Báo: nạp ngay lúc đăng nhập (KHÔNG chờ mở tab) để còn đẩy sang
   // extension trên máy này và bắt đầu nghe nhịp Realtime suốt ca. Tab luôn hiện —
   // mọi vai trò XEM được, WK.canEdit() chặn ghi (server chặn lại lần nữa qua RLS).
   try{if(window.WK)WK.boot();}catch(e){console.error('WK.boot',e);}
@@ -7553,7 +7553,7 @@ rAll();
   </div>
 </div><!-- /t3 -->
 
-<!-- ===== Tab nhỏ 3: TỪ KHÓA CẢNH BÁO (đồng bộ sang extension Cảnh Báo NE) =====
+<!-- ===== Tab nhỏ 3: ĐIỀU KIỆN CẢNH BÁO (đồng bộ sang extension Cảnh Báo NE) =====
      MỌI người xem · ADMIN + Tổ Trưởng sửa. Lưu reports type='warnkw' month='all'. -->
 <div id="tkw" style="display:none" class="pg active">
   <div class="tool-hdr">
@@ -7672,7 +7672,7 @@ function switchTool(id){
   if(id==='t23')switchRp(RP_VIEW);
 }
 
-// ===== TAB NHỎ của T23 (Báo Cáo Đại Lý / Lọc File NTK / Từ Khóa Cảnh Báo) =====
+// ===== TAB NHỎ của T23 (Báo Cáo Đại Lý / Lọc File NTK / Điều Kiện Cảnh Báo) =====
 // Mỗi tab nhỏ có banner riêng nên hàng tab phải nằm DƯỚI banner của chính nó -> có
 // nhiều bản. Trước đây viết tay từng bản, thêm tab thứ 3 là 9 chỗ markup phải khớp.
 // Nay khai MỘT chỗ ở RP_TABS và sinh vào mọi container [data-rp-tabs].
@@ -9571,7 +9571,7 @@ const NTK={
 })();
 
 // ============================================================
-// TỪ KHÓA CẢNH BÁO (module WK) — tab nhỏ thứ 3 của T23
+// ĐIỀU KIỆN CẢNH BÁO (module WK) — tab nhỏ thứ 3 của T23
 //
 // PHÂN VAI (chốt 03/09/2026):
 //   • NHÓM ĐIỀU KIỆN (tab KM của extension) -> HỆ THỐNG quản lý TẠI ĐÂY.
