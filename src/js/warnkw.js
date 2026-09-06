@@ -28,7 +28,7 @@
 // Hàng của bảng phải đủ `needed` điều kiện thì mới được tô.
 // ============================================================
 const WK={
-  cfg:{promoGroups:[],extId:''},
+  cfg:{promoGroups:[],domains:[],extId:''},
   booted:false, loading:false, _ch:null,
   _push:'', _pushAt:0,
 
@@ -45,6 +45,7 @@ const WK={
       const d=await SB.loadReport('warnkw','all');
       if(d&&typeof d==='object'){
         WK.cfg.promoGroups=Array.isArray(d.promoGroups)?d.promoGroups:[];
+        WK.cfg.domains=Array.isArray(d.domains)?d.domains:[];
         WK.cfg.extId=String(d.extId||'');
       }
       WK.booted=true;
@@ -70,6 +71,7 @@ const WK={
       const d=await SB.loadReport('warnkw','all');
       if(d&&typeof d==='object'){
         WK.cfg.promoGroups=Array.isArray(d.promoGroups)?d.promoGroups:[];
+        WK.cfg.domains=Array.isArray(d.domains)?d.domains:[];
         WK.cfg.extId=String(d.extId||WK.cfg.extId||'');
       }
       WK.push();
@@ -80,7 +82,7 @@ const WK={
   async save(label){
     if(!WK.canEdit()){alert('Chỉ ADMIN / Tổ Trưởng được sửa nhóm điều kiện.');return;}
     try{
-      await SB.saveReport('warnkw','all',{promoGroups:WK.cfg.promoGroups,extId:WK.cfg.extId});
+      await SB.saveReport('warnkw','all',{promoGroups:WK.cfg.promoGroups,domains:WK.cfg.domains,extId:WK.cfg.extId});
       // Bấm chuông: mọi dashboard đang mở nhận trong dưới 1 giây
       await SB.client().from('warnkw_pulse').update({v:Date.now(),at:new Date().toISOString()}).eq('id',1);
       if(typeof logAction==='function')logAction('NHÓM ĐIỀU KIỆN',label||'cập nhật');
@@ -98,7 +100,7 @@ const WK={
     if(!id){WK._push='noid';return;}
     if(typeof chrome==='undefined'||!chrome.runtime||!chrome.runtime.sendMessage){WK._push='nochrome';return;}
     try{
-      chrome.runtime.sendMessage(id,{type:'SANJI_SYNC',promoGroups:WK.cfg.promoGroups},()=>{
+      chrome.runtime.sendMessage(id,{type:'SANJI_SYNC',promoGroups:WK.cfg.promoGroups,domains:WK.cfg.domains},()=>{
         WK._push=(chrome.runtime.lastError)?'fail':'ok';
         WK._pushAt=Date.now();
         if(WK.visible())WK.render();
@@ -107,6 +109,31 @@ const WK={
   },
 
   shown(){ if(!WK.booted)WK.boot(); else WK.render(); },
+
+  // ===== Domain hậu đài (extension chạy ở đâu) =====
+  // Nhận cả "https://cxy.jdtmb.com/", "cxy.jdtmb.com:8080/abc", "*.jdtmb.com"
+  // -> nhân viên dán thẳng URL trên thanh địa chỉ là được, khỏi phải tự cắt.
+  _host(s){
+    return String(s||'').trim().toLowerCase()
+      .replace(/^[a-z][a-z0-9+.-]*:\/\//,'')   // bỏ scheme
+      .replace(/[/?#].*$/,'')                   // bỏ path/query/hash
+      .replace(/:\d+$/,'')                      // bỏ port
+      .replace(/\.$/,'');
+  },
+  _validHost(h){
+    return /^(\*\.)?[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(h);
+  },
+  saveDomains(){
+    if(!WK.canEdit())return;
+    const ta=document.getElementById('wkDomains');if(!ta)return;
+    const raw=ta.value.split(/[\n,;\s]+/).map(s=>WK._host(s)).filter(Boolean);
+    const bad=raw.filter(h=>!WK._validHost(h));
+    const seen=new Set(),ok=[];
+    raw.forEach(h=>{if(WK._validHost(h)&&!seen.has(h)){seen.add(h);ok.push(h);}});
+    if(bad.length&&!confirm('Bỏ qua '+bad.length+' dòng không hợp lệ:\n'+bad.slice(0,5).join('\n')+'\n\nTiếp tục lưu '+ok.length+' domain?'))return;
+    WK.cfg.domains=ok;
+    WK.save('cập nhật danh sách domain ('+ok.length+')');
+  },
 
   // ===== Thao tác =====
   _g(i){return WK.cfg.promoGroups[i];},
@@ -124,7 +151,7 @@ const WK={
       id:'p'+Date.now().toString(36),
       name:name.trim(),
       color:WK.COLORS[WK.cfg.promoGroups.length%WK.COLORS.length],
-      conditions:[],needed:1,domains:[],enabled:true
+      conditions:[],needed:1,scope:'row',domains:[],enabled:true
     });
     WK.save('thêm nhóm '+name.trim());
   },
@@ -160,8 +187,10 @@ const WK={
     const ta=document.getElementById('wkCond'+i);
     const nd=document.getElementById('wkNeed'+i);
     const dm=document.getElementById('wkDm'+i);
+    const sc=document.getElementById('wkSc'+i);
     if(ta)g.conditions=ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
     if(nd)g.needed=parseInt(nd.value,10)||1;
+    if(sc)g.scope=(sc.value==='page')?'page':'row';
     if(dm)g.domains=dm.value.split(/[\n,\s]+/).map(s=>s.trim().toLowerCase())
       .filter(s=>/^[a-z0-9.-]+$/.test(s));
     WK._clamp(g);
@@ -252,9 +281,31 @@ const WK={
           '<button class="abtn abtn-sm abtn-pu" onclick="WK.addGroup()">+ Thêm nhóm</button>':'')+
       '</div>';
 
+    // Danh sách domain hậu đài — quyết định extension CHẠY Ở ĐÂU.
+    // Không khai trong manifest nữa: background.js đăng ký content script lúc chạy
+    // theo danh sách này, nên thêm bao nhiêu domain cũng được, đổi lúc nào cũng được,
+    // KHÔNG phải đóng gói lại .crx rồi đi cập nhật từng máy.
+    h+='<div class="chart-card" style="margin-bottom:14px">'+
+       '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-bottom:8px">'+
+         '<span style="font-size:.76rem;font-weight:700;color:var(--tx)">Trang hậu đài</span>'+
+         '<span style="font-size:.62rem;color:var(--mu)">'+WK.cfg.domains.length+' domain · extension CHỈ chạy trên các trang này</span>'+
+         '<span style="flex:1"></span>'+
+         (ed?'<button class="abtn abtn-sm abtn-ok" onclick="WK.saveDomains()">Lưu danh sách</button>':'')+
+       '</div>'+
+       '<textarea id="wkDomains" data-noi18n '+(ed?'':'readonly')+
+         ' placeholder="mỗi dòng một domain — dán thẳng URL cũng được"'+
+         ' style="width:100%;min-height:64px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--tx);padding:8px 10px;font-size:.72rem;font-family:ui-monospace,monospace;resize:vertical">'+
+         hesc(WK.cfg.domains.join('\n'))+'</textarea>'+
+       '<div style="font-size:.62rem;color:var(--mu);margin-top:6px;line-height:1.8">'+
+         'Dán nguyên địa chỉ trên thanh trình duyệt cũng được — hệ thống tự cắt lấy phần domain. '+
+         'Dùng <code style="background:var(--card2);border:1px solid var(--border2);border-radius:4px;padding:0 5px" data-noi18n>*.tencongty.com</code> để phủ mọi subdomain, tiện khi hậu đài hay đổi domain.'+
+       '</div>'+
+       '</div>';
+
     // Bảng cú pháp — người soạn không phải nhớ, và nó khớp đúng content.js
     h+='<div class="chart-card" style="margin-bottom:14px;font-size:.68rem;color:var(--mu);line-height:1.9">'+
-       '<b style="color:var(--tx)">Cách viết điều kiện</b> — mỗi dòng một điều kiện, hàng của bảng phải đủ số điều kiện đã đặt thì mới được tô.<br>'+
+       '<b style="color:var(--tx)">Cách viết điều kiện</b> — mỗi dòng một điều kiện; phải đủ số điều kiện đã đặt thì mới được tô.<br>'+
+       '<b style="color:var(--tx)">Phạm vi</b> — <b>Trong cùng một hàng bảng</b>: dùng cho trang DANH SÁCH, mỗi hàng một khách. <b>Trong cả trang</b>: dùng cho trang CHI TIẾT hội viên, nơi dấu hiệu nằm rải rác nhiều dòng.<br>'+
        '<code style="background:var(--card2);border:1px solid var(--border2);border-radius:4px;padding:1px 6px" data-noi18n>100 ~ 500</code> — trong hàng có SỐ nằm trong khoảng<br>'+
        '<code style="background:var(--card2);border:1px solid var(--border2);border-radius:4px;padding:1px 6px" data-noi18n>agribank, acb</code> — trúng BẤT KỲ từ nào trong danh sách<br>'+
        '<code style="background:var(--card2);border:1px solid var(--border2);border-radius:4px;padding:1px 6px" data-noi18n>【NTK-TBA】</code> — hàng có chứa chuỗi này'+
@@ -274,8 +325,9 @@ const WK={
       h+='<div class="chart-card" style="margin-bottom:12px;border-left:4px solid '+hesc(g.color||'#f97316')+(on?'':';opacity:.55')+'">'+
         '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-bottom:10px">'+
           '<span style="font-size:.86rem;font-weight:700;color:var(--tx)" data-noi18n>'+hesc(g.name)+'</span>'+
-          '<span style="font-size:.62rem;color:var(--mu)">cần đủ '+need+'/'+nTot+' điều kiện · '+
-            ((g.domains||[]).length?hesc((g.domains||[]).join(', ')):'mọi trang đã cho phép')+'</span>'+
+          '<span style="font-size:.62rem;color:var(--mu)">cần đủ '+need+'/'+nTot+' điều kiện '+
+            (g.scope==='page'?'trong cả trang':'trong cùng một hàng')+' · '+
+            ((g.domains||[]).length?hesc((g.domains||[]).join(', ')):'mọi trang hậu đài')+'</span>'+
           '<span style="flex:1"></span>'+
           (ed?
             WK.COLORS.map(c=>'<span onclick="WK.setColor('+i+',\''+c+'\')" title="Đổi màu" style="width:15px;height:15px;border-radius:4px;background:'+c+';cursor:pointer;display:inline-block;border:2px solid '+(g.color===c?'var(--tx)':'transparent')+'"></span>').join('')+
@@ -294,9 +346,14 @@ const WK={
             Array.from({length:nTot},(_,k)=>'<option value="'+(k+1)+'"'+((k+1)===need?' selected':'')+'>'+(k+1)+'</option>').join('')+
           '</select>'+
           '<span id="wkNeedTot'+i+'" style="font-size:.62rem;color:var(--mu)">/ '+nTot+' điều kiện</span>'+
-          '<label style="font-size:.62rem;color:var(--mu);margin-left:8px">Chỉ tô trên domain</label>'+
+          '<label style="font-size:.62rem;color:var(--mu);margin-left:8px">Phạm vi</label>'+
+          '<select id="wkSc'+i+'" '+(ed?'':'disabled')+' style="background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--tx);padding:5px 8px;font-size:.68rem">'+
+            '<option value="row"'+(g.scope==='page'?'':' selected')+'>Trong cùng một hàng bảng</option>'+
+            '<option value="page"'+(g.scope==='page'?' selected':'')+'>Trong cả trang</option>'+
+          '</select>'+
+          '<label style="font-size:.62rem;color:var(--mu);margin-left:8px" title="Tuỳ chọn: thu hẹp thêm trong số các trang hậu đài ở trên">Giới hạn thêm (tuỳ chọn)</label>'+
           '<input id="wkDm'+i+'" '+(ed?'':'readonly')+' value="'+hesc((g.domains||[]).join(', '))+'"'+
-            ' placeholder="để trống = mọi trang extension được phép chạy"'+
+            ' placeholder="để trống = mọi trang hậu đài ở danh sách trên"'+
             ' style="flex:1;min-width:180px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--tx);padding:6px 10px;font-size:.68rem">'+
           (ed?'<button class="abtn abtn-sm abtn-ok" onclick="WK.saveGroup('+i+')">Lưu nhóm này</button>':'')+
         '</div>'+
