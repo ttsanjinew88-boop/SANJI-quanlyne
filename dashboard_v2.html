@@ -9672,14 +9672,34 @@ const WK={
     if(!WK.canEdit()){alert('Chỉ ADMIN / Tổ Trưởng được sửa nhóm điều kiện.');return;}
     try{
       await SB.saveReport('warnkw','all',{promoGroups:WK.cfg.promoGroups,domains:WK.cfg.domains,extId:WK.cfg.extId});
-      // Bấm chuông: mọi dashboard đang mở nhận trong dưới 1 giây
-      await SB.client().from('warnkw_pulse').update({v:Date.now(),at:new Date().toISOString()}).eq('id',1);
+
+      // ĐỌC LẠI để xác nhận đã ghi thật. Không có bước này thì một lần ghi bị RLS
+      // chặn hoặc ghi hụt vẫn im re, người dùng tưởng đã lưu (đã vấp 05/09/2026:
+      // danh sách domain "biến mất" sau khi bấm Lưu mà không báo gì).
+      const back=await SB.loadReport('warnkw','all');
+      const okD=Array.isArray(back&&back.domains)?back.domains.length:0;
+      if(okD!==WK.cfg.domains.length){
+        throw new Error('Ghi xong đọc lại chỉ thấy '+okD+'/'+WK.cfg.domains.length+
+          ' domain. Nhiều khả năng RLS chặn ghi type "warnkw" — chạy supabase_warnkw_setup.sql.');
+      }
+
+      // Bấm chuông: mọi dashboard đang mở nhận trong dưới 1 giây.
+      // ⚠ Query của supabase-js KHÔNG throw khi bị RLS chặn — nó trả {error} hoặc
+      //   0 dòng. Phải kiểm tay, nếu không lỗi trôi qua không ai biết.
+      const {error:pErr}=await SB.client().from('warnkw_pulse')
+        .update({v:Date.now(),at:new Date().toISOString()}).eq('id',1).select('id');
+      if(pErr)throw new Error('Lưu được nhưng KHÔNG bấm chuông được ('+pErr.message+
+        '). Máy khác sẽ chỉ nhận khi đăng nhập lại.');
+
       if(typeof logAction==='function')logAction('NHÓM ĐIỀU KIỆN',label||'cập nhật');
+      WK._savedAt=Date.now();
       WK.push();
       WK.render();
     }catch(e){
       console.error('WK.save',e);
-      alert('Lỗi lưu: '+(e.message||e)+'\n\nNếu báo thiếu quyền: chạy supabase_warnkw_setup.sql.');
+      WK._savedAt=0;
+      alert('LƯU KHÔNG THÀNH CÔNG\n\n'+(e.message||e));
+      WK.render();
     }
   },
 
@@ -9879,6 +9899,8 @@ const WK={
          '<span style="font-size:.76rem;font-weight:700;color:var(--tx)">Trang hậu đài</span>'+
          '<span style="font-size:.62rem;color:var(--mu)">'+WK.cfg.domains.length+' domain · extension CHỈ chạy trên các trang này</span>'+
          '<span style="flex:1"></span>'+
+         (WK._savedAt?'<span style="font-size:.64rem;color:var(--gr)">✓ Đã lưu<span data-noi18n> '+
+            new Date(WK._savedAt).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})+'</span></span>':'')+
          (ed?'<button class="abtn abtn-sm abtn-ok" onclick="WK.saveDomains()">Lưu danh sách</button>':'')+
        '</div>'+
        '<textarea id="wkDomains" data-noi18n '+(ed?'':'readonly')+
