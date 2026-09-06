@@ -1184,7 +1184,7 @@ const I18N={
   "Trang hậu đài":"Back office sites",
   "Dán nguyên địa chỉ trên thanh trình duyệt cũng được — hệ thống tự cắt lấy phần domain. Dùng":"Pasting the full address bar URL works too — the domain is extracted automatically. Use",
   "để phủ mọi subdomain, tiện khi hậu đài hay đổi domain.":"to cover every subdomain — handy when the back office changes domain often.",
-  "— mỗi dòng một điều kiện; phải đủ số điều kiện đã đặt thì mới được tô.":"— one condition per line; highlighting only happens once the required number is met.",
+  "— mỗi dòng một điều kiện. Đủ số điều kiện đã đặt ở BẤT KỲ đâu trong trang là tô.":"— one condition per line. If the required number is met ANYWHERE on the page, it highlights.",
   ": dùng cho trang DANH SÁCH, mỗi hàng một khách.":": for LIST pages, one row per player.",
   ": dùng cho trang CHI TIẾT hội viên, nơi dấu hiệu nằm rải rác nhiều dòng.":": for member DETAIL pages, where the signals are scattered across many lines.",
   "Tuỳ chọn: thu hẹp thêm trong số các trang hậu đài ở trên":"Optional: narrow further within the back office sites listed above",
@@ -1221,10 +1221,8 @@ const I18N={
     /* T23 tab Điều Kiện Cảnh Báo: chuỗi ghép kèm SỐ */
     [/^(\d+) nhóm điều kiện$/,"$1 condition groups"],
     [/^(\d+) domain · extension CHỈ chạy trên các trang này$/,"$1 domains · the extension runs ONLY on these sites"],
-    [/^cần đủ (\d+)\/(\d+) điều kiện trong cả trang · mọi trang hậu đài$/,"requires $1/$2 conditions anywhere on the page · all back office sites"],
-    [/^cần đủ (\d+)\/(\d+) điều kiện trong cùng một hàng · mọi trang hậu đài$/,"requires $1/$2 conditions within one row · all back office sites"],
-    [/^cần đủ (\d+)\/(\d+) điều kiện trong cả trang · (.+)$/,"requires $1/$2 conditions anywhere on the page · $3"],
-    [/^cần đủ (\d+)\/(\d+) điều kiện trong cùng một hàng · (.+)$/,"requires $1/$2 conditions within one row · $3"],
+    [/^cần đủ (\d+)\/(\d+) điều kiện trong cả trang$/,"requires $1/$2 conditions anywhere on the page"],
+    [/^\/ (\d+) điều kiện, tính trên cả trang$/,"/ $1 conditions, counted across the page"],
     [/^\/ (\d+) điều kiện$/,"/ $1 conditions"],
     /* T5 — Kiểm Tra Nghiệp Vụ: chuỗi ghép kèm SỐ */
     [/^Câu (\d+) \/ (\d+) · Đã trả lời (\d+)$/,"Question $1 / $2 · $3 answered"],

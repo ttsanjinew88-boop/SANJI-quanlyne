@@ -2943,7 +2943,7 @@ const I18N={
   "Trang hậu đài":"Back office sites",
   "Dán nguyên địa chỉ trên thanh trình duyệt cũng được — hệ thống tự cắt lấy phần domain. Dùng":"Pasting the full address bar URL works too — the domain is extracted automatically. Use",
   "để phủ mọi subdomain, tiện khi hậu đài hay đổi domain.":"to cover every subdomain — handy when the back office changes domain often.",
-  "— mỗi dòng một điều kiện; phải đủ số điều kiện đã đặt thì mới được tô.":"— one condition per line; highlighting only happens once the required number is met.",
+  "— mỗi dòng một điều kiện. Đủ số điều kiện đã đặt ở BẤT KỲ đâu trong trang là tô.":"— one condition per line. If the required number is met ANYWHERE on the page, it highlights.",
   ": dùng cho trang DANH SÁCH, mỗi hàng một khách.":": for LIST pages, one row per player.",
   ": dùng cho trang CHI TIẾT hội viên, nơi dấu hiệu nằm rải rác nhiều dòng.":": for member DETAIL pages, where the signals are scattered across many lines.",
   "Tuỳ chọn: thu hẹp thêm trong số các trang hậu đài ở trên":"Optional: narrow further within the back office sites listed above",
@@ -2980,10 +2980,8 @@ const I18N={
     /* T23 tab Điều Kiện Cảnh Báo: chuỗi ghép kèm SỐ */
     [/^(\d+) nhóm điều kiện$/,"$1 condition groups"],
     [/^(\d+) domain · extension CHỈ chạy trên các trang này$/,"$1 domains · the extension runs ONLY on these sites"],
-    [/^cần đủ (\d+)\/(\d+) điều kiện trong cả trang · mọi trang hậu đài$/,"requires $1/$2 conditions anywhere on the page · all back office sites"],
-    [/^cần đủ (\d+)\/(\d+) điều kiện trong cùng một hàng · mọi trang hậu đài$/,"requires $1/$2 conditions within one row · all back office sites"],
-    [/^cần đủ (\d+)\/(\d+) điều kiện trong cả trang · (.+)$/,"requires $1/$2 conditions anywhere on the page · $3"],
-    [/^cần đủ (\d+)\/(\d+) điều kiện trong cùng một hàng · (.+)$/,"requires $1/$2 conditions within one row · $3"],
+    [/^cần đủ (\d+)\/(\d+) điều kiện trong cả trang$/,"requires $1/$2 conditions anywhere on the page"],
+    [/^\/ (\d+) điều kiện, tính trên cả trang$/,"/ $1 conditions, counted across the page"],
     [/^\/ (\d+) điều kiện$/,"/ $1 conditions"],
     /* T5 — Kiểm Tra Nghiệp Vụ: chuỗi ghép kèm SỐ */
     [/^Câu (\d+) \/ (\d+) · Đã trả lời (\d+)$/,"Question $1 / $2 · $3 answered"],
@@ -9611,10 +9609,14 @@ const NTK={
 // Nhờ vậy extension không cần mật khẩu, token hay mã thiết bị nào.
 //
 // CÚ PHÁP ĐIỀU KIỆN (khớp đúng promoConditionMatches trong content.js):
-//   100 ~ 500        -> trong hàng có SỐ nằm trong khoảng
+//   100 ~ 500        -> trong trang có SỐ nằm trong khoảng
 //   agribank, acb    -> trúng BẤT KỲ từ nào trong danh sách
-//   【NTK-TBA】       -> hàng có chứa chuỗi này
-// Hàng của bảng phải đủ `needed` điều kiện thì mới được tô.
+//   【NTK-TBA】       -> trang có chứa chuỗi này
+// PHẠM VI luôn là CẢ TRANG (chốt 06/09/2026): gộp text cả trang rồi đếm, đủ
+// `needed` điều kiện thì tô mọi chỗ khớp. Phạm vi "theo hàng bảng" đã BỎ —
+// dấu hiệu trên trang chi tiết hội viên nằm rải rác nhiều dòng, không cùng
+// hàng bảng nào. Ô "Giới hạn thêm" của từng nhóm cũng đã bỏ: danh sách domain
+// dùng chung ở trên đã quyết định extension chạy ở đâu.
 // ============================================================
 const WK={
   cfg:{promoGroups:[],domains:[],extId:''},
@@ -9760,7 +9762,7 @@ const WK={
       id:'p'+Date.now().toString(36),
       name:name.trim(),
       color:WK.COLORS[WK.cfg.promoGroups.length%WK.COLORS.length],
-      conditions:[],needed:1,scope:'row',domains:[],enabled:true
+      conditions:[],needed:1,enabled:true
     });
     WK.save('thêm nhóm '+name.trim());
   },
@@ -9795,13 +9797,10 @@ const WK={
     const g=WK._g(i);if(!g)return;
     const ta=document.getElementById('wkCond'+i);
     const nd=document.getElementById('wkNeed'+i);
-    const dm=document.getElementById('wkDm'+i);
-    const sc=document.getElementById('wkSc'+i);
+    // Bo o "Gioi han them" va o "Pham vi" (chot 06/09/2026): domain dung chung o tren
+    // da quyet dinh extension chay o dau, va pham vi luon la CA TRANG.
     if(ta)g.conditions=ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
     if(nd)g.needed=parseInt(nd.value,10)||1;
-    if(sc)g.scope=(sc.value==='page')?'page':'row';
-    if(dm)g.domains=dm.value.split(/[\n,\s]+/).map(s=>s.trim().toLowerCase())
-      .filter(s=>/^[a-z0-9.-]+$/.test(s));
     WK._clamp(g);
     WK.save('cập nhật nhóm '+g.name+' ('+g.needed+'/'+g.conditions.length+' điều kiện)');
   },
@@ -9915,8 +9914,7 @@ const WK={
 
     // Bảng cú pháp — người soạn không phải nhớ, và nó khớp đúng content.js
     h+='<div class="chart-card" style="margin-bottom:14px;font-size:.68rem;color:var(--mu);line-height:1.9">'+
-       '<b style="color:var(--tx)">Cách viết điều kiện</b> — mỗi dòng một điều kiện; phải đủ số điều kiện đã đặt thì mới được tô.<br>'+
-       '<b style="color:var(--tx)">Phạm vi</b> — <b>Trong cùng một hàng bảng</b>: dùng cho trang DANH SÁCH, mỗi hàng một khách. <b>Trong cả trang</b>: dùng cho trang CHI TIẾT hội viên, nơi dấu hiệu nằm rải rác nhiều dòng.<br>'+
+       '<b style="color:var(--tx)">Cách viết điều kiện</b> — mỗi dòng một điều kiện. Đủ số điều kiện đã đặt ở BẤT KỲ đâu trong trang là tô.<br>'+
        '<code style="background:var(--card2);border:1px solid var(--border2);border-radius:4px;padding:1px 6px" data-noi18n>100 ~ 500</code> — trong hàng có SỐ nằm trong khoảng<br>'+
        '<code style="background:var(--card2);border:1px solid var(--border2);border-radius:4px;padding:1px 6px" data-noi18n>agribank, acb</code> — trúng BẤT KỲ từ nào trong danh sách<br>'+
        '<code style="background:var(--card2);border:1px solid var(--border2);border-radius:4px;padding:1px 6px" data-noi18n>【NTK-TBA】</code> — hàng có chứa chuỗi này'+
@@ -9937,8 +9935,7 @@ const WK={
         '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-bottom:10px">'+
           '<span style="font-size:.86rem;font-weight:700;color:var(--tx)" data-noi18n>'+hesc(g.name)+'</span>'+
           '<span style="font-size:.62rem;color:var(--mu)">cần đủ '+need+'/'+nTot+' điều kiện '+
-            (g.scope==='page'?'trong cả trang':'trong cùng một hàng')+' · '+
-            ((g.domains||[]).length?hesc((g.domains||[]).join(', ')):'mọi trang hậu đài')+'</span>'+
+            'trong cả trang</span>'+
           '<span style="flex:1"></span>'+
           (ed?
             WK.COLORS.map(c=>'<span onclick="WK.setColor('+i+',\''+c+'\')" title="Đổi màu" style="width:15px;height:15px;border-radius:4px;background:'+c+';cursor:pointer;display:inline-block;border:2px solid '+(g.color===c?'var(--tx)':'transparent')+'"></span>').join('')+
@@ -9956,16 +9953,8 @@ const WK={
           '<select id="wkNeed'+i+'" '+(ed?'':'disabled')+' style="background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--tx);padding:5px 8px;font-size:.68rem">'+
             Array.from({length:nTot},(_,k)=>'<option value="'+(k+1)+'"'+((k+1)===need?' selected':'')+'>'+(k+1)+'</option>').join('')+
           '</select>'+
-          '<span id="wkNeedTot'+i+'" style="font-size:.62rem;color:var(--mu)">/ '+nTot+' điều kiện</span>'+
-          '<label style="font-size:.62rem;color:var(--mu);margin-left:8px">Phạm vi</label>'+
-          '<select id="wkSc'+i+'" '+(ed?'':'disabled')+' style="background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--tx);padding:5px 8px;font-size:.68rem">'+
-            '<option value="row"'+(g.scope==='page'?'':' selected')+'>Trong cùng một hàng bảng</option>'+
-            '<option value="page"'+(g.scope==='page'?' selected':'')+'>Trong cả trang</option>'+
-          '</select>'+
-          '<label style="font-size:.62rem;color:var(--mu);margin-left:8px" title="Tuỳ chọn: thu hẹp thêm trong số các trang hậu đài ở trên">Giới hạn thêm (tuỳ chọn)</label>'+
-          '<input id="wkDm'+i+'" '+(ed?'':'readonly')+' value="'+hesc((g.domains||[]).join(', '))+'"'+
-            ' placeholder="để trống = mọi trang hậu đài ở danh sách trên"'+
-            ' style="flex:1;min-width:180px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--tx);padding:6px 10px;font-size:.68rem">'+
+          '<span id="wkNeedTot'+i+'" style="font-size:.62rem;color:var(--mu)">/ '+nTot+' điều kiện, tính trên cả trang</span>'+
+          '<span style="flex:1"></span>'+
           (ed?'<button class="abtn abtn-sm abtn-ok" onclick="WK.saveGroup('+i+')">Lưu nhóm này</button>':'')+
         '</div>'+
       '</div>';
