@@ -26,7 +26,7 @@ let RP_VIEW='bc';
 const RP_TABS=[
   ['bc', 'BÁO CÁO ĐẠI LÝ - GỬI FILE','t2'],
   ['ntk','LỌC FILE NTK',             't3'],
-  ['kw', 'ĐIỀU KIỆN CẢNH BÁO',        'tkw']
+  ['kw', 'CẢNH BÁO NE',              'tkw']
 ];
 function renderRpTabs(){
   const html=RP_TABS.map(([v,label])=>

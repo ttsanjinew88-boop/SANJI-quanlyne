@@ -32,7 +32,10 @@
 // dùng chung ở trên đã quyết định extension chạy ở đâu.
 // ============================================================
 const WK={
-  cfg:{promoGroups:[],domains:[],extId:''},
+  // topics: [{id,name,note}] — CHỦ ĐỀ gom nhiều nhóm điều kiện, mỗi chủ đề có MỘT
+  // lời nhắc hiện to + đỏ trong ô cảnh báo. Nhóm không thuộc chủ đề nào vẫn chạy
+  // bình thường, chỉ là không có lời nhắc.
+  cfg:{topics:[],promoGroups:[],domains:[],extId:''},
   booted:false, loading:false, _ch:null,
   _push:'', _pushAt:0,
 
@@ -49,6 +52,7 @@ const WK={
       const d=await SB.loadReport('warnkw','all');
       if(d&&typeof d==='object'){
         WK.cfg.promoGroups=Array.isArray(d.promoGroups)?d.promoGroups:[];
+        WK.cfg.topics=Array.isArray(d.topics)?d.topics:[];
         WK.cfg.domains=Array.isArray(d.domains)?d.domains:[];
         WK.cfg.extId=String(d.extId||'');
       }
@@ -75,6 +79,7 @@ const WK={
       const d=await SB.loadReport('warnkw','all');
       if(d&&typeof d==='object'){
         WK.cfg.promoGroups=Array.isArray(d.promoGroups)?d.promoGroups:[];
+        WK.cfg.topics=Array.isArray(d.topics)?d.topics:[];
         WK.cfg.domains=Array.isArray(d.domains)?d.domains:[];
         WK.cfg.extId=String(d.extId||WK.cfg.extId||'');
       }
@@ -86,7 +91,7 @@ const WK={
   async save(label){
     if(!WK.canEdit()){alert('Chỉ ADMIN / Tổ Trưởng được sửa nhóm điều kiện.');return;}
     try{
-      await SB.saveReport('warnkw','all',{promoGroups:WK.cfg.promoGroups,domains:WK.cfg.domains,extId:WK.cfg.extId});
+      await SB.saveReport('warnkw','all',{topics:WK.cfg.topics,promoGroups:WK.cfg.promoGroups,domains:WK.cfg.domains,extId:WK.cfg.extId});
 
       // ĐỌC LẠI để xác nhận đã ghi thật. Không có bước này thì một lần ghi bị RLS
       // chặn hoặc ghi hụt vẫn im re, người dùng tưởng đã lưu (đã vấp 05/09/2026:
@@ -124,7 +129,7 @@ const WK={
     if(!id){WK._push='noid';return;}
     if(typeof chrome==='undefined'||!chrome.runtime||!chrome.runtime.sendMessage){WK._push='nochrome';return;}
     try{
-      chrome.runtime.sendMessage(id,{type:'SANJI_SYNC',promoGroups:WK.cfg.promoGroups,domains:WK.cfg.domains},()=>{
+      chrome.runtime.sendMessage(id,{type:'SANJI_SYNC',topics:WK.cfg.topics,promoGroups:WK.cfg.promoGroups,domains:WK.cfg.domains},()=>{
         WK._push=(chrome.runtime.lastError)?'fail':'ok';
         WK._pushAt=Date.now();
         if(WK.visible())WK.render();
@@ -157,6 +162,50 @@ const WK={
     if(bad.length&&!confirm('Bỏ qua '+bad.length+' dòng không hợp lệ:\n'+bad.slice(0,5).join('\n')+'\n\nTiếp tục lưu '+ok.length+' domain?'))return;
     WK.cfg.domains=ok;
     WK.save('cập nhật danh sách domain ('+ok.length+')');
+  },
+
+  // ===== Chủ đề (gom nhóm + lời nhắc) =====
+  _t(i){return WK.cfg.topics[i];},
+  topicOf(g){return WK.cfg.topics.find(t=>t.id===(g&&g.topicId))||null;},
+  addTopic(){
+    if(!WK.canEdit())return;
+    const name=prompt('Tên chủ đề (VD: Lạm Dụng Đặc Điểm / Lạm Dụng IP / Lạm Dụng Tên Thật):');
+    if(!name||!name.trim())return;
+    const note=prompt('Lời nhắc cho chủ đề này — hiện TO và ĐỎ trong ô cảnh báo:',
+      'Trùng '+name.trim()+' — cần kiểm tra kỹ trước khi xử lý');
+    if(note===null)return;
+    WK.cfg.topics.push({id:'t'+Date.now().toString(36),name:name.trim(),note:String(note||'').trim()});
+    WK.save('thêm chủ đề '+name.trim());
+  },
+  editTopic(i){
+    if(!WK.canEdit())return;
+    const t=WK._t(i);if(!t)return;
+    const n=prompt('Tên chủ đề:',t.name);
+    if(n===null)return;
+    if(n.trim())t.name=n.trim();
+    WK.save('đổi tên chủ đề '+t.name);
+  },
+  saveTopicNote(i){
+    if(!WK.canEdit())return;
+    const t=WK._t(i);if(!t)return;
+    const ta=document.getElementById('wkTn'+i);if(!ta)return;
+    t.note=ta.value.trim();
+    WK.save('cập nhật lời nhắc chủ đề '+t.name);
+  },
+  delTopic(i){
+    if(!WK.canEdit())return;
+    const t=WK._t(i);if(!t)return;
+    const n=WK.cfg.promoGroups.filter(g=>g.topicId===t.id).length;
+    if(!confirm('Xóa chủ đề "'+t.name+'"?\n\n'+n+' nhóm đang thuộc chủ đề này sẽ mất lời nhắc (nhóm KHÔNG bị xóa).'))return;
+    WK.cfg.promoGroups.forEach(g=>{if(g.topicId===t.id)delete g.topicId;});
+    WK.cfg.topics.splice(i,1);
+    WK.save('xóa chủ đề '+t.name);
+  },
+  setGroupTopic(i,tid){
+    if(!WK.canEdit())return;
+    const g=WK._g(i);if(!g)return;
+    if(tid)g.topicId=tid; else delete g.topicId;
+    WK.save('đổi chủ đề nhóm '+g.name);
   },
 
   // ===== Thao tác =====
@@ -325,6 +374,33 @@ const WK={
        '</div>'+
        '</div>';
 
+    // CHỦ ĐỀ — mỗi chủ đề gom nhiều nhóm và mang MỘT lời nhắc, hiện TO + ĐỎ trong
+    // ô cảnh báo trên hậu đài để nhân viên không lướt qua.
+    h+='<div class="chart-card" style="margin-bottom:14px">'+
+       '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-bottom:'+(WK.cfg.topics.length?'10px':'0')+'">'+
+         '<span style="font-size:.76rem;font-weight:700;color:var(--tx)">Chủ đề &amp; lời nhắc</span>'+
+         '<span style="font-size:.62rem;color:var(--mu)">'+WK.cfg.topics.length+' chủ đề · lời nhắc hiện TO và ĐỎ trong ô cảnh báo</span>'+
+         '<span style="flex:1"></span>'+
+         (ed?'<button class="abtn abtn-sm abtn-pu" onclick="WK.addTopic()">+ Thêm chủ đề</button>':'')+
+       '</div>'+
+       WK.cfg.topics.map((t,ti)=>
+         '<div style="border:1px solid var(--border2);border-radius:8px;padding:10px 12px;margin-top:8px">'+
+           '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:7px">'+
+             '<span style="font-size:.76rem;font-weight:700;color:var(--tx)" data-noi18n>'+hesc(t.name)+'</span>'+
+             '<span style="font-size:.6rem;color:var(--mu)">'+WK.cfg.promoGroups.filter(g=>g.topicId===t.id).length+' nhóm</span>'+
+             '<span style="flex:1"></span>'+
+             (ed?'<button class="abtn abtn-sm abtn-ghost" onclick="WK.editTopic('+ti+')">✎ Tên</button>'+
+                 '<button class="abtn abtn-sm abtn-danger" onclick="WK.delTopic('+ti+')">Xóa</button>':'')+
+           '</div>'+
+           '<textarea id="wkTn'+ti+'" data-noi18n '+(ed?'':'readonly')+
+             ' placeholder="Lời nhắc hiện trong ô cảnh báo, VD: Trùng Lạm Dụng IP — cần kiểm tra IP kỹ"'+
+             ' style="width:100%;min-height:44px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--re);font-weight:700;padding:7px 10px;font-size:.74rem;font-family:inherit;resize:vertical">'+
+             hesc(t.note||'')+'</textarea>'+
+           (ed?'<div style="text-align:right;margin-top:6px"><button class="abtn abtn-sm abtn-ok" onclick="WK.saveTopicNote('+ti+')">Lưu lời nhắc</button></div>':'')+
+         '</div>').join('')+
+       (WK.cfg.topics.length?'':'<div style="font-size:.66rem;color:var(--mu);padding:8px 0 2px">Chưa có chủ đề nào. Nhóm không thuộc chủ đề vẫn tô bình thường, chỉ là không có lời nhắc.</div>')+
+       '</div>';
+
     // Bảng cú pháp — người soạn không phải nhớ, và nó khớp đúng content.js
     h+='<div class="chart-card" style="margin-bottom:14px;font-size:.68rem;color:var(--mu);line-height:1.9">'+
        '<b style="color:var(--tx)">Cách viết điều kiện</b> — mỗi dòng một điều kiện. Đủ số điều kiện đã đặt ở BẤT KỲ đâu trong trang là tô.<br>'+
@@ -367,6 +443,12 @@ const WK={
             Array.from({length:nTot},(_,k)=>'<option value="'+(k+1)+'"'+((k+1)===need?' selected':'')+'>'+(k+1)+'</option>').join('')+
           '</select>'+
           '<span id="wkNeedTot'+i+'" style="font-size:.62rem;color:var(--mu)">/ '+nTot+' điều kiện, tính trên cả trang</span>'+
+          '<label style="font-size:.62rem;color:var(--mu);margin-left:8px">Chủ đề</label>'+
+          '<select '+(ed?'onchange="WK.setGroupTopic('+i+',this.value)"':'disabled')+
+            ' style="background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--tx);padding:5px 8px;font-size:.68rem">'+
+            '<option value=""'+(g.topicId?'':' selected')+'>— không —</option>'+
+            WK.cfg.topics.map(t=>'<option value="'+hesc(t.id)+'"'+(g.topicId===t.id?' selected':'')+' data-noi18n>'+hesc(t.name)+'</option>').join('')+
+          '</select>'+
           '<span style="flex:1"></span>'+
           (ed?'<button class="abtn abtn-sm abtn-ok" onclick="WK.saveGroup('+i+')">Lưu nhóm này</button>':'')+
         '</div>'+
