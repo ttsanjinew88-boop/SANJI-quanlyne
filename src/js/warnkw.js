@@ -216,16 +216,18 @@ const WK={
     if(!g.needed||g.needed<1)g.needed=1;
     if(g.needed>n)g.needed=n||1;
   },
-  addGroup(){
+  addGroup(topicId){
     if(!WK.canEdit())return;
     const name=prompt('Tên nhóm điều kiện (chữ này hiện trong ô cảnh báo: "Trùng ‹tên nhóm›"):');
     if(!name||!name.trim())return;
-    WK.cfg.promoGroups.push({
+    const g={
       id:'p'+Date.now().toString(36),
       name:name.trim(),
       color:WK.COLORS[WK.cfg.promoGroups.length%WK.COLORS.length],
       conditions:[],needed:1,enabled:true
-    });
+    };
+    if(topicId)g.topicId=topicId;
+    WK.cfg.promoGroups.push(g);
     WK.save('thêm nhóm '+name.trim());
   },
   renameGroup(i){
@@ -348,7 +350,7 @@ const WK={
       '<button class="abtn abtn-sm abtn-ghost" onclick="WK.push()">⟳ Đẩy lại</button>'+
       (CUR_PROFILE&&CUR_PROFILE.is_admin?'<button class="abtn abtn-sm abtn-ghost" onclick="WK.setExtId()">Mã extension</button>':'')+
       (ed?'<button class="abtn abtn-sm abtn-ghost" onclick="WK.importFile()">⬆ Nạp từ file</button>'+
-          '<button class="abtn abtn-sm abtn-pu" onclick="WK.addGroup()">+ Thêm nhóm</button>':'')+
+          '<button class="abtn abtn-sm abtn-pu" onclick="WK.addTopic()">+ Thêm chủ đề</button>':'')+
       '</div>';
 
     // Danh sách domain hậu đài — quyết định extension CHẠY Ở ĐÂU.
@@ -374,33 +376,6 @@ const WK={
        '</div>'+
        '</div>';
 
-    // CHỦ ĐỀ — mỗi chủ đề gom nhiều nhóm và mang MỘT lời nhắc, hiện TO + ĐỎ trong
-    // ô cảnh báo trên hậu đài để nhân viên không lướt qua.
-    h+='<div class="chart-card" style="margin-bottom:14px">'+
-       '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-bottom:'+(WK.cfg.topics.length?'10px':'0')+'">'+
-         '<span style="font-size:.76rem;font-weight:700;color:var(--tx)">Chủ đề &amp; lời nhắc</span>'+
-         '<span style="font-size:.62rem;color:var(--mu)">'+WK.cfg.topics.length+' chủ đề · lời nhắc hiện TO và ĐỎ trong ô cảnh báo</span>'+
-         '<span style="flex:1"></span>'+
-         (ed?'<button class="abtn abtn-sm abtn-pu" onclick="WK.addTopic()">+ Thêm chủ đề</button>':'')+
-       '</div>'+
-       WK.cfg.topics.map((t,ti)=>
-         '<div style="border:1px solid var(--border2);border-radius:8px;padding:10px 12px;margin-top:8px">'+
-           '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:7px">'+
-             '<span style="font-size:.76rem;font-weight:700;color:var(--tx)" data-noi18n>'+hesc(t.name)+'</span>'+
-             '<span style="font-size:.6rem;color:var(--mu)">'+WK.cfg.promoGroups.filter(g=>g.topicId===t.id).length+' nhóm</span>'+
-             '<span style="flex:1"></span>'+
-             (ed?'<button class="abtn abtn-sm abtn-ghost" onclick="WK.editTopic('+ti+')">✎ Tên</button>'+
-                 '<button class="abtn abtn-sm abtn-danger" onclick="WK.delTopic('+ti+')">Xóa</button>':'')+
-           '</div>'+
-           '<textarea id="wkTn'+ti+'" data-noi18n '+(ed?'':'readonly')+
-             ' placeholder="Lời nhắc hiện trong ô cảnh báo, VD: Trùng Lạm Dụng IP — cần kiểm tra IP kỹ"'+
-             ' style="width:100%;min-height:44px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--re);font-weight:700;padding:7px 10px;font-size:.74rem;font-family:inherit;resize:vertical">'+
-             hesc(t.note||'')+'</textarea>'+
-           (ed?'<div style="text-align:right;margin-top:6px"><button class="abtn abtn-sm abtn-ok" onclick="WK.saveTopicNote('+ti+')">Lưu lời nhắc</button></div>':'')+
-         '</div>').join('')+
-       (WK.cfg.topics.length?'':'<div style="font-size:.66rem;color:var(--mu);padding:8px 0 2px">Chưa có chủ đề nào. Nhóm không thuộc chủ đề vẫn tô bình thường, chỉ là không có lời nhắc.</div>')+
-       '</div>';
-
     // Bảng cú pháp — người soạn không phải nhớ, và nó khớp đúng content.js
     h+='<div class="chart-card" style="margin-bottom:14px;font-size:.68rem;color:var(--mu);line-height:1.9">'+
        '<b style="color:var(--tx)">Cách viết điều kiện</b> — mỗi dòng một điều kiện. Đủ số điều kiện đã đặt ở BẤT KỲ đâu trong trang là tô.<br>'+
@@ -409,18 +384,21 @@ const WK={
        '<code style="background:var(--card2);border:1px solid var(--border2);border-radius:4px;padding:1px 6px" data-noi18n>【NTK-TBA】</code> — hàng có chứa chuỗi này'+
        '</div>';
 
-    if(!gs.length){
+    if(!gs.length&&!WK.cfg.topics.length){
       h+='<div class="chart-card" style="text-align:center;color:var(--mu);padding:26px">'+
-         'Chưa có nhóm điều kiện nào.'+(ed?' Bấm “+ Thêm nhóm”, hoặc “⬆ Nạp từ file” nếu đã có sẵn trên máy nhân viên.':'')+'</div>';
+         'Chưa có chủ đề nào.'+(ed?' Bấm “+ Thêm chủ đề” để bắt đầu, hoặc “⬆ Nạp từ file” nếu đã có sẵn trên máy nhân viên.':'')+'</div>';
       b.innerHTML=h;return;
     }
 
-    gs.forEach((g,i)=>{
+    // Mỗi CHỦ ĐỀ là một khối, các nhóm của nó nằm LỒNG BÊN TRONG. Trước đây chủ đề
+    // nằm một thẻ riêng còn nhóm liệt kê phẳng bên dưới -> nhìn không ra nhóm nào
+    // thuộc chủ đề nào (user chê 06/09/2026).
+    const groupCard=(g,i)=>{
       const on=g.enabled!==false;
       const conds=(g.conditions||[]).filter(c=>String(c).trim());
       const nTot=conds.length||1;
       const need=Math.min(g.needed||1,nTot);
-      h+='<div class="chart-card" style="margin-bottom:12px;border-left:4px solid '+hesc(g.color||'#f97316')+(on?'':';opacity:.55')+'">'+
+      return '<div style="background:var(--card2);border:1px solid var(--border2);border-radius:9px;padding:12px 14px;margin-top:10px;border-left:4px solid '+hesc(g.color||'#f97316')+(on?'':';opacity:.55')+'">'+
         '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-bottom:10px">'+
           '<span style="font-size:.86rem;font-weight:700;color:var(--tx)" data-noi18n>'+hesc(g.name)+'</span>'+
           '<span style="font-size:.62rem;color:var(--mu)">cần đủ '+need+'/'+nTot+' điều kiện '+
@@ -435,7 +413,7 @@ const WK={
         '</div>'+
         '<label style="display:block;font-size:.62rem;color:var(--mu);margin-bottom:4px">Điều kiện — mỗi dòng một điều kiện</label>'+
         '<textarea id="wkCond'+i+'" data-noi18n '+(ed?'oninput="WK.syncNeed('+i+')"':'readonly')+
-          ' style="width:100%;min-height:86px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--tx);padding:8px 10px;font-size:.72rem;font-family:ui-monospace,monospace;resize:vertical">'+
+          ' style="width:100%;min-height:86px;background:var(--card);border:1px solid var(--border2);border-radius:8px;color:var(--tx);padding:8px 10px;font-size:.72rem;font-family:ui-monospace,monospace;resize:vertical">'+
           hesc(conds.join('\n'))+'</textarea>'+
         '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px">'+
           '<label style="font-size:.62rem;color:var(--mu)">Cần đủ</label>'+
@@ -443,9 +421,9 @@ const WK={
             Array.from({length:nTot},(_,k)=>'<option value="'+(k+1)+'"'+((k+1)===need?' selected':'')+'>'+(k+1)+'</option>').join('')+
           '</select>'+
           '<span id="wkNeedTot'+i+'" style="font-size:.62rem;color:var(--mu)">/ '+nTot+' điều kiện, tính trên cả trang</span>'+
-          '<label style="font-size:.62rem;color:var(--mu);margin-left:8px">Chủ đề</label>'+
+          '<label style="font-size:.62rem;color:var(--mu);margin-left:8px">Chuyển sang chủ đề</label>'+
           '<select '+(ed?'onchange="WK.setGroupTopic('+i+',this.value)"':'disabled')+
-            ' style="background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--tx);padding:5px 8px;font-size:.68rem">'+
+            ' style="background:var(--card);border:1px solid var(--border2);border-radius:8px;color:var(--tx);padding:5px 8px;font-size:.68rem">'+
             '<option value=""'+(g.topicId?'':' selected')+'>— không —</option>'+
             WK.cfg.topics.map(t=>'<option value="'+hesc(t.id)+'"'+(g.topicId===t.id?' selected':'')+' data-noi18n>'+hesc(t.name)+'</option>').join('')+
           '</select>'+
@@ -453,7 +431,42 @@ const WK={
           (ed?'<button class="abtn abtn-sm abtn-ok" onclick="WK.saveGroup('+i+')">Lưu nhóm này</button>':'')+
         '</div>'+
       '</div>';
+    };
+
+    // Từng CHỦ ĐỀ: tiêu đề + lời nhắc + các nhóm của nó nằm bên trong
+    WK.cfg.topics.forEach((t,ti)=>{
+      const mine=gs.map((g,i)=>({g,i})).filter(x=>x.g.topicId===t.id);
+      h+='<div class="chart-card" style="margin-bottom:14px;border-left:4px solid var(--re)">'+
+        '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px">'+
+          '<span style="font-size:.9rem;font-weight:700;color:var(--tx);letter-spacing:.03em" data-noi18n>'+hesc(t.name)+'</span>'+
+          '<span style="font-size:.62rem;color:var(--mu)">'+mine.length+' nhóm</span>'+
+          '<span style="flex:1"></span>'+
+          (ed?'<button class="abtn abtn-sm abtn-ghost" onclick="WK.editTopic('+ti+')">✎ Tên</button>'+
+              '<button class="abtn abtn-sm abtn-pu" onclick="WK.addGroup(\''+hesc(t.id)+'\')">+ Thêm nhóm</button>'+
+              '<button class="abtn abtn-sm abtn-danger" onclick="WK.delTopic('+ti+')">Xóa chủ đề</button>':'')+
+        '</div>'+
+        '<label style="display:block;font-size:.62rem;color:var(--mu);margin:10px 0 4px">Lời nhắc — hiện TO và ĐỎ trong ô cảnh báo khi nhóm bất kỳ của chủ đề này trùng</label>'+
+        '<textarea id="wkTn'+ti+'" data-noi18n '+(ed?'':'readonly')+
+          ' placeholder="VD: Trùng Lạm Dụng IP — cần kiểm tra IP kỹ"'+
+          ' style="width:100%;min-height:44px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--re);font-weight:700;padding:7px 10px;font-size:.74rem;font-family:inherit;resize:vertical">'+
+          hesc(t.note||'')+'</textarea>'+
+        (ed?'<div style="text-align:right;margin-top:6px"><button class="abtn abtn-sm abtn-ok" onclick="WK.saveTopicNote('+ti+')">Lưu lời nhắc</button></div>':'')+
+        (mine.length?mine.map(x=>groupCard(x.g,x.i)).join('')
+          :'<div style="font-size:.66rem;color:var(--mu);text-align:center;padding:14px 0 4px">Chủ đề này chưa có nhóm nào.</div>')+
+      '</div>';
     });
+
+    // Nhóm chưa gán chủ đề — vẫn tô bình thường, chỉ là không có lời nhắc
+    const orphan=gs.map((g,i)=>({g,i})).filter(x=>!WK.cfg.topics.some(t=>t.id===x.g.topicId));
+    if(orphan.length){
+      h+='<div class="chart-card" style="margin-bottom:14px;border-left:4px solid var(--mu2)">'+
+        '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px">'+
+          '<span style="font-size:.9rem;font-weight:700;color:var(--mu)">Chưa thuộc chủ đề nào</span>'+
+          '<span style="font-size:.62rem;color:var(--mu)">'+orphan.length+' nhóm · vẫn tô bình thường, chỉ là không có lời nhắc</span>'+
+        '</div>'+
+        orphan.map(x=>groupCard(x.g,x.i)).join('')+
+      '</div>';
+    }
 
     if(!ed)h+='<div style="font-size:.66rem;color:var(--mu);text-align:center;padding:6px">Bạn có quyền XEM. Sửa nhóm điều kiện: ADMIN hoặc Tổ Trưởng.</div>';
     h+='<div style="font-size:.62rem;color:var(--mu2);text-align:center;padding:10px 6px 2px">Nhóm TỪ KHÓA trong extension do nhân viên tự quản lý — hệ thống không đụng tới.</div>';
