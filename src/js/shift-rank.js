@@ -132,6 +132,8 @@ function rWork(){
     const what=r.type==='half'?`OFF đột xuất <b style="color:#f87171">0.5 ngày</b> (ngày ${r.day})`:r.type==='full'?`OFF đột xuất <b style="color:#f87171">1 ngày</b> (ngày ${r.day})`:`Chuyển OFF <b style="color:var(--go)">ngày ${r.day} → ${r.to}</b>`;
     return `<div style="padding:5px 0;border-bottom:1px solid rgba(30,37,69,.5)"><b style="color:var(--tx)">${FK_NAMES[r.fk]||r.fk}</b> · ${what} · <span style="color:var(--mu)">${t} · bởi ${(r.by||'').toUpperCase()}</span></div>`;
   }).join(''):'<div style="color:var(--mu);padding:5px 0">Chưa có báo cáo nào trong tháng.</div>';
+  // Lịch sử hoàn tác: nạp LƯỜI, chỉ khi đổi sang tháng chưa nạp (không gọi lại mỗi lần render).
+  if(WK_UNDO_MONTH!==CUR_MONTH){WK_UNDO=null;wkLoadUndo();}else rWkUndo();
 }
 // ===== TỰ ĐỘNG PHÂN CÔNG: DD ĐỀU TRƯỚC, KM/HT bù sau (đổi 01/09/2026) =====
 // Luật nghiệp vụ giữ nguyên: mỗi ngày mỗi ca 1 KM + 1 HT (nếu đủ người), phần còn lại DD,
@@ -269,8 +271,14 @@ function wkOffTypeChange(){
   document.getElementById('wkOffToRow').style.display=t==='move'?'flex':'none';
   document.getElementById('wkOffDayLbl').textContent=t==='move'?'Ngày đang OFF:':'Ngày OFF:';
 }
+// ⚠ ĐI QUA RPC shift_off_report, KHÔNG ghi thẳng bảng reports (chốt 08/09/2026).
+// Nhân viên chỉ có quyền XEM tab Phân Ca nên RLS chặn ghi type='work' — trước đây
+// logAction() vẫn ghi được nên tab Lịch Sử có dòng mà dữ liệu thì không, F5 là mất, mà
+// giao diện vẫn báo "✓" vì save chạy sau lưng qua setTimeout và nuốt lỗi vào console.
+// Nay: await, chỉ đóng hộp thoại khi server nhận thật; lỗi hiện đỏ ngay tại chỗ.
 async function wkOffConfirm(){
   const msg=document.getElementById('wkOffMsg');
+  const btn=document.getElementById('wkOffBtn');
   const fk=document.getElementById('wkOffFk').value;
   const type=document.getElementById('wkOffType').value;
   const d=Number(document.getElementById('wkOffDay').value);
@@ -284,33 +292,38 @@ async function wkOffConfirm(){
     if(((WORK[fk]||{})[d])!=='OFF'){msg.textContent=FK_NAMES[fk]+' không OFF vào ngày '+d+' — kiểm tra lại';return;}
     if(((WORK[fk]||{})[to])==='OFF'){msg.textContent='Ngày '+to+' đã là ngày OFF sẵn';return;}
   }
-  const by=(CUR_PROFILE.username||'').toUpperCase();
-  if(!WORK._reports)WORK._reports=[];
-  const rec={fk,type,day:d,at:new Date().toISOString(),by:CUR_PROFILE.username};
-  if(type==='half'){
-    WORK._reports.push(rec);
-    logAction('Báo cáo OFF đột xuất','0.5 ngày · '+FK_NAMES[fk]+' · ngày '+d+'/'+dispMonth(CUR_MONTH)+' · bởi '+by+' (không đổi bảng phân công, trừ 0.5 vào Tổng ngày làm)');
-  }else if(type==='full'){
+  // Dựng lưới ĐỀ XUẤT trong RAM (giữ MỘT bản thuật toán phân công, ở client) rồi gửi
+  // server duyệt. Server đối chiếu với lưới trên cloud: cấm đụng ngày nghỉ và quá khứ.
+  const backup=JSON.parse(JSON.stringify(WORK));
+  let grid=null;
+  if(type!=='half'){
     if(!WORK[fk])WORK[fk]={};
-    WORK[fk][d]='OFF';
-    WORK._reports.push(rec);
-    wkRebalanceFrom(d);
-    logAction('Báo cáo OFF đột xuất','1 ngày · '+FK_NAMES[fk]+' · ngày '+d+'/'+dispMonth(CUR_MONTH)+' · bởi '+by+' · đã tự cân bằng phân công từ ngày '+d);
-  }else{
-    rec.to=to;
-    delete WORK[fk][d];
-    if(!WORK[fk])WORK[fk]={};
-    WORK[fk][to]='OFF';
-    WORK._reports.push(rec);
-    const from=Math.min(d,to);
-    wkRebalanceFrom(from);
-    logAction('Chuyển ngày OFF',FK_NAMES[fk]+' · từ ngày '+d+' sang ngày '+to+'/'+dispMonth(CUR_MONTH)+' · bởi '+by+' · đã tự cân bằng từ ngày '+from);
+    if(type==='move')delete WORK[fk][d];
+    WORK[fk][type==='move'?to:d]='OFF';
+    wkRebalanceFrom(type==='move'?Math.min(d,to):d);
+    grid=WORK;
   }
-  clearTimeout(_wkTimer);
-  _wkTimer=setTimeout(_saveWork,600);
-  rWork();
-  document.getElementById('wkOffModal').style.display='none';
-  setCloudStatus('Đã ghi nhận báo cáo OFF ✓');
+  msg.style.color='var(--mu2)';msg.textContent='Đang gửi lên cloud...';
+  if(btn)btn.disabled=true;
+  try{
+    const r=await SB.client().rpc('shift_off_report',{
+      p_month:CUR_MONTH,p_fk:fk,p_type:type,p_day:d,
+      p_to:type==='move'?to:null,p_grid:grid,p_name:FK_NAMES[fk]||fk});
+    if(r.error)throw r.error;
+    WORK=r.data||WORK;           // lấy đúng bản server đã ghi, không tin RAM nữa
+    rWork();
+    wkLoadUndo();
+    document.getElementById('wkOffModal').style.display='none';
+    setCloudStatus('Đã ghi nhận báo cáo OFF ✓');
+  }catch(e){
+    console.error('wkOffConfirm',e);
+    WORK=backup;rWork();          // server từ chối -> trả RAM về nguyên trạng
+    const em=String(e.message||e.hint||'lỗi không rõ');
+    msg.style.color='var(--re)';
+    // "Không được ..." = server thấy lưới gửi lên lệch với bản trên cloud -> thường do
+    // người khác vừa sửa phân công, tải lại trang là hết.
+    msg.textContent='Chưa lưu được: '+em+(/^Không được/.test(em)?' — bảng phân công có thể vừa được người khác sửa, hãy tải lại trang (F5) rồi báo lại.':'');
+  }finally{if(btn)btn.disabled=false;}
 }
 
 // ===== DÁN TỪ EXCEL (phân công / điểm duyệt đơn / điểm KM) =====
@@ -403,14 +416,79 @@ function wkSet(fk,d,v){
   _wkTimer=setTimeout(_saveWork,1200);
   rWork();
 }
+// Ghi phân công qua RPC work_save (KHÔNG ghi thẳng bảng nữa): server ghi dữ liệu VÀ
+// chụp một mốc hoàn tác trong cùng một transaction — xem supabase_shift_off.sql.
 async function _saveWork(){
   if(!SB.ready()||!CUR_MONTH)return;
+  const det=_wkChanges.join(' | ');
   try{
-    await SB.saveReport('work',CUR_MONTH,WORK);
+    const r=await SB.client().rpc('work_save',{p_month:CUR_MONTH,p_data:WORK,p_what:(det||'Cập nhật phân công').slice(0,200)});
+    if(r.error)throw r.error;
+    _wkChanges=[];
     setCloudStatus('Đã lưu công việc ngày tháng '+dispMonth(CUR_MONTH)+' ✓');
-    const det=_wkChanges.join(' | ');_wkChanges=[];
     if(det)logAction('Công việc mỗi ngày','Tháng '+dispMonth(CUR_MONTH)+' · '+det.slice(0,600));
-  }catch(e){console.error('_saveWork',e);setCloudStatus('Lỗi lưu công việc ngày',true);}
+    wkLoadUndo();
+  }catch(e){console.error('_saveWork',e);setCloudStatus('Lỗi lưu công việc ngày: '+(e.message||e),true);}
+}
+// ===== LỊCH SỬ PHÂN CA — HOÀN TÁC / LÀM LẠI (chốt 08/09/2026) =====
+// Mốc lưu ở report type='work_undo' month=YYYY-MM = {cur, snaps:[{at,by,what,g,r}]}.
+// snaps[cur] LUÔN bằng dữ liệu đang sống ⇒ lùi/tiến chỉ dời con trỏ, KHÔNG đẻ mốc mới
+// (đẻ mốc là mất đường làm lại). Ảnh chụp nén dạng văn bản ~1KB, giữ 5 bước mỗi chiều.
+// Hoàn tác chỉ CHÉP LẠI ảnh chụp, KHÔNG chạy lại wkAssignCore — thuật toán có bước xáo
+// ngẫu nhiên nên chạy lại sẽ ra lưới khác, tức là không hoàn tác được gì.
+let WK_UNDO=null,WK_UNDO_MONTH=null;
+async function wkLoadUndo(){
+  if(!SB.ready()||!CUR_MONTH)return;
+  WK_UNDO_MONTH=CUR_MONTH;
+  // Nhân viên không thấy thẻ này -> khỏi tải cho tốn một lượt gọi
+  if(CUR_PROFILE&&!canEdit('shift')){WK_UNDO=null;rWkUndo();return;}
+  try{WK_UNDO=await SB.loadReport('work_undo',CUR_MONTH);}catch(e){console.error('wkLoadUndo',e);WK_UNDO=null;}
+  rWkUndo();
+}
+function wkUndoCur(){
+  const s=(WK_UNDO&&Array.isArray(WK_UNDO.snaps))?WK_UNDO.snaps:[];
+  const c=WK_UNDO&&Number.isInteger(WK_UNDO.cur)?WK_UNDO.cur:s.length-1;
+  return{snaps:s,cur:Math.max(0,Math.min(c,s.length-1))};
+}
+function rWkUndo(){
+  const card=document.getElementById('wkUndoCard');if(!card)return;
+  const lead=CUR_PROFILE?canEdit('shift'):false;
+  card.style.display=lead?'':'none';
+  if(!lead)return;
+  const{snaps,cur}=wkUndoCur();
+  const back=snaps.length?cur:0,fwd=snaps.length?snaps.length-1-cur:0;
+  const bBtn=document.getElementById('wkUndoBtn'),fBtn=document.getElementById('wkRedoBtn');
+  if(bBtn)bBtn.disabled=back<1;
+  if(fBtn)fBtn.disabled=fwd<1;
+  const cnt=document.getElementById('wkUndoCnt');
+  if(cnt)cnt.textContent=snaps.length?('Còn '+back+' bước hoàn tác · '+fwd+' bước làm lại'):'';
+  const el=document.getElementById('wkUndoList');
+  if(!el)return;
+  if(!snaps.length){el.innerHTML='<div style="color:var(--mu);padding:5px 0">Chưa có mốc nào — mốc đầu tiên được tạo khi có thay đổi phân công.</div>';return;}
+  el.innerHTML=snaps.map((s,i)=>{
+    const t=s.at?new Date(s.at).toLocaleString('vi-VN',{timeZone:'Asia/Bangkok',hour12:false,day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+    const on=i===cur;
+    return `<div style="padding:5px 0;border-bottom:1px solid rgba(30,37,69,.5);${on?'background:'+ha('#7c3aed',.12)+';border-radius:6px;padding-left:8px':''}">`+
+      (on?'<b style="color:var(--pu2)">▸ ĐANG XEM</b> · ':'')+
+      `<b style="color:var(--tx)">${hesc(s.what||'?')}</b> · `+
+      `<span style="color:var(--mu)">${t} · bởi ${hesc(String(s.by||'').toUpperCase())}</span></div>`;
+  }).reverse().join('');
+}
+async function wkUndoStep(dir){
+  if(!canEdit('shift')){alert('Chỉ Tổ Trưởng / ADMIN được hoàn tác phân công.');return;}
+  const{snaps,cur}=wkUndoCur();
+  const t=cur+dir;
+  if(t<0||t>=snaps.length){alert(dir<0?'Đã ở mốc cũ nhất còn lưu.':'Đã ở mốc mới nhất.');return;}
+  const lbl=(snaps[t]&&snaps[t].what)||'?';
+  if(!confirm((dir<0?'HOÀN TÁC':'LÀM LẠI')+' phân công về mốc:\n\n'+lbl+'\n\nToàn bộ bảng phân công (và danh sách báo cáo OFF) sẽ được thay bằng bản đã lưu tại mốc này.\n\nTiếp tục?'))return;
+  try{
+    const r=await SB.client().rpc('work_undo_step',{p_month:CUR_MONTH,p_dir:dir});
+    if(r.error)throw r.error;
+    WORK=r.data||{};
+    await wkLoadUndo();
+    rWork();
+    setCloudStatus('Đã '+(dir<0?'hoàn tác':'làm lại')+' phân công ✓');
+  }catch(e){console.error('wkUndoStep',e);alert('Không thực hiện được: '+(e.message||e));}
 }
 function rShift(){
   // 3 ca: Sáng (cyan) / Trung (tím nhạt) / Gãy (hổ phách) — dùng chung cho Duyệt Đơn & KM

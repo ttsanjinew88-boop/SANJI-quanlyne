@@ -643,6 +643,18 @@
         <div id="wkReports" style="font-size:.66rem;color:var(--mu2)"></div>
       </div>
     </div>
+    <!-- LỊCH SỬ PHÂN CA: hoàn tác / làm lại tối đa 5 bước (Tổ Trưởng + ADMIN) -->
+    <div class="chart-card" id="wkUndoCard" style="display:none;margin-top:14px">
+      <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <span>Lịch sử phân công — hoàn tác</span>
+        <span style="display:flex;gap:8px;align-items:center">
+          <span id="wkUndoCnt" style="font-size:.6rem;color:var(--mu);text-transform:none;letter-spacing:0"></span>
+          <button id="wkUndoBtn" class="abtn abtn-sm abtn-pu" onclick="wkUndoStep(-1)">◀ Hoàn tác</button>
+          <button id="wkRedoBtn" class="abtn abtn-sm abtn-pu" onclick="wkUndoStep(1)">Làm lại ▶</button>
+        </span>
+      </div>
+      <div id="wkUndoList" style="font-size:.66rem;color:var(--mu2)"></div>
+    </div>
   </div>
 </div>
 
@@ -668,7 +680,7 @@
     </div>
     <div id="wkOffMsg" style="font-size:.68rem;min-height:16px;margin:10px 0;font-weight:600"></div>
     <div style="display:flex;gap:10px">
-      <button class="upload-btn" onclick="wkOffConfirm()">Xác nhận báo cáo</button>
+      <button class="upload-btn" id="wkOffBtn" onclick="wkOffConfirm()">Xác nhận báo cáo</button>
       <button onclick="document.getElementById('wkOffModal').style.display='none'" class="abtn abtn-ghost">Đóng</button>
     </div>
   </div>

@@ -473,6 +473,19 @@ const I18N={
   "Chưa chọn ngày chuyển tới":"No target day selected",
   "Ngày chuyển tới phải khác ngày đang OFF":"The target day must differ from the current OFF day",
   "Đã ghi nhận báo cáo OFF ✓":"OFF report recorded ✓",
+  "Đang gửi lên cloud...":"Sending to cloud...",
+  "Lịch sử phân công — hoàn tác":"Assignment history — undo",
+  "◀ Hoàn tác":"◀ Undo",
+  "Làm lại ▶":"Redo ▶",
+  "Chưa có mốc nào — mốc đầu tiên được tạo khi có thay đổi phân công.":"No checkpoints yet — the first one is created when the assignments change.",
+  "▸ ĐANG XEM":"▸ CURRENT",
+  "Trạng thái ban đầu":"Initial state",
+  "Cập nhật phân công":"Assignment update",
+  "Chỉ Tổ Trưởng / ADMIN được hoàn tác phân công.":"Only Team Leader / ADMIN can undo assignments.",
+  "Đã ở mốc cũ nhất còn lưu.":"Already at the oldest stored checkpoint.",
+  "Đã ở mốc mới nhất.":"Already at the newest checkpoint.",
+  "Đã hoàn tác phân công ✓":"Assignments undone ✓",
+  "Đã làm lại phân công ✓":"Assignments redone ✓",
   "Đã lưu công việc ngày tháng":"Daily duties saved",
   "Lỗi lưu công việc ngày":"Failed to save daily duties",
   "Bạn cần quyền xem tab Phân Ca.":"You need view permission for the Shifts tab.",
@@ -1231,6 +1244,8 @@ const I18N={
     /* ⚠ THỨ TỰ QUAN TRỌNG: luật CỤ THỂ phải đứng trước luật tổng quát (vd ^Tháng (.+)$) */
     /* T4 — Quy Trình Làm Việc: chuỗi do JS ghép có kèm SỐ nên phải khớp bằng regex */
     /* ⚠ trs() TRIM chuỗi trước khi khớp -> regex KHÔNG được có khoảng trắng ở hai đầu */
+    /* Phân Ca — lịch sử hoàn tác */
+    [/^Còn (\d+) bước hoàn tác · (\d+) bước làm lại$/,"$1 undo step(s) · $2 redo step(s) left"],
     /* T23 tab Điều Kiện Cảnh Báo: chuỗi ghép kèm SỐ */
     [/^(\d+) nhóm điều kiện$/,"$1 condition groups"],
     [/^(\d+) domain · extension CHỈ chạy trên các trang này$/,"$1 domains · the extension runs ONLY on these sites"],
