@@ -9649,7 +9649,7 @@ const WK={
   // (Supabase không ghi đè, upload trùng tên sẽ đẻ ra "canhbaone (1).zip"),
   // và sửa EXT_VER ở đây cho khớp manifest để nhân viên biết máy mình cũ hay mới.
   EXT_ZIP:'https://dntqyipgpuibkaarhqcc.supabase.co/storage/v1/object/public/CanhBaoNe/canhbaone.zip',
-  EXT_VER:'1.4',
+  EXT_VER:'1.5',
 
   canEdit(){return !!(CUR_PROFILE&&(CUR_PROFILE.is_admin||roleOf(CUR_PROFILE).key==='totruong'));},
   visible(){const el=document.getElementById('tkw');return !!(el&&el.style.display!=='none');},
@@ -9749,9 +9749,18 @@ const WK={
 
   shown(){ if(!WK.booted)WK.boot(); else WK.render(); },
 
+  // Extension vừa được CÀI/BẬT LẠI trên máy này thì nó gọi hàm này (background.js
+  // chèn lệnh vào trang dashboard đang mở) để xin dữ liệu ngay, khỏi phải chờ ai đó
+  // bấm Lưu trên dashboard mới có nhóm điều kiện.
+  // ⚠ PHẢI đi qua boot() khi chưa nạp xong: gọi thẳng push() lúc WK.cfg còn rỗng là
+  // đẩy danh sách RỖNG sang extension, xoá sạch nhóm điều kiện trên máy đó.
+  // Chưa đăng nhập thì boot() tự thoát sớm, lát nữa applyPerms sẽ đẩy.
+  syncNow(){ if(WK.booted)WK.push(); else WK.boot(); },
+
   // ===== Domain hậu đài (extension chạy ở đâu) =====
-  // Nhận cả "https://cxy.jdtmb.com/", "cxy.jdtmb.com:8080/abc", "*.jdtmb.com"
+  // Nhận cả "https://abc.example.com/", "abc.example.com:8080/xyz", "*.example.com"
   // -> nhân viên dán thẳng URL trên thanh địa chỉ là được, khỏi phải tự cắt.
+  // ⚠ ĐỪNG ghi domain hậu đài thật vào đây — repo này PUBLIC (GitHub Pages gói Free).
   _host(s){
     return String(s||'').trim().toLowerCase()
       .replace(/^[a-z][a-z0-9+.-]*:\/\//,'')   // bỏ scheme
