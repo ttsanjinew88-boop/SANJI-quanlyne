@@ -41,6 +41,13 @@ const WK={
 
   COLORS:['#ef4444','#f97316','#f59e0b','#22c55e','#06b6d4','#3b82f6','#7c3aed','#ec4899'],
 
+  // File cài đặt cho nhân viên (Supabase Storage, bucket công khai).
+  // ⚠ Ra bản mới: chạy dong-goi.ps1, XOÁ file zip cũ trên Supabase rồi upload bản mới
+  // (Supabase không ghi đè, upload trùng tên sẽ đẻ ra "canhbaone (1).zip"),
+  // và sửa EXT_VER ở đây cho khớp manifest để nhân viên biết máy mình cũ hay mới.
+  EXT_ZIP:'https://dntqyipgpuibkaarhqcc.supabase.co/storage/v1/object/public/CanhBaoNe/canhbaone.zip',
+  EXT_VER:'1.4',
+
   canEdit(){return !!(CUR_PROFILE&&(CUR_PROFILE.is_admin||roleOf(CUR_PROFILE).key==='totruong'));},
   visible(){const el=document.getElementById('tkw');return !!(el&&el.style.display!=='none');},
 
@@ -352,6 +359,30 @@ const WK={
       (ed?'<button class="abtn abtn-sm abtn-ghost" onclick="WK.importFile()">⬆ Nạp từ file</button>'+
           '<button class="abtn abtn-sm abtn-pu" onclick="WK.addTopic()">+ Thêm chủ đề</button>':'')+
       '</div>';
+
+    // Khối CÀI EXTENSION — mọi vai trò đều thấy, vì ai cũng phải tự cài trên máy mình.
+    // ⚠ Phát hành bằng ZIP + "Tải tiện ích đã giải nén", KHÔNG phải .crx: Chrome chặn
+    // cài .crx ngoài Web Store trên máy thường (CRX_REQUIRED_PROOF_MISSING), mà ép cài
+    // bằng chính sách thì đòi máy phải thuộc doanh nghiệp được quản lý (đã thử 08/09/2026).
+    h+='<div class="chart-card" style="margin-bottom:14px">'+
+       '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px">'+
+         '<span style="font-size:.76rem;font-weight:700;color:var(--tx)">Cài extension trên máy</span>'+
+         '<span style="font-size:.62rem;color:var(--mu)">bản '+hesc(WK.EXT_VER)+' · làm một lần cho mỗi máy</span>'+
+         '<span style="flex:1"></span>'+
+         '<a class="abtn abtn-sm abtn-pu" href="'+WK.EXT_ZIP+'" download data-noi18n>⬇ Tải Cảnh Báo NE</a>'+
+       '</div>'+
+       '<div style="font-size:.66rem;color:var(--mu);line-height:2">'+
+         '<b style="color:var(--tx)">1.</b> Bấm nút trên để tải file nén về máy.<br>'+
+         '<b style="color:var(--tx)">2.</b> Giải nén ra một thư mục <b>cố định</b>, ví dụ ổ C — '+
+           '<b style="color:var(--go)">xoá thư mục này là extension mất</b>, nên đừng để trong Downloads.<br>'+
+         '<b style="color:var(--tx)">3.</b> Mở Chrome, gõ <code style="background:var(--card2);border:1px solid var(--border2);border-radius:4px;padding:0 5px" data-noi18n>chrome://extensions</code> '+
+           'rồi bật <b>Chế độ nhà phát triển</b> ở góc trên bên phải.<br>'+
+         '<b style="color:var(--tx)">4.</b> Bấm <b>Tải tiện ích đã giải nén</b> và chọn thư mục vừa giải nén.<br>'+
+         '<b style="color:var(--tx)">5.</b> Vào <code style="background:var(--card2);border:1px solid var(--border2);border-radius:4px;padding:0 5px" data-noi18n>chrome://extensions/shortcuts</code> '+
+           'gán phím <b>Alt+Q</b> cho “Mở Cảnh Báo NE”.<br>'+
+         '<b style="color:var(--tx)">6.</b> Đang cài bản cũ thì <b>xoá bản cũ trước</b>, rồi làm lại từ bước 2.'+
+       '</div>'+
+       '</div>';
 
     // Danh sách domain hậu đài — quyết định extension CHẠY Ở ĐÂU.
     // Không khai trong manifest nữa: background.js đăng ký content script lúc chạy
