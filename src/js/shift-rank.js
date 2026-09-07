@@ -125,7 +125,8 @@ function rWork(){
   document.getElementById('wkLegend').innerHTML=Object.entries(WK_CODES).map(([k,c])=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px"><span style="background:${ha(c.col,.18)};color:${c.col};border:1px solid ${c.col};border-radius:10px;padding:3px 14px;font-size:.66rem;font-weight:800;min-width:48px;text-align:center">${k}</span><span style="font-size:.72rem;color:var(--mu2)">${c.full}</span></div>`).join('')
     +'<div style="font-size:.62rem;color:var(--mu);margin-top:6px">Tổng ngày làm = KM + DD + HT − 0.5 × số lần OFF nửa ngày · Tổng này tự cập nhật vào cột "Ngày làm việc" ở Tổng Quan.</div>';
   // Bảng báo cáo OFF / chuyển ngày gần đây
-  const reps=(WORK._reports||[]).slice(-10).reverse();
+  // Khung có thanh cuộn riêng (.wk-scroll) nên giữ được nhiều dòng hơn mà không đội thẻ.
+  const reps=(WORK._reports||[]).slice(-30).reverse();
   const repEl=document.getElementById('wkReports');
   if(repEl)repEl.innerHTML=reps.length?reps.map(r=>{
     const t=new Date(r.at).toLocaleString('vi-VN',{timeZone:'Asia/Bangkok',hour12:false,day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});

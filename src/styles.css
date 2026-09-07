@@ -255,6 +255,14 @@ td.sticky-col{position:sticky;left:0;background:#0b0e1e!important;z-index:3;text
 /* Mã phân công việc (DD/KM/HT/OFF/SN/HV) — form chữ chuẩn theo .fk-chip; màu đặt inline theo WK_CODES */
 .wk-code{font-family:inherit;font-size:.65rem;font-weight:700;line-height:1;border-radius:5px}
 select.wk-code{cursor:pointer;outline:none}
+/* Danh sách dài trong thẻ Chú thích công việc (lịch sử hoàn tác + báo cáo OFF):
+   cuộn TRONG khung thay vì kéo dài thẻ ra, để 2 cột trái/phải không lệch nhau. */
+.wk-scroll{max-height:190px;overflow-y:auto;padding-right:6px}
+.wk-scroll::-webkit-scrollbar{width:7px}
+.wk-scroll::-webkit-scrollbar-track{background:transparent}
+.wk-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.wk-scroll::-webkit-scrollbar-thumb:hover{background:var(--pu)}
+.wk-scroll{scrollbar-width:thin;scrollbar-color:var(--border2) transparent}
 
 /* RATIO */
 .ratio-bar{height:20px;border-radius:10px;overflow:hidden;display:flex;margin:6px 0 4px}
