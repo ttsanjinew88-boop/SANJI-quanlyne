@@ -194,6 +194,7 @@ Lấy nút của **T1 Hiệu Suất Nhân Viên** làm chuẩn. Đã quét toàn
 - `SB` (module) 1053: `saveReport` 1061, `uploadOriginals` 1067, `listReports` 1076, `loadReport` 1082.
 - Profile/quyền: `CUR_PROFILE` 1100, `canView` 1108, `canEdit` 1109, `curPerms` 1383, `applyPerms` 1388, `roleOf` 1117.
 - `logAction` 1111 (ghi audit) · `sessionExpired` 1125.
+- ⚠ **ĐĂNG XUẤT PHẢI LÀ `scope:'local'` (chốt 08/09/2026)**: `auth.signOut()` của supabase-js v2 mặc định `scope:'global'` ⇒ **thu hồi refresh token của tài khoản đó trên MỌI máy/MỌI tab**. Một người bấm "Quay lại" ở màn 2FA (`cancel2fa`), bị chặn IP, hết 12h, hay đăng xuất là các máy khác đang mở dashboard bị văng ra ở lần F5 / gia hạn token kế tiếp — nhân viên mô tả thành *"F5 nhiều lần là tự đăng xuất"*. Nay mọi lối thoát đi qua **`sbSignOutLocal()`** (auth.js, ngay dưới `sessionExpired`), gọi `signOut({scope:'local'})` và chỉ rơi về bản không scope nếu thư viện quá cũ. **Đừng gọi thẳng `auth.signOut()` ở bất kỳ đâu.** *Nguyên nhân còn lại chưa đụng tới (nếu vẫn tái diễn): F5 dồn dập đúng lúc token đang gia hạn ⇒ refresh token cũ đã bị tiêu thụ, bản mới chưa kịp ghi localStorage ⇒ `Invalid Refresh Token: Already Used` ⇒ thư viện tự xoá phiên; và mốc 12h `SESSION_MAX_MS` không được làm mới sau khi xác minh 2FA lúc khôi phục phiên.*
 - IP: `fetchMyIP` 1131, `ipAllowed` 1141, `showIpBlocked` 1152.
 - Login/2FA flow: `AUTH` init ~1160+ (đăng nhập, kiểm 2FA, ép thiết lập 2FA). QR: thư viện `qrcode-generator`.
 

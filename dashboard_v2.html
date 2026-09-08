@@ -3581,6 +3581,14 @@ function sessionExpired(){
   const at=Number(localStorage.getItem(LOGIN_AT_KEY)||0);
   return !at||Date.now()-at>SESSION_MAX_MS;
 }
+// ⚠ supabase-js v2: auth.signOut() KHÔNG truyền scope = 'global' -> THU HỒI refresh token của
+// tài khoản đó trên MỌI máy/MỌI tab. Chỉ cần 1 người bấm "Quay lại" ở màn 2FA hay đăng xuất là
+// các máy khác đang mở dashboard bị văng ra ở lần F5/gia hạn token kế tiếp (nhìn giống "F5 nhiều
+// lần là bị đăng xuất"). Luôn dùng hàm này -> chỉ xóa phiên TRÊN MÁY ĐANG THAO TÁC.
+async function sbSignOutLocal(){
+  try{await SB.client().auth.signOut({scope:'local'});}
+  catch(e){try{await SB.client().auth.signOut();}catch(e2){}} // thư viện quá cũ không nhận scope
+}
 // ===== WHITE IP: chỉ IP trong danh sách mới được đăng nhập =====
 let CUR_IP=null;
 async function fetchMyIP(){
@@ -3619,7 +3627,7 @@ const AUTH={
       return;
     }
     if(!(await ipAllowed())){
-      try{await SB.client().auth.signOut();}catch(e){}
+      await sbSignOutLocal();
       showIpBlocked();
       return;
     }
@@ -3628,7 +3636,7 @@ const AUTH={
       if(data&&data.session){
         if(sessionExpired()){
           // quá 12h -> buộc đăng nhập lại
-          await SB.client().auth.signOut();
+          await sbSignOutLocal();
           localStorage.removeItem(LOGIN_AT_KEY);
           document.getElementById('lg-err').textContent='Phiên đăng nhập đã hết hạn (12h) — vui lòng đăng nhập lại';
           return;
@@ -3764,7 +3772,7 @@ const AUTH={
   },
   copyEnrollSecret(){try{navigator.clipboard.writeText(AUTH._enrollSecret);}catch(e){}},
   async cancel2fa(){
-    try{await SB.client().auth.signOut();}catch(e){}
+    await sbSignOutLocal();
     AUTH._pendingUser=null;
     AUTH._reset2faStep();
     document.getElementById('lg-err').textContent='';
@@ -3794,7 +3802,7 @@ const AUTH={
       const{data,error}=await SB.client().from('profiles').select('*').eq('user_id',user.id).single();
       if(error||!data){
         document.getElementById('lg-err').textContent='Tài khoản chưa có hồ sơ quyền — liên hệ admin';
-        await SB.client().auth.signOut();
+        await sbSignOutLocal();
         return;
       }
       CUR_PROFILE=data;
@@ -3807,7 +3815,7 @@ const AUTH={
     }
   },
   async logout(){
-    try{await SB.client().auth.signOut();}catch(e){}
+    await sbSignOutLocal();
     localStorage.removeItem(LOGIN_AT_KEY);
     location.reload();
   }
