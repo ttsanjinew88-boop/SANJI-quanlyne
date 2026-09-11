@@ -222,8 +222,7 @@ function wkAutoAssign(){
   if(!confirm('TỰ ĐỘNG PHÂN CÔNG tháng '+dispMonth(CUR_MONTH||curMonthKey())+'?\n\n— Giữ nguyên các ô OFF / SN (sinh nhật) đã điền\n— ƯU TIÊN 1: chia đều DD giữa các nhân viên trong ca\n— ƯU TIÊN 2: KM và HT giao cho người đang DƯ DD, rồi mới cân bằng với nhau\n— Mỗi ngày mỗi ca: 1 KM + 1 HT, còn lại DD; tập DD luôn còn ≥1 fkvip\n— Ca chỉ còn 3 người có mặt: bỏ suất HT (1 KM + 2 DD) để DD không dồn hết cho fkvip\n— Thứ 2: mỗi người tối đa 1 lần KM/tháng\n\nPhân công cũ (không phải OFF) sẽ bị GHI ĐÈ.'))return;
   wkAssignCore(1);
   _wkChanges.push('Tự Động Phân Công toàn tháng');
-  clearTimeout(_wkTimer);
-  _wkTimer=setTimeout(_saveWork,800);
+  scheduleSave('wk',_saveWork,800);
   rWork();
   setCloudStatus('Đã tự động phân công tháng '+dispMonth(CUR_MONTH)+' ✓');
 }
@@ -235,8 +234,7 @@ function wkClearAll(){
   FK_KEYS.forEach(fk=>{if(WORK[fk])WORK[fk]={};});
   logAction('Xóa toàn bộ phân công','Tháng '+dispMonth(CUR_MONTH||curMonthKey())+' · bởi '+(CUR_PROFILE.username||'').toUpperCase());
   _wkChanges.push('Xóa toàn bộ phân công tháng');
-  clearTimeout(_wkTimer);
-  _wkTimer=setTimeout(_saveWork,800);
+  scheduleSave('wk',_saveWork,800);
   rWork();
   setCloudStatus('Đã xóa toàn bộ phân công tháng '+dispMonth(CUR_MONTH)+' ✓');
 }
@@ -384,7 +382,7 @@ function applyPaste(){
   }
   if(_pasteMode==='work'){
     _wkChanges.push('Dán từ Excel: '+applied+' ô');
-    clearTimeout(_wkTimer);_wkTimer=setTimeout(_saveWork,800);
+    scheduleSave('wk',_saveWork,800);
     rWork();
   }else{
     const ds=_pasteMode==='km'?KMD:D;
@@ -402,10 +400,10 @@ async function savePasteScores(src,n){
     await SB.saveReport(src,CUR_MONTH,src==='km'?KMD:D);
     setCloudStatus('Đã lưu điểm dán từ Excel ✓');
     logAction('Dán điểm từ Excel',(src==='km'?'Khuyến Mãi':'Duyệt Đơn')+' · tháng '+dispMonth(CUR_MONTH)+' · '+n+' ô');
-  }catch(e){console.error('savePasteScores',e);setCloudStatus('Lỗi lưu điểm dán',true);}
+  }catch(e){saveFailed('Điểm dán từ Excel ('+(src==='km'?'Khuyến Mãi':'Duyệt Đơn')+') tháng '+dispMonth(CUR_MONTH),e);}
 }
 
-let _wkTimer=null,_wkChanges=[];
+let _wkChanges=[];   // hẹn giờ lưu dùng scheduleSave('wk',…) — GẮN VỚI THÁNG (data-boot.js)
 function wkSet(fk,d,v){
   if(!canEdit('shift')){alert('Bạn chỉ có quyền XEM.');rWork();return;}
   const old=(WORK[fk]||{})[d]||'';
@@ -413,8 +411,7 @@ function wkSet(fk,d,v){
   if(!WORK[fk])WORK[fk]={};
   if(v)WORK[fk][d]=v;else delete WORK[fk][d];
   _wkChanges.push(FK_NAMES[fk]+' ngày '+d+': '+(old||'–')+' → '+(v||'–'));
-  clearTimeout(_wkTimer);
-  _wkTimer=setTimeout(_saveWork,1200);
+  scheduleSave('wk',_saveWork,1200);
   rWork();
 }
 // Ghi phân công qua RPC work_save (KHÔNG ghi thẳng bảng nữa): server ghi dữ liệu VÀ
@@ -429,7 +426,7 @@ async function _saveWork(){
     setCloudStatus('Đã lưu công việc ngày tháng '+dispMonth(CUR_MONTH)+' ✓');
     if(det)logAction('Công việc mỗi ngày','Tháng '+dispMonth(CUR_MONTH)+' · '+det.slice(0,600));
     wkLoadUndo();
-  }catch(e){console.error('_saveWork',e);setCloudStatus('Lỗi lưu công việc ngày: '+(e.message||e),true);}
+  }catch(e){saveFailed('Phân công công việc tháng '+dispMonth(CUR_MONTH),e);}
 }
 // ===== LỊCH SỬ PHÂN CA — HOÀN TÁC / LÀM LẠI (chốt 08/09/2026) =====
 // Mốc lưu ở report type='work_undo' month=YYYY-MM = {cur, snaps:[{at,by,what,g,r}]}.

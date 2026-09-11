@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kiểm tra tự động — Hệ Thống NE</title>
+<style>
+  :root{--bg:#0a0e1a;--card:#121a2e;--border:#1f2b47;--tx:#e2e8f0;--mu:#94a3b8;
+        --ok:#22c55e;--re:#ef4444;--pu:#7c3aed;--go:#f59e0b}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);
+       font:14px/1.6 system-ui,'Segoe UI',sans-serif;padding:24px}
+  h1{font-size:1.2rem;margin:0 0 4px;letter-spacing:.04em;text-transform:uppercase;color:#60a5fa}
+  .sub{color:var(--mu);font-size:.8rem;margin-bottom:18px}
+  #tong{padding:14px 18px;border-radius:10px;margin-bottom:18px;font-weight:700;font-size:1rem}
+  #tong.ok{background:rgba(34,197,94,.12);border:1px solid var(--ok);color:var(--ok)}
+  #tong.fail{background:rgba(239,68,68,.12);border:1px solid var(--re);color:var(--re)}
+  #tong.run{background:rgba(124,58,237,.12);border:1px solid var(--pu);color:#a78bfa}
+  .nhom{background:var(--card);border:1px solid var(--border);border-radius:10px;
+        padding:12px 16px;margin-bottom:12px}
+  .nhom h2{font-size:.72rem;margin:0 0 8px;letter-spacing:.06em;text-transform:uppercase;color:#60a5fa}
+  .ca{display:flex;gap:10px;padding:4px 0;font-size:.8rem;border-top:1px solid rgba(255,255,255,.04)}
+  .ca:first-of-type{border-top:0}
+  .ca .kq{flex:none;width:22px;font-weight:700}
+  .ca.p .kq{color:var(--ok)} .ca.f .kq{color:var(--re)}
+  .ca.f{background:rgba(239,68,68,.07);margin:0 -16px;padding-left:16px;padding-right:16px}
+  .ct{color:var(--mu);font-size:.74rem;margin-left:32px;white-space:pre-wrap}
+  .ghi{background:rgba(245,158,11,.08);border:1px solid var(--go);color:#fbbf24;
+       padding:10px 14px;border-radius:8px;font-size:.78rem;margin-bottom:16px}
+  code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:.9em}
+</style>
+</head>
+<body>
+
+<h1>Kiểm tra tự động — phần chấm điểm</h1>
+<div class="sub">
+  Trang này nạp <b>đúng những file mã nguồn thật</b> mà dashboard đang dùng
+  (<code>src/js/core.js</code>, <code>data-boot.js</code>, <code>upload.js</code>, <code>render.js</code>) rồi thử lại các quy tắc tính điểm.
+  Không sao chép code, nên sửa mã nguồn là trang này kiểm luôn bản mới.
+</div>
+
+<div class="ghi">
+  <b>Cách chạy:</b> mở PowerShell tại thư mục dự án, gõ <code>.\.claude\serve.ps1</code>,
+  rồi vào <code>http://localhost:8788/test/kiem-tra.html</code>.<br>
+  <b>Khi nào cần chạy:</b> mỗi lần sửa bất cứ thứ gì liên quan tới điểm số, upload Excel,
+  danh sách nhân viên, hoặc cộng dồn theo ngày. <b>Toàn bộ phải xanh trước khi commit.</b>
+</div>
+
+<div id="tong" class="run">Đang chạy…</div>
+<div id="kq"></div>
+
+<!-- Chỗ trống để mã nguồn thật gắn được sự kiện lúc nạp (upload.js cần #fh) -->
+<input type="file" id="fh" hidden>
+
+<!-- Chỗ trống cho menu chọn tháng (loadHistMonth đóng menu này trước khi đổi tháng) -->
+<div id="histDdMenu" hidden></div>
+
+<!-- ⚠ KHÔNG khai lại biến nào của mã nguồn ở đây (vd SB_URL): core.js dùng `const`,
+     khai trùng làm CẢ FILE không chạy và mọi phép kiểm tra đỏ vì "không tìm thấy hàm".
+     Bộ kiểm tra không gọi máy chủ thật — mọi lời gọi SB đều bị thay bằng máy chủ giả. -->
+<script>
+  /* BẢN GIẢ cho 3 thứ nằm trong file mà trang này KHÔNG nạp:
+       CUR_PROFILE, logAction  → src/js/auth.js   (nạp vào là chạy luồng đăng nhập + đồng hồ 60 giây)
+       rAll                    → src/js/nav-donrut.js (vẽ lại toàn bộ giao diện)
+     ⚠ Nếu sau này trang này nạp auth.js hoặc nav-donrut.js thì PHẢI XOÁ dòng tương ứng ở đây,
+       không thì file đó vỡ vì "already declared". */
+  let CUR_PROFILE=null;
+  async function logAction(){}
+  function rAll(){}
+</script>
+<script src="../src/js/core.js"></script>
+<script src="../src/js/data-boot.js"></script>
+<script src="../src/js/upload.js"></script>
+<script src="../src/js/render.js"></script>
+<script src="../src/js/shift-rank.js"></script>
+<script src="../src/js/admin.js"></script>
+
+<script>
+/* =====================================================================
+   BỘ KIỂM TRA — mỗi mục là một quy tắc nghiệp vụ đã từng gây sự cố thật.
+   Thêm quy tắc mới: gọi nhom('Tên nhóm') rồi ca('mô tả', ()=> ... )
+   ===================================================================== */
+let _dat=0,_hong=0,_nhom=null;
+const box=document.getElementById('kq');
+
+function nhom(ten){
+  _nhom=document.createElement('div');
+  _nhom.className='nhom';
+  _nhom.innerHTML='<h2>'+ten+'</h2>';
+  box.appendChild(_nhom);
+}
+function ghiKq(g,mota,ok,ct){
+  ok?_dat++:_hong++;
+  const d=document.createElement('div');
+  d.className='ca '+(ok?'p':'f');
+  d.innerHTML='<span class="kq">'+(ok?'✔':'✘')+'</span><span>'+mota+'</span>';
+  g.appendChild(d);
+  if(!ok){const c=document.createElement('div');c.className='ct';c.textContent=ct;g.appendChild(c);}
+}
+function ca(mota,fn){
+  let ok=true,ct='';
+  try{ fn(); }catch(e){ ok=false; ct=String(e&&e.message||e); }
+  ghiKq(_nhom,mota,ok,ct);
+}
+/* Phép kiểm BẤT ĐỒNG BỘ (hàm async): xếp hàng rồi chạy LẦN LƯỢT sau các phép kiểm thường,
+   để hai phép không giẫm lên biến dùng chung của nhau (ROSTER, SB, alert, CUR_MONTH…). */
+const _hangDoi=[];
+function caA(mota,fn){ _hangDoi.push({g:_nhom,mota,fn}); }
+
+/* Tạm thay hàm TOÀN CỤC (khai báo function / alert / prompt / confirm) bằng bản giả,
+   rồi trả lại nguyên trạng — kể cả khi phép kiểm ném lỗi giữa chừng. */
+async function voiGia(gia,fn){
+  const cu={};
+  for(const k in gia){cu[k]=window[k];window[k]=gia[k];}
+  try{ return await fn(); } finally { for(const k in cu)window[k]=cu[k]; }
+}
+/* Tạm thay phương thức của module SB — bộ kiểm tra KHÔNG BAO GIỜ gọi máy chủ thật */
+async function voiSB(gia,fn){
+  const cu={};
+  for(const k in gia){cu[k]=SB[k];SB[k]=gia[k];}
+  try{ return await fn(); } finally { for(const k in cu)SB[k]=cu[k]; }
+}
+async function voiThang(mk,fn){
+  const cu=CUR_MONTH; CUR_MONTH=mk;
+  try{ return await fn(); } finally { CUR_MONTH=cu; }
+}
+function bang(thuc,mong,nhan){
+  const a=JSON.stringify(thuc), b=JSON.stringify(mong);
+  if(a!==b)throw new Error((nhan?nhan+': ':'')+'nhận được '+a+' — đáng lẽ phải là '+b);
+}
+
+/* ---------- công cụ dựng dữ liệu giả ---------- */
+const z31=()=>new Array(31).fill(0), z24=()=>new Array(24).fill(0);
+function dsGia(keys){
+  const fd={};
+  keys.forEach(fk=>{fd[fk]={name:fk.toUpperCase(),group:'vip',total_score:0,total_count:0,
+    day_scores:z31(),day_counts:z31(),hour_scores_gmt7:z24(),hour_counts_gmt7:z24(),
+    hour_scores_gmt4:z24(),hbd7:m31x24(),cbd7:m31x24()};});
+  return{month:'',days_in_month:[],day_scores:z31(),day_counts:z31(),
+    hour_scores_gmt7:z24(),hour_counts_gmt7:z24(),hour_scores_gmt4:z24(),hour_counts_gmt4:z24(),
+    hbd7:m31x24(),cbd7:m31x24(),fk_data:fd,fkvip:keys.slice(),fkonl:[],roundV2:true};
+}
+/* Ghi 1 đơn vào ô thô ngày-giờ (ngày 1-based, giờ GMT+7) — đúng cách processChunks ghi */
+function themDon(ds,fk,ngay,gio,diem){
+  ds.hbd7[ngay-1][gio]+=diem; ds.cbd7[ngay-1][gio]+=1;
+  const f=ds.fk_data[fk];
+  f.hbd7[ngay-1][gio]+=diem; f.cbd7[ngay-1][gio]+=1;
+}
+/* Đổi roster tạm thời rồi trả về nguyên trạng */
+function voiRoster(keys,searchMap,fn){
+  const gK=FK_KEYS,gS=FK_SEARCH,gN=FK_NAMES,gV=FKVIP,gO=FKONL;
+  try{
+    FK_KEYS=keys.slice();
+    FK_SEARCH={};FK_NAMES={};
+    keys.forEach(k=>{FK_SEARCH[k]=(searchMap&&searchMap[k])||k;FK_NAMES[k]=k.toUpperCase();});
+    FKVIP=keys.slice();FKONL=[];
+    fn();
+  } finally { FK_KEYS=gK;FK_SEARCH=gS;FK_NAMES=gN;FKVIP=gV;FKONL=gO; }
+}
+
+/* =====================================================================
+   1. BẢNG TRẠNG THÁI ĐƠN
+   ===================================================================== */
+nhom('1. Trạng thái đơn — chỉ 3 loại được nhận vào hệ thống');
+
+ca('“Đã rút tiền” được tính là đơn rút', ()=> bang(donStatusKind('Đã rút tiền'),'rut'));
+ca('“Đã trả lại” và “Đã trả về” đều tính là trả', ()=>{
+  bang(donStatusKind('Đã trả lại'),'tra','trả lại');
+  bang(donStatusKind('đã trả về'),'tra','trả về');
+});
+ca('“Đã từ chối” được nhận (0 điểm nhưng vẫn đếm đơn)', ()=> bang(donStatusKind('Đã từ chối'),'tuchoi'));
+ca('Trạng thái lạ bị loại hẳn, không tính đơn', ()=>{
+  bang(donStatusKind('Đang xử lý'),null,'đang xử lý');
+  bang(donStatusKind(''),null,'rỗng');
+  bang(donStatusKind(null),null,'null');
+});
+ca('Không phân biệt hoa thường và khoảng trắng thừa', ()=>
+  bang(donStatusKind('  ĐÃ RÚT TIỀN  '),'rut'));
+
+/* =====================================================================
+   2. BẢNG ĐIỂM
+   ===================================================================== */
+nhom('2. Bảng điểm — số điểm mỗi đơn');
+
+ca('Đơn rút “phải”: 50–500 = 2đ · 501–4.999 = 3đ · 5.000–49.999 = 4đ · 50.000–500.000 = 5đ', ()=>{
+  bang(gsc('phải',50,'Đã rút tiền'),2,'mốc 50');
+  bang(gsc('phải',500,'Đã rút tiền'),2,'mốc 500');
+  bang(gsc('phải',501,'Đã rút tiền'),3,'mốc 501');
+  bang(gsc('phải',4999,'Đã rút tiền'),3,'mốc 4.999');
+  bang(gsc('phải',5000,'Đã rút tiền'),4,'mốc 5.000');
+  bang(gsc('phải',49999,'Đã rút tiền'),4,'mốc 49.999');
+  bang(gsc('phải',50000,'Đã rút tiền'),5,'mốc 50.000');
+  bang(gsc('phải',500000,'Đã rút tiền'),5,'mốc 500.000');
+});
+ca('Ngoài dải thì 0 điểm (dưới 50 và trên 500.000)', ()=>{
+  bang(gsc('phải',49,'Đã rút tiền'),0,'dưới 50');
+  bang(gsc('phải',500001,'Đã rút tiền'),0,'trên 500.000');
+});
+ca('Đơn lần đầu (cột B trống): dưới 100.000 = 1đ · từ 100.000 = 1,5đ', ()=>{
+  bang(gsc('',99999,'Đã rút tiền'),1,'dưới 100.000');
+  bang(gsc('',100000,'Đã rút tiền'),1.5,'từ 100.000');
+});
+ca('Đơn trả lại luôn được 1 điểm, không phụ thuộc số tiền', ()=>{
+  bang(gsc('phải',999999,'Đã trả lại'),1,'phải');
+  bang(gsc('',1,'Đã trả về'),1,'lần đầu');
+});
+ca('Đơn từ chối được 0 điểm', ()=> bang(gsc('phải',5000,'Đã từ chối'),0));
+ca('Trạng thái lạ được 0 điểm', ()=> bang(gsc('phải',5000,'Đang chờ duyệt'),0));
+
+/* =====================================================================
+   3. NHẬN DIỆN NHÂN VIÊN TỪ GHI CHÚ  (sự cố JADE mất 251 đơn)
+   ===================================================================== */
+nhom('3. Nhận diện nhân viên từ ghi chú Excel — chống “ăn” đơn của nhau');
+
+ca('Mã DÀI thắng mã ngắn nằm bên trong nó (fkolsam vs sam)', ()=>{
+  voiRoster(['fksam','fkolsam'],{fksam:'sam',fkolsam:'fkolsam'},()=>{
+    bang(mfk('duyet boi fkolsam ok'),'fkolsam','ghi chú chứa mã dài');
+    bang(mfk('duyet boi sam ok'),'fksam','ghi chú chỉ chứa mã ngắn');
+  });
+});
+ca('Không phân biệt hoa thường', ()=>{
+  voiRoster(['fkjade'],{fkjade:'fkjade'},()=> bang(mfk('DUYET BOI FKJADE'),'fkjade'));
+});
+ca('Ghi chú không khớp ai thì trả về rỗng (không gán bừa)', ()=>{
+  voiRoster(['fkjade'],{fkjade:'fkjade'},()=> bang(mfk('khong co ma nao'),null));
+});
+
+/* =====================================================================
+   4. LÀM TRÒN ĐIỂM  (quy tắc roundV2)
+   ===================================================================== */
+nhom('4. Làm tròn điểm — làm tròn LÊN theo từng ngày, tổng = cộng các ngày đã làm tròn');
+
+ca('Điểm lẻ 0,5 trong một ngày được làm tròn lên', ()=>{
+  const ds=dsGia(['fka']);
+  themDon(ds,'fka',5,10,1.5);
+  dsRecalcScores(ds);
+  bang(ds.fk_data.fka.day_scores[4],2,'ngày 5');
+  bang(ds.fk_data.fka.total_score,2,'tổng tháng');
+});
+ca('Tổng tháng = cộng các NGÀY đã làm tròn (không phải làm tròn tổng)', ()=>{
+  const ds=dsGia(['fka']);
+  themDon(ds,'fka',1,10,1.5);   // ngày 1: 1,5 -> 2
+  themDon(ds,'fka',2,10,1.5);   // ngày 2: 1,5 -> 2
+  dsRecalcScores(ds);
+  // Làm tròn từng ngày rồi cộng = 4. Nếu cộng thô rồi mới làm tròn thì ra 3 -> SAI.
+  bang(ds.fk_data.fka.total_score,4,'tổng tháng');
+});
+ca('Đếm số đơn KHÔNG bị làm tròn, giữ nguyên số nguyên', ()=>{
+  const ds=dsGia(['fka']);
+  themDon(ds,'fka',1,10,1.5); themDon(ds,'fka',1,11,1.5);
+  dsRecalcScores(ds);
+  bang(ds.fk_data.fka.total_count,2,'số đơn');
+  bang(ds.fk_data.fka.day_scores[0],3,'điểm ngày 1');
+});
+
+/* =====================================================================
+   5. BẤT BIẾN QUAN TRỌNG NHẤT
+   ===================================================================== */
+nhom('5. Bất biến — ba cách nạp dữ liệu phải ra CÙNG một kết quả');
+
+ca('Upload cả tháng một lần == cộng dồn từng ngày một', ()=>{
+  const don=[[1,9,1.5],[1,14,2],[2,10,3],[2,10,1.5],[3,20,4],[3,21,1.5]];
+  voiRoster(['fka'],null,()=>{
+    // Cách A: nạp cả tháng một lần
+    const A=dsGia(['fka']);
+    don.forEach(([d,h,v])=>themDon(A,'fka',d,h,v));
+    dsRecalcScores(A);
+    // Cách B: cộng dồn từng ngày, tính lại sau mỗi ngày
+    const B=dsGia(['fka']);
+    [1,2,3].forEach(ngay=>{
+      const them=dsGia(['fka']);
+      don.filter(x=>x[0]===ngay).forEach(([d,h,v])=>themDon(them,'fka',d,h,v));
+      dsRecalcScores(them);
+      dsAddInto(B,them);
+      dsRecalcScores(B);
+    });
+    bang(B.fk_data.fka.total_score,A.fk_data.fka.total_score,'tổng điểm');
+    bang(B.fk_data.fka.total_count,A.fk_data.fka.total_count,'tổng đơn');
+    bang(B.fk_data.fka.day_scores,A.fk_data.fka.day_scores,'điểm theo ngày');
+  });
+});
+
+ca('Xoá một ngày rồi nạp lại đúng ngày đó == chưa từng đụng vào', ()=>{
+  const don=[[1,9,1.5],[2,10,3],[2,11,2],[3,20,4]];
+  voiRoster(['fka'],null,()=>{
+    const goc=dsGia(['fka']);
+    don.forEach(([d,h,v])=>themDon(goc,'fka',d,h,v));
+    dsRecalcScores(goc);
+    const truoc=JSON.parse(JSON.stringify(goc.fk_data.fka.day_scores));
+    const tongTruoc=goc.fk_data.fka.total_score;
+
+    // Xoá ngày 2 rồi nạp lại chính ngày 2
+    dsSubtractDay(goc,2);
+    const lai=dsGia(['fka']);
+    don.filter(x=>x[0]===2).forEach(([d,h,v])=>themDon(lai,'fka',d,h,v));
+    dsAddInto(goc,lai);
+    dsRecalcScores(goc);
+
+    bang(goc.fk_data.fka.day_scores,truoc,'điểm theo ngày');
+    bang(goc.fk_data.fka.total_score,tongTruoc,'tổng điểm');
+  });
+});
+
+ca('Xoá một ngày thì các ngày khác KHÔNG bị ảnh hưởng', ()=>{
+  const ds=dsGia(['fka']);
+  themDon(ds,'fka',1,9,3); themDon(ds,'fka',2,10,5); themDon(ds,'fka',3,11,2);
+  dsRecalcScores(ds);
+  dsSubtractDay(ds,2);
+  dsRecalcScores(ds);
+  bang(ds.fk_data.fka.day_scores[0],3,'ngày 1');
+  bang(ds.fk_data.fka.day_scores[1],0,'ngày 2 (đã xoá)');
+  bang(ds.fk_data.fka.day_scores[2],2,'ngày 3');
+  bang(ds.fk_data.fka.total_score,5,'tổng tháng');
+  bang(ds.fk_data.fka.total_count,2,'tổng đơn');
+});
+
+/* =====================================================================
+   6. NHÂN VIÊN MỚI  (sự cố SAM / REVOR / LEWIN = 0 điểm)
+   ===================================================================== */
+nhom('6. Nhân viên thêm giữa tháng — không được mất đơn âm thầm');
+
+ca('Nhân viên mới được tạo đủ ô ngày-giờ khi mở lại tháng cũ', ()=>{
+  voiRoster(['fka','fkmoi'],null,()=>{
+    const ds=dsGia(['fka']);        // tháng cũ chỉ có fka
+    reconcileDataset(ds);
+    if(!ds.fk_data.fkmoi)throw new Error('nhân viên mới không được thêm vào dữ liệu tháng');
+    if(!ds.fk_data.fkmoi.hbd7)throw new Error('thiếu ô điểm ngày-giờ (hbd7) — cộng dồn sẽ bỏ qua người này');
+    if(!ds.fk_data.fkmoi.cbd7)throw new Error('thiếu ô đếm đơn ngày-giờ (cbd7)');
+  });
+});
+
+ca('Cộng dồn ngày mới KHÔNG bỏ sót nhân viên thêm sau lần upload đầu', ()=>{
+  voiRoster(['fka','fkmoi'],null,()=>{
+    const goc=dsGia(['fka']);       // dữ liệu cũ: chưa có fkmoi
+    themDon(goc,'fka',1,9,3);
+    dsRecalcScores(goc);
+    reconcileDataset(goc);          // bước bắt buộc trước khi cộng dồn
+
+    const them=dsGia(['fka','fkmoi']);
+    themDon(them,'fkmoi',2,10,4);
+    dsRecalcScores(them);
+    dsAddInto(goc,them);
+    dsRecalcScores(goc);
+
+    bang(goc.fk_data.fkmoi.total_score,4,'điểm nhân viên mới');
+    bang(goc.fk_data.fka.total_score,3,'điểm nhân viên cũ không đổi');
+  });
+});
+
+ca('Xoá một ngày vẫn trừ đúng cho nhân viên đã ẩn (không còn trong danh sách)', ()=>{
+  const ds=dsGia(['fka','fknghi']);
+  themDon(ds,'fka',1,9,3);
+  themDon(ds,'fknghi',1,10,5);
+  dsRecalcScores(ds);
+  voiRoster(['fka'],null,()=>{       // fknghi đã bị ẩn khỏi danh sách
+    dsSubtractDay(ds,1);
+    dsRecalcScores(ds);
+  });
+  bang(ds.fk_data.fknghi.total_score,0,'điểm người đã ẩn phải về 0');
+  bang(ds.fk_data.fknghi.total_count,0,'đơn người đã ẩn phải về 0');
+  bang(ds.day_scores[0],0,'tổng ngày 1 của cả tháng');
+});
+
+/* =====================================================================
+   7. DANH SÁCH NGÀY CÓ DỮ LIỆU
+   ===================================================================== */
+nhom('7. Danh sách ngày có dữ liệu');
+
+ca('Chỉ liệt kê ngày thực sự có đơn', ()=>{
+  const ds=dsGia(['fka']);
+  themDon(ds,'fka',3,9,2); themDon(ds,'fka',7,9,2);
+  dsRecalcScores(ds); dsRecalcDays(ds);
+  bang(ds.days_in_month,[3,7]);
+});
+ca('Ngày bị xoá biến khỏi danh sách', ()=>{
+  const ds=dsGia(['fka']);
+  themDon(ds,'fka',3,9,2); themDon(ds,'fka',7,9,2);
+  dsSubtractDay(ds,3);
+  dsRecalcScores(ds); dsRecalcDays(ds);
+  bang(ds.days_in_month,[7]);
+});
+
+/* =====================================================================
+   8. ĐỔI TÊN NHÂN VIÊN — hộp thoại chỉ được nói điều CHẮC CHẮN đúng
+   (bắt từ biên bản nghiệm thu 10/09/2026 — Phòng Kỹ Thuật mục 3 & 4)
+   ===================================================================== */
+nhom('8. Đổi tên nhân viên — hộp thoại không được nói sai');
+
+function rosterGia(){ return [{key:'fkchamy',name:'CHAMY',group:'onl',col:'#ffffff',search:'fkchamy',active:true}]; }
+async function voiRosterGia(fn){
+  const cu=ROSTER; ROSTER=rosterGia();
+  for(const k in _renamePending)delete _renamePending[k];
+  try{ return await fn(); }
+  finally{ ROSTER=cu; for(const k in _renamePending)delete _renamePending[k]; }
+}
+/* Chạy rosterRename(0) với câu trả lời định sẵn cho các ô prompt; ghi lại mọi hộp thoại alert */
+async function chayDoiTen(o){
+  const hop=[], tl=o.traLoi.slice(); let goi=0;
+  await voiGia({
+    canManageRoster:()=>true,
+    prompt:()=>tl.shift(),
+    confirm:()=>true,
+    alert:m=>{hop.push(String(m));},
+    rosterRenderList:()=>{},
+    saveRoster:async()=>!o.luuHong,   // bản thật trả true/false = lưu được tháng đang mở hay không
+    renameMemberEverywhere:async()=>{goi++; if(o.nem)throw new Error(o.nem); return o.ketQua;}
+  },()=>rosterRename(0));
+  return{hop,goi};
+}
+
+caA('Bấm lại lần 2 vẫn chạy được, và KHÔNG báo nhầm rằng tháng cũ đang mang tên MỚI', ()=>voiRosterGia(async()=>{
+  const hong={failed:['2026-07'],skipped:false};
+  const l1=await chayDoiTen({traLoi:['SOLIS','fkchamy'],ketQua:hong});
+  const l2=await chayDoiTen({traLoi:['SOLIS','fkchamy'],ketQua:hong});
+  bang(l1.goi+l2.goi,2,'số lần thật sự chạy đổi tên (lần 2 bị chặn "Không có thay đổi"?)');
+  const m=l2.hop.join('\n---\n');
+  if(/(VẪN GIỮ|vẫn mang|vẫn là)[^\n]*"SOLIS"/i.test(m))
+    throw new Error('Lần 2 báo tháng cũ "vẫn giữ tên SOLIS" — sai: SOLIS là tên MỚI, tháng 07 chưa hề được đổi. Nội dung: '+m);
+  if(!m.includes('07/2026'))throw new Error('Lần 2 không liệt kê tháng 07/2026 chưa cập nhật. Nội dung: '+m);
+}));
+
+caA('Không khẳng định "tháng đang mở đã đổi xong" — hàm không biết tháng này có lưu được hay không', ()=>voiRosterGia(async()=>{
+  const r=await chayDoiTen({traLoi:['SOLIS','fkchamy'],ketQua:{failed:['2026-07'],skipped:false}});
+  const m=r.hop.join('\n---\n');
+  if(!m)throw new Error('Không có hộp thoại nào — tháng 07 hỏng mà im lặng');
+  if(/Tháng đang mở:\s*đã đổi/i.test(m))
+    throw new Error('Hộp thoại khẳng định tháng đang mở đã đổi xong, trong khi rosterRename không biết saveRoster có lưu được không. Nội dung: '+m);
+}));
+
+caA('Mọi tháng cũ cập nhật được → không bật hộp thoại đổi tên, và xoá cờ "đang chờ thử lại"', ()=>voiRosterGia(async()=>{
+  _renamePending.fkchamy=true;   // giả như lần trước có tháng hỏng
+  const r=await chayDoiTen({traLoi:['SOLIS','fkchamy'],ketQua:{failed:[],skipped:false}});
+  bang(r.hop.length,0,'số hộp thoại');
+  bang(!!_renamePending.fkchamy,false,'cờ đang chờ thử lại');
+}));
+
+caA('Không đọc được danh sách tháng → vẫn báo kèm lý do, và vẫn cho bấm lại', ()=>voiRosterGia(async()=>{
+  const r=await chayDoiTen({traLoi:['SOLIS','fkchamy'],nem:'mất mạng giữa chừng'});
+  const m=r.hop.join('\n');
+  if(!m.includes('mất mạng giữa chừng'))throw new Error('Hộp thoại không nêu lý do. Nội dung: '+m);
+  bang(!!_renamePending.fkchamy,true,'cờ đang chờ thử lại');
+}));
+
+caA('Tháng cũ xong hết nhưng lưu THÁNG ĐANG MỞ hỏng → vẫn bấm lại được (không bị chặn "Không có thay đổi")', ()=>voiRosterGia(async()=>{
+  const ok={failed:[],skipped:false};
+  const l1=await chayDoiTen({traLoi:['SOLIS','fkchamy'],ketQua:ok,luuHong:true});
+  bang(!!_renamePending.fkchamy,true,'cờ đang chờ thử lại sau lần 1');
+  const l2=await chayDoiTen({traLoi:['SOLIS','fkchamy'],ketQua:ok});
+  bang(l1.goi+l2.goi,2,'số lần thật sự chạy đổi tên');
+  bang(!!_renamePending.fkchamy,false,'cờ phải được xoá sau khi lần 2 lưu được');
+}));
+
+caA('Danh sách dùng chung cũ ("all") hỏng → báo bằng câu riêng; dòng "•" chỉ chứa số tháng (dịch được sang EN)', ()=>voiRosterGia(async()=>{
+  const r=await chayDoiTen({traLoi:['SOLIS','fkchamy'],ketQua:{failed:['2026-07','all'],skipped:false}});
+  const m=r.hop.join('\n');
+  // Bộ dịch khớp NGUYÊN DÒNG sau khi cắt khoảng trắng: chữ đứng sau dấu "•" không bao giờ khớp từ điển.
+  const ket=m.split('\n').find(l=>/^\s*•.*[a-zà-ỹ]/i.test(l));
+  if(ket)throw new Error('Có dòng "•" chứa chữ — kẹt tiếng Việt khi bật EN và vô nghĩa với tổ trưởng: "'+ket.trim()+'"');
+  if(!m.includes('07/2026'))throw new Error('Không liệt kê tháng 07/2026. Nội dung: '+m);
+  if(!/dùng chung/i.test(m))throw new Error('Không nói rõ danh sách dùng chung cũ chưa được cập nhật. Nội dung: '+m);
+}));
+
+caA('saveRoster trả đúng kết quả: lưu được → true · máy chủ từ chối → false · chưa kết nối → false (và có báo)', ()=>voiTrangThai(async()=>{
+  ROSTER=rosterGia(); CUR_MONTH='2026-09';
+  const hop=[], kq=[];
+  await voiGia({alert:m=>hop.push(String(m))},async()=>{
+    kq.push(await voiSB({saveReport:async()=>({ok:true})},()=>saveRoster()));
+    kq.push(await voiSB({saveReport:async()=>{throw new Error('RLS chặn');}},()=>saveRoster()));
+    kq.push(await voiSB({saveReport:async()=>({skipped:true})},()=>saveRoster()));
+  });
+  bang(kq,[true,false,false],'kết quả 3 lần lưu');
+  bang(hop.length,2,'số hộp thoại báo lỗi (2 lần hỏng, mỗi lần 1)');
+}));
+
+/* =====================================================================
+   9. ÁP TÊN MỚI CHO CÁC THÁNG CŨ — renameMemberEverywhere không được nuốt lỗi
+   (Phòng Điểm Số đề xuất ưu tiên 6: phần này trước đó không có gì canh)
+   ===================================================================== */
+nhom('9. Áp tên mới cho các tháng cũ — tháng hỏng phải được báo lại');
+
+function reportsGia(){ return [{type:'roster',month:'2026-07'},{type:'roster',month:'2026-08'},{type:'roster',month:'all'},{type:'don',month:'2026-07'}]; }
+const thanhVienCu=()=>({members:[{key:'fkchamy',name:'CHAMY',search:'fkchamy'}]});
+
+caA('Tháng lưu hỏng được TRẢ VỀ trong danh sách failed, không bị nuốt', ()=>voiThang('2026-09',async()=>{
+  const r=await voiSB({ready:()=>true, listReports:async()=>reportsGia(), loadReport:async()=>thanhVienCu(),
+    saveReport:async(t,mo)=>{ if(mo==='2026-07')throw new Error('RLS chặn'); return{ok:true}; }
+  },()=>renameMemberEverywhere('fkchamy','SOLIS','fkchamy'));
+  bang(r,{failed:['2026-07'],skipped:false});
+}));
+
+caA('Hỏng một lần rồi lượt thử lại thành công → KHÔNG báo lỗi', ()=>voiThang('2026-09',async()=>{
+  let lan=0;
+  const r=await voiSB({ready:()=>true, listReports:async()=>reportsGia(), loadReport:async()=>thanhVienCu(),
+    saveReport:async(t,mo)=>{ if(mo==='2026-07'&&lan++===0)throw new Error('mạng chập'); return{ok:true}; }
+  },()=>renameMemberEverywhere('fkchamy','SOLIS','fkchamy'));
+  bang(r,{failed:[],skipped:false});
+}));
+
+caA('Không tự ghi tháng đang mở (phần đó do saveRoster lo), nhưng vẫn vá bản "all" cũ', ()=>voiThang('2026-08',async()=>{
+  const ghi=[];
+  await voiSB({ready:()=>true, listReports:async()=>reportsGia(), loadReport:async()=>thanhVienCu(),
+    saveReport:async(t,mo)=>{ghi.push(mo);return{ok:true};}
+  },()=>renameMemberEverywhere('fkchamy','SOLIS','fkchamy'));
+  bang(ghi.sort(),['2026-07','all'],'các tháng được ghi');
+}));
+
+caA('Chưa kết nối máy chủ → trả skipped, không giả vờ thành công', async()=>{
+  const r=await voiSB({ready:()=>false},()=>renameMemberEverywhere('fkchamy','SOLIS','fkchamy'));
+  bang(r,{failed:[],skipped:true});
+});
+
+caA('Tháng cũ đã mang sẵn tên mới → không ghi thừa', ()=>voiThang('2026-09',async()=>{
+  const ghi=[];
+  await voiSB({ready:()=>true, listReports:async()=>[{type:'roster',month:'2026-07'}],
+    loadReport:async()=>({members:[{key:'fkchamy',name:'SOLIS',search:'fkchamy'}]}),
+    saveReport:async(t,mo)=>{ghi.push(mo);return{ok:true};}
+  },()=>renameMemberEverywhere('fkchamy','SOLIS','fkchamy'));
+  bang(ghi,[],'các tháng bị ghi');
+}));
+
+/* =====================================================================
+   CÔNG CỤ CHUNG cho nhóm 10–13: máy chủ giả + chụp/trả trạng thái theo tháng
+   ===================================================================== */
+const cho=ms=>new Promise(r=>setTimeout(r,ms));
+/* Chụp + trả lại TOÀN BỘ trạng thái "theo tháng" trong RAM, kể cả khi phép kiểm ném lỗi */
+async function voiTrangThai(fn){
+  const cu={CUR_MONTH,D,KMD,KO_AN,KO_OV,LIMITS,WORK,ROSTER,CUR_PROFILE,selDay,_anDirty,_anBase,_anChanges,sh:{...shAssign}};
+  try{ return await fn(); }
+  finally{
+    CUR_MONTH=cu.CUR_MONTH;D=cu.D;KMD=cu.KMD;KO_AN=cu.KO_AN;KO_OV=cu.KO_OV;LIMITS=cu.LIMITS;WORK=cu.WORK;
+    ROSTER=cu.ROSTER;CUR_PROFILE=cu.CUR_PROFILE;selDay=cu.selDay;_anDirty=cu._anDirty;_anBase=cu._anBase;_anChanges=cu._anChanges;
+    Object.keys(shAssign).forEach(k=>delete shAssign[k]);Object.assign(shAssign,cu.sh);
+    applyRoster();
+    // dọn mọi lượt lưu còn hẹn (nếu có) để không bắn sang phép kiểm sau
+    if(typeof _pendingSaves==='object'){for(const k in _pendingSaves){clearTimeout(_pendingSaves[k].timer);delete _pendingSaves[k];}}
+  }
+}
+/* Máy chủ giả trong RAM: saveReport ghi vào kho + ghi sổ, loadReport đọc từ kho.
+   opt.cham = số ms listReports phải chờ (giả mạng chậm) · opt.hongGhi(type,month) = true thì từ chối ghi */
+function mayChuGia(khoiTao,opt){
+  opt=opt||{};
+  const sao=v=>JSON.parse(JSON.stringify(v));
+  const kho={}; for(const k in khoiTao)kho[k]=sao(khoiTao[k]);
+  const so=[];
+  return{kho,so,sb:{
+    ready:()=>true,
+    loadReport:async(t,m)=>{ if(opt.hongDoc&&opt.hongDoc(t,m))throw new Error('không đọc được '+t+'|'+m);
+      const v=kho[t+'|'+m]; return v===undefined?null:sao(v); },
+    listReports:async()=>{ if(opt.cham)await cho(opt.cham);
+      return Object.keys(kho).map(k=>{const i=k.indexOf('|');return{type:k.slice(0,i),month:k.slice(i+1)};}); },
+    saveReport:async(t,m,d)=>{ if(opt.hongGhi&&opt.hongGhi(t,m))throw new Error('máy chủ từ chối ghi '+t);
+      so.push({type:t,month:m,data:sao(d)}); kho[t+'|'+m]=sao(d); return{ok:true}; },
+    uploadOriginals:async()=>({skipped:true}),
+    client:()=>opt.client
+  }};
+}
+/* Dữ liệu các bảng "theo tháng" có đánh dấu số tháng (tag) để biết bảng nào là của tháng nào */
+function duLieuThang(mk,tag){
+  return{
+    ['anomaly|'+mk]:{abuse:{fka:{1:tag}},mkt:{}},
+    ['ov|'+mk]:{fka:{cong:tag,tru:0,khac:'',note:'',wd:null}},
+    ['limits|'+mk]:{fka:{limit:String(tag)}},
+    ['work|'+mk]:{fka:{1:'DD'},_tag:tag}
+  };
+}
+/* Đặt trạng thái trong máy như đang xem tháng mk với các bảng đánh dấu tag */
+function dangXem(mk,tag){
+  CUR_MONTH=mk; CUR_PROFILE={username:'kiemtra'};
+  KO_AN={abuse:{fka:{1:tag}},mkt:{}}; KO_OV={fka:{cong:tag,tru:0,khac:'',note:'',wd:null}};
+  _anBase={abuse:{},mkt:{}};   // máy chủ giả chưa có Bất Thường của tháng này ⇒ số trong máy tính là "vừa sửa"
+  LIMITS={fka:{limit:String(tag)}}; WORK={fka:{1:'DD'},_tag:tag};
+}
+function banGhi(mc,type,month){ return mc.so.filter(x=>x.type===type&&x.month===month); }
+function kiemDaSangThang(mk,tag){
+  bang(CUR_MONTH,mk,'tháng đang xem');
+  bang(KO_AN.abuse.fka&&KO_AN.abuse.fka[1],tag,'bảng Bất Thường trong máy là của tháng');
+  bang(KO_OV.fka&&KO_OV.fka.cong,tag,'bảng Tổng Quan trong máy là của tháng');
+  bang(LIMITS.fka&&LIMITS.fka.limit,String(tag),'Hạn mức trong máy là của tháng');
+  bang(WORK._tag,tag,'bảng Công Việc trong máy là của tháng');
+}
+
+/* =====================================================================
+   10. ĐỔI THÁNG — không được ghi dữ liệu tháng này sang tháng khác
+   (nghiệm thu 10/09/2026, Phòng Kỹ Thuật mục 5 — lỗi nặng nhất đã biết)
+   ===================================================================== */
+nhom('10. Đổi tháng — thay đổi vừa sửa phải về ĐÚNG tháng của nó');
+
+caA('Sửa Bất Thường rồi đổi tháng khi MẠNG CHẬM → tháng mới KHÔNG bị ghi đè bằng dữ liệu tháng cũ', ()=>voiTrangThai(async()=>{
+  const mc=mayChuGia(duLieuThang('2026-07',7),{cham:1500});   // bộ hẹn giờ lưu (1,2 giây) bắn giữa lúc đang nạp
+  dangXem('2026-09',9);
+  await voiSB(mc.sb,()=>voiGia({alert:()=>{},confirm:()=>true},async()=>{
+    saveKoAn();                       // như vừa sửa 1 ô Bất Thường tháng 9
+    await loadHistMonth('2026-07');   // rồi bấm sang tháng 7 ngay
+    await cho(300);
+  }));
+  const hong=banGhi(mc,'anomaly','2026-07').find(x=>x.data.abuse.fka&&x.data.abuse.fka[1]===9);
+  if(hong)throw new Error('Bảng Bất Thường THÁNG 7 bị ghi đè bằng dữ liệu tháng 9 — toàn bộ điểm tháng 7 mất');
+  if(!banGhi(mc,'anomaly','2026-09').some(x=>x.data.abuse.fka[1]===9))
+    throw new Error('Thay đổi của tháng 9 không được lưu vào tháng 9');
+  bang(mc.kho['anomaly|2026-07'].abuse.fka[1],7,'dữ liệu tháng 7 trên máy chủ');
+  kiemDaSangThang('2026-07',7);
+}));
+
+caA('Sửa Bất Thường rồi đổi tháng NGAY (mạng nhanh) → thay đổi vẫn được lưu vào tháng cũ, không mất', ()=>voiTrangThai(async()=>{
+  const mc=mayChuGia(duLieuThang('2026-07',7));
+  dangXem('2026-09',9);
+  await voiSB(mc.sb,()=>voiGia({alert:()=>{},confirm:()=>true},async()=>{
+    saveKoAn();
+    await loadHistMonth('2026-07');
+    await cho(1500);                  // chờ quá thời gian hẹn giờ để bắt mọi lượt lưu muộn
+  }));
+  if(!banGhi(mc,'anomaly','2026-09').some(x=>x.data.abuse.fka[1]===9))
+    throw new Error('Thay đổi của tháng 9 bị MẤT — không có lần lưu nào vào tháng 9');
+  if(banGhi(mc,'anomaly','2026-07').length)
+    throw new Error('Có lần ghi vào tháng 7 dù người dùng không sửa gì ở tháng 7');
+  kiemDaSangThang('2026-07',7);
+}));
+
+caA('Lưới an toàn: lượt lưu hẹn từ tháng cũ mà bắn khi đã sang tháng khác → KHÔNG ghi, và BÁO cho người dùng', ()=>voiTrangThai(async()=>{
+  CUR_MONTH='2026-09'; let chay=0; const hop=[];
+  await voiGia({alert:m=>hop.push(String(m))},async()=>{
+    scheduleSave('thu',async()=>{chay++;},30);
+    CUR_MONTH='2026-07';              // đổi tháng "lậu", không qua switchToMonth
+    await cho(150);
+  });
+  bang(chay,0,'số lần hàm lưu bị gọi');
+  if(!hop.length)throw new Error('Không báo gì — thay đổi mất trong im lặng');
+}));
+
+caA('Đổi tháng khi còn thay đổi LƯU HỎNG → hỏi trước; bấm Huỷ thì ở lại tháng cũ, dữ liệu trong máy còn nguyên', ()=>voiTrangThai(async()=>{
+  const mc=mayChuGia(duLieuThang('2026-07',7),{hongGhi:t=>t==='anomaly'});
+  dangXem('2026-09',9);
+  const hop=[]; let hoi=0;
+  const ok=await voiSB(mc.sb,()=>voiGia({alert:m=>hop.push(String(m)),confirm:()=>{hoi++;return false;}},async()=>{
+    scheduleSave('an',_saveKoAnCloud,5000);   // như vừa sửa 1 ô Bất Thường
+    return await switchToMonth('2026-07');
+  }));
+  bang(ok,false,'kết quả chuyển tháng');
+  bang(hoi,1,'số lần hỏi người dùng');
+  bang(CUR_MONTH,'2026-09','tháng đang xem');
+  bang(KO_AN.abuse.fka[1],9,'dữ liệu Bất Thường trong máy');
+  if(!hop.length)throw new Error('Lưu hỏng mà không báo');
+}));
+
+/* =====================================================================
+   11. UPLOAD FILE CỦA THÁNG KHÁC — mọi bảng phải chuyển theo, không dính tháng đang xem
+   (phát hiện khi sửa mục 5: sau upload, CUR_MONTH đổi nhưng Bất Thường/Tổng Quan/Hạn Mức/Công Việc vẫn của tháng cũ)
+   ===================================================================== */
+nhom('11. Upload file của tháng khác — mọi bảng chuyển sang đúng tháng đó');
+
+caA('Cộng dồn file THÁNG 8 khi đang xem tháng 9 → mọi bảng trong máy là của tháng 8', ()=>voiTrangThai(async()=>{
+  const base=dsGia(['fka']); themDon(base,'fka',1,9,1); base.month='08/2026';
+  const nd=dsGia(['fka']);   themDon(nd,'fka',2,9,1);   nd.month='08/2026';
+  const mc=mayChuGia({...duLieuThang('2026-08',8),'km|2026-08':base});
+  dangXem('2026-09',9);
+  await voiSB(mc.sb,()=>voiGia({alert:()=>{},confirm:()=>true},()=>applyAddMode('km',nd)));
+  kiemDaSangThang('2026-08',8);
+  if(!KMD||!KMD.cbd7||KMD.cbd7[1][9]!==1||KMD.cbd7[0][9]!==1)
+    throw new Error('Khuyến Mãi trên màn hình không phải bản vừa cộng dồn (phải có cả ngày 1 lẫn ngày 2)');
+}));
+
+caA('Upload THAY THẾ file tháng 8 khi đang xem tháng 9 → mọi bảng trong máy là của tháng 8', ()=>voiTrangThai(async()=>{
+  const nd=dsGia(['fka']); themDon(nd,'fka',3,9,1); nd.month='08/2026'; nd.days_in_month=[3];
+  const mc=mayChuGia(duLieuThang('2026-08',8));
+  dangXem('2026-09',9);
+  await voiSB(mc.sb,()=>voiGia({alert:()=>{},confirm:()=>true},()=>cloudSaveKO('don',nd)));
+  kiemDaSangThang('2026-08',8);
+  bang(D&&D.month,'08/2026','dữ liệu Duyệt Đơn trên màn hình');
+}));
+
+/* =====================================================================
+   12. LƯU HỎNG / BẤM HUỶ — màn hình không được hiện số chưa hề được lưu (mục 8)
+   ===================================================================== */
+nhom('12. Lưu hỏng hoặc bấm Huỷ — màn hình giữ nguyên bản đang có trên máy chủ');
+
+caA('Cộng dồn ghi HỎNG → màn hình giữ bản cũ, vẫn đứng ở tháng cũ, và có báo', ()=>voiTrangThai(async()=>{
+  const base=dsGia(['fka']); themDon(base,'fka',1,9,1); base.month='09/2026';
+  const nd=dsGia(['fka']);   themDon(nd,'fka',2,9,1);   nd.month='09/2026';
+  const mc=mayChuGia({'km|2026-09':base},{hongGhi:t=>t==='km'});
+  dangXem('2026-09',9); const kmdCu={dauVet:'ban-cu'}; KMD=kmdCu;
+  const hop=[];
+  await voiSB(mc.sb,()=>voiGia({alert:m=>hop.push(String(m)),confirm:()=>true},()=>applyAddMode('km',nd)));
+  if(KMD!==kmdCu)throw new Error('Màn hình đang hiện bản cộng dồn CHƯA được lưu');
+  bang(CUR_MONTH,'2026-09','tháng đang xem');
+  if(!hop.length)throw new Error('Ghi hỏng mà không báo');
+}));
+
+caA('Cộng dồn ghi HỎNG khi file là THÁNG KHÁC → không bị đẩy sang tháng đó', ()=>voiTrangThai(async()=>{
+  const base=dsGia(['fka']); themDon(base,'fka',1,9,1); base.month='08/2026';
+  const nd=dsGia(['fka']);   themDon(nd,'fka',2,9,1);   nd.month='08/2026';
+  const mc=mayChuGia({...duLieuThang('2026-08',8),'km|2026-08':base},{hongGhi:t=>t==='km'});
+  dangXem('2026-09',9); const kmdCu={dauVet:'ban-cu'}; KMD=kmdCu;
+  await voiSB(mc.sb,()=>voiGia({alert:()=>{},confirm:()=>true},()=>applyAddMode('km',nd)));
+  kiemDaSangThang('2026-09',9);
+  if(KMD!==kmdCu)throw new Error('Màn hình đang hiện bản cộng dồn CHƯA được lưu');
+}));
+
+caA('Upload THAY THẾ: bấm Huỷ ở hộp "trùng dữ liệu" → màn hình giữ bản cũ; bấm OK và lưu xong → mới hiện bản mới', ()=>voiTrangThai(async()=>{
+  const mk=curMonthKey();
+  const cu=dsGia(['fka']); cu.month=dispMonth(mk); cu.days_in_month=[1];
+  const nd=dsGia(['fka']); nd.month=dispMonth(mk); nd.days_in_month=[1]; nd.dauVet='ban-moi';
+  const mc=mayChuGia({['don|'+mk]:cu,...duLieuThang(mk,5)});
+  dangXem(mk,5); const dCu={dauVet:'ban-cu'}; D=dCu;
+  await voiSB(mc.sb,()=>voiGia({alert:()=>{},confirm:()=>false},()=>cloudSaveKO('don',nd)));
+  if(D!==dCu)throw new Error('Bấm Huỷ mà màn hình vẫn hiện bản mới chưa lưu');
+  bang(banGhi(mc,'don',mk).length,0,'số lần ghi khi đã bấm Huỷ');
+  await voiSB(mc.sb,()=>voiGia({alert:()=>{},confirm:()=>true},()=>cloudSaveKO('don',nd)));
+  bang(D&&D.dauVet,'ban-moi','màn hình sau khi lưu xong');
+  bang(banGhi(mc,'don',mk).length,1,'số lần ghi');
+}));
+
+/* =====================================================================
+   13. SAO LƯU — phải chứa đủ, và phần nào thiếu phải GHI RÕ (mục 6)
+   ===================================================================== */
+nhom('13. Sao lưu — đủ mọi loại dữ liệu, thiếu phần nào thì ghi rõ');
+
+/* Giả "client" Supabase cho các lệnh from(bảng).select().order().range() — bảng không có trong danh sách = lỗi quyền đọc */
+function clientGia(bangDL){
+  return{from(t){
+    const rows=bangDL[t]; let a=0,b=999;
+    const q={select(){return q;},order(){return q;},range(x,y){a=x;b=y;return q;},
+      then(res,rej){
+        const kq=rows===undefined?{data:null,error:{message:'không có quyền đọc bảng '+t}}:{data:rows.slice(a,b+1),error:null};
+        return Promise.resolve(kq).then(res,rej);
+      }};
+    return q;
+  }};
+}
+const EXAM_GIA={exam_topics:[{id:1}],exam_questions:[{id:1}],exam_config:[],exam_settings:[{key:'x'}],
+  exam_members:[{user_id:'u'}],exam_submissions:[{id:1}],exam_answers:[{id:1}]};
+
+caA('Sao lưu tháng gồm MỌI loại dữ liệu của tháng đó — kể cả danh sách nhân viên, lịch sử hoàn tác, và loại mới sau này', async()=>{
+  const kho={'don|2026-08':{a:1},'roster|2026-08':{members:[]},'work_undo|2026-08':{cur:0},'loaimoi|2026-08':{z:1},'don|2026-07':{a:0}};
+  const rp=Object.keys(kho).map(k=>{const [type,month]=k.split('|');return{type,month};});
+  const mc=mayChuGia(kho,{client:clientGia({reports:rp,...EXAM_GIA})});
+  const out=await voiSB(mc.sb,()=>buildBackup('2026-08'));
+  bang(Object.keys(out.data).sort(),['don','loaimoi','roster','work_undo'],'các loại dữ liệu của tháng 8');
+  bang(out.missing,[],'danh sách phần thiếu');
+});
+
+caA('Sao lưu gồm dữ liệu DÙNG CHUNG (quy trình, cảnh báo, danh sách chung cũ…) và bỏ đúng 2 loại không cần', async()=>{
+  const kho={'roster|all':{m:1},'warnkw|all':{w:1},'sop_index|all':{s:1},'sop_item|i_abc':{b:1},'suspects|all':{l:[]},
+    'rids|all':{list:[]},'tgremind_tick|all':{at:1},'don|2026-07':{a:0}};
+  const rp=Object.keys(kho).map(k=>{const i=k.indexOf('|');return{type:k.slice(0,i),month:k.slice(i+1)};});
+  const mc=mayChuGia(kho,{client:clientGia({reports:rp,...EXAM_GIA})});
+  const out=await voiSB(mc.sb,()=>buildBackup('2026-08'));
+  bang(Object.keys(out.shared).sort(),['roster|all','sop_index|all','sop_item|i_abc','suspects|all','warnkw|all'],'phần dùng chung');
+});
+
+caA('Bài kiểm tra nghiệp vụ: lấy ĐỦ khi quá 1.000 dòng (phân trang), không bị cắt âm thầm', async()=>{
+  const nhieu=Array.from({length:1005},(_,i)=>({id:i+1}));
+  const mc=mayChuGia({},{client:clientGia({reports:[],...EXAM_GIA,exam_answers:nhieu})});
+  const out=await voiSB(mc.sb,()=>buildBackup('2026-08'));
+  bang(out.exam.exam_answers.length,1005,'số dòng exam_answers trong bản sao lưu');
+});
+
+caA('Phần nào không đọc được thì GHI RÕ vào danh sách thiếu, phần còn lại vẫn có', async()=>{
+  const kho={'warnkw|all':{w:1},'sop_index|all':{s:1}};
+  const rp=[{type:'warnkw',month:'all'},{type:'sop_index',month:'all'}];
+  const exam={...EXAM_GIA}; delete exam.exam_members;           // bảng này báo lỗi quyền đọc
+  const mc=mayChuGia(kho,{client:clientGia({reports:rp,...exam}),hongDoc:t=>t==='warnkw'});
+  const out=await voiSB(mc.sb,()=>buildBackup('2026-08'));
+  if(!out.missing.some(s=>s.includes('exam_members')))throw new Error('Không ghi lại việc thiếu bảng exam_members: '+JSON.stringify(out.missing));
+  if(!out.missing.some(s=>s.includes('warnkw')))throw new Error('Không ghi lại việc thiếu warnkw: '+JSON.stringify(out.missing));
+  if(!out.shared['sop_index|all'])throw new Error('Một phần hỏng kéo mất cả phần khác');
+});
+
+/* =====================================================================
+   14. BẤT THƯỜNG — lưu từ dashboard KHÔNG được xoá điểm bot Telegram vừa cộng trên máy chủ
+   (rà soát 11/09/2026: bản cũ ghi đè NGUYÊN bảng bằng bản trong máy, cũ tới 60s — hoặc hàng giờ nếu tab bị ẩn)
+   ===================================================================== */
+nhom('14. Bất Thường — lưu không được xoá điểm Telegram vừa cộng');
+
+/* Máy này đang giữ bản máy chủ cũ `biet`, trong khi máy chủ thật đã là `mayChu` (bot vừa cộng thêm) */
+function batThuong(biet,mayChu,opt){
+  CUR_MONTH='2026-09'; CUR_PROFILE={username:'kiemtra'};
+  KO_AN=JSON.parse(JSON.stringify(biet)); _anBase=anClone(biet); _anChanges=[]; _anDirty=false;
+  return mayChuGia({'anomaly|2026-09':mayChu},opt);
+}
+
+caA('Bot vừa cộng điểm cho người khác / ô khác → Tổ Trưởng sửa 1 ô, điểm của bot vẫn còn nguyên', ()=>voiTrangThai(async()=>{
+  const mc=batThuong({abuse:{fka:{1:2}},mkt:{}}, {abuse:{fka:{1:4},fkb:{3:1}},mkt:{fkc:{2:1}}});
+  KO_AN.abuse.fka[5]=1;                                   // Tổ Trưởng sửa ngày 5 của fka
+  await voiSB(mc.sb,()=>voiGia({alert:()=>{}},()=>_saveKoAnCloud()));
+  const s=mc.kho['anomaly|2026-09'];
+  bang(s.abuse.fka,{1:4,5:1},'fka trên máy chủ (ngày 1 bot cộng thành 4, ngày 5 vừa sửa)');
+  bang(s.abuse.fkb,{3:1},'fkb trên máy chủ (bot cộng)');
+  bang(s.mkt.fkc,{2:1},'fkc Đại lý ngoài trên máy chủ (bot cộng)');
+  bang(KO_AN,s,'màn hình hiện đúng bản máy chủ vừa ghi');
+  bang(_anDirty,false,'còn cờ "chưa lưu"');
+}));
+
+caA('Sửa ĐÚNG ô bot vừa cộng → áp phần chênh lệch người dùng sửa, không nuốt điểm của bot', ()=>voiTrangThai(async()=>{
+  let mc=batThuong({abuse:{fka:{1:2}},mkt:{}}, {abuse:{fka:{1:4}},mkt:{}});
+  KO_AN.abuse.fka[1]=3;                                   // thấy 2, sửa thành 3 (+1) — bot đã cộng +2 trên máy chủ
+  await voiSB(mc.sb,()=>voiGia({alert:()=>{}},()=>_saveKoAnCloud()));
+  bang(mc.kho['anomaly|2026-09'].abuse.fka[1],5,'2 (cũ) +2 (bot) +1 (người sửa)');
+  mc=batThuong({abuse:{fka:{1:2}},mkt:{}}, {abuse:{fka:{1:4}},mkt:{}});
+  KO_AN.abuse.fka[1]=0;                                   // xoá 2 điểm đang thấy — 2 điểm bot mới cộng vẫn phải còn
+  await voiSB(mc.sb,()=>voiGia({alert:()=>{}},()=>_saveKoAnCloud()));
+  bang(mc.kho['anomaly|2026-09'].abuse.fka[1],2,'sau khi xoá phần đang thấy');
+}));
+
+caA('Lưu hỏng rồi thử lại → phần sửa chỉ được cộng MỘT lần', ()=>voiTrangThai(async()=>{
+  let lan=0; const hop=[];
+  const mc=batThuong({abuse:{fka:{1:2}},mkt:{}}, {abuse:{fka:{1:2}},mkt:{}}, {hongGhi:()=>lan++===0});
+  KO_AN.abuse.fka[1]=5;
+  await voiSB(mc.sb,()=>voiGia({alert:m=>hop.push(m)},async()=>{ await _saveKoAnCloud(); await _saveKoAnCloud(); }));
+  bang(hop.length,1,'số lần báo lưu hỏng');
+  bang(mc.kho['anomaly|2026-09'].abuse.fka[1],5,'giá trị trên máy chủ');
+}));
+
+caA('Sửa thêm trong lúc lượt lưu đang chờ mạng → ô sửa sau KHÔNG mất, lượt sau lưu nốt', ()=>voiTrangThai(async()=>{
+  const mc=batThuong({abuse:{},mkt:{}}, {abuse:{},mkt:{}});
+  const cham={...mc.sb, loadReport:async(t,m)=>{ await cho(80); return mc.sb.loadReport(t,m); }};
+  KO_AN.abuse.fka={1:1};
+  await voiSB(cham,()=>voiGia({alert:()=>{}},async()=>{
+    const p=_saveKoAnCloud();
+    await cho(20); KO_AN.abuse.fka[2]=7;                  // gõ tiếp 1 ô khi lượt lưu đầu chưa xong
+    await p;
+    bang(KO_AN.abuse.fka,{1:1,2:7},'bảng trong máy sau lượt lưu đầu');
+    bang(_anDirty,true,'phải còn cờ "chưa lưu"');
+    await _saveKoAnCloud();
+  }));
+  bang(mc.kho['anomaly|2026-09'].abuse.fka,{1:1,2:7},'máy chủ sau lượt lưu thứ hai');
+}));
+
+caA('Mạng chậm, lượt lưu thứ hai bắn khi lượt đầu chưa xong → phần sửa KHÔNG bị cộng hai lần', ()=>voiTrangThai(async()=>{
+  const mc=batThuong({abuse:{fka:{1:2}},mkt:{}}, {abuse:{fka:{1:2}},mkt:{}});
+  const cham={...mc.sb, loadReport:async(t,m)=>{ await cho(80); return mc.sb.loadReport(t,m); }};
+  KO_AN.abuse.fka[1]=3;                                   // +1
+  await voiSB(cham,()=>voiGia({alert:()=>{}},async()=>{
+    const p1=_saveKoAnCloud();
+    await cho(20); KO_AN.abuse.fka[4]=1;                  // sửa thêm, bộ hẹn giờ bắn lượt 2 khi lượt 1 còn chờ mạng
+    const p2=_saveKoAnCloud();
+    await Promise.all([p1,p2]);
+  }));
+  bang(mc.kho['anomaly|2026-09'].abuse.fka,{1:3,4:1},'máy chủ (ngày 1 phải là 3, không phải 4)');
+  bang(KO_AN.abuse.fka,{1:3,4:1},'bảng trong máy');
+}));
+
+caA('Đổi tháng và chọn "bỏ thay đổi chưa lưu" → vòng đồng bộ 60s chạy lại, Lịch Sử không mang ô của tháng cũ', ()=>voiTrangThai(async()=>{
+  const mc=mayChuGia(duLieuThang('2026-07',7),{hongGhi:t=>t==='anomaly'});
+  dangXem('2026-09',9);
+  _anDirty=true; _anChanges=[{cat:'abuse',fk:'fka',day:1,from:0,to:9}];
+  const ok=await voiSB(mc.sb,()=>voiGia({alert:()=>{},confirm:()=>true},async()=>{
+    scheduleSave('an',_saveKoAnCloud,5000);
+    return await switchToMonth('2026-07');
+  }));
+  bang(ok,true,'kết quả chuyển tháng');
+  bang(_anDirty,false,'cờ "chưa lưu" (true = đồng bộ 60s tắt tới lúc F5)');
+  bang(_anChanges,[],'danh sách ô chờ ghi Lịch Sử');
+  bang(_anBase,KO_AN,'bản nền = bản máy chủ tháng 7 vừa nạp');
+}));
+
+/* ⚠ PHẢI ĐỂ CUỐI CÙNG: phép kiểm này buộc SB tạo client (giả) bên trong closure của core.js và client đó
+   ở lại tới hết trang — phép kiểm nào chạy sau mà KHÔNG giả SB.ready sẽ thấy "đã kết nối". */
+caA('Danh sách report: lấy ĐỦ khi quá 1.000 dòng (phân trang), không bị cắt âm thầm', async()=>{
+  const nhieu=Array.from({length:2345},(_,i)=>({type:'sop_item',month:'i_'+i}));
+  const cu=window.supabase; window.supabase={createClient:()=>clientGia({reports:nhieu})};
+  try{ bang((await SB.listReports()).length,2345,'số report lấy về'); }
+  finally{ window.supabase=cu; }
+});
+
+/* ---------- chạy hàng đợi bất đồng bộ rồi tổng kết ---------- */
+(async()=>{
+  for(const x of _hangDoi){
+    let ok=true,ct='';
+    try{ await x.fn(); }catch(e){ ok=false; ct=String(e&&e.message||e); }
+    ghiKq(x.g,x.mota,ok,ct);
+  }
+  const t=document.getElementById('tong');
+  if(_hong===0){
+    t.className='ok';
+    t.textContent='✔ ĐẠT TOÀN BỘ — '+_dat+'/'+_dat+' phép kiểm tra. Có thể commit.';
+  }else{
+    t.className='fail';
+    t.textContent='✘ HỎNG '+_hong+' PHÉP KIỂM TRA (đạt '+_dat+'). KHÔNG được commit khi còn dòng đỏ.';
+  }
+})();
+</script>
+</body>
+</html>

@@ -11,7 +11,7 @@ const MD = (function(){
 })();
 const GMT_OFFSET = 11;
 // ===== ROSTER (danh sách nhân viên) — CÓ THỂ THÊM/BỚT, lưu cloud RIÊNG TỪNG THÁNG (report type 'roster', month 'YYYY-MM') =====
-// Sửa roster tháng nào chỉ ảnh hưởng tháng đó; tháng mới kế thừa roster tháng gần nhất trước đó (xem applyRosterForMonth ở data-boot.js).
+// Sửa roster tháng nào chỉ ảnh hưởng tháng đó; tháng mới kế thừa roster tháng gần nhất trước đó (xem loadRosterMembersFor ở data-boot.js).
 // Mỗi member: {key, name, group:'vip'|'onl', col, search, active}
 //  - key: mã nội bộ (vd 'fkjade') — DUY NHẤT, không đổi sau khi tạo.
 //  - search: chuỗi con để nhận diện FK từ cột note file Excel (mfk()). Mặc định = key.
@@ -211,11 +211,20 @@ const SB=(function(){
     // Vô hiệu hóa tại điểm nghẽn duy nhất này để chặn mọi chỗ gọi (don/km/bc). Storage đứng yên.
     return{skipped:true};
   }
+  // PHÂN TRANG (sửa 11/09/2026): Supabase trả tối đa 1.000 dòng/lần và KHÔNG báo khi cắt. Mỗi mục Quy Trình
+  // là 1 report nên vượt ngưỡng sớm ⇒ menu tháng / kế thừa roster & hạn mức thấy thiếu mà không biết.
+  // Thứ tự (month, type) là thứ tự TOÀN PHẦN (khoá duy nhất type+month) nên các trang không trùng/sót.
   async function listReports(){
     if(!ready())return[];
-    const{data,error}=await cli.from('reports').select('type,month,updated_at').order('month',{ascending:false});
-    if(error)throw error;
-    return data||[];
+    const PAGE=1000,out=[];
+    for(let from=0;;from+=PAGE){
+      const{data,error}=await cli.from('reports').select('type,month,updated_at')
+        .order('month',{ascending:false}).order('type',{ascending:true}).range(from,from+PAGE-1);
+      if(error)throw error;
+      out.push(...(data||[]));
+      if(!data||data.length<PAGE)break;
+    }
+    return out;
   }
   async function loadReport(type,month){
     if(!ready())return null;

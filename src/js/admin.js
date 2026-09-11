@@ -400,7 +400,54 @@ async function admDeleteDay(){
     msg.style.color='var(--re)';msg.textContent='Lỗi xóa ngày: '+(e.message||e);
   }
 }
-// Tải toàn bộ dữ liệu 1 tháng ra file JSON (sao lưu tay, phòng gói free không backup tự động)
+// ===== SAO LƯU (nghiệm thu 10/09/2026 — canh bởi test/kiem-tra.html nhóm 13) =====
+// Bản cũ chỉ lấy 8 loại cố định của tháng ⇒ THIẾU danh sách nhân viên, lịch sử hoàn tác phân ca, Quy Trình,
+// bài test, nhóm cảnh báo… Nay lấy: (1) MỌI report có month = tháng chọn (kể cả loại thêm sau này — không liệt kê cứng);
+// (2) MỌI report DÙNG CHUNG (month không phải YYYY-MM: 'all', id mục Quy Trình…); (3) 7 bảng bài test.
+// Mọi truy vấn danh sách đều PHÂN TRANG — Supabase trả tối đa 1.000 dòng/lần, không phân trang là mất mà không báo.
+// Phần nào hỏng KHÔNG kéo hỏng phần khác, và được GHI RÕ ở out.missing (không có chuyện "tải xong ✓" mà thiếu).
+// KHÔNG gồm: ảnh (Storage: Quy Trình, câu hỏi bài test) · Báo Cáo Đơn Rút & Lọc NTK (không lưu ở đâu cả).
+const BACKUP_SKIP=['rids','tgremind_tick'];   // mã dùng-1-lần của nút Telegram · nhịp tim động cơ nhắc nhở
+const BACKUP_EXAM={exam_topics:'id',exam_questions:'id',exam_config:'topic_id',exam_settings:'key',
+  exam_members:'user_id',exam_submissions:'id',exam_answers:'id'};   // bảng -> khoá chính (để phân trang có thứ tự)
+async function selectAllRows(table,cols,orderCols){
+  const cli=SB.client(),out=[],N=1000;
+  for(let a=0;;a+=N){
+    let q=cli.from(table).select(cols);
+    orderCols.forEach(c=>{q=q.order(c);});
+    const{data,error}=await q.range(a,a+N-1);
+    if(error)throw error;
+    out.push(...(data||[]));
+    if(!data||data.length<N)break;
+  }
+  return out;
+}
+async function buildBackup(m){
+  const out={v:2,month:m,exported_at:new Date().toISOString(),by:(CUR_PROFILE&&CUR_PROFILE.username)||'',
+    data:{},shared:{},exam:{},missing:[],
+    note:'KHÔNG gồm ảnh (Storage) và Báo Cáo Đơn Rút / Lọc NTK (không lưu ở đâu cả).'};
+  const why=e=>String((e&&(e.message||e.error_description))||e);
+  // Mục trong `missing` chỉ ghi TÊN KỸ THUẬT (bảng / type|month) + lời báo của máy chủ — không kèm chữ Việt,
+  // vì 3 mục đầu được in thẳng vào dòng thông báo và bộ dịch không dịch được phần chèn giữa câu.
+  let keys=[];
+  try{keys=await selectAllRows('reports','type,month',['type','month']);}
+  catch(e){out.missing.push('reports: '+why(e));}
+  for(const r of keys){
+    if(BACKUP_SKIP.includes(r.type))continue;
+    const theoThang=/^\d{4}-\d{2}$/.test(r.month);
+    if(theoThang&&r.month!==m)continue;
+    try{
+      const d=await SB.loadReport(r.type,r.month);
+      if(theoThang)out.data[r.type]=d;else out.shared[r.type+'|'+r.month]=d;
+    }catch(e){out.missing.push(r.type+'|'+r.month+': '+why(e));}
+  }
+  for(const t in BACKUP_EXAM){
+    try{out.exam[t]=await selectAllRows(t,'*',[BACKUP_EXAM[t]]);}
+    catch(e){out.missing.push(t+': '+why(e));}
+  }
+  return out;
+}
+// Tải bản sao lưu ra file JSON (sao lưu tay, phòng gói free không backup tự động)
 async function admExportMonth(){
   if(!CUR_PROFILE||!CUR_PROFILE.is_admin)return;
   const m=document.getElementById('admDelMonth').value;
@@ -408,17 +455,23 @@ async function admExportMonth(){
   if(!m){msg.style.color='var(--re)';msg.textContent='Chưa chọn tháng để sao lưu';return;}
   try{
     msg.style.color='var(--mu2)';msg.textContent='Đang tải dữ liệu tháng '+dispMonth(m)+'...';
-    const types=['don','km','shift','anomaly','work','limits','ov','bc'];
-    const out={month:m,exported_at:new Date().toISOString(),by:CUR_PROFILE.username,data:{}};
-    for(const t of types){out.data[t]=await SB.loadReport(t,m);}
+    const out=await buildBackup(m);
     const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
     a.download='sanji_backup_'+m+'.json';
     a.click();
     URL.revokeObjectURL(a.href);
-    logAction('Tải sao lưu JSON','Tháng '+dispMonth(m));
-    msg.style.color='var(--gr)';msg.textContent='Đã tải file sao lưu tháng '+dispMonth(m)+' ✓';
+    const nThang=Object.keys(out.data).length,nChung=Object.keys(out.shared).length,
+      nTest=Object.values(out.exam).reduce((s,x)=>s+x.length,0);
+    logAction('Tải sao lưu JSON','Tháng '+dispMonth(m)+' · '+nThang+' mục của tháng · '+nChung+' mục dùng chung · '+nTest+' dòng bài test'+(out.missing.length?' · THIẾU '+out.missing.length+' phần':''));
+    if(out.missing.length){
+      msg.style.color='var(--re)';
+      msg.textContent='⚠ Đã tải file nhưng THIẾU '+out.missing.length+' phần: '+out.missing.slice(0,3).join(' · ')+(out.missing.length>3?' …':'')+' — danh sách đầy đủ ở mục "missing" trong file.';
+    }else{
+      msg.style.color='var(--gr)';
+      msg.textContent='Đã tải file sao lưu tháng '+dispMonth(m)+' ✓ — '+nThang+' mục của tháng · '+nChung+' mục dùng chung · '+nTest+' dòng bài test. Chưa gồm ảnh.';
+    }
   }catch(e){
     console.error('admExportMonth',e);
     msg.style.color='var(--re)';msg.textContent='Lỗi tải sao lưu: '+(e.message||e);

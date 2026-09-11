@@ -113,9 +113,10 @@ const WK={
       // Bấm chuông: mọi dashboard đang mở nhận trong dưới 1 giây.
       // ⚠ Query của supabase-js KHÔNG throw khi bị RLS chặn — nó trả {error} hoặc
       //   0 dòng. Phải kiểm tay, nếu không lỗi trôi qua không ai biết.
-      const {error:pErr}=await SB.client().from('warnkw_pulse')
+      const {data:pRows,error:pErr}=await SB.client().from('warnkw_pulse')
         .update({v:Date.now(),at:new Date().toISOString()}).eq('id',1).select('id');
-      if(pErr)throw new Error('Lưu được nhưng KHÔNG bấm chuông được ('+pErr.message+
+      if(pErr||!(pRows&&pRows.length))throw new Error('Lưu được nhưng KHÔNG bấm chuông được ('+
+        (pErr?pErr.message:'RLS chặn cập nhật warnkw_pulse hoặc bảng thiếu dòng id=1')+
         '). Máy khác sẽ chỉ nhận khi đăng nhập lại.');
 
       if(typeof logAction==='function')logAction('NHÓM ĐIỀU KIỆN',label||'cập nhật');

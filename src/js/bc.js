@@ -293,8 +293,9 @@ const BC={
       BC.log('☁ Đã lưu cloud: báo cáo + '+allFiles.length+' file gốc ✓');
       logAction('Lưu báo cáo đại lý','Tháng '+dispMonth(month)+' · '+allFiles.length+' file · '+BC.ROWS.length+' KH hợp lệ');
     }catch(e){
-      console.error('BC.cloudSave',e);
+      // chỉ ghi vào dòng log nhỏ là không đủ — người dùng tưởng đã lưu (luật saveFailed, CLAUDE.md)
       BC.log('☁ Lỗi lưu cloud: '+(e.message||e));
+      saveFailed('Báo cáo đại lý tháng '+dispMonth(BC.MAX_MONTH||new Date().toISOString().slice(0,7)),e);
     }
   },
 
@@ -619,24 +620,29 @@ const BC={
       if(cb)cb.checked=!cb.checked;
       return;
     }
+    // Lưu hỏng thì trả danh sách về như cũ: bản trước chỉ trả ô tích, còn BC.SUSPECTS vẫn giữ đại lý vừa đánh
+    // dấu ⇒ lần tô ô kế tiếp lưu thành công ghi luôn đại lý đó lên máy chủ. Lịch Sử chỉ ghi SAU khi lưu xong.
+    const truoc=BC.SUSPECTS.slice();
+    let act,det;
     try{
       if(BC.isSuspect(ag)){
         BC.SUSPECTS=BC.SUSPECTS.filter(x=>x.dai_ly!==ag);
-        logAction('Bỏ nghi ngờ đại lý',ag);
+        act='Bỏ nghi ngờ đại lý';det=ag;
       }else{
         const summary=BC.AGENTS.find(a=>a.dai_ly===ag)||null;
         const members=BC.ROWS.filter(r=>r.dai_ly===ag);
         BC.SUSPECTS.push({dai_ly:ag,at:new Date().toISOString(),by:CUR_PROFILE.username,summary,members});
-        logAction('Đánh dấu nghi ngờ đại lý',ag+' · '+members.length+' KH hợp lệ');
+        act='Đánh dấu nghi ngờ đại lý';det=ag+' · '+members.length+' KH hợp lệ';
       }
       await SB.saveReport('suspects','all',{list:BC.SUSPECTS});
+      logAction(act,det);
       BC.updateSuspectBadge();
       BC.renderAll();
       if(document.getElementById('bc-panel-suspect').classList.contains('active'))BC.renderSuspects();
     }catch(e){
-      console.error('toggleSuspect',e);
-      alert('Lỗi lưu nghi ngờ: '+(e.message||e));
+      BC.SUSPECTS=truoc;
       if(cb)cb.checked=!cb.checked;
+      saveFailed('Danh sách đại lý nghi ngờ ('+ag+')',e);
     }
   },
   suspectCardHtml(s,idx){
@@ -709,7 +715,7 @@ const BC={
       await SB.saveReport('suspects','all',{list:BC.SUSPECTS});
       logAction('Chèn phân cách giai đoạn nghi ngờ','Sau '+BC.suspectCount()+' đại lý');
       BC.renderSuspects();
-    }catch(e){console.error('addSuspectSep',e);alert('Lỗi lưu phân cách: '+(e.message||e));BC.SUSPECTS=BC.SUSPECTS.filter((x,i)=>i!==BC.SUSPECTS.length-1);}
+    }catch(e){saveFailed('Phân cách giai đoạn nghi ngờ',e);BC.SUSPECTS=BC.SUSPECTS.filter((x,i)=>i!==BC.SUSPECTS.length-1);}
   },
   async removeSuspectSep(idx){
     if(!CUR_PROFILE||!CUR_PROFILE.is_admin){alert('Chỉ tài khoản ADMIN mới xóa được phân cách giai đoạn.');return;}
@@ -720,7 +726,7 @@ const BC={
       await SB.saveReport('suspects','all',{list:BC.SUSPECTS});
       logAction('Xóa phân cách giai đoạn nghi ngờ','');
       BC.renderSuspects();
-    }catch(e){console.error('removeSuspectSep',e);alert('Lỗi xóa phân cách: '+(e.message||e));BC.loadSuspects().then(()=>BC.renderSuspects());}
+    }catch(e){saveFailed('Xoá phân cách giai đoạn nghi ngờ',e);BC.loadSuspects().then(()=>BC.renderSuspects());}
   },
   suspectToggleDetail(idx){
     const el=document.getElementById('bc-suspect-detail-'+idx);
@@ -732,12 +738,18 @@ const BC={
     const s=BC.SUSPECTS[idx];
     if(!s)return;
     if(CUR_PROFILE&&!canEdit('bc')){alert('Bạn chỉ có quyền XEM, không tô được điểm nghi ngờ.');return;}
-    const cm=new Set(s.cellMarks||[]),k=i+'|'+f;
-    if(cm.has(k)){cm.delete(k);td.classList.remove('bc-mk','bc-mk-ad');}
-    else{cm.add(k);td.classList.add(f==='am_duong'?'bc-mk-ad':'bc-mk');}
+    const truoc=s.cellMarks,cm=new Set(s.cellMarks||[]),k=i+'|'+f;
+    const cls=f==='am_duong'?'bc-mk-ad':'bc-mk',bo=cm.has(k);
+    if(bo){cm.delete(k);td.classList.remove('bc-mk','bc-mk-ad');}
+    else{cm.add(k);td.classList.add(cls);}
     s.cellMarks=[...cm];
     try{await SB.saveReport('suspects','all',{list:BC.SUSPECTS});}
-    catch(e){console.error('suspectMark',e);alert('Lỗi lưu tô nghi ngờ: '+(e.message||e));}
+    catch(e){
+      // trả ô về như cũ — không thì ô vẫn tô trên màn hình mà máy chủ không có
+      s.cellMarks=truoc;
+      if(bo)td.classList.add(cls);else td.classList.remove('bc-mk','bc-mk-ad');
+      saveFailed('Tô ô nghi ngờ ('+(s.dai_ly||'')+')',e);
+    }
   },
 
   /* ---- Gửi danh sách Nghi Ngờ sang Google Sheet (Apps Script Web App — file google_sheet_baocao.gs)

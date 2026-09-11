@@ -20,12 +20,8 @@ function applyShiftData(sd){
   FK_KEYS.forEach(fk=>{shAssign[fk]=as[fk]||null;});
   if(sd&&sd.hours)['sf','st','tf','tt','g1f','g1t','g2f','g2t'].forEach(k=>{if(sd.hours[k]!=null){const el=document.getElementById(k);if(el)el.value=sd.hours[k];}});
 }
-// Lưu phân ca lên cloud theo tháng đang xem (debounce để gom nhiều click thành 1 lần lưu)
-let _shiftTimer=null;
-function saveShift(){
-  clearTimeout(_shiftTimer);
-  _shiftTimer=setTimeout(_saveShiftNow,1200);
-}
+// Lưu phân ca lên cloud theo tháng đang xem (gom nhiều click thành 1 lần lưu — hẹn giờ GẮN VỚI THÁNG, xem scheduleSave)
+function saveShift(){scheduleSave('shift',_saveShiftNow,1200);}
 async function _saveShiftNow(){
   if(!SB.ready()||!CUR_PROFILE||!CUR_MONTH||!_shiftReady)return;
   try{
@@ -34,49 +30,43 @@ async function _saveShiftNow(){
     await SB.saveReport('shift',CUR_MONTH,{assign:shAssign,hours});
     setCloudStatus('Đã lưu phân ca tháng '+dispMonth(CUR_MONTH)+' ✓');
     logAction('Chỉnh phân ca','Tháng '+dispMonth(CUR_MONTH));
-  }catch(e){console.error('saveShift',e);setCloudStatus('Lỗi lưu phân ca',true);}
+  }catch(e){saveFailed('Phân ca tháng '+dispMonth(CUR_MONTH),e);}
 }
 function shUpdateHours(){
   if(CUR_PROFILE&&!canEdit('shift')){setCloudStatus('Bạn chỉ có quyền XEM phân ca',true);return;}
   rShiftPanel();saveShift();
 }
 // Tải dữ liệu của THÁNG HIỆN TẠI sau khi đăng nhập (tự chuyển khi qua tháng mới)
+// ⚠ Đổi tháng đi qua loadMonthState + applyMonthState (xem switchToMonth): nạp vào biến TẠM rồi áp MỘT LƯỢT.
+// CUR_MONTH chỉ được gán ở applyMonthState — bản cũ gán ngay đầu hàm, rồi mới await nạp.
 async function bootData(){
   if(!SB.ready())return;
   const mk=curMonthKey();
-  CUR_MONTH=mk;
+  await flushPendingSaves();   // còn thay đổi chưa lưu của tháng đang xem -> lưu NGAY vào đúng tháng đó
   try{
     setCloudStatus('Đang tải dữ liệu tháng '+dispMonth(mk)+'...');
-    const[don,km,shift,an,wk,lm,ov]=await Promise.all([SB.loadReport('don',mk),SB.loadReport('km',mk),SB.loadReport('shift',mk),SB.loadReport('anomaly',mk),SB.loadReport('work',mk),SB.loadReport('limits',mk),SB.loadReport('ov',mk)]);
-    await applyRosterForMonth(mk);
-    WORK=wk||{};
-    LIMITS=lm||{};
-    await inheritLimitsIfEmpty(mk);
-    if(ov&&Object.keys(ov).length){KO_OV=ov;}
-    else{
+    const st=await loadMonthState(mk);
+    if(!(st.ov&&Object.keys(st.ov).length)){
       // di trú 1 lần: dữ liệu tổng quan cũ còn trong máy -> cloud tháng hiện tại
       const legacy=loadKoOvLegacy();
-      KO_OV=Object.keys(legacy).length?legacy:{};
-      if(Object.keys(legacy).length){try{await SB.saveReport('ov',mk,KO_OV);localStorage.removeItem(KO_OV_KEY);}catch(e){}}
+      if(Object.keys(legacy).length){st.ov=legacy;try{await SB.saveReport('ov',mk,legacy);localStorage.removeItem(KO_OV_KEY);}catch(e){}}
     }
-    D=reconcileDataset(don)||emptyDataset(mk);
-    KMD=reconcileDataset(km);
-    applyShiftData(shift);
-    _shiftReady=true;
-    if(an&&an.abuse){
-      KO_AN=an;
-    }else{
+    if(!(st.an&&st.an.abuse)){
       // di trú 1 lần: bảng bất thường cũ còn trong máy (localStorage) -> cloud tháng hiện tại
       const legacy=loadKoAnLegacy();
       const hasLegacy=Object.keys(legacy.abuse||{}).length>0||Object.keys(legacy.mkt||{}).length>0;
-      KO_AN=hasLegacy?legacy:{abuse:{},mkt:{}};
       if(hasLegacy){
-        try{await SB.saveReport('anomaly',mk,KO_AN);localStorage.removeItem(KO_AN_KEY);}catch(e){}
+        st.an=legacy;
+        // ghi hỏng: coi cả bảng cũ là "thay đổi chưa lưu" để lần sửa kế tiếp đẩy nó lên (xem anMerge)
+        try{await SB.saveReport('anomaly',mk,legacy);localStorage.removeItem(KO_AN_KEY);}catch(e){st.anBase={abuse:{},mkt:{}};}
       }
     }
+    applyMonthState(mk,st);
+    _shiftReady=true;
     selDay=null;
-    setMonthLabel(mk,!don);
+    setMonthLabel(mk,!st.don);
     rAll();
+    const don=st.don;
     setCloudStatus(don?'Dữ liệu tháng '+dispMonth(mk)+' ✓':'Chưa có dữ liệu tháng '+dispMonth(mk)+' — bấm Upload Excel để thêm',!don);
     BC.loadSuspects();
     processUrlAction();
@@ -107,8 +97,9 @@ function applyRosterFromCloud(roster){
   applyRoster();
   if(typeof BC!=='undefined'&&BC.renderFkChips)BC.renderFkChips();
 }
-// Nạp roster cho tháng mk: bản riêng của tháng -> kế thừa tháng gần nhất trước đó -> bản 'all' cũ -> mặc định.
-async function applyRosterForMonth(mk){
+// Tìm roster cho tháng mk: bản riêng của tháng -> kế thừa tháng gần nhất trước đó -> bản 'all' cũ -> null (= mặc định).
+// CHỈ TẢI, KHÔNG ÁP — để đổi tháng áp mọi thứ một lượt (xem switchToMonth). Không bao giờ ném lỗi.
+async function loadRosterMembersFor(mk){
   let members=null;
   try{
     if(SB.ready()){
@@ -121,8 +112,8 @@ async function applyRosterForMonth(mk){
       }
       if(!members){const leg=await SB.loadReport('roster','all');if(leg&&Array.isArray(leg.members)&&leg.members.length)members=leg.members;}
     }
-  }catch(e){console.error('applyRosterForMonth',e);}
-  applyRosterFromCloud(members?{members}:null);
+  }catch(e){console.error('loadRosterMembersFor',e);}
+  return members;
 }
 // Lưu ROSTER lên cloud (RIÊNG tháng đang mở) + rebuild biến suy ra + reconcile dataset đang mở + render lại.
 async function saveRoster(actionLabel){
@@ -131,39 +122,56 @@ async function saveRoster(actionLabel){
   if(KMD)reconcileDataset(KMD);
   if(typeof BC!=='undefined'&&BC.renderFkChips)BC.renderFkChips();
   const mk=CUR_MONTH||curMonthKey();
+  // Trả true/false = lưu được hay không (rosterRename cần biết để mở lối bấm lại — nghiệm thu 10/09/2026).
+  // 3 nơi gọi: thêm / sửa tên / ẩn nhân viên; thêm & ẩn bỏ qua giá trị trả về.
+  let ok=false;
   try{
-    await SB.saveReport('roster',mk,{members:ROSTER});
+    const r=await SB.saveReport('roster',mk,{members:ROSTER});
+    // saveReport trả {skipped} (không ném) khi chưa kết nối — coi là HỎNG, không được báo "Đã lưu ✓"
+    if(r&&r.skipped)throw new Error('Chưa kết nối máy chủ');
+    ok=true;
     setCloudStatus('Đã lưu danh sách nhân viên tháng '+dispMonth(mk)+' ✓');
     if(actionLabel)logAction('Chỉnh danh sách nhân viên',actionLabel+' (tháng '+dispMonth(mk)+')');
   }catch(e){
-    console.error('saveRoster',e);
-    setCloudStatus('Lỗi lưu danh sách nhân viên — kiểm tra quyền (RLS type "roster")',true);
+    saveFailed('Danh sách nhân viên tháng '+dispMonth(mk)+' (nếu lỗi quyền: kiểm tra RLS cho type "roster")',e);
   }
   if(typeof rAll==='function')rAll();
+  return ok;
 }
 // Cập nhật TÊN (+ mã Excel/search nếu truyền) của 1 nhân viên (theo key) trên MỌI bản roster đã lưu
 // (tất cả tháng + bản 'all' cũ) -> tháng cũ cũng đổi theo. key nội bộ & điểm số không đổi.
 // Các tháng CHƯA có bản riêng sẽ tự lấy giá trị mới qua kế thừa.
+// ⚠ TRẢ VỀ KẾT QUẢ, KHÔNG NUỐT LỖI. Bản cũ có try/catch BÊN TRONG vòng lặp chỉ ghi console
+// rồi chạy tiếp, nên hàm KHÔNG BAO GIỜ ném lỗi ra ngoài -> mọi tháng hỏng đều bị bỏ qua âm thầm
+// và người dùng luôn thấy "đã đổi tên xong". Hậu quả: tháng này tên MỚI, tháng cũ tên CŨ, nhìn
+// báo cáo tưởng là hai người khác nhau — đúng cái đã xảy ra với CHAMY -> SOLIS.
+// Trả về {failed:[tháng...], skipped:bool}. Hàm là idempotent: chạy lại nhiều lần vô hại.
 async function renameMemberEverywhere(key,newName,newSearch){
-  if(!SB.ready())return;
+  if(!SB.ready())return{failed:[],skipped:true};
   const reps=await SB.listReports();
-  const months=[...new Set((reps||[]).filter(r=>r.type==='roster').map(r=>r.month))];
-  for(const mo of months){
-    if(mo===CUR_MONTH)continue; // tháng đang mở sẽ được saveRoster ghi lại
-    try{
-      const rep=await SB.loadReport('roster',mo);
-      if(rep&&Array.isArray(rep.members)){
-        let changed=false;
-        rep.members.forEach(m=>{
-          if(String(m.key)===key){
-            if(m.name!==newName){m.name=newName;changed=true;}
-            if(newSearch&&(m.search||'').toLowerCase()!==newSearch){m.search=newSearch;changed=true;}
-          }
-        });
-        if(changed)await SB.saveReport('roster',mo,{members:rep.members});
+  const months=[...new Set((reps||[]).filter(r=>r.type==='roster').map(r=>r.month))]
+    .filter(mo=>mo!==CUR_MONTH); // tháng đang mở sẽ được saveRoster ghi lại
+  const one=async mo=>{
+    const rep=await SB.loadReport('roster',mo);
+    if(!rep||!Array.isArray(rep.members))return;
+    let changed=false;
+    rep.members.forEach(m=>{
+      if(String(m.key)===key){
+        if(m.name!==newName){m.name=newName;changed=true;}
+        if(newSearch&&(m.search||'').toLowerCase()!==newSearch){m.search=newSearch;changed=true;}
       }
-    }catch(e){console.error('renameMemberEverywhere',mo,e);}
+    });
+    if(changed)await SB.saveReport('roster',mo,{members:rep.members});
+  };
+  let failed=[];
+  for(const mo of months){try{await one(mo);}catch(e){console.error('renameMemberEverywhere',mo,e);failed.push(mo);}}
+  // Thử lại MỘT lượt cho các tháng hỏng (phần lớn là mạng chập nhất thời)
+  if(failed.length){
+    const again=[];
+    for(const mo of failed){try{await one(mo);}catch(e){console.error('renameMemberEverywhere (thử lại)',mo,e);again.push(mo);}}
+    failed=again;
   }
+  return{failed,skipped:false};
 }
 // "06/2026" hoặc "6/2026" -> "2026-06" (định dạng lưu DB, sort được)
 function normMonth(m){const p=/^(\d{1,2})\/(\d{4})$/.exec(String(m||'').trim());return p?p[2]+'-'+p[1].padStart(2,'0'):String(m||'').trim();}
@@ -175,6 +183,60 @@ function setCloudStatus(msg,isErr){
   el.textContent=msg||'';
   el.style.color=isErr?'var(--re)':'var(--mu2)';
   if(msg&&!isErr&&/✓/.test(msg))setTimeout(()=>{if(el.textContent===msg)el.textContent='';},6000);
+}
+// ===== BÁO LƯU THẤT BẠI — DÙNG CHUNG, BẮT BUỘC CHO MỌI ĐƯỜNG GHI DỮ LIỆU =====
+// ⚠ setCloudStatus(...,true) MỘT MÌNH LÀ KHÔNG ĐỦ: nó chỉ đổi màu một dòng chữ nhỏ ở góc,
+// không chặn thao tác, và trên màn hình đầy bảng biểu thì gần như chắc chắn bị bỏ sót.
+// Người dùng đóng cửa sổ trong khi tin là đã lưu — đúng cái bẫy "nhãn nói dối" đã vấp với
+// báo OFF (08/09/2026) và với danh sách domain warnkw (05/09/2026).
+// LUẬT: ghi dữ liệu mà người dùng nhìn thấy kết quả => hỏng thì PHẢI gọi saveFailed().
+let _saveFailCount=0; // tăng mỗi lần saveFailed() — để biết một lượt lưu có hỏng không mà không phải sửa từng hàm lưu
+function saveFailed(what,e){
+  _saveFailCount++;
+  const why=String((e&&(e.message||e.error_description||e.hint))||e||'không rõ nguyên nhân');
+  console.error('LƯU THẤT BẠI |',what,e);
+  setCloudStatus('Lưu thất bại: '+what,true);
+  alert('⚠ LƯU THẤT BẠI — dữ liệu CHƯA được ghi lên máy chủ.\n\n'
+    +what+'\n\nLý do:\n'+why
+    +'\n\nHãy thử lại. Nếu vẫn lỗi, chụp màn hình này gửi quản trị.');
+}
+// ===== LƯU HẸN GIỜ — GẮN VỚI THÁNG (nghiệm thu 10/09/2026 — canh bởi test/kiem-tra.html nhóm 10) =====
+// Phân Ca / Tổng Quan / Bất Thường / Hạn Mức / Công Việc gom nhiều lần sửa rồi mới lưu (~1 giây).
+// ⚠ Bản cũ dùng setTimeout trần: đổi tháng trong lúc chờ thì lượt lưu bắn SAU khi CUR_MONTH đã sang tháng mới
+// ⇒ ghi dữ liệu tháng cũ đè lên tháng mới (cả bảng Bất Thường của tháng đó mất trắng) mà vẫn báo ✓.
+// Nay: (1) mỗi lượt lưu nhớ THÁNG lúc hẹn; (2) mọi chỗ đổi tháng gọi flushPendingSaves() để LƯU NGAY vào tháng cũ;
+// (3) lưới an toàn: lượt nào vẫn lọt tới lúc tháng đã đổi thì KHÔNG ghi mà báo saveFailed.
+// ⚠ ĐỪNG "sửa" bằng clearTimeout khi đổi tháng — huỷ lượt lưu = MẤT ô người dùng vừa sửa.
+const _pendingSaves={};   // tên -> {name, fn, mk, timer}
+function scheduleSave(name,fn,ms){
+  const cu=_pendingSaves[name];
+  if(cu&&cu.timer)clearTimeout(cu.timer);
+  const job={name,fn,mk:CUR_MONTH,timer:null};
+  job.timer=setTimeout(()=>runPendingSave(job),ms);
+  _pendingSaves[name]=job;
+}
+// Chạy 1 lượt lưu. Trả true nếu lưu xong; false nếu hỏng hoặc bị lưới an toàn chặn.
+async function runPendingSave(job){
+  if(job.timer){clearTimeout(job.timer);job.timer=null;}
+  if(_pendingSaves[job.name]===job)delete _pendingSaves[job.name];
+  if(job.mk!==CUR_MONTH){
+    saveFailed('Thay đổi của tháng '+dispMonth(job.mk)+' — đã chuyển sang tháng khác trước khi kịp lưu. Mở lại tháng '+dispMonth(job.mk)+' và nhập lại thay đổi.',new Error('Đã đổi tháng giữa chừng'));
+    return false;
+  }
+  const truoc=_saveFailCount;
+  try{await job.fn();}catch(e){saveFailed('Lượt lưu "'+job.name+'"',e);}
+  if(_saveFailCount!==truoc){
+    // Hỏng: giữ lại (không hẹn giờ) để lần đổi tháng / lần sửa kế tiếp thử lưu lại — dữ liệu vẫn nằm trong máy.
+    if(!_pendingSaves[job.name])_pendingSaves[job.name]=job;
+    return false;
+  }
+  return true;
+}
+// LƯU NGAY mọi thay đổi đang chờ, trong khi CUR_MONTH vẫn là tháng của chúng. Gọi TRƯỚC mọi lần đổi tháng.
+async function flushPendingSaves(){
+  let ok=true;
+  for(const job of Object.values(_pendingSaves)){if(!(await runPendingSave(job)))ok=false;}
+  return ok;
 }
 // Cắt bỏ các cột (0-based) khỏi file Excel -> trả về File mới cùng tên (dùng SheetJS đã nạp sẵn)
 async function stripSensitiveCols(file,colIdx){
@@ -191,13 +253,17 @@ async function stripSensitiveCols(file,colIdx){
 }
 
 async function cloudSaveKO(target,nd){
-  if(!SB.ready())return;
   const type=target==="km"?"km":"don";
   const month=normMonth(nd.month);
   const lbl=type==="km"?"Khuyến Mãi":"Duyệt Đơn";
+  // Không có kết nối: chỉ xem trước tại máy (như trước), không đổi tháng đang xem.
+  if(!SB.ready()){if(type==="km")KMD=nd;else{D=nd;setMonthLabel(month,false);}rAll();return;}
+  // ⚠ Bản mới CHỈ lên màn hình SAU KHI máy chủ lưu xong (nghiệm thu 10/09/2026 — canh bởi test nhóm 11–12).
+  // Trước đây finalizeResult gán D/KMD trước khi hỏi "trùng dữ liệu" ⇒ bấm Huỷ hoặc lưu hỏng thì màn hình
+  // vẫn hiện bản mới CHƯA hề được lưu, trong khi thanh trạng thái ghi "dữ liệu cũ được giữ nguyên".
+  let exists=false;
   try{
     // Nhận diện dữ liệu trùng tháng cũ đã có trên cloud
-    let exists=false;
     try{const rows=await SB.listReports();exists=rows.some(r=>r.type===type&&r.month===month);}catch(e){}
     if(exists){
       // Lưới an toàn: bản mới ít ngày hơn bản cloud -> cảnh báo mất dữ liệu
@@ -230,21 +296,24 @@ async function cloudSaveKO(target,nd){
     }
     setCloudStatus("Đang lưu cloud...");
     await SB.saveReport(type,month,nd);
-    const fCnt=(window._lastUploadFiles||[]).length;
-    // Duyệt Đơn: cắt bỏ cột G/H/I (thông tin nhạy cảm) trước khi sao lưu file gốc lên Storage
-    let upFiles=window._lastUploadFiles;
-    if(type==="don"&&upFiles&&upFiles.length){
-      try{upFiles=await Promise.all(upFiles.map(f=>stripSensitiveCols(f,[6,7,8])));}catch(e){console.error('stripCols',e);}
-    }
-    await SB.uploadOriginals(upFiles,type,month);
-    window._lastUploadFiles=null;
-    CUR_MONTH=month;
-    setCloudStatus("Đã lưu cloud tháng "+dispMonth(month)+" ✓");
-    logAction('Upload dữ liệu '+lbl,'Tháng '+dispMonth(month)+' · '+fCnt+' file · '+(((nd&&nd.days_in_month)||[]).length)+' ngày'+(exists?' · thay thế bản cũ':' · lưu mới'));
   }catch(e){
-    console.error("cloudSaveKO",e);
-    setCloudStatus("Lỗi lưu cloud: "+(e.message||e),true);
+    // Upload Excel hỏng mà chỉ báo mờ = người dùng tưởng đã lưu, đóng máy, hôm sau mất cả ngày dữ liệu.
+    saveFailed('Dữ liệu '+lbl+' tháng '+dispMonth(month)+' (vừa upload) — màn hình vẫn giữ bản đang có trên máy chủ',e);
+    return;
   }
+  const fCnt=(window._lastUploadFiles||[]).length;
+  // Duyệt Đơn: cắt bỏ cột G/H/I (thông tin nhạy cảm) trước khi sao lưu file gốc lên Storage
+  let upFiles=window._lastUploadFiles;
+  if(type==="don"&&upFiles&&upFiles.length){
+    try{upFiles=await Promise.all(upFiles.map(f=>stripSensitiveCols(f,[6,7,8])));}catch(e){console.error('stripCols',e);}
+  }
+  try{await SB.uploadOriginals(upFiles,type,month);}catch(e){console.error('uploadOriginals',e);}
+  window._lastUploadFiles=null;
+  // Khác tháng đang xem ⇒ chuyển HẲN sang tháng đó (nạp cả Bất Thường/Tổng Quan/Hạn Mức/Công Việc/Phân Ca).
+  // Bản cũ chỉ gán CUR_MONTH=month ⇒ các bảng khác vẫn là của tháng đang xem, sửa 1 ô là ghi đè tháng vừa upload.
+  const hien=await showSavedDataset(type,month,nd);
+  setCloudStatus(hien?"Đã lưu cloud tháng "+dispMonth(month)+" ✓":"Đã lưu cloud tháng "+dispMonth(month)+" ✓ — màn hình vẫn đang ở tháng "+dispMonth(CUR_MONTH)+" (còn thay đổi chưa lưu)",!hien);
+  logAction('Upload dữ liệu '+lbl,'Tháng '+dispMonth(month)+' · '+fCnt+' file · '+(((nd&&nd.days_in_month)||[]).length)+' ngày'+(exists?' · thay thế bản cũ':' · lưu mới'));
 }
 async function toggleHistMenu(ev){
   ev.stopPropagation();
@@ -276,29 +345,67 @@ async function toggleHistMenu(ev){
     menu.innerHTML="<div class='upload-dd-item' style='color:var(--re);cursor:default'>Lỗi tải danh sách cloud</div>";
   }
 }
-async function loadHistMonth(m){
-  document.getElementById("histDdMenu").classList.remove("show");
+// ===== ĐỔI THÁNG AN TOÀN (nghiệm thu 10/09/2026 — canh bởi test/kiem-tra.html nhóm 10–12) =====
+// ⚠ MỌI chỗ đổi tháng đang xem PHẢI đi qua switchToMonth() (hoặc bootData). KHÔNG gán CUR_MONTH trực tiếp.
+//  1. LƯU NGAY các lượt lưu đang chờ vào tháng CŨ trước khi đổi (flushPendingSaves) — không huỷ.
+//  2. Nạp đủ dữ liệu tháng mới vào biến TẠM (loadMonthState) rồi ÁP MỘT LƯỢT (applyMonthState), không await xen giữa.
+//     Bản cũ gán CUR_MONTH trước rồi mới await nạp roster/hạn mức ⇒ lượt lưu hẹn giờ bắn giữa chừng ghi
+//     dữ liệu tháng cũ vào tháng mới và báo ✓.
+async function loadMonthState(m){
+  const[don,km,shift,an,wk,lm,ov]=await Promise.all([SB.loadReport("don",m),SB.loadReport("km",m),SB.loadReport("shift",m),SB.loadReport("anomaly",m),SB.loadReport("work",m),SB.loadReport("limits",m),SB.loadReport("ov",m)]);
+  const roster=await loadRosterMembersFor(m);
+  let lim=(lm&&Object.keys(lm).length)?lm:null;
+  if(!lim){try{lim=await inheritedLimitsFor(m);}catch(e){console.error('inheritedLimitsFor',e);}}
+  return{don,km,shift,an,wk,lim:lim||{},ov,roster};
+}
+// ĐỒNG BỘ, không await: sau hàm này mọi bảng trong máy + CUR_MONTH cùng thuộc về tháng m.
+function applyMonthState(m,st){
+  applyRosterFromCloud(st.roster?{members:st.roster}:null);   // phải trước reconcileDataset (dùng FK_KEYS)
+  WORK=st.wk||{};
+  LIMITS=st.lim;
+  KO_OV=(st.ov&&Object.keys(st.ov).length)?st.ov:{};
+  D=reconcileDataset(st.don)||emptyDataset(m);
+  KMD=reconcileDataset(st.km);
+  applyShiftData(st.shift);
+  KO_AN=(st.an&&st.an.abuse)?st.an:{abuse:{},mkt:{}};
+  // Bảng Bất Thường vừa nạp = bản máy chủ. Xoá dấu vết sửa của tháng trước: nếu người dùng chọn "bỏ thay đổi
+  // chưa lưu" khi đổi tháng mà không xoá, _anDirty kẹt true ⇒ vòng đồng bộ 60s tắt tới lúc F5, và Lịch Sử
+  // ghi các ô của tháng cũ dưới nhãn tháng mới (sửa 11/09/2026 — test nhóm 14).
+  _anBase=st.anBase?anClone(st.anBase):anClone(KO_AN);
+  _anDirty=false;_anChanges=[];
+  CUR_MONTH=m;
+}
+// Trả true nếu đã chuyển; false nếu người dùng chọn ở lại (còn thay đổi chưa lưu được) hoặc nạp hỏng.
+async function switchToMonth(m){
+  if(!(await flushPendingSaves())){
+    if(!confirm('⚠ CÒN THAY ĐỔI CHƯA LƯU ĐƯỢC của tháng '+dispMonth(CUR_MONTH)+'.\n\nNếu chuyển sang tháng '+dispMonth(m)+' bây giờ, các thay đổi đó sẽ BỊ BỎ.\n\n— OK: vẫn chuyển tháng và bỏ các thay đổi chưa lưu\n— Cancel: ở lại tháng này (hệ thống sẽ thử lưu lại khi bạn sửa tiếp hoặc chuyển tháng lần nữa)'))return false;
+    for(const k in _pendingSaves){clearTimeout(_pendingSaves[k].timer);delete _pendingSaves[k];}   // người dùng đã chọn bỏ
+  }
   try{
     setCloudStatus("Đang tải tháng "+dispMonth(m)+"...");
-    const[don,km,shift,an,wk,lm,ov]=await Promise.all([SB.loadReport("don",m),SB.loadReport("km",m),SB.loadReport("shift",m),SB.loadReport("anomaly",m),SB.loadReport("work",m),SB.loadReport("limits",m),SB.loadReport("ov",m)]);
-    CUR_MONTH=m;
-    await applyRosterForMonth(m);
-    WORK=wk||{};
-    LIMITS=lm||{};
-    await inheritLimitsIfEmpty(m);
-    KO_OV=(ov&&Object.keys(ov).length)?ov:{};
-    D=reconcileDataset(don)||emptyDataset(m);
-    KMD=reconcileDataset(km);
-    applyShiftData(shift);
-    KO_AN=(an&&an.abuse)?an:{abuse:{},mkt:{}};
-    setMonthLabel(m,!don);
+    const st=await loadMonthState(m);
+    applyMonthState(m,st);
+    setMonthLabel(m,!st.don);
     selDay=null;
     rAll();
-    setCloudStatus(don?"Đã tải tháng "+dispMonth(m)+" ✓":"Tháng "+dispMonth(m)+" chưa có dữ liệu — Upload Excel để thêm",!don);
+    setCloudStatus(st.don?"Đã tải tháng "+dispMonth(m)+" ✓":"Tháng "+dispMonth(m)+" chưa có dữ liệu — Upload Excel để thêm",!st.don);
+    return true;
   }catch(e){
-    console.error("loadHistMonth",e);
+    console.error("switchToMonth",e);
     setCloudStatus("Lỗi tải dữ liệu cloud",true);
+    return false;
   }
+}
+// Đưa bộ dữ liệu VỪA LƯU XONG lên màn hình. Cùng tháng đang xem: gán thẳng. Khác tháng: chuyển HẲN sang tháng đó.
+async function showSavedDataset(type,month,ds){
+  if(month!==CUR_MONTH)return await switchToMonth(month);
+  if(type==="km")KMD=ds;else{D=ds;setMonthLabel(month,false);}
+  rAll();
+  return true;
+}
+async function loadHistMonth(m){
+  const mn=document.getElementById("histDdMenu");if(mn)mn.classList.remove("show");
+  await switchToMonth(m);
 }
 
 let D=MD,KMD=null,CH={},dCh=null,selDay=null,rkGrp="vip",mView="diem",selFK=null;
@@ -312,17 +419,13 @@ FK_KEYS.forEach(fk=>shAssign[fk]=null);
 const KO_OV_KEY="fk_ko_overview_v1"; // chỉ dùng để di trú dữ liệu cũ 1 lần
 function loadKoOvLegacy(){try{return JSON.parse(localStorage.getItem(KO_OV_KEY))||{};}catch(e){return {};}}
 let KO_OV={};
-let _ovTimer=null;
-function saveKoOv(){
-  clearTimeout(_ovTimer);
-  _ovTimer=setTimeout(_saveKoOvCloud,1000);
-}
+function saveKoOv(){scheduleSave('ov',_saveKoOvCloud,1000);}
 async function _saveKoOvCloud(){
   if(!SB.ready()||!CUR_PROFILE||!CUR_MONTH)return;
   try{
     await SB.saveReport('ov',CUR_MONTH,KO_OV);
     setCloudStatus('Đã lưu tổng quan tháng '+dispMonth(CUR_MONTH)+' ✓');
-  }catch(e){console.error('_saveKoOvCloud',e);setCloudStatus('Lỗi lưu tổng quan',true);}
+  }catch(e){saveFailed('Tổng Quan (cộng/trừ/ghi chú) tháng '+dispMonth(CUR_MONTH),e);}
 }
 function ovGet(fk){return {cong:0,tru:0,khac:"",note:"",wd:null,...(KO_OV[fk]||{})};}
 function ovSet(fk,field,val){
@@ -335,22 +438,68 @@ const KO_AN_KEY="fk_ko_anomaly_grid_v1"; // chỉ còn dùng để di trú dữ 
 const AN_CATS={abuse:"Cược bất thường — Lạm dụng",mkt:"Đại lý ngoài — MKT bất thường"};
 function loadKoAnLegacy(){try{const d=JSON.parse(localStorage.getItem(KO_AN_KEY));return d&&d.abuse?d:{abuse:{},mkt:{}};}catch(e){return {abuse:{},mkt:{}};}}
 let KO_AN={abuse:{},mkt:{}};
-let _anTimer=null,_anDirty=false;
+let _anDirty=false;
+// ⚠ KHÔNG ghi đè nguyên bảng Bất Thường (sửa 11/09/2026 — canh bởi test/kiem-tra.html nhóm 14).
+// Bot Telegram (super-function, nhánh "cf") cộng điểm THẲNG vào report anomaly trên máy chủ, còn máy này
+// chỉ kéo bản mới 60 giây/lần và NGỪNG kéo khi tab bị ẩn. Bản cũ lưu nguyên KO_AN ⇒ Tổ Trưởng quay lại tab
+// sau một lúc, sửa 1 ô là XOÁ SẠCH mọi điểm vừa xác nhận qua Telegram, và vẫn báo ✓.
+// Nay: _anBase = bản máy chủ lần cuối máy này biết. Lúc lưu: đọc lại máy chủ, chỉ cộng PHẦN CHÊNH (KO_AN − _anBase)
+// của những ô đã sửa. Còn hở vài trăm ms giữa đọc và ghi — muốn kín hẳn phải chuyển sang RPC cộng nguyên tử.
+let _anBase={abuse:{},mkt:{}};
+const anClone=o=>JSON.parse(JSON.stringify(o&&o.abuse?o:{abuse:{},mkt:{}}));
+// Trả bản mới = srv + (loc − base) theo từng ô ngày. Ô không đổi so với base giữ nguyên giá trị máy chủ.
+function anMerge(srv,base,loc){
+  const out=anClone(srv);
+  base=base||{};loc=loc||{};
+  const keys=(a,b)=>[...new Set([...Object.keys(a||{}),...Object.keys(b||{})])];
+  for(const cat of keys(loc,base)){
+    const L=loc[cat]||{},B=base[cat]||{};
+    for(const fk of keys(L,B)){
+      const Lf=L[fk]||{},Bf=B[fk]||{};
+      for(const day of keys(Lf,Bf)){
+        const d=(Number(Lf[day])||0)-(Number(Bf[day])||0);
+        if(!d)continue;
+        if(!out[cat])out[cat]={};if(!out[cat][fk])out[cat][fk]={};
+        out[cat][fk][day]=Math.max(0,(Number(out[cat][fk][day])||0)+d);
+      }
+    }
+  }
+  return out;
+}
 function saveKoAn(){
   _anDirty=true; // đang có thay đổi cục bộ chưa lưu -> tạm dừng auto-sync để không bị ghi đè
-  clearTimeout(_anTimer);
-  _anTimer=setTimeout(_saveKoAnCloud,1200);
+  scheduleSave('an',_saveKoAnCloud,1200);
 }
-async function _saveKoAnCloud(){
+// ⚠ Các lượt lưu Bất Thường phải chạy LẦN LƯỢT: mạng chậm hơn 1,2s thì lượt hẹn giờ kế tiếp bắn khi lượt trước
+// chưa xong ⇒ nó dùng _anBase CŨ ⇒ phần sửa của lượt trước bị cộng HAI LẦN lên máy chủ.
+let _anInFlight=Promise.resolve();
+function _saveKoAnCloud(){
+  const p=_anInFlight.then(_saveKoAnOnce,_saveKoAnOnce);
+  _anInFlight=p.catch(()=>{});
+  return p;
+}
+async function _saveKoAnOnce(){
   if(!SB.ready()||!CUR_PROFILE||!CUR_MONTH)return;
+  const mk=CUR_MONTH;
+  const loc=anClone(KO_AN),base=_anBase,chg=_anChanges.slice();
   try{
-    await SB.saveReport('anomaly',CUR_MONTH,KO_AN);
-    _anDirty=false;
-    setCloudStatus('Đã lưu bất thường tháng '+dispMonth(CUR_MONTH)+' ✓');
-    const det=_anChanges.map(c=>(FK_NAMES[c.fk]||c.fk)+' · '+(c.cat==='mkt'?'Đại lý ngoài':'Cược lạm dụng')+' · ngày '+c.day+': '+c.from+' → '+c.to).join(' | ');
-    _anChanges=[];
-    if(det)logAction('Chỉnh bất thường','Tháng '+dispMonth(CUR_MONTH)+' · '+det.slice(0,600));
-  }catch(e){console.error('_saveKoAnCloud',e);setCloudStatus('Lỗi lưu bất thường',true);}
+    const srv=await SB.loadReport('anomaly',mk);
+    const merged=anMerge(srv,base,loc);
+    if(JSON.stringify(merged)!==JSON.stringify(anClone(srv)))await SB.saveReport('anomaly',mk,merged);
+    if(CUR_MONTH===mk){
+      // sửa thêm trong lúc chờ mạng thì giữ lại phần đó (lượt lưu kế tiếp đã được hẹn sẵn)
+      const moiSua=JSON.stringify(anClone(KO_AN))!==JSON.stringify(loc);
+      KO_AN=moiSua?anMerge(merged,loc,KO_AN):merged;
+      _anBase=anClone(merged);
+      _anDirty=moiSua;
+      _anChanges=_anChanges.slice(chg.length);
+      // máy chủ có điểm Telegram mới -> hiện luôn, khỏi chờ vòng đồng bộ 60s
+      if(JSON.stringify(merged)!==JSON.stringify(loc)&&document.querySelector('.pg.active')?.id==='pg-ko'&&typeof rKO==='function')rKO();
+    }
+    setCloudStatus('Đã lưu bất thường tháng '+dispMonth(mk)+' ✓');
+    const det=chg.map(c=>(FK_NAMES[c.fk]||c.fk)+' · '+(c.cat==='mkt'?'Đại lý ngoài':'Cược lạm dụng')+' · ngày '+c.day+': '+c.from+' → '+c.to).join(' | ');
+    if(det)logAction('Chỉnh bất thường','Tháng '+dispMonth(mk)+' · '+det.slice(0,600));
+  }catch(e){_anDirty=true;saveFailed('Điểm Bất Thường tháng '+dispMonth(mk),e);}
 }
 
 function anGet(cat,fk,day){return (KO_AN[cat]&&KO_AN[cat][fk]&&KO_AN[cat][fk][day])||0;}

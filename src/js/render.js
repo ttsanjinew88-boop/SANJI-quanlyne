@@ -222,8 +222,8 @@ async function savePerfEdit(src,fk,d,from,to){
     setCloudStatus('Đã lưu chỉnh tay ✓');
     logAction('Chỉnh tay điểm '+(src==='km'?'Khuyến Mãi':'Duyệt Đơn'),(FK_NAMES[fk]||fk)+' · ngày '+d+'/'+dispMonth(CUR_MONTH)+': '+nn(from)+' → '+nn(to));
   }catch(e){
-    console.error('savePerfEdit',e);
-    setCloudStatus('Lỗi lưu chỉnh tay',true);
+    // Điểm chỉnh tay ảnh hưởng trực tiếp tới lương -> hỏng thì phải CHẶN, không được để trôi.
+    saveFailed('Chỉnh tay điểm '+(src==='km'?'Khuyến Mãi':'Duyệt Đơn')+' — '+(FK_NAMES[fk]||fk)+' ngày '+d,e);
   }
 }
 function rKoDaily(){
@@ -440,6 +440,8 @@ function rosterAddMember(){
   document.getElementById('rosterAddName').value='';
   document.getElementById('rosterAddSearch').value='';
 }
+// Nhân viên có lần đổi tên chưa áp hết cho tháng cũ (chỉ trong RAM, không lưu cloud) -> mở lối thử lại.
+const _renamePending={};
 // Sửa nhân viên — đổi TÊN và/hoặc MÃ EXCEL (search). key nội bộ & điểm số GIỮ NGUYÊN. Áp cho TẤT CẢ các tháng (cả tháng cũ).
 async function rosterRename(i){
   if(!canManageRoster()){alert('Chỉ ADMIN / Tổ Trưởng.');return;}
@@ -455,14 +457,50 @@ async function rosterRename(i){
   const newSearch=sv.trim().toLowerCase();
   if(!newSearch){alert('Mã Excel không được để trống.');return;}
   const nameChanged=newName!==m.name, searchChanged=newSearch!==curSearch.toLowerCase();
-  if(!nameChanged&&!searchChanged){alert('Không có thay đổi.');return;}
+  // _renamePending: lần đổi trước có tháng cũ chưa áp được -> vẫn cho bấm lại dù tên không đổi nữa,
+  // nếu không thì chốt chặn "Không có thay đổi" khoá luôn đường thử lại.
+  if(!nameChanged&&!searchChanged&&!_renamePending[m.key]){alert('Không có thay đổi.');return;}
   if(!confirm('Cập nhật nhân viên:\n • Tên:  "'+m.name+'"  →  "'+newName+'"\n • Mã Excel:  "'+curSearch+'"  →  "'+newSearch+'"\n\nÁp dụng cho TẤT CẢ các tháng (kể cả tháng cũ). Điểm số KHÔNG đổi.'))return;
   const key=m.key,oldName=m.name;
   m.name=newName;m.search=newSearch;
   setCloudStatus('Đang cập nhật trên mọi tháng...');
-  try{await renameMemberEverywhere(key,newName,newSearch);}catch(e){console.error('rosterRename',e);}
-  await saveRoster('Sửa '+oldName+' → '+newName+' (mã: '+newSearch+')');
+  let res=null,err=null;
+  try{res=await renameMemberEverywhere(key,newName,newSearch);}catch(e){err=e;}
+  const ok=await saveRoster('Sửa '+oldName+' → '+newName+' (mã: '+newSearch+')');
   rosterRenderList();
+  // Báo RÕ khi phần "áp cho các tháng cũ" chưa xong. Im lặng ở đây = tháng này một tên,
+  // tháng cũ một tên, và không ai biết cho tới lúc mở báo cáo cũ ra xem.
+  const bad=err?[]:((res&&res.failed)||[]);
+  if(err||bad.length){
+    _renamePending[key]=true;
+    console.error('rosterRename — tháng cũ chưa áp được',err||bad);
+    setCloudStatus('Đổi tên: CHƯA áp được cho các tháng cũ',true);
+    // ⚠ CHỈ NÓI ĐIỀU CHẮC CHẮN ĐÚNG (nghiệm thu 10/09/2026 — canh bởi test/kiem-tra.html nhóm 8):
+    //  - KHÔNG khẳng định tháng đang mở đã xong: hàm này không biết saveRoster có lưu được không
+    //    (nếu hỏng thì saveFailed đã tự bật hộp thoại riêng).
+    //  - KHÔNG in "tên cũ": ở lần bấm lại, m.name trong RAM đã là tên MỚI nên oldName = tên mới
+    //    ⇒ bản cũ báo "tháng 07 VẪN GIỮ tên SOLIS" trong khi tháng 07 thật ra vẫn là CHAMY.
+    //  - Dòng "•" chỉ chứa SỐ THÁNG: bộ dịch khớp NGUYÊN DÒNG, chữ đứng sau "•" sẽ kẹt tiếng Việt khi bật EN.
+    //    Bản roster cũ month='all' (trước 01/08/2026) báo bằng MỘT CÂU RIÊNG có bản dịch — bản trước in ra "• all".
+    const thang=bad.filter(x=>/^\d{4}-\d{2}$/.test(x)), coChung=bad.some(x=>!/^\d{4}-\d{2}$/.test(x));
+    alert('⚠ ĐỔI TÊN CHƯA XONG Ở CÁC THÁNG CŨ.\n\n'
+      +(err
+        ?'Không đọc được danh sách các tháng cũ nên chưa cập nhật được tháng nào.\n\nLý do:\n'+String(err.message||err)
+        :(thang.length?'Các tháng sau CHƯA được cập nhật sang tên "'+newName+'":\n'+thang.map(x=>'  • '+dispMonth(x)).join('\n'):'')
+          +(thang.length&&coChung?'\n':'')
+          +(coChung?'Danh sách nhân viên dùng chung cũ (bản trước 01/08/2026) CHƯA được cập nhật sang tên mới.':''))
+      +'\n\nBấm lại "✎ Sửa tên/mã" của nhân viên này rồi Đồng ý một lần nữa để thử lại.\nChạy lại nhiều lần không hại gì.');
+  }else if(res&&res.skipped){
+    _renamePending[key]=true;
+    setCloudStatus('Đổi tên: chưa kết nối máy chủ, tháng cũ chưa áp',true);
+    alert('⚠ CHƯA KẾT NỐI MÁY CHỦ.\n\nTên mới chỉ đổi trên máy này, các tháng cũ CHƯA được cập nhật.\n\nKiểm tra mạng rồi bấm lại "✎ Sửa tên/mã" để thử lại.');
+  }else if(!ok){
+    // Tháng cũ xong hết nhưng lưu THÁNG ĐANG MỞ hỏng: saveFailed (trong saveRoster) đã bật hộp thoại.
+    // Chỉ cần mở lối bấm lại — thiếu cờ này thì "Không có thay đổi" chặn cứng, phải F5 (nghiệm thu 10/09/2026).
+    _renamePending[key]=true;
+  }else{
+    delete _renamePending[key];
+  }
 }
 function rosterToggleActive(i){
   if(!canManageRoster()){alert('Chỉ ADMIN / Tổ Trưởng.');return;}
@@ -623,7 +661,7 @@ function rKoLimit(){
   h+='</tbody>';
   tbl.innerHTML=h;
 }
-let _limTimer=null,_limChanges=[];
+let _limChanges=[];
 function limSet(fk,field,val){
   if(!canEdit('ko')){alert('Bạn chỉ có quyền XEM.');rKoLimit();return;}
   if(!LIMITS[fk])LIMITS[fk]={};
@@ -631,8 +669,7 @@ function limSet(fk,field,val){
   if(old===val)return;
   LIMITS[fk][field]=val;
   _limChanges.push((FK_NAMES[fk]||fk)+' · '+(field==='limit'?'hạn mức':'PCQ')+': '+(old||'—')+' → '+(val||'—'));
-  clearTimeout(_limTimer);
-  _limTimer=setTimeout(_saveLimits,1200);
+  scheduleSave('lim',_saveLimits,1200);   // hẹn giờ GẮN VỚI THÁNG (data-boot.js)
 }
 async function _saveLimits(){
   if(!SB.ready()||!CUR_MONTH)return;
@@ -642,7 +679,7 @@ async function _saveLimits(){
     const det=_limChanges.join(' | ');_limChanges=[];
     if(det)logAction('Hạn mức duyệt','Tháng '+dispMonth(CUR_MONTH)+' · '+det.slice(0,600));
     if(koView==='overview')rKoOverview();
-  }catch(e){console.error('_saveLimits',e);setCloudStatus('Lỗi lưu hạn mức',true);}
+  }catch(e){saveFailed('Hạn mức duyệt tháng '+dispMonth(CUR_MONTH),e);}
 }
 // Mở popup chọn tháng đích để CHUYỂN toàn bộ hạn mức của tháng đang mở sang tháng đó
 async function limOpenTransfer(){
@@ -692,18 +729,17 @@ async function limTransferTo(mk){
     if(mk===CUR_MONTH){LIMITS=out;rKoLimit();}
   }catch(e){console.error('limTransferTo',e);alert('Lỗi khi chuyển hạn mức: '+(e.message||e));}
 }
-// Sao chép hạn mức duyệt từ tháng gần nhất trước đó khi tháng hiện tại CHƯA có (giữ cho tới khi có người chỉnh sửa & lưu)
-async function inheritLimitsIfEmpty(mk){
-  try{
-    if(LIMITS&&Object.keys(LIMITS).length)return; // tháng này đã có hạn mức
-    if(!SB.ready())return;
-    const reps=await SB.listReports();
-    const prevMonth=(reps||[]).filter(r=>r.type==='limits'&&r.month<mk).map(r=>r.month).sort().pop();
-    if(!prevMonth)return;
-    const old=await SB.loadReport('limits',prevMonth);
-    if(!old)return;
-    const inh={};
-    for(const fk in old){const v=old[fk];if(v&&v.limit)inh[fk]={limit:v.limit};}
-    if(Object.keys(inh).length)LIMITS=inh;
-  }catch(e){console.error('inheritLimitsIfEmpty',e);}
+// Hạn mức kế thừa (CHỈ field limit) từ tháng gần nhất trước mk — dùng khi tháng mk CHƯA có hạn mức riêng
+// (giữ cho tới khi có người chỉnh sửa & lưu). CHỈ TÍNH, KHÔNG gán LIMITS — đổi tháng áp một lượt (switchToMonth).
+// Trả null nếu không có gì để kế thừa. Có thể ném lỗi mạng (loadMonthState tự bắt).
+async function inheritedLimitsFor(mk){
+  if(!SB.ready())return null;
+  const reps=await SB.listReports();
+  const prevMonth=(reps||[]).filter(r=>r.type==='limits'&&r.month<mk).map(r=>r.month).sort().pop();
+  if(!prevMonth)return null;
+  const old=await SB.loadReport('limits',prevMonth);
+  if(!old)return null;
+  const inh={};
+  for(const fk in old){const v=old[fk];if(v&&v.limit)inh[fk]={limit:v.limit};}
+  return Object.keys(inh).length?inh:null;
 }

@@ -1237,13 +1237,51 @@ const I18N={
   "Chưa đẩy lần nào":"Not pushed yet",
   "Chỉ ADMIN / Tổ Trưởng được sửa từ khóa cảnh báo.":"Only ADMIN / Team Leader may edit alert keywords.",
   "Chỉ ADMIN đặt được mã extension.":"Only ADMIN can set the extension ID.",
-  "Đổi màu":"Change colour"
+  "Đổi màu":"Change colour",
+
+  /* ---- Báo LƯU THẤT BẠI (saveFailed) + đổi tên nhân viên nửa chừng ---- */
+  "⚠ LƯU THẤT BẠI — dữ liệu CHƯA được ghi lên máy chủ.":"⚠ SAVE FAILED — the data was NOT written to the server.",
+  "Lý do:":"Reason:",
+  "Hãy thử lại. Nếu vẫn lỗi, chụp màn hình này gửi quản trị.":"Please try again. If it keeps failing, screenshot this and send it to the administrator.",
+  "⚠ ĐỔI TÊN CHƯA XONG Ở CÁC THÁNG CŨ.":"⚠ THE RENAME IS NOT FINISHED FOR EARLIER MONTHS.",
+  "Không đọc được danh sách các tháng cũ nên chưa cập nhật được tháng nào.":"Could not read the list of earlier months, so none of them were updated.",
+  "Bấm lại \"✎ Sửa tên/mã\" của nhân viên này rồi Đồng ý một lần nữa để thử lại.":"Press \"✎ Edit name/code\" for this member and confirm once more to retry.",
+  "Chạy lại nhiều lần không hại gì.":"Running it again is harmless.",
+  "⚠ CHƯA KẾT NỐI MÁY CHỦ.":"⚠ NOT CONNECTED TO THE SERVER.",
+  "Tên mới chỉ đổi trên máy này, các tháng cũ CHƯA được cập nhật.":"The new name changed on this machine only — earlier months were NOT updated.",
+  "Kiểm tra mạng rồi bấm lại \"✎ Sửa tên/mã\" để thử lại.":"Check your connection, then press \"✎ Edit name/code\" again to retry.",
+  "Đổi tên: CHƯA áp được cho các tháng cũ":"Rename: could NOT be applied to earlier months",
+  "Đổi tên: chưa kết nối máy chủ, tháng cũ chưa áp":"Rename: not connected — earlier months not updated",
+  "Danh sách nhân viên dùng chung cũ (bản trước 01/08/2026) CHƯA được cập nhật sang tên mới.":"The old shared member list (from before 01/08/2026) was NOT yet updated to the new name.",
+  "Chưa kết nối máy chủ":"Not connected to the server",
+  "Phân cách giai đoạn nghi ngờ":"Suspect phase separator",
+  "Xoá phân cách giai đoạn nghi ngờ":"Removing the suspect phase separator",
+
+  /* ---- Đổi tháng an toàn (switchToMonth / scheduleSave) ---- */
+  "Đã đổi tháng giữa chừng":"The month was switched mid-way",
+  "— OK: vẫn chuyển tháng và bỏ các thay đổi chưa lưu":"— OK: switch month anyway and discard the unsaved changes",
+  "— Cancel: ở lại tháng này (hệ thống sẽ thử lưu lại khi bạn sửa tiếp hoặc chuyển tháng lần nữa)":"— Cancel: stay on this month (the system will retry saving when you edit again or switch months again)"
   },
   /* ---- Chuỗi có số/biến: khớp bằng regex, giữ nguyên phần $1/$2 ---- */
   RX:[
     /* ⚠ THỨ TỰ QUAN TRỌNG: luật CỤ THỂ phải đứng trước luật tổng quát (vd ^Tháng (.+)$) */
     /* T4 — Quy Trình Làm Việc: chuỗi do JS ghép có kèm SỐ nên phải khớp bằng regex */
     /* ⚠ trs() TRIM chuỗi trước khi khớp -> regex KHÔNG được có khoảng trắng ở hai đầu */
+    /* Báo lưu thất bại (saveFailed) + đổi tên nhân viên nửa chừng */
+    [/^Lưu thất bại: (.+)$/,"Save failed: $1"],
+    [/^Danh sách đại lý nghi ngờ \((.+)\)$/,"Suspect agent list ($1)"],
+    [/^Tô ô nghi ngờ \((.*)\)$/,"Suspect cell highlight ($1)"],
+    [/^Báo cáo đại lý tháng (.+)$/,"Agent report for $1"],
+    [/^Các tháng sau CHƯA được cập nhật sang tên "(.+)":$/,"These months were NOT yet updated to the name \"$1\":"],
+    /* Đổi tháng an toàn + upload sang tháng khác + sao lưu đầy đủ (nghiệm thu 10/09/2026) */
+    [/^⚠ CÒN THAY ĐỔI CHƯA LƯU ĐƯỢC của tháng (.+)\.$/,"⚠ There are changes for month $1 that could NOT be saved."],
+    [/^Nếu chuyển sang tháng (.+) bây giờ, các thay đổi đó sẽ BỊ BỎ\.$/,"If you switch to month $1 now, those changes will be DISCARDED."],
+    [/^Thay đổi của tháng (.+) — đã chuyển sang tháng khác trước khi kịp lưu\. Mở lại tháng (.+) và nhập lại thay đổi\.$/,"Changes for month $1 — the month was switched before they could be saved. Reopen month $2 and enter them again."],
+    [/^Đã lưu cloud tháng (.+) ✓ — màn hình vẫn đang ở tháng (.+) \(còn thay đổi chưa lưu\)$/,"Saved month $1 to the cloud ✓ — the screen is still on month $2 (unsaved changes remain)"],
+    [/^Đã cộng dồn ngày \[(.+)\] vào tháng (.+) ✓ — màn hình vẫn đang ở tháng (.+) \(còn thay đổi chưa lưu\)$/,"Added days [$1] to month $2 ✓ — the screen is still on month $3 (unsaved changes remain)"],
+    [/^Đã thêm dữ liệu tháng (.+) ✓ — màn hình vẫn đang ở tháng (.+) \(còn thay đổi chưa lưu\)$/,"Added data for month $1 ✓ — the screen is still on month $2 (unsaved changes remain)"],
+    [/^Đã tải file sao lưu tháng (.+) ✓ — (\d+) mục của tháng · (\d+) mục dùng chung · (\d+) dòng bài test\. Chưa gồm ảnh\.$/,"Backup for month $1 downloaded ✓ — $2 monthly items · $3 shared items · $4 exam rows. Images not included."],
+    [/^⚠ Đã tải file nhưng THIẾU (\d+) phần: (.+) — danh sách đầy đủ ở mục "missing" trong file\.$/,"⚠ File downloaded but $1 part(s) are MISSING: $2 — full list under \"missing\" in the file."],
     /* Phân Ca — lịch sử hoàn tác */
     [/^Còn (\d+) bước hoàn tác · (\d+) bước làm lại$/,"$1 undo step(s) · $2 redo step(s) left"],
     /* T23 tab Điều Kiện Cảnh Báo: chuỗi ghép kèm SỐ */

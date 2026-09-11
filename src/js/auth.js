@@ -288,10 +288,15 @@ setInterval(function(){
 // Auto-sync 60s: nút Xác Nhận Telegram cộng điểm thẳng lên cloud -> kéo về máy đang mở, khỏi F5
 setInterval(async function(){
   if(!CUR_PROFILE||!SB.ready()||!CUR_MONTH||document.hidden||_anDirty)return;
+  const mk=CUR_MONTH;
   try{
-    const an=await SB.loadReport('anomaly',CUR_MONTH);
+    const an=await SB.loadReport('anomaly',mk);
     const fresh=(an&&an.abuse)?an:{abuse:{},mkt:{}};
     if(_anDirty)return; // vừa có chỉnh tay trong lúc chờ mạng -> bỏ lượt sync này
+    // Đổi tháng trong lúc chờ mạng -> bản vừa tải là của tháng CŨ; gán vào thì bảng tháng mới hiện dữ liệu
+    // tháng cũ, và lần sửa kế tiếp sẽ LƯU nó đè lên tháng mới (nghiệm thu 10/09/2026).
+    if(mk!==CUR_MONTH)return;
+    _anBase=anClone(fresh);   // bản máy chủ mới nhất máy này biết — lần lưu sau chỉ cộng phần chênh trên nền này
     if(JSON.stringify(fresh)!==JSON.stringify(KO_AN)){
       KO_AN=fresh;
       setCloudStatus('Đã đồng bộ điểm bất thường mới từ Telegram ✓');

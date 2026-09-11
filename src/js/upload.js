@@ -345,55 +345,60 @@ async function saveMonthData(type,month,ds){
   window._lastUploadFiles=null;
 }
 // Xử lý upload chế độ "Thêm ngày (cộng dồn)"
+// ⚠ KHÔNG đổi màn hình / tháng đang xem cho tới khi máy chủ lưu xong (nghiệm thu 10/09/2026 — canh bởi test nhóm 11–12).
+// Bản cũ gán KMD/D + CUR_MONTH rồi mới lưu ⇒ lưu hỏng thì màn hình hiện số chưa hề có trên máy chủ; và nếu file
+// là THÁNG KHÁC thì Bất Thường/Tổng Quan/Hạn Mức/Công Việc vẫn là của tháng đang xem ⇒ sửa 1 ô là ghi đè tháng vừa upload.
 async function applyAddMode(target,nd){
   const type=target==="km"?"km":"don";
   const month=normMonth(nd.month);
   const lbl=type==="km"?"Khuyến Mãi":"Duyệt Đơn";
+  let ghi=null,ghiChu='',xong='';
   try{
     let base=null;
     try{base=await SB.loadReport(type,month);}catch(e){}
     if(!base){
       // Cloud chưa có -> lưu thẳng như bản đầu tiên
-      if(type==="km")KMD=nd;else{D=nd;setMonthLabel(month,false);}
-      CUR_MONTH=month;rAll();
-      await saveMonthData(type,month,nd);
-      logAction('Thêm ngày (cộng dồn) '+lbl,'Tháng '+dispMonth(month)+' · '+dsDaysPresent(nd).join(', ')+' · lần đầu');
-      setCloudStatus('Đã thêm dữ liệu tháng '+dispMonth(month)+' ✓');
-      return;
-    }
-    // Kiểm "dữ liệu cũ" dựa trên bản ghi, KHÔNG dựa vào 1 FK cụ thể (FK_KEYS[0] có thể là người mới thêm
-    // -> chưa có trong bản ghi cloud, sẽ báo nhầm là dữ liệu cũ).
-    const anyFk=base.fk_data?Object.values(base.fk_data).some(f=>f&&f.cbd7):false;
-    const legacy=!base.cbd7||!base.fk_data||!anyFk||(type==="don"&&!base.roundV2);
-    if(legacy){
-      alert('Dữ liệu '+lbl+' tháng '+dispMonth(month)+' được tạo TRƯỚC bản cập nhật (cách làm tròn cũ) nên chưa cộng dồn được.\n\nHãy upload lại 1 lần ở chế độ "Thay thế cả tháng" cho tháng này, sau đó mới dùng "Thêm ngày".');
-      return;
-    }
-    // Bổ sung ô trống cho nhân viên có trong danh sách nhưng chưa có trong bản ghi cloud
-    // (thêm sau lần upload đầu của tháng) — nếu không, dsAddInto sẽ BỎ QUA toàn bộ đơn của họ.
-    reconcileDataset(base);
-    const baseDays=dsDaysPresent(base),newDays=dsDaysPresent(nd);
-    const overlap=newDays.filter(d=>baseDays.includes(d));
-    if(overlap.length){
-      if(!confirm('Các ngày ['+overlap.join(', ')+'] ĐÃ CÓ dữ liệu trên cloud.\n\nBạn muốn THAY LẠI các ngày này bằng dữ liệu mới không? (các ngày khác giữ nguyên, KHÔNG cộng đôi)\n\n— OK: thay lại các ngày trùng\n— Cancel: hủy, không lưu gì')){
-        setCloudStatus('Đã hủy — dữ liệu cũ tháng '+dispMonth(month)+' giữ nguyên',true);
+      ghi=nd;
+      ghiChu=dsDaysPresent(nd).join(', ')+' · lần đầu';
+      xong='Đã thêm dữ liệu tháng '+dispMonth(month)+' ✓';
+    }else{
+      // Kiểm "dữ liệu cũ" dựa trên bản ghi, KHÔNG dựa vào 1 FK cụ thể (FK_KEYS[0] có thể là người mới thêm
+      // -> chưa có trong bản ghi cloud, sẽ báo nhầm là dữ liệu cũ).
+      const anyFk=base.fk_data?Object.values(base.fk_data).some(f=>f&&f.cbd7):false;
+      const legacy=!base.cbd7||!base.fk_data||!anyFk||(type==="don"&&!base.roundV2);
+      if(legacy){
+        alert('Dữ liệu '+lbl+' tháng '+dispMonth(month)+' được tạo TRƯỚC bản cập nhật (cách làm tròn cũ) nên chưa cộng dồn được.\n\nHãy upload lại 1 lần ở chế độ "Thay thế cả tháng" cho tháng này, sau đó mới dùng "Thêm ngày".');
         return;
       }
-      overlap.forEach(d=>dsSubtractDay(base,d));
+      // Bổ sung ô trống cho nhân viên có trong danh sách nhưng chưa có trong bản ghi cloud
+      // (thêm sau lần upload đầu của tháng) — nếu không, dsAddInto sẽ BỎ QUA toàn bộ đơn của họ.
+      reconcileDataset(base);
+      const baseDays=dsDaysPresent(base),newDays=dsDaysPresent(nd);
+      const overlap=newDays.filter(d=>baseDays.includes(d));
+      if(overlap.length){
+        if(!confirm('Các ngày ['+overlap.join(', ')+'] ĐÃ CÓ dữ liệu trên cloud.\n\nBạn muốn THAY LẠI các ngày này bằng dữ liệu mới không? (các ngày khác giữ nguyên, KHÔNG cộng đôi)\n\n— OK: thay lại các ngày trùng\n— Cancel: hủy, không lưu gì')){
+          setCloudStatus('Đã hủy — dữ liệu cũ tháng '+dispMonth(month)+' giữ nguyên',true);
+          return;
+        }
+        overlap.forEach(d=>dsSubtractDay(base,d));
+      }
+      dsAddInto(base,nd);
+      if(type==="don")dsRecalcScores(base); // DON: tính lại toàn bộ từ ô thô — kết quả không phụ thuộc thứ tự/số lần upload
+      dsRecalcDays(base);
+      base.month=nd.month;base.fkvip=FKVIP;base.fkonl=FKONL;
+      ghi=base;
+      ghiChu='thêm ngày ['+newDays.join(', ')+']'+(overlap.length?' · thay lại ['+overlap.join(', ')+']':'');
+      xong='Đã cộng dồn ngày ['+newDays.join(', ')+'] vào tháng '+dispMonth(month)+' ✓';
     }
-    dsAddInto(base,nd);
-    if(type==="don")dsRecalcScores(base); // DON: tính lại toàn bộ từ ô thô — kết quả không phụ thuộc thứ tự/số lần upload
-    dsRecalcDays(base);
-    base.month=nd.month;base.fkvip=FKVIP;base.fkonl=FKONL;
-    if(type==="km")KMD=base;else{D=base;setMonthLabel(month,false);}
-    CUR_MONTH=month;rAll();
-    await saveMonthData(type,month,base);
-    logAction('Thêm ngày (cộng dồn) '+lbl,'Tháng '+dispMonth(month)+' · thêm ngày ['+newDays.join(', ')+']'+(overlap.length?' · thay lại ['+overlap.join(', ')+']':''));
-    setCloudStatus('Đã cộng dồn ngày ['+newDays.join(', ')+'] vào tháng '+dispMonth(month)+' ✓');
+    await saveMonthData(type,month,ghi);
   }catch(e){
-    console.error('applyAddMode',e);
-    setCloudStatus('Lỗi cộng dồn: '+(e.message||e),true);
+    // Ghi hỏng: màn hình và tháng đang xem CHƯA bị đụng tới -> vẫn đúng bản trên máy chủ, cứ upload lại là được.
+    saveFailed('Cộng dồn ngày vào tháng '+dispMonth(month)+' — màn hình vẫn giữ bản đang có trên máy chủ',e);
+    return;
   }
+  const hien=await showSavedDataset(type,month,ghi);
+  logAction('Thêm ngày (cộng dồn) '+lbl,'Tháng '+dispMonth(month)+' · '+ghiChu);
+  setCloudStatus(hien?xong:xong+' — màn hình vẫn đang ở tháng '+dispMonth(CUR_MONTH)+' (còn thay đổi chưa lưu)',!hien);
 }
 
 function finalizeResult(nd,target){
@@ -464,9 +469,8 @@ function finalizeResult(nd,target){
       // Chế độ cộng dồn: gộp vào dữ liệu tháng đang có trên cloud
       applyAddMode(target,nd);
     }else{
-      // Chế độ thay thế cả tháng (mặc định)
-      if(target==="km"){KMD=nd;}else{D=nd;setMonthLabel(normMonth(nd.month),false);}
-      rAll();
+      // Chế độ thay thế cả tháng (mặc định). ⚠ KHÔNG gán D/KMD ở đây: cloudSaveKO chỉ đưa bản mới lên màn hình
+      // SAU KHI máy chủ lưu xong — bấm Huỷ / lưu hỏng thì màn hình giữ bản đang có trên máy chủ (nghiệm thu 10/09/2026).
       cloudSaveKO(target,nd);
     }
   },50);
