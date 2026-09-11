@@ -409,7 +409,8 @@ async function admDeleteDay(){
 // KHÔNG gồm: ảnh (Storage: Quy Trình, câu hỏi bài test) · Báo Cáo Đơn Rút & Lọc NTK (không lưu ở đâu cả).
 const BACKUP_SKIP=['rids','tgremind_tick'];   // mã dùng-1-lần của nút Telegram · nhịp tim động cơ nhắc nhở
 const BACKUP_EXAM={exam_topics:'id',exam_questions:'id',exam_config:'topic_id',exam_settings:'key',
-  exam_members:'user_id',exam_submissions:'id',exam_answers:'id'};   // bảng -> khoá chính (để phân trang có thứ tự)
+  exam_members:'user_id',exam_submissions:'id',exam_answers:'id',
+  exam_intern_set:'question_id'};   // bảng -> khoá chính (để phân trang có thứ tự) · exam_intern_set = đề Thực Tập (supabase_exam_modes.sql)
 async function selectAllRows(table,cols,orderCols){
   const cli=SB.client(),out=[],N=1000;
   for(let a=0;;a+=N){

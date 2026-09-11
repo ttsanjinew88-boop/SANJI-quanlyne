@@ -29,6 +29,50 @@ const EX = {
   subs: null, mine: null, members: null,
   editQ: null, editT: null, selTopic: null, selSub: null, _qt: null,
 
+  /* ---------- 2 CHẾ ĐỘ LÀM BÀI (chốt 12/09/2026, SQL: supabase_exam_modes.sql) ----------
+     monthly = Kiểm Tra Định Kỳ Tháng — như cũ: server bốc NGẪU NHIÊN theo cấu trúc đề.
+     intern  = Kiểm Tra Năng Lực Thực Tập — đề CỐ ĐỊNH INTERN_N câu do Tổ Trưởng/ADMIN
+               chọn tay từ CÙNG ngân hàng câu hỏi (bảng exam_intern_set), mọi người
+               nhận cùng đề, xếp theo chủ đề. Lượt test tách riêng (intern_remaining).
+     Xếp hạng ở T1 chỉ tính bài monthly (exam_rank lọc ở SQL).
+     Chưa chạy file SQL thì exam_boot không trả intern_remaining -> hasModes() = false,
+     tab chạy y như trước (chỉ có chế độ Định Kỳ). */
+  MODES: {
+    monthly: { n: 1, t: 'Kiểm Tra Định Kỳ Tháng', s: 'Đề bốc ngẫu nhiên theo từng chủ đề' },
+    intern:  { n: 2, t: 'Kiểm Tra Năng Lực Thực Tập', s: 'Đề 50 câu do Tổ Trưởng thiết lập — cố định hoặc ngẫu nhiên theo từng chủ đề' }
+  },
+  INTERN_N: 50,         // ⚠ khớp số 50 trong exam_start / exam_boot (supabase_exam_modes.sql)
+  lamMode: 'monthly',   // chế độ nhân viên đang chọn ở tab Làm Bài
+  deMode: 'monthly',    // giao diện đang mở ở tab Quản Lý Đề
+  internSet: null,      // [{question_id,ord}] câu CỐ ĐỊNH — chỉ Tổ Trưởng trở lên tải
+  internTopics: null,   // {topic_id:{mode:'fixed'|'random',count}} — chủ đề chưa có = 'fixed'
+  _nvEdit: {},          // lượt test đã sửa ở Quản Lý Nhân Viên nhưng CHƯA lưu: {user_id:{remaining?,intern_remaining?}}
+  internShow: 'all',    // lọc ngân hàng ở giao diện đề thực tập: all | on | off
+  hasModes() { return !!(this.D && this.D.me && this.D.me.intern_remaining !== undefined); },
+  modeOf(m) { return m === 'intern' ? 'intern' : 'monthly'; },
+  modeBadge(m) {
+    return this.hasModes() ? '<span class="ex-badge ' + (m === 'intern' ? 'ex-b-cy' : 'ex-b-pu') + '">' + this.MODES[this.modeOf(m)].t + '</span>' : '';
+  },
+  isPicked(id) { return !!(this.internSet && this.internSet.some(x => x.question_id === id)); },
+  /* Mỗi chủ đề của đề thực tập lấy câu theo 1 trong 2 cách:
+     'fixed'  = chọn tay từng câu (exam_intern_set), mọi người nhận đúng các câu đó, không đảo;
+     'random' = chỉ đặt số câu, mỗi lượt server bốc câu bất kỳ trong chủ đề và đảo thứ tự. */
+  tMode(tid) { const r = this.internTopics && this.internTopics[tid]; return r && r.mode === 'random' ? 'random' : 'fixed'; },
+  tAvail(tid) { return (this.bank || []).filter(q => q.topic_id === tid).length; },
+  // số câu chủ đề góp vào đề — PHẢI khớp exam_intern_counts() ở SQL
+  tCount(tid) {
+    if (this.tMode(tid) === 'random') return Math.min(Number(this.internTopics[tid].count) || 0, this.tAvail(tid));
+    return (this.bank || []).filter(q => q.topic_id === tid && this.isPicked(q.id)).length;
+  },
+  internTotal() { return (this.D.topics || []).reduce((a, t) => a + this.tCount(t.id), 0); },
+  // dựng lại số câu theo chủ đề tại máy sau mỗi lần sửa đề -> màn Làm Bài của Tổ Trưởng khớp ngay
+  syncInternCfg() {
+    if (!this.internSet || !this.internTopics || !this.bank) return;
+    const cfg = {};
+    (this.D.topics || []).forEach(t => { const n = this.tCount(t.id); if (n) cfg[t.id] = n; });
+    this.D.intern_cfg = cfg; this.D.intern_total = this.internTotal();
+  },
+
   canEdit() { const r = CUR_PROFILE ? roleOf(CUR_PROFILE) : null; return !!(CUR_PROFILE && (CUR_PROFILE.is_admin || (r && r.key === 'totruong'))); },
 
   // ---------- gọi Supabase ----------
@@ -51,6 +95,9 @@ const EX = {
     if (body) body.innerHTML = '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Đang tải dữ liệu bài test…</div>';
     try {
       this.D = await this.rpc('exam_boot');
+      // HẾT GIỜ = XEM NHƯ ĐÃ NỘP: bài dở đã quá giờ thì nộp luôn bản nháp trên máy (nếu có) rồi nạp lại
+      if (this.D.pending && this.D.pending.expired && await this.closeExpired(this.D.pending)) this.D = await this.rpc('exam_boot');
+      this._bootAt = Date.now();
       if (this.canEdit()) await this.loadBank();
       this.loading = false;
       this.renderViews();
@@ -76,6 +123,20 @@ const EX = {
     }
     if (error) throw new Error(error.message);
     this.bank = data || [];
+    // Đề thực tập. Bảng chưa có (chưa chạy supabase_exam_modes.sql) thì bỏ qua,
+    // KHÔNG làm chết cả tab — hasModes() cũng sẽ false nên giao diện này ẩn đi.
+    this.internSet = null; this.internTopics = null;
+    if (this.hasModes()) {
+      const [r, rt] = await Promise.all([
+        this.tbl('exam_intern_set').select('question_id,ord').order('ord'),
+        this.tbl('exam_intern_topic').select('topic_id,mode,count')]);
+      if (r.error || rt.error) console.warn('[EX] không tải được đề thực tập:', (r.error || rt.error).message);
+      else {
+        this.internSet = r.data || []; this.internTopics = {};
+        (rt.data || []).forEach(x => { this.internTopics[x.topic_id] = { mode: x.mode, count: x.count }; });
+        this.syncInternCfg();
+      }
+    }
   },
 
   // ---------- tiện ích ----------
@@ -213,6 +274,10 @@ const EX = {
     if (this.stage === 'doing' && k !== 'lam') {
       if (!confirm('Bạn đang làm bài dở. Rời khỏi trang làm bài?\n\nCâu trả lời đã gõ vẫn được giữ, quay lại tab Làm Bài là làm tiếp được.')) return;
     }
+    if (this.view === 'nv' && k !== 'nv' && this.nvDirty()) {
+      if (!confirm('Còn ' + this.nvDirty() + ' tài khoản đã sửa lượt test nhưng CHƯA LƯU. Rời trang và bỏ các thay đổi này?')) return;
+      this._nvEdit = {};
+    }
     this.view = k; this.renderViews(); this.render();
   },
   render() {
@@ -230,43 +295,90 @@ const EX = {
   renderLam(b) {
     if (this.stage === 'doing') { this.renderDoing(b); return; }
     if (this.stage === 'done') { this.renderDone(b); return; }
-    const me = this.D.me, st = this.D.settings, cfg = me.exam_cfg || this.D.config || {};
+    const me = this.D.me, st = this.D.settings;
+    const pend = (this.D.pending && !this.D.pending.expired) ? this.D.pending : null;   // bài hết giờ không còn là "làm dở"
+    const modes = this.hasModes();
+    // Đang có bài dở thì khoá vào đúng chế độ của bài đó (server cũng chặn mở bài chế độ khác)
+    const mode = !modes ? 'monthly' : (pend ? this.modeOf(pend.mode) : this.modeOf(this.lamMode));
+    const intern = mode === 'intern';
+    const cfg = intern ? (this.D.intern_cfg || {}) : (me.exam_cfg || this.D.config || {});
+    const rem = intern ? (Number(me.intern_remaining) || 0) : me.remaining;
+    const used = intern ? (Number(me.intern_used) || 0) : me.used;
+    const dur = intern ? (st.intern_duration || 90) : (st.duration || 45);
     const total = Object.keys(cfg).reduce((a, k) => a + (Number(cfg[k]) || 0), 0);
     const chips = (this.D.topics || []).filter(t => (cfg[t.id] || 0) > 0).map(t =>
       '<div class="ex-chip"><div class="ex-chip-n" style="color:' + hesc(t.color) + '">' + (cfg[t.id] || 0) + '</div><div class="ex-chip-l" data-noi18n>' + hesc(String(this.tx(t, 'name')).replace(/^(Sảnh|Lobby)\s*—\s*/, '')) + '</div></div>').join('');
-    const pend = this.D.pending;
+    // Ô chọn chế độ — nằm ngay đầu thẻ, chỗ tiêu đề "Bài kiểm tra nghiệp vụ" cũ
+    const picker = modes ? '<div class="ex-modes">' + Object.keys(this.MODES).map(k => {
+      const M = this.MODES[k], lock = pend && this.modeOf(pend.mode) !== k;
+      return '<button class="ex-mode' + (k === mode ? ' on' : '') + '"' + (lock ? ' disabled title="Hoàn thành bài đang làm dở trước"' : '') +
+        ' onclick="EX.pickLamMode(\'' + k + '\')"><span class="ex-mode-n">' + M.n + '</span>' +
+        '<span class="ex-mode-b"><b>' + M.t + '</b><i>' + M.s + '</i></span></button>';
+    }).join('') + '</div>' : '';
+    // Đề Thực Tập phải ĐỦ ĐÚNG 50 câu mới cho làm (server cũng chặn)
+    const iN = this.D.intern_n || this.INTERN_N;
+    const notReady = intern && !pend && total !== iN;
+    const blocked = (rem <= 0 && !pend) || notReady;
     b.innerHTML =
       '<div class="ex-narrow">' +
         '<div class="chart-card">' +
-          '<div class="ex-h1">Bài kiểm tra nghiệp vụ</div>' +
+          picker +
+          '<div class="ex-h1">' + (modes ? this.MODES[mode].t : 'Bài kiểm tra nghiệp vụ') + '</div>' +
           '<div class="ex-sub">Chúc bạn làm bài thật tốt. Đọc kỹ đề trước khi trả lời.</div>' +
           '<div class="ex-chips">' + chips +
             '<div class="ex-chip"><div class="ex-chip-n">' + total + '</div><div class="ex-chip-l">Tổng câu</div></div>' +
-            '<div class="ex-chip"><div class="ex-chip-n">' + (st.duration || 45) + '</div><div class="ex-chip-l">Phút</div></div>' +
+            '<div class="ex-chip"><div class="ex-chip-n">' + dur + '</div><div class="ex-chip-l">Phút</div></div>' +
           '</div>' +
-          (me.exam_cfg ? '<div class="ex-note ex-note-go">Bạn đang dùng <b>đề riêng</b> do Tổ Trưởng thiết lập.</div>' : '') +
+          (!intern && me.exam_cfg ? '<div class="ex-note ex-note-go">Bạn đang dùng <b>đề riêng</b> do Tổ Trưởng thiết lập.</div>' : '') +
+          (notReady ? '<div class="ex-note ex-note-re">Đề Kiểm Tra Năng Lực Thực Tập chưa sẵn sàng — đang có ' + total + '/' + iN + ' câu. Nhờ Tổ Trưởng hoàn tất đề.</div>' : '') +
+          (this._autoClosed ? '<div class="ex-note ex-note-go">Bài ' + hesc(this._autoClosed) + ' đã hết giờ nên hệ thống đã tự nộp để chờ chấm.</div>' : '') +
           (pend ? '<div class="ex-note ex-note-go">Bạn có một bài <b>đang làm dở</b> <span>(' + pend.count + ' câu, bắt đầu ' + Math.floor((pend.elapsed || 0) / 60) + ' phút trước). Bấm nút dưới để làm tiếp — không tốn thêm lượt.</span></div>' : '') +
-          '<div class="ex-meta">Tài khoản: <b data-noi18n>' + hesc((CUR_PROFILE && CUR_PROFILE.username) || '') + '</b> · Lượt còn lại: <b class="' + (me.remaining > 0 ? 'ex-ok' : 'ex-bad') + '">' + me.remaining + '</b> · Đã làm: <b>' + me.used + '</b> lần</div>' +
-          (me.remaining <= 0 && !pend ? '<div class="ex-note ex-note-re">Bạn đã hết lượt làm bài. Liên hệ Tổ Trưởng để được cấp thêm.</div>' : '') +
-          '<div style="margin-top:16px"><button class="abtn abtn-pu" id="exStartBtn" onclick="EX.start()"' + ((me.remaining <= 0 && !pend) ? ' disabled' : '') + '>' + (pend ? 'Làm tiếp bài dở →' : 'Bắt đầu làm bài →') + '</button></div>' +
+          '<div class="ex-meta">Tài khoản: <b data-noi18n>' + hesc((CUR_PROFILE && CUR_PROFILE.username) || '') + '</b> · Lượt còn lại: <b class="' + (rem > 0 ? 'ex-ok' : 'ex-bad') + '">' + rem + '</b> · Đã làm: <b>' + used + '</b> lần</div>' +
+          (rem <= 0 && !pend ? '<div class="ex-note ex-note-re">Bạn đã hết lượt làm bài. Liên hệ Tổ Trưởng để được cấp thêm.</div>' : '') +
+          '<div style="margin-top:16px"><button class="abtn abtn-pu" id="exStartBtn" onclick="EX.start(\'' + mode + '\')"' + (blocked ? ' disabled' : '') + '>' + (pend ? 'Làm tiếp bài dở →' : 'Bắt đầu làm bài →') + '</button></div>' +
         '</div>' +
       '</div>';
   },
-  async start() {
+  pickLamMode(k) { if (this.D.pending) return; this.lamMode = this.modeOf(k); this.render(); },
+  /* HẾT GIỜ = XEM NHƯ ĐÃ NỘP. Nộp bản nháp đang có trên máy này (không có thì nộp
+     trống) — server tính như nộp đúng lúc hết giờ. Trả true nếu nộp được. */
+  async closeExpired(p) {
+    try {
+      await this.rpc('exam_submit', { p_id: p.id, p_answers: this.draftGet(p.code) || [], p_duration: (Number(p.duration) || 0) * 60 });
+      this.draftClear(p.code);
+      this.mine = null; this.subs = null;
+      this._autoClosed = p.code;
+      return true;
+    } catch (e) { console.warn('[EX] tự nộp bài hết giờ lỗi:', e.message || e); return false; }
+  },
+  async start(mode) {
+    mode = this.modeOf(mode);
+    // Bài dở đã hết giờ (kể cả hết giờ trong lúc màn hình để yên) -> NỘP bài đó chứ KHÔNG
+    // mở bài mới: để server tự xử lý thì bản nháp trên máy mất, và bấm "Làm tiếp bài dở"
+    // lại thành bài mới, tốn lượt. Ngưỡng +30s sớm hơn server (+60s) để không lọt khe.
+    const p = this.D.pending;
+    if (this.hasModes() && p && (p.expired ||
+        (Number(p.elapsed) || 0) + (Date.now() - (this._bootAt || Date.now())) / 1000 >= (Number(p.duration) || 0) * 60 + 30)) {
+      if (!await this.closeExpired(p)) { alert('Bài đang làm dở đã hết giờ nhưng chưa nộp được — kiểm tra mạng rồi thử lại.'); return; }
+      this.stage = 'intro'; this.boot(true); return;
+    }
+    this._autoClosed = null;
     const btn = document.getElementById('exStartBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'Đang chuẩn bị đề…'; }
     try {
-      const r = await this.rpc('exam_start');
+      // chưa chạy supabase_exam_modes.sql thì exam_start KHÔNG nhận tham số -> gọi như cũ
+      const r = await this.rpc('exam_start', this.hasModes() ? { p_mode: mode } : undefined);
       const draft = this.draftGet(r.code);
       // Mốc hết giờ suy từ `elapsed` (giây, do SERVER tính) — không parse chuỗi thời
       // gian phía client: máy nhân viên lệch múi giờ là đồng hồ sai / báo hết giờ ngay.
       this.run = {
-        id: r.id, code: r.code, duration: r.duration,
+        id: r.id, code: r.code, duration: r.duration, mode: this.modeOf(r.mode || mode),
         t0: Date.now() - (Number(r.elapsed) || 0) * 1000,
         questions: r.questions, answers: r.questions.map((q, i) => (draft && draft[i]) || ''), cur: 0
       };
       this.stage = 'doing';
-      this.D.me.remaining = r.remaining;
+      if (this.run.mode === 'intern') this.D.me.intern_remaining = r.remaining;
+      else this.D.me.remaining = r.remaining;
       this.render();
       this.startTimer();
       if (r.resumed) this.toast('Đã khôi phục bài đang làm dở');
@@ -294,6 +406,7 @@ const EX = {
       '</div>' +
       '<div class="ex-doing">' +
         '<div class="chart-card ex-qcard">' +
+          (this.hasModes() ? this.modeBadge(r.mode) + ' ' : '') +
           '<span class="ex-badge ex-b-mu" data-noi18n>' + hesc(this.tx(q, 'topic')) + '</span>' +
           '<div class="ex-q" data-noi18n>' + hesc(this.tx(q, 'question')) + '</div>' +
           this.imgHtml(this.imgOf(q)) +
@@ -340,7 +453,7 @@ const EX = {
     }
     clearInterval(this.tmr); this.tmr = null;
     const dur = Math.max(1, Math.round((Date.now() - this.run.t0) / 1000));
-    const snap = { code: this.run.code, count: this.run.questions.length, filled: this.run.answers.filter(a => a && a.trim()).length, dur: dur };
+    const snap = { code: this.run.code, mode: this.run.mode, count: this.run.questions.length, filled: this.run.answers.filter(a => a && a.trim()).length, dur: dur };
     try {
       await this.rpc('exam_submit', { p_id: this.run.id, p_answers: this.run.answers, p_duration: dur });
       this.draftClear(this.run.code);
@@ -359,6 +472,7 @@ const EX = {
       '<div class="ex-narrow"><div class="chart-card" style="text-align:center;padding:32px 20px">' +
         '<div class="ex-done-ic">✓</div>' +
         '<div class="ex-h1" style="margin-top:10px">Đã nộp bài</div>' +
+        (this.hasModes() ? '<div style="margin-top:8px">' + this.modeBadge(d.mode) + '</div>' : '') +
         '<div class="ex-sub">Bài của bạn đã lưu về hệ thống, chờ Tổ Trưởng chấm điểm.</div>' +
         '<div class="ex-chips" style="justify-content:center;margin-top:18px">' +
           '<div class="ex-chip"><div class="ex-chip-n">' + d.count + '</div><div class="ex-chip-l">Tổng câu</div></div>' +
@@ -390,7 +504,7 @@ const EX = {
           : '<span class="ex-badge ex-b-wait">Chờ chấm</span>';
         return '<div class="chart-card ex-subcard" style="margin-bottom:10px">' +
           '<div class="ex-subh" onclick="EX.toggleMine(' + i + ')">' +
-            '<div><div class="ex-subt" data-noi18n>' + hesc(s.code) + '</div>' +
+            '<div><div class="ex-subt"><span data-noi18n>' + hesc(s.code) + '</span> ' + this.modeBadge(s.mode) + '</div>' +
             '<div class="ex-meta">' + this.fmtTime(s.time) + ' · ' + this.fmtDur(s.duration_sec) + ' · ' + s.count + ' câu</div></div>' + badge +
           '</div><div id="exMine' + i + '" style="display:none"></div></div>';
       }).join('') +
@@ -417,6 +531,7 @@ const EX = {
 
   /* ==================== TAB: QUẢN LÝ ĐỀ (TT) ==================== */
   renderDe(b) {
+    if (this.deMode === 'intern' && this.hasModes()) { this.renderDeIntern(b); return; }
     const st = this.D.settings, topics = this.D.topics || [], bank = this.bank || [];
     const total = Object.values(this.D.config || {}).reduce((a, v) => a + (Number(v) || 0), 0);
     // Mỗi chủ đề chiếm 2 dòng: trên là TÊN ĐẦY ĐỦ (không cắt), dưới là ô số câu +
@@ -436,7 +551,7 @@ const EX = {
       '</div>';
     }).join('');
     const items = bank.filter(x => this.selTopic ? x.topic_id === this.selTopic : true);
-    b.innerHTML =
+    b.innerHTML = this.deModeHtml() +
       '<div class="ex-2col ex-2col-wide">' +
         '<div class="chart-card ex-rail">' +
           '<div class="ex-railh">Chủ đề &amp; số câu <span class="cnt-badge">' + total + '</span></div>' +
@@ -501,6 +616,187 @@ const EX = {
     if (this.editQ) this.fillQForm();
   },
   pickTopic(id) { this.selTopic = id; this.render(); },
+
+  /* ---- 2 giao diện Quản Lý Đề: Định Kỳ Tháng / Thực Tập ----
+     Nút chuyển là .view-toggle + .vt-btn (chuyển view CẤP 2 trong một tab nhỏ —
+     đúng quy ước, không dùng .tab). Ngân hàng câu hỏi DÙNG CHUNG: thêm/sửa/xoá câu
+     hỏi ở giao diện Định Kỳ; giao diện Thực Tập chỉ CHỌN câu nào vào đề. */
+  deModeHtml() {
+    if (!this.hasModes()) return '';
+    return '<div class="view-toggle ex-demode">' + Object.keys(this.MODES).map(k =>
+      '<button class="vt-btn' + (this.deMode === k ? ' active' : '') + '" onclick="EX.setDeMode(\'' + k + '\')">' +
+        this.MODES[k].n + '. <span>' + this.MODES[k].t + '</span></button>').join('') + '</div>';
+  },
+  setDeMode(k) { this.deMode = this.modeOf(k); this.render(); },
+  setInternShow(v) { this.internShow = v === 'on' || v === 'off' ? v : 'all'; this.render(); },
+  // câu này có THẬT SỰ nằm trong đề không (câu đã chọn của chủ đề đang để Ngẫu nhiên thì không)
+  inFixed(q) { return this.tMode(q.topic_id) === 'fixed' && this.isPicked(q.id); },
+  renderDeIntern(b) {
+    const topics = this.D.topics || [], bank = this.bank || [], st = this.D.settings, N = this.INTERN_N;
+    if (!this.internSet || !this.internTopics) {
+      b.innerHTML = this.deModeHtml() + '<div class="chart-card" style="color:var(--re);font-size:.72rem">Không tải được đề thực tập — hãy tải lại trang. Nếu vẫn lỗi: kiểm tra đã chạy file supabase_exam_modes.sql trong SQL Editor của Supabase chưa.</div>';
+      return;
+    }
+    const nSel = this.internTotal();
+    const stNote = nSel === N ? '<div class="ex-note ex-note-ok">Đề đã đủ ' + N + ' câu — nhân viên đã làm được bài.</div>'
+      : nSel < N ? '<div class="ex-note ex-note-go">Còn thiếu ' + (N - nSel) + ' câu để đủ ' + N + ' câu. Nhân viên chưa làm được bài cho tới khi đủ.</div>'
+      : '<div class="ex-note ex-note-re">Đề đang có ' + nSel + ' câu — vượt ' + N + ' câu, hãy bỏ bớt ' + (nSel - N) + ' câu. Nhân viên chưa làm được bài cho tới khi đúng ' + N + ' câu.</div>';
+    // Mỗi chủ đề: nút Cố định / Ngẫu nhiên. Ngẫu nhiên thì có ô số câu; Cố định thì đếm câu đã chọn.
+    const rail = topics.map(t => {
+      const avail = this.tAvail(t.id), rnd = this.tMode(t.id) === 'random', n = this.tCount(t.id);
+      const room = Math.max(0, Math.min(avail, N - (nSel - n)));   // chủ đề này còn nhận tối đa bao nhiêu câu
+      return '<div class="ex-trow2' + (this.selTopic === t.id ? ' on' : '') + '" onclick="EX.pickTopic(\'' + t.id + '\')">' +
+        '<div class="ex-trow2-t"><span class="ex-tdot" style="background:' + hesc(t.color) + '"></span>' +
+        '<span class="ex-tname" data-noi18n>' + hesc(this.tx(t, 'name')) + '</span></div>' +
+        '<div class="ex-trow2-b ex-trow2-i" onclick="event.stopPropagation()">' +
+          '<span class="ex-seg">' +
+            '<button class="abtn abtn-sm ' + (rnd ? 'abtn-ghost' : 'abtn-pu') + '" onclick="EX.setTopicMode(\'' + t.id + '\',\'fixed\')" title="Chọn tay từng câu — mọi người nhận đúng các câu đó, không đảo">Cố định</button>' +
+            '<button class="abtn abtn-sm ' + (rnd ? 'abtn-cy' : 'abtn-ghost') + '" onclick="EX.setTopicMode(\'' + t.id + '\',\'random\')" title="Chỉ đặt số câu — mỗi lượt hệ thống bốc câu bất kỳ và đảo thứ tự">Ngẫu nhiên</button>' +
+          '</span>' +
+          (rnd ? '<input type="number" class="ex-num" min="0" max="' + room + '" value="' + n + '" onchange="EX.setTopicCount(\'' + t.id + '\',this.value)" title="Số câu bốc ngẫu nhiên">'
+               : '<span class="ex-isel' + (n ? ' has' : '') + '">' + n + '</span>') +
+          '<span class="ex-tavail">/ ' + avail + ' câu có sẵn</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+    const items = bank.filter(q => (this.selTopic ? q.topic_id === this.selTopic : true) &&
+      (this.internShow === 'on' ? this.inFixed(q) : this.internShow === 'off' ? !this.inFixed(q) : true));
+    const full = nSel >= N;
+    const selRnd = this.selTopic && this.tMode(this.selTopic) === 'random';
+    b.innerHTML = this.deModeHtml() +
+      '<div class="ex-2col ex-2col-wide">' +
+        '<div class="chart-card ex-rail">' +
+          '<div class="ex-railh">Đề thực tập theo chủ đề <span class="cnt-badge">' + nSel + '/' + N + '</span></div>' +
+          '<div class="ex-prog"><div class="ex-prog-f" style="width:' + Math.min(100, nSel / N * 100) + '%"></div></div>' +
+          stNote +
+          '<div class="ex-trow2' + (this.selTopic ? '' : ' on') + '" style="margin-top:12px" onclick="EX.pickTopic(null)">' +
+            '<div class="ex-trow2-t"><span class="ex-tdot" style="background:var(--mu)"></span><span class="ex-tname">Tất cả chủ đề</span></div>' +
+            '<div class="ex-trow2-b"><span class="ex-tavail">' + bank.length + ' câu trong ngân hàng</span></div>' +
+          '</div>' +
+          rail +
+          '<div class="ex-railh" style="margin-top:18px">Cài đặt bài thực tập</div>' +
+          '<label class="ex-lab">Thời gian làm bài (phút)</label>' +
+          '<input class="ex-inp" type="number" id="exSetIDur" min="1" max="240" value="' + (st.intern_duration || 90) + '">' +
+          '<button class="abtn abtn-ok abtn-sm" style="margin-top:10px;width:100%;justify-content:center" onclick="EX.saveInternSettings()">Lưu cài đặt</button>' +
+          '<div class="ex-meta" style="margin-top:8px">Cài đặt cho xem đáp án mẫu dùng chung với Kiểm Tra Định Kỳ Tháng.</div>' +
+          (this.internSet.length ? '<button class="abtn abtn-danger abtn-sm" style="margin-top:14px;width:100%;justify-content:center" onclick="EX.clearIntern()">Bỏ chọn tất cả</button>' : '') +
+        '</div>' +
+        '<div>' +
+          '<div class="chart-card" style="margin-bottom:14px">' +
+            '<div class="ex-railh">Cách thiết lập đề thực tập</div>' +
+            '<div class="ex-meta">Cố định: tự chọn từng câu bên dưới — mọi nhân viên nhận đúng các câu đó theo thứ tự đã chọn, không đảo.</div>' +
+            '<div class="ex-meta">Ngẫu nhiên: chỉ đặt số câu ở cột trái — mỗi lượt làm bài hệ thống bốc câu bất kỳ trong chủ đề và đảo thứ tự, người làm lại sẽ gặp câu khác.</div>' +
+            '<div class="ex-meta">Tổng các chủ đề phải đủ đúng ' + N + ' câu thì nhân viên mới làm được bài.</div>' +
+            '<div class="ex-meta">Ngân hàng câu hỏi dùng chung với Kiểm Tra Định Kỳ Tháng — thêm, sửa, xoá câu hỏi ở giao diện đó. Mỗi lần bấm chọn / bỏ được lưu ngay.</div>' +
+          '</div>' +
+          (selRnd ? '<div class="ex-note ex-note-go" style="margin:0 0 14px">Chủ đề này đang để Ngẫu nhiên — mỗi lượt làm bài hệ thống tự bốc câu bất kỳ trong chủ đề và đảo thứ tự, không cần chọn từng câu.</div>' : '') +
+          '<div class="sec-hdr pu">Ngân hàng câu hỏi <span class="cnt-badge">' + items.length + '</span>' +
+            '<select class="ex-inp ex-filter" onchange="EX.setInternShow(this.value)" title="Lọc câu đã chọn">' +
+              '<option value="all"' + (this.internShow === 'all' ? ' selected' : '') + '>Tất cả câu</option>' +
+              '<option value="on"' + (this.internShow === 'on' ? ' selected' : '') + '>Đã chọn vào đề</option>' +
+              '<option value="off"' + (this.internShow === 'off' ? ' selected' : '') + '>Chưa chọn</option>' +
+            '</select>' +
+            '<select class="ex-inp ex-filter" onchange="EX.pickTopic(this.value||null)" title="Lọc theo chủ đề">' +
+              '<option value=""' + (this.selTopic ? '' : ' selected') + '>Tất cả chủ đề (' + bank.length + ')</option>' +
+              topics.map(t => '<option value="' + hesc(t.id) + '"' + (this.selTopic === t.id ? ' selected' : '') + ' data-noi18n>' +
+                hesc(this.tx(t, 'name')) + ' (' + bank.filter(x => x.topic_id === t.id).length + ')</option>').join('') +
+            '</select>' +
+          '</div>' +
+          (items.length ? items.map(q => this.internItemHtml(q, full)).join('')
+            : '<div class="chart-card" style="text-align:center;color:var(--mu);font-size:.72rem">Chưa có câu hỏi nào khớp bộ lọc.</div>') +
+        '</div>' +
+      '</div>';
+  },
+  internItemHtml(q, full) {
+    const t = this.topicById(q.topic_id), rnd = this.tMode(q.topic_id) === 'random', on = !rnd && this.isPicked(q.id);
+    return '<div class="chart-card ex-bank' + (on ? ' picked' : '') + '">' +
+      '<div class="ex-bankh">' +
+        '<span class="ex-badge" style="background:' + hesc(t.color) + '22;color:' + hesc(t.color) + '" data-noi18n>' + hesc(this.tx(t, 'name')) + '</span>' +
+        '<span class="ex-badge ex-b-mu">' + hesc(q.level || '') + '</span>' +
+        (on ? '<span class="ex-badge ex-b-ok">✓ Trong đề</span>' : '') +
+        (rnd ? '<span class="ex-badge ex-b-cy">Ngẫu nhiên</span>' : '') +
+        '<span style="margin-left:auto">' +
+          (rnd ? '' : on ? '<button class="abtn abtn-sm abtn-danger" onclick="EX.toggleIntern(\'' + q.id + '\')">Bỏ khỏi đề</button>'
+              : '<button class="abtn abtn-sm abtn-pu" onclick="EX.toggleIntern(\'' + q.id + '\')"' + (full ? ' disabled title="Đề đã đủ câu"' : '') + '>＋ Chọn vào đề</button>') +
+        '</span>' +
+      '</div>' +
+      '<div class="ex-bankq" data-noi18n>' + hesc(this.tx(q, 'question')) + '</div>' +
+      (this.imgOf(q) ? this.imgHtml(this.imgOf(q), '220px') : '') +
+      (this.tx(q, 'answer') ? '<div class="ex-correct"><b>✓ Đáp án:</b> <span data-noi18n>' + hesc(this.tx(q, 'answer')) + '</span></div>' : '') +
+    '</div>';
+  },
+  // Chọn / bỏ 1 câu — lưu NGAY (giống ô số câu của đề Định Kỳ). Hỏng thì báo, RAM không đổi.
+  async toggleIntern(id) {
+    if (!this.canEdit() || !this.internSet || this._iBusy) return;
+    const q = (this.bank || []).find(x => x.id === id);
+    if (!q || this.tMode(q.topic_id) === 'random') return;   // chủ đề ngẫu nhiên không chọn tay
+    const on = this.isPicked(id);
+    if (!on && this.internTotal() >= this.INTERN_N) { alert('Đề thực tập đã đủ ' + this.INTERN_N + ' câu. Bỏ bớt một câu trước khi chọn thêm.'); return; }
+    this._iBusy = true;
+    try {
+      if (on) {
+        const { error } = await this.tbl('exam_intern_set').delete().eq('question_id', id);
+        if (error) throw new Error(error.message);
+        this.internSet = this.internSet.filter(x => x.question_id !== id);
+      } else {
+        const ord = this.internSet.reduce((a, x) => Math.max(a, Number(x.ord) || 0), 0) + 1;
+        const { error } = await this.tbl('exam_intern_set').upsert({ question_id: id, ord: ord }, { onConflict: 'question_id', ignoreDuplicates: true });
+        if (error) throw new Error(error.message);
+        this.internSet.push({ question_id: id, ord: ord });
+      }
+      this.syncInternCfg();
+    } catch (e) { alert('Lỗi lưu đề thực tập: ' + (e.message || e)); }
+    finally { this._iBusy = false; }
+    this.render();
+  },
+  // Đổi cách lấy câu của 1 chủ đề. Sang Ngẫu nhiên: số câu = số câu đang có (tổng đề không đổi).
+  // Câu đã chọn tay vẫn giữ lại — quay về Cố định là có lại, không phải chọn lại.
+  async setTopicMode(tid, mode) {
+    mode = mode === 'random' ? 'random' : 'fixed';
+    if (!this.canEdit() || !this.internTopics || this.tMode(tid) === mode) return;
+    const row = { topic_id: tid, mode: mode, count: mode === 'random' ? this.tCount(tid) : (Number((this.internTopics[tid] || {}).count) || 0) };
+    try {
+      const { error } = await this.tbl('exam_intern_topic').upsert(row, { onConflict: 'topic_id' });
+      if (error) throw new Error(error.message);
+      this.internTopics[tid] = { mode: row.mode, count: row.count };
+      this.syncInternCfg(); this.render();
+    } catch (e) { alert('Lỗi lưu đề thực tập: ' + (e.message || e)); }
+  },
+  async setTopicCount(tid, v) {
+    if (!this.canEdit() || !this.internTopics || this.tMode(tid) !== 'random') return;
+    const room = Math.max(0, this.INTERN_N - (this.internTotal() - this.tCount(tid)));
+    const want = Math.max(0, parseInt(v) || 0);
+    const n = Math.min(want, this.tAvail(tid), room);
+    try {
+      const { error } = await this.tbl('exam_intern_topic').upsert({ topic_id: tid, mode: 'random', count: n }, { onConflict: 'topic_id' });
+      if (error) throw new Error(error.message);
+      this.internTopics[tid] = { mode: 'random', count: n };
+      this.syncInternCfg(); this.render();
+      if (n < want) this.toast(n === this.tAvail(tid) && n < room
+        ? 'Chủ đề chỉ có ' + n + ' câu trong ngân hàng.'
+        : 'Chỉ còn chỗ cho ' + n + ' câu — đề Thực Tập tối đa ' + this.INTERN_N + ' câu.');
+    } catch (e) { alert('Lỗi lưu đề thực tập: ' + (e.message || e)); this.render(); }
+  },
+  async clearIntern() {
+    const ids = (this.internSet || []).map(x => x.question_id);
+    if (!ids.length || !confirm('Bỏ toàn bộ ' + ids.length + ' câu khỏi đề thực tập?')) return;
+    try {
+      const { error } = await this.tbl('exam_intern_set').delete().in('question_id', ids);
+      if (error) throw new Error(error.message);
+      this.internSet = []; this.syncInternCfg();
+      this.render(); this.toast('Đã bỏ chọn toàn bộ đề thực tập');
+      logAction('XOÁ ĐỀ THỰC TẬP', ids.length + ' câu');
+    } catch (e) { alert('Lỗi lưu đề thực tập: ' + (e.message || e)); }
+  },
+  async saveInternSettings() {
+    const d = Math.max(1, Math.min(240, parseInt(document.getElementById('exSetIDur').value) || 90));
+    try {
+      const { error } = await this.tbl('exam_settings').upsert({ key: 'intern_duration', value: String(d) }, { onConflict: 'key' });
+      if (error) throw new Error(error.message);
+      this.D.settings.intern_duration = d;
+      this.render(); this.toast('Đã lưu cài đặt');
+    } catch (e) { alert('Lỗi lưu cài đặt: ' + (e.message || e)); }
+  },
   bankItemHtml(q) {
     const t = this.topicById(q.topic_id);
     const stale = this.isStale(q, 'question') || this.isStale(q, 'answer');
@@ -721,12 +1017,18 @@ const EX = {
     } catch (e) { alert('Lỗi lưu câu hỏi: ' + (e.message || e)); }
   },
   async delQ(id) {
-    if (!confirm('Xóa câu hỏi này?')) return;
+    // Câu đang góp vào đề Thực Tập -> xoá xong đề thiếu câu, nhân viên bị chặn làm bài: báo trước
+    const dq = (this.bank || []).find(x => x.id === id);
+    const hurt = dq && this.internSet && this.internTopics && (this.inFixed(dq) ||
+      (this.tMode(dq.topic_id) === 'random' && this.tAvail(dq.topic_id) - 1 < (Number(this.internTopics[dq.topic_id].count) || 0)));
+    if (!confirm('Xóa câu hỏi này?' + (hurt ? '\n\nCâu này đang nằm trong đề Kiểm Tra Năng Lực Thực Tập — xoá xong đề sẽ thiếu câu và nhân viên không làm được bài Thực Tập cho tới khi chọn bù.' : ''))) return;
     try {
       const { error } = await this.tbl('exam_questions').delete().eq('id', id);
       if (error) throw new Error(error.message);
       // KHÔNG xoá ảnh: bài đã nộp trước đó vẫn hiển thị câu hỏi này kèm ảnh
       this.bank = this.bank.filter(x => x.id !== id);
+      // câu đã xoá tự rơi khỏi đề thực tập ở server (cascade) -> đồng bộ tại máy
+      if (this.internSet) { this.internSet = this.internSet.filter(x => x.question_id !== id); this.syncInternCfg(); }
       if (this.editQ === id) this.editQ = null;
       this.render(); this.toast('Đã xóa câu hỏi');
     } catch (e) { alert('Lỗi xóa: ' + (e.message || e)); }
@@ -749,7 +1051,8 @@ const EX = {
         { key: 'show_answer', value: sa ? 'yes' : 'no' }
       ], { onConflict: 'key' });
       if (error) throw new Error(error.message);
-      this.D.settings = { duration: d, show_answer: sa };
+      // gán TỪNG trường: thay nguyên object là mất intern_duration của chế độ Thực Tập
+      this.D.settings.duration = d; this.D.settings.show_answer = sa;
       this.toast('Đã lưu cài đặt');
     } catch (e) { alert('Lỗi lưu cài đặt: ' + (e.message || e)); }
   },
@@ -855,12 +1158,16 @@ const EX = {
   },
   async delTopic(id) {
     const cnt = (this.bank || []).filter(b => b.topic_id === id).length;
-    if (!confirm(cnt ? ('Chủ đề này có ' + cnt + ' câu hỏi, xóa sẽ mất luôn cả ' + cnt + ' câu. Tiếp tục?') : 'Xóa chủ đề này?')) return;
+    const inI = (this.internSet && this.internTopics) ? this.tCount(id) : 0;
+    const warn = inI ? '\n\nChủ đề này đang góp ' + inI + ' câu vào đề Kiểm Tra Năng Lực Thực Tập — xoá xong đề sẽ thiếu câu và nhân viên không làm được bài Thực Tập cho tới khi bổ sung.' : '';
+    if (!confirm((cnt ? ('Chủ đề này có ' + cnt + ' câu hỏi, xóa sẽ mất luôn cả ' + cnt + ' câu. Tiếp tục?') : 'Xóa chủ đề này?') + warn)) return;
     try {
       const { error } = await this.tbl('exam_topics').delete().eq('id', id);   // câu hỏi + cấu trúc đề xóa theo (on delete cascade)
       if (error) throw new Error(error.message);
       this.D.topics = this.D.topics.filter(t => t.id !== id);
       this.bank = this.bank.filter(b => b.topic_id !== id);
+      if (this.internTopics) delete this.internTopics[id];
+      if (this.internSet) { this.internSet = this.internSet.filter(x => this.bank.some(b => b.id === x.question_id)); this.syncInternCfg(); }
       delete this.D.config[id];
       if (this.selTopic === id) this.selTopic = null;
       this.render(); this.toast('Đã xóa chủ đề');
@@ -874,46 +1181,100 @@ const EX = {
       try { this.members = await this.rpc('exam_members_list'); } catch (e) { b.innerHTML = '<div class="chart-card" style="color:var(--re);font-size:.72rem">Lỗi: ' + hesc(e.message || e) + '</div>'; return; }
       if (this.view !== 'nv') return;
     }
-    const rows = this.members.map((m, i) => {
-      const zero = m.remaining <= 0;
-      return '<tr>' +
+    // Lượt Thực Tập tách riêng lượt Định Kỳ (cột intern_* do supabase_exam_modes.sql thêm)
+    // Sửa lượt ở bao nhiêu người cũng được rồi bấm "Lưu tất cả thay đổi" MỘT lần. Số đã sửa
+    // nằm ở _nvEdit (không phải trong ô nhập) nên render lại (Reset đã dùng, đề riêng…) không mất.
+    const modes = this.hasModes(), E = this._nvEdit || (this._nvEdit = {});
+    const cell = (m, f) => {
+      const e = E[m.user_id], dirty = !!(e && e[f] !== undefined), v = dirty ? e[f] : (Number(m[f]) || 0);
+      return '<td><input class="ex-num' + (v <= 0 ? ' zero' : '') + (dirty ? ' dirty' : '') + '" type="number" min="0" value="' + v + '"' +
+        ' data-u="' + hesc(m.user_id) + '" data-f="' + f + '" oninput="EX.nvEdit(this)"></td>';
+    };
+    const nDirty = this.nvDirty();
+    const saveBtn = cls => '<button class="abtn abtn-ok abtn-sm ex-nvsave' + (cls || '') + '" onclick="EX.saveMembers()"' + (nDirty ? '' : ' disabled') + '>' +
+      (nDirty ? 'Lưu tất cả thay đổi (' + nDirty + ')' : 'Lưu tất cả thay đổi') + '</button>';
+    const rows = this.members.map((m, i) =>
+      '<tr>' +
         '<td class="ex-nm" data-noi18n>' + hesc(m.username || '(không tên)') + '</td>' +
         '<td>' + (m.role === 'admin' ? 'Admin' : (m.role === 'totruong' ? 'Tổ Trưởng' : 'Nhân viên')) + '</td>' +
         '<td><button class="abtn abtn-sm ' + (m.exam_cfg ? 'abtn-cy' : 'abtn-ghost') + '" onclick="EX.openMemberCfg(' + i + ')">' + (m.exam_cfg ? 'Đề riêng' : 'Đề chung') + '</button></td>' +
-        '<td><input class="ex-num' + (zero ? ' zero' : '') + '" type="number" min="0" id="exRem' + i + '" value="' + m.remaining + '"></td>' +
+        cell(m, 'remaining') +
         '<td>' + m.used + '</td>' +
-        '<td><button class="abtn abtn-sm abtn-pu" onclick="EX.saveMember(' + i + ')">Lưu</button> ' +
-            '<button class="abtn abtn-sm abtn-ghost" onclick="EX.resetUsed(' + i + ')">Reset đã dùng</button></td>' +
-      '</tr>';
-    }).join('');
+        (modes ? cell(m, 'intern_remaining') + '<td>' + (Number(m.intern_used) || 0) + '</td>' : '') +
+        '<td><button class="abtn abtn-sm abtn-ghost" onclick="EX.resetUsed(' + i + ')">Reset đã dùng</button></td>' +
+      '</tr>').join('');
     b.innerHTML =
-      '<div class="sec-hdr pu">Quản lý lượt test <span class="cnt-badge">' + this.members.length + '</span></div>' +
+      '<div class="sec-hdr pu">Quản lý lượt test <span class="cnt-badge">' + this.members.length + '</span>' + saveBtn(' sec-act') + '</div>' +
       '<div class="chart-card">' +
         '<div class="ex-meta" style="margin-bottom:10px">Danh sách lấy thẳng từ tài khoản đăng nhập của hệ thống — không phải gõ tay tên nhân viên.</div>' +
-        '<div class="ex-meta" style="margin-bottom:10px">Ô Lượt còn lại tự giảm 1 mỗi lần bắt đầu bài; về 0 (ô đỏ) là hết lượt. Muốn cấp thêm thì gõ số mới rồi bấm Lưu.</div>' +
+        '<div class="ex-meta" style="margin-bottom:10px">Sửa số lượt ở bao nhiêu người cũng được (ô viền vàng = đã sửa, chưa lưu), rồi bấm Lưu tất cả thay đổi một lần. Lượt tự giảm 1 mỗi lần nhân viên bắt đầu bài; về 0 (ô đỏ) là hết lượt.</div>' +
         '<div class="ex-tblwrap"><table class="ex-tbl">' +
-          '<thead><tr><th>Tài khoản</th><th>Vai trò</th><th>Cấu trúc đề</th><th>Lượt còn lại</th><th>Đã dùng</th><th>Thao tác</th></tr></thead>' +
+          '<thead><tr><th>Tài khoản</th><th>Vai trò</th><th>Cấu trúc đề</th>' +
+            (modes ? '<th>Định kỳ · còn lại</th><th>Định kỳ · đã dùng</th><th>Thực tập · còn lại</th><th>Thực tập · đã dùng</th>'
+                   : '<th>Lượt còn lại</th><th>Đã dùng</th>') +
+          '<th>Thao tác</th></tr></thead>' +
           '<tbody>' + rows + '</tbody></table></div>' +
-        '<div style="margin-top:12px"><button class="abtn abtn-ghost abtn-sm" onclick="EX.members=null;EX.render()">↻ Tải lại</button></div>' +
+        '<div class="ex-actions">' + saveBtn() + '<button class="abtn abtn-ghost abtn-sm" onclick="EX.nvReload()">↻ Tải lại</button></div>' +
       '</div>';
   },
-  async saveMember(i) {
-    const m = this.members[i];
-    const rem = parseInt(document.getElementById('exRem' + i).value) || 0;
-    try {
-      const { error } = await this.tbl('exam_members').upsert({ user_id: m.user_id, remaining: rem, used: m.used, exam_cfg: m.exam_cfg }, { onConflict: 'user_id' });
-      if (error) throw new Error(error.message);
-      m.remaining = rem; this.render(); this.toast('Đã lưu ' + m.username);
-      logAction('CẤP LƯỢT TEST', (m.username || '') + ' · còn ' + rem + ' lượt');
-    } catch (e) { alert('Lỗi: ' + (e.message || e)); }
+  // gõ vào 1 ô lượt: ghi nhớ số mới (bằng số cũ thì coi như không sửa), tô viền vàng, cập nhật nút Lưu
+  nvEdit(el) {
+    const m = (this.members || []).find(x => x.user_id === el.dataset.u); if (!m) return;
+    const f = el.dataset.f, v = Math.max(0, parseInt(el.value) || 0);
+    const E = this._nvEdit || (this._nvEdit = {}), e = E[m.user_id] || (E[m.user_id] = {});
+    if (v === (Number(m[f]) || 0)) delete e[f]; else e[f] = v;
+    if (!Object.keys(e).length) delete E[m.user_id];
+    el.classList.toggle('dirty', e[f] !== undefined); el.classList.toggle('zero', v <= 0);
+    const n = this.nvDirty();
+    document.querySelectorAll('.ex-nvsave').forEach(bt => { bt.disabled = !n; bt.textContent = n ? 'Lưu tất cả thay đổi (' + n + ')' : 'Lưu tất cả thay đổi'; });
+  },
+  nvDirty() { return Object.keys(this._nvEdit || {}).length; },
+  nvReload() {
+    if (this.nvDirty() && !confirm('Còn ' + this.nvDirty() + ' tài khoản đã sửa lượt test nhưng CHƯA LƯU. Rời trang và bỏ các thay đổi này?')) return;
+    this._nvEdit = {}; this.members = null; this.render();
+  },
+  /* Lưu MỘT LẦN mọi lượt đã sửa. Chỉ ghi ĐÚNG ô đã sửa: ghi cả dòng là đè số cũ trên màn
+     hình lên số máy chủ vừa trừ (nhân viên bắt đầu bài trong lúc Tổ Trưởng đang mở bảng)
+     -> tặng thêm lượt. Upsert một lô cần cùng bộ cột nên gom theo bộ cột (tối đa 3 lần gọi).
+     Lô nào hỏng thì ô của lô đó GIỮ viền vàng + số đã sửa để bấm Lưu lại. */
+  async saveMembers() {
+    const E = this._nvEdit || {}, ids = Object.keys(E);
+    if (!ids.length || !this.canEdit()) return;
+    const groups = {};
+    ids.forEach(u => { const k = Object.keys(E[u]).sort().join(','); (groups[k] = groups[k] || []).push(Object.assign({ user_id: u }, E[u])); });
+    const done = [], fail = [];
+    document.querySelectorAll('.ex-nvsave').forEach(bt => { bt.disabled = true; });
+    for (const k of Object.keys(groups)) {
+      try {
+        const { error } = await this.tbl('exam_members').upsert(groups[k], { onConflict: 'user_id' });
+        if (error) throw new Error(error.message);
+        done.push(...groups[k]);
+      } catch (e) { fail.push(e.message || String(e)); }
+    }
+    const log = [];
+    done.forEach(r => {
+      const m = this.members.find(x => x.user_id === r.user_id); delete E[r.user_id];
+      if (!m) return;
+      const parts = [];
+      if (r.remaining !== undefined) { parts.push('định kỳ ' + m.remaining + '→' + r.remaining); m.remaining = r.remaining; }
+      if (r.intern_remaining !== undefined) { parts.push('thực tập ' + m.intern_remaining + '→' + r.intern_remaining); m.intern_remaining = r.intern_remaining; }
+      log.push((m.username || '') + ': ' + parts.join(', '));
+    });
+    if (log.length) logAction('CẤP LƯỢT TEST', log.join(' · '));
+    this.render();
+    if (fail.length) alert('Lưu lượt test KHÔNG thành công cho ' + this.nvDirty() + ' tài khoản (ô viền vàng vẫn giữ số đã sửa — bấm Lưu lại):\n' + fail.join('\n'));
+    else this.toast('Đã lưu ' + done.length + ' tài khoản');
   },
   async resetUsed(i) {
     const m = this.members[i];
     if (!confirm('Đưa số lần "Đã dùng" của ' + m.username + ' về 0? (không đổi lượt còn lại)')) return;
+    const row = { user_id: m.user_id, used: 0 };   // chỉ ghi cột cần đổi — xem chú thích ở saveMembers
+    if (this.hasModes()) row.intern_used = 0;   // reset cả bộ đếm của chế độ Thực Tập
     try {
-      const { error } = await this.tbl('exam_members').upsert({ user_id: m.user_id, remaining: m.remaining, used: 0, exam_cfg: m.exam_cfg }, { onConflict: 'user_id' });
+      const { error } = await this.tbl('exam_members').upsert(row, { onConflict: 'user_id' });
       if (error) throw new Error(error.message);
-      m.used = 0; this.render(); this.toast('Đã reset');
+      m.used = 0; if (this.hasModes()) m.intern_used = 0;
+      this.render(); this.toast('Đã reset');
     } catch (e) { alert('Lỗi: ' + (e.message || e)); }
   },
   openMemberCfg(i) {
@@ -956,7 +1317,7 @@ const EX = {
       document.querySelectorAll('.ex-mcfg').forEach(i => { const n = parseInt(i.value) || 0; if (n > 0) cfg[i.dataset.topic] = n; });
     }
     try {
-      const { error } = await this.tbl('exam_members').upsert({ user_id: m.user_id, remaining: m.remaining, used: m.used, exam_cfg: cfg }, { onConflict: 'user_id' });
+      const { error } = await this.tbl('exam_members').upsert({ user_id: m.user_id, exam_cfg: cfg }, { onConflict: 'user_id' });   // chỉ ghi đề riêng, không đè lượt
       if (error) throw new Error(error.message);
       m.exam_cfg = cfg;
       this.closeModal(); this.render(); this.toast('Đã lưu cấu trúc đề cho ' + m.username);
@@ -975,7 +1336,7 @@ const EX = {
       '<div class="ex-srow' + (this.selSub === s.id ? ' on' : '') + '" onclick="EX.openSub(' + i + ')">' +
         '<div class="ex-srow-t"><b data-noi18n>' + hesc(s.username || '?') + '</b>' +
         (s.graded ? '<span class="ex-badge ex-b-ok">' + this.fmtScore(s.total) + '/' + s.count + '</span>' : '<span class="ex-badge ex-b-wait">Chờ chấm</span>') + '</div>' +
-        '<div class="ex-meta" data-noi18n>' + hesc(s.code) + '</div>' +
+        '<div class="ex-meta"><span data-noi18n>' + hesc(s.code) + '</span> ' + this.modeBadge(s.mode) + '</div>' +
         '<div class="ex-srow-f"><span class="ex-meta">' + this.fmtTime(s.time) + ' · ' + this.fmtDur(s.duration_sec) + '</span>' +
         '<button class="ex-mini del" onclick="event.stopPropagation();EX.delSub(' + i + ')" title="Xóa bài này">×</button></div>' +
       '</div>').join('');
@@ -1035,7 +1396,7 @@ const EX = {
       '</div>';
     }).join('');
     pane.innerHTML = '<div class="chart-card">' +
-      '<div class="ex-railh">Bài của <span class="ex-user" data-noi18n>' + hesc(s.username || '') + '</span> · <span data-noi18n>' + hesc(s.code) + '</span></div>' +
+      '<div class="ex-railh">Bài của <span class="ex-user" data-noi18n>' + hesc(s.username || '') + '</span> · <span data-noi18n>' + hesc(s.code) + '</span> ' + this.modeBadge(s.mode) + '</div>' +
       '<div class="ex-meta">Mỗi câu tối đa 1 điểm — nhập được số lẻ. Tổng = cộng các câu / số câu.</div>' +
       '<div class="ex-meta" style="margin-bottom:10px">' + this.fmtTime(s.time) + ' · ' + this.fmtDur(s.duration_sec) + ' · ' + s.count + ' câu</div>' +
       body +

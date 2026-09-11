@@ -932,6 +932,32 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .ex-b-mu{background:var(--card2);color:var(--mu2)}
 .ex-b-ok{background:rgba(16,185,129,.15);color:#6ee7b7}
 .ex-b-wait{background:rgba(245,158,11,.15);color:#fcd34d}
+/* 2 chế độ làm bài (supabase_exam_modes.sql) */
+.ex-b-pu{background:rgba(124,58,237,.18);color:#c4b5fd}
+.ex-b-cy{background:rgba(6,182,212,.15);color:#67e8f9}
+.ex-note-ok{background:rgba(16,185,129,.10);border:1px solid rgba(16,185,129,.35);color:#6ee7b7}
+.ex-modes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.ex-mode{display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px;border-radius:10px;border:1px solid var(--border2);
+  background:var(--card2);color:var(--tx);cursor:pointer;font-family:inherit;transition:all .18s}
+.ex-mode:hover:not(:disabled){border-color:var(--pu);background:rgba(124,58,237,.08)}
+.ex-mode.on{background:linear-gradient(135deg,var(--pu),var(--bl));border-color:transparent;box-shadow:0 4px 14px rgba(124,58,237,.3)}
+.ex-mode:disabled{opacity:.4;cursor:not-allowed}
+.ex-mode-n{width:30px;height:30px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+  font-size:.8rem;font-weight:900;background:rgba(124,58,237,.2);color:var(--pu2)}
+.ex-mode.on .ex-mode-n{background:rgba(255,255,255,.22);color:#fff}
+.ex-mode-b{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ex-mode-b b{font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.ex-mode-b i{font-style:normal;font-size:.62rem;color:var(--mu2)}
+.ex-mode.on .ex-mode-b i{color:rgba(255,255,255,.85)}
+.ex-demode{margin-bottom:14px}
+.ex-bank.picked{border-color:rgba(16,185,129,.55);box-shadow:0 0 0 1px rgba(16,185,129,.25)}
+.ex-isel{min-width:26px;text-align:center;font-size:.68rem;font-weight:800;color:var(--mu);background:var(--card2);border:1px solid var(--border2);border-radius:6px;padding:3px 6px}
+.ex-isel.has{color:#6ee7b7;border-color:rgba(16,185,129,.45)}
+.ex-trow2.on .ex-isel{color:#fff;border-color:rgba(255,255,255,.35);background:transparent}
+.ex-trow2-i{flex-wrap:wrap;row-gap:6px}
+.ex-seg{display:inline-flex;gap:4px;flex:none}
+/* ô lượt test đã sửa nhưng CHƯA lưu (Quản Lý Nhân Viên lưu 1 lần cho tất cả) */
+.ex-num.dirty{border-color:var(--go);box-shadow:0 0 0 1px rgba(245,158,11,.4);color:#fcd34d}
 /* xem lại bài / chấm điểm */
 .ex-rev{border-top:1px solid var(--border);padding:14px 0}
 .ex-rev:first-child{border-top:none;padding-top:4px}
@@ -993,6 +1019,6 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .ex-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border2);color:var(--tx);padding:10px 20px;border-radius:9px;font-size:.7rem;font-weight:700;opacity:0;transition:opacity .3s;z-index:80;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.5)}
 .ex-toast.on{opacity:1}
 @media(max-width:1100px){
-  .ex-2col,.ex-doing{grid-template-columns:1fr}
+  .ex-2col,.ex-doing,.ex-modes{grid-template-columns:1fr}
   .ex-rail,.ex-navcard{position:static;max-height:none}
 }
