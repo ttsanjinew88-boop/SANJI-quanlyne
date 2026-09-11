@@ -131,6 +131,11 @@ Bộ kiểm tra này canh những quy tắc đã từng gây sự cố thật: b
 - Kiểm tra bot còn trong nhóm không (có thể bị mời ra)
 - Báo người kỹ thuật — cần vào Supabase xem nhật ký hàm
 
+### 6.4b. Upload Khuyến Mãi — lưu ý múi giờ (từ 11/09/2026)
+- File Khuyến Mãi tính giờ **GMT+8**, hệ thống thống kê theo **GMT-4**. Một file "ngày 02" thực chất là **từ 12:00 ngày 01 tới 12:00 ngày 02** theo GMT-4 — vì vậy trên dashboard mỗi file KM hiện ra thành 2 nửa ngày. Đó là đúng, không phải lỗi.
+- File ngày 01 luôn có nửa ngày cuối của **tháng trước**: hệ thống tự cộng phần đó vào tháng trước và hiện một thông báo.
+- Tháng KM nào tải lên **trước 11/09/2026** thì lần đầu phải chọn **"Thay thế cả tháng"** (file từ ngày 01), sau đó mới dùng "Thêm ngày (cộng dồn)" được. Nếu không, hệ thống sẽ báo và không lưu gì.
+
 ### 6.5. "Nhân viên báo cáo OFF mà không lưu được"
 - Từ 08/09/2026 hệ thống đã báo lỗi rõ ràng thay vì im lặng. Nếu hiện bảng lỗi màu đỏ, **chụp màn hình bảng đó** rồi gửi người kỹ thuật — trong đó có nguyên nhân.
 

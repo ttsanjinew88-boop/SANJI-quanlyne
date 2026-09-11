@@ -2449,6 +2449,10 @@ const I18N={
   "— Cancel: giữ nguyên dữ liệu cũ trên cloud":"— Cancel: keep the old data in the cloud",
   "— OK: thay lại các ngày trùng":"— OK: replace the overlapping days",
   "— Cancel: hủy, không lưu gì":"— Cancel: abort, save nothing",
+  "THAY LẠI đúng các giờ này bằng dữ liệu mới? (giờ khác giữ nguyên, KHÔNG cộng đôi)":"REPLACE exactly these hours with the new data? (other hours stay as they are, NOTHING is counted twice)",
+  "— OK: thay lại các giờ trùng":"— OK: replace the overlapping hours",
+  "ℹ FILE KHUYẾN MÃI CÓ DỮ LIỆU CỦA 2 THÁNG":"ℹ THE PROMOTION FILE CONTAINS DATA FOR 2 MONTHS",
+  "File KM tính theo giờ GMT+8 nên file ngày 01 luôn có nửa ngày cuối của tháng trước (GMT-4). Phần đó đã được cộng theo từng giờ vào đúng tháng của nó.":"Promotion files use GMT+8 time, so the file for day 01 always contains the last half-day of the previous month (GMT-4). That part was added hour by hour to its own month.",
   "— OK: vẫn lưu (số đơn trên sẽ MẤT)":"— OK: save anyway (those orders will be LOST)",
   "— Cancel: hủy để sửa danh sách nhân viên rồi upload lại":"— Cancel: abort, fix the staff list, then upload again",
   "❌ Không nhận diện được dữ liệu nào trong file.":"❌ No recognizable data in the file.",
@@ -3169,6 +3173,12 @@ const I18N={
     [/^Các ngày \[(.+)\] ĐÃ CÓ dữ liệu trên cloud\.$/,"Days [$1] ALREADY have data in the cloud."],
     [/^Dữ liệu vừa upload thuộc THÁNG CŨ \((.+)\), không phải tháng hiện tại \((.+)\)\.$/,"The upload belongs to an EARLIER MONTH ($1), not the current month ($2)."],
     [/^Lưu vào tháng (.+) trên cloud\?$/,"Save it to month $1 in the cloud?"],
+    [/^Dữ liệu Khuyến Mãi tháng (.+) được tạo theo cách chia ngày CŨ \(trước 11\/09\/2026\) nên chưa cộng dồn được\.$/,"The Promotion data for month $1 was built with the OLD day split (before 11/09/2026), so it cannot be accumulated."],
+    [/^Khoảng giờ của file này ĐÃ CÓ dữ liệu Khuyến Mãi tháng (.+) trên cloud:$/,"The hours covered by this file ALREADY have Promotion data for month $1 in the cloud:"],
+    [/^• ngày (\d+): (\d+)h–(\d+)h \(GMT-4\) — (.+) đơn$/,"• day $1: $2h–$3h (GMT-4) — $4 orders"],
+    [/^File có (.+) dòng thuộc THÁNG (.+) \(theo GMT-4\):$/,"The file has $1 rows belonging to MONTH $2 (GMT-4):"],
+    [/^Đã cộng dồn ngày \[(.+)\] vào tháng (.+) ✓$/,"Added days [$1] to month $2 ✓"],
+    [/^Đã thêm dữ liệu tháng (.+) ✓$/,"Added data for month $1 ✓"],
     [/^Dữ liệu (.+) tháng (.+) được tạo TRƯỚC bản cập nhật \(cách làm tròn cũ\) nên chưa cộng dồn được\.$/,"The $1 data for month $2 was created BEFORE the update (old rounding) so it cannot be accumulated."],
     [/^⚠ CÓ (.+) ĐƠN KHÔNG TÍNH CHO AI$/,"⚠ $1 ORDERS ARE CREDITED TO NOBODY"],
     [/^Tổng (\d+) đơn lẻ sẽ bị loại để không lẫn sang ngày khác\.$/,"$1 straggler order(s) will be dropped so they don't bleed into another day."],
@@ -4802,12 +4812,14 @@ async function stripSensitiveCols(file,colIdx){
   return new File([out],file.name.replace(/\.(xlsx|xls)$/i,"")+"_loc.xlsx",{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
 }
 
+// Trả true nếu đã lưu lên máy chủ; false nếu huỷ / lưu hỏng / chỉ xem trước tại máy.
 async function cloudSaveKO(target,nd){
   const type=target==="km"?"km":"don";
   const month=normMonth(nd.month);
   const lbl=type==="km"?"Khuyến Mãi":"Duyệt Đơn";
+  delete nd._cov;   // khoảng giờ file phủ (KM) — chỉ dùng khi cộng dồn, không lưu
   // Không có kết nối: chỉ xem trước tại máy (như trước), không đổi tháng đang xem.
-  if(!SB.ready()){if(type==="km")KMD=nd;else{D=nd;setMonthLabel(month,false);}rAll();return;}
+  if(!SB.ready()){if(type==="km")KMD=nd;else{D=nd;setMonthLabel(month,false);}rAll();return false;}
   // ⚠ Bản mới CHỈ lên màn hình SAU KHI máy chủ lưu xong (nghiệm thu 10/09/2026 — canh bởi test nhóm 11–12).
   // Trước đây finalizeResult gán D/KMD trước khi hỏi "trùng dữ liệu" ⇒ bấm Huỷ hoặc lưu hỏng thì màn hình
   // vẫn hiện bản mới CHƯA hề được lưu, trong khi thanh trạng thái ghi "dữ liệu cũ được giữ nguyên".
@@ -4825,23 +4837,23 @@ async function cloudSaveKO(target,nd){
         if(newDays<oldDays){
           if(!confirm("NGUY HIỂM — SẼ MẤT DỮ LIỆU!\n\nBản upload mới chỉ có "+newDays+" ngày dữ liệu.\nBản trên cloud của tháng "+dispMonth(month)+" đang có "+oldDays+" ngày.\n\nThay thế sẽ MẤT "+(oldDays-newDays)+" ngày dữ liệu!\n(Có thể bạn quên chọn đủ file từ đầu tháng?)\n\nBạn có CHẮC CHẮN muốn thay thế không?")){
             setCloudStatus("Không lưu — dữ liệu cũ tháng "+dispMonth(month)+" ("+oldDays+" ngày) được giữ nguyên",true);
-            return;
+            return false;
           }
           dayWarn=' (bản mới ÍT ngày hơn: '+newDays+' so với '+oldDays+')';
         }else if(!confirm("CẢNH BÁO TRÙNG DỮ LIỆU\n\nTháng "+dispMonth(month)+" ĐÃ CÓ dữ liệu "+lbl+" trên cloud ("+oldDays+" ngày). Bản mới có "+newDays+" ngày.\n\nBạn có muốn THAY THẾ dữ liệu cũ bằng dữ liệu vừa upload không?\n\n— OK: ghi đè dữ liệu cũ\n— Cancel: giữ nguyên dữ liệu cũ trên cloud")){
           setCloudStatus("Không lưu — dữ liệu cũ tháng "+dispMonth(month)+" trên cloud được giữ nguyên",true);
-          return;
+          return false;
         }
       }catch(e){
         if(!confirm("CẢNH BÁO TRÙNG DỮ LIỆU\n\nTháng "+dispMonth(month)+" ĐÃ CÓ dữ liệu "+lbl+" trên cloud.\n\nBạn có muốn THAY THẾ không?")){
           setCloudStatus("Không lưu — giữ nguyên dữ liệu cũ",true);
-          return;
+          return false;
         }
       }
     }else if(month!==curMonthKey()){
       if(!confirm("Dữ liệu vừa upload thuộc THÁNG CŨ ("+dispMonth(month)+"), không phải tháng hiện tại ("+dispMonth(curMonthKey())+").\n\nLưu vào tháng "+dispMonth(month)+" trên cloud?")){
         setCloudStatus("Đã hủy lưu cloud",true);
-        return;
+        return false;
       }
     }
     setCloudStatus("Đang lưu cloud...");
@@ -4849,7 +4861,7 @@ async function cloudSaveKO(target,nd){
   }catch(e){
     // Upload Excel hỏng mà chỉ báo mờ = người dùng tưởng đã lưu, đóng máy, hôm sau mất cả ngày dữ liệu.
     saveFailed('Dữ liệu '+lbl+' tháng '+dispMonth(month)+' (vừa upload) — màn hình vẫn giữ bản đang có trên máy chủ',e);
-    return;
+    return false;
   }
   const fCnt=(window._lastUploadFiles||[]).length;
   // Duyệt Đơn: cắt bỏ cột G/H/I (thông tin nhạy cảm) trước khi sao lưu file gốc lên Storage
@@ -4864,6 +4876,7 @@ async function cloudSaveKO(target,nd){
   const hien=await showSavedDataset(type,month,nd);
   setCloudStatus(hien?"Đã lưu cloud tháng "+dispMonth(month)+" ✓":"Đã lưu cloud tháng "+dispMonth(month)+" ✓ — màn hình vẫn đang ở tháng "+dispMonth(CUR_MONTH)+" (còn thay đổi chưa lưu)",!hien);
   logAction('Upload dữ liệu '+lbl,'Tháng '+dispMonth(month)+' · '+fCnt+' file · '+(((nd&&nd.days_in_month)||[]).length)+' ngày'+(exists?' · thay thế bản cũ':' · lưu mới'));
+  return true;
 }
 async function toggleHistMenu(ev){
   ev.stopPropagation();
@@ -5254,18 +5267,67 @@ document.getElementById("fh").addEventListener("change",function(e){
   processFiles(files,0,null,target);
 });
 
+// ===== KHUYẾN MÃI: FILE GMT+8, HỆ THỐNG THỐNG KÊ GMT-4 (chốt 11/09/2026 — canh bởi test nhóm 15) =====
+// Nền tảng xuất file KM cắt theo NGÀY GMT+8 (cột B = Thời gian gửi, GMT+8). Một ngày GMT+8 = từ 12:00 hôm TRƯỚC
+// tới 12:00 hôm đó theo GMT-4 ⇒ mỗi file KM luôn chia đôi sang HAI ngày GMT-4 (và file ngày 01 có nửa thuộc THÁNG TRƯỚC).
+// ⇒ Mọi con số KM (điểm, số đơn, Thống kê KM, view Theo Ngày) chia ngày theo GMT-4; ô ngày-giờ hbd7/cbd7 = [ngày GMT-4][giờ GMT+7]
+//    giống hệt Duyệt Đơn. Cộng dồn KHÔNG thay theo NGÀY mà thay theo từng GIỜ file mới phủ (kmReplaceCells).
+// Bản cũ: Theo Ngày chia GMT+7, điểm/Thống kê chia GMT-4, tìm "ngày trùng" theo GMT+7 rồi xoá CẢ NGÀY ⇒ mỗi lần cộng dồn
+// xoá mất nửa ngày của file hôm trước (đo 10/09/2026: 4 ngày × 72 đơn chỉ còn 81/288); và dòng tháng trước bị dồn
+// vào "ngày 30/31" của tháng mới. Bộ dữ liệu theo cách mới mang cờ kmV2:true.
+function kmTime(v){
+  let pd=null;
+  if(v instanceof Date)pd=v;
+  else if(typeof v==="number"&&v>40000)pd=new Date((v-25569)*86400000);
+  else if(v){try{pd=new Date(String(v).replace(/(\d{4})\/(\d{2})\/(\d{2})/,'$1-$2-$3').replace(" ","T"));}catch(e){}}
+  return(pd&&!isNaN(pd.getTime()))?pd:null;
+}
+const kmT4=pd=>new Date(pd.getTime()-12*3600000);            // GMT+8 → GMT-4
+const kmMonthOf=p4=>p4.getFullYear()+'-'+String(p4.getMonth()+1).padStart(2,'0');
+const kmCell=p4=>(p4.getDate()-1)*24+(p4.getHours()+GMT_OFFSET)%24;   // chỉ số ô [ngày GMT-4][giờ GMT+7]
+// Mọi ô giờ từ giờ của dòng sớm nhất tới giờ của dòng muộn nhất (GMT-4) — "khoảng file này phủ".
+function kmCovCells(t0,t1){
+  const out=[];if(t0==null||t1==null)return out;
+  const t=new Date(t0);t.setMinutes(0,0,0);
+  for(let ms=t.getTime();ms<=t1;ms+=3600000)out.push(kmCell(new Date(ms)));
+  return out;
+}
+// Thống kê KM lưu theo Ô (sparse) để thay lại đúng từng giờ; ok/rej/reward/promos suy ra từ ô.
+function kmstatAdd(st,k,name,ok,rej,rw){
+  const c=st.cells[k]||(st.cells[k]={ok:0,rej:0,rw:0,p:{}});
+  c.ok+=ok;c.rej+=rej;c.rw+=rw;
+  const p=c.p[name]||(c.p[name]=[0,0,0]);p[0]+=ok;p[1]+=rej;p[2]+=rw;
+}
+function kmstatRecalc(st){
+  if(!st||!st.cells)return;
+  st.ok=new Array(31).fill(0);st.rej=new Array(31).fill(0);st.reward=new Array(31).fill(0);st.promos={};
+  Object.keys(st.cells).forEach(k=>{
+    const c=st.cells[k],d=Math.floor(Number(k)/24);
+    st.ok[d]+=c.ok;st.rej[d]+=c.rej;st.reward[d]+=c.rw;
+    Object.entries(c.p||{}).forEach(([nm,p])=>{
+      const P=st.promos[nm]||(st.promos[nm]={ok:0,rej:0,reward:0});P.ok+=p[0];P.rej+=p[1];P.reward+=p[2];
+    });
+  });
+}
+// Xoá sạch các ô (chỉ số ô) khỏi bộ dữ liệu KM — cả tổng, từng nhân viên (kể cả người đã ẩn), lẫn Thống kê KM.
+function kmClearCells(ds,cells){
+  cells.forEach(k=>{
+    const d=Math.floor(k/24),h=k%24;
+    ds.hbd7[d][h]=0;ds.cbd7[d][h]=0;
+    Object.keys(ds.fk_data||{}).forEach(fk=>{const b=ds.fk_data[fk];if(b&&b.hbd7&&b.cbd7){b.hbd7[d][h]=0;b.cbd7[d][h]=0;}});
+    if(ds.kmstat&&ds.kmstat.cells)delete ds.kmstat.cells[k];
+  });
+}
+
 // ===== LỌC NGÀY KHI CỘNG DỒN: giữ mọi ngày có lượng đơn đáng kể, bỏ mẩu lẻ ở ranh giới nửa đêm =====
-// Chỉ dùng cho chế độ "Thêm ngày (cộng dồn)". Mirror cách chia ngày trong processChunks:
-// DON = cột T (idx19, GMT-4); KM = cột B (idx1, GMT+8 → GMT-4 trừ 12h).
+// Chỉ dùng cho chế độ "Thêm ngày (cộng dồn)". Chia ngày theo đúng cách FILE được cắt:
+// DON = cột T (idx19, GMT-4); KM = cột B (idx1) theo ngày GMT+8 GỐC — file KM cắt theo GMT+8, đổi sang GMT-4
+// thì ngày nào cũng thành 2 nửa to ngang nhau và không bao giờ nhận ra được mẩu lẻ.
 function _dayOfRow(row,target){
   let pd=null;
   if(target==="km"){
-    const v=row[1];
-    if(v instanceof Date)pd=v;
-    else if(typeof v==="number"&&v>40000)pd=new Date((v-25569)*86400000);
-    else if(v){try{pd=new Date(String(v).replace(" ","T"));}catch(e){}}
-    if(!pd||isNaN(pd.getTime()))return 0;
-    return new Date(pd.getTime()-12*3600000).getDate();
+    pd=kmTime(row[1]);
+    return pd?pd.getDate():0;
   }
   const v=row[19];
   if(v instanceof Date)pd=v;
@@ -5296,7 +5358,7 @@ function filterUploadDays(aoa,target){
 }
 
 function processFiles(files,idx,acc,target){
-  if(idx>=files.length){finalizeResult(acc,target);return;}
+  if(idx>=files.length){if(target==="km")kmProcessAll(acc||[]);else finalizeResult(acc,target);return;}
   const file=files[idx];
   showProg((target==="km"?"[Khuyến Mãi] ":"")+files.map(f=>f.name).join(", "));
   setProg(0,"Đang đọc file "+(idx+1)+"/"+files.length+"...","");
@@ -5318,6 +5380,12 @@ function processFiles(files,idx,acc,target){
             if(f===null){hideProg();return;}
             useAoa=f;
           }
+          if(target==="km"){
+            // KM: gom dòng của mọi file, đọc hết rồi mới CHIA THEO THÁNG GMT-4 (kmProcessAll)
+            const rows=acc||[];for(let i=1;i<useAoa.length;i++)rows.push(useAoa[i]);
+            processFiles(files,idx+1,rows,target);
+            return;
+          }
           const nd=initAccum();
           processChunks(useAoa,1,nd,files,idx,acc,target);
         },30);
@@ -5325,6 +5393,27 @@ function processFiles(files,idx,acc,target){
     },50);
   };
   reader.readAsArrayBuffer(file);
+}
+
+// KM: chia các dòng theo THÁNG GMT-4 rồi dựng MỘT bộ dữ liệu cho mỗi tháng. Tháng nhiều dòng nhất là tháng chính
+// (đi theo chế độ upload đã chọn); tháng còn lại (thường là nửa ngày cuối tháng trước trong file ngày 01) được
+// CỘNG DỒN theo từng giờ vào đúng tháng của nó — không bao giờ lẫn sang tháng chính.
+function kmProcessAll(rows){
+  const byM={};
+  for(const row of rows){
+    if(!row||row.length<18)continue;
+    const pd=kmTime(row[1]);if(!pd)continue;
+    const mk=kmMonthOf(kmT4(pd));(byM[mk]=byM[mk]||[]).push(row);
+  }
+  // nhiều dòng nhất đứng đầu; HOÀ (file ngày 01 chia đúng đôi) thì tháng SAU thắng — đó là tháng của file theo GMT+8
+  const months=Object.keys(byM).sort((a,b)=>(byM[b].length-byM[a].length)||(a<b?1:-1));
+  if(!months.length){finalizeResult(initAccum(),"km");return;}
+  const out=[];
+  const step=i=>{
+    if(i>=months.length){finalizeResult(out[0],"km",out.slice(1));return;}
+    processChunks([[]].concat(byM[months[i]]),1,initAccum(),[{name:"Tháng "+dispMonth(months[i])}],0,null,"km",nd=>{out.push(nd);step(i+1);});
+  };
+  step(0);
 }
 
 // ===== BÁO CÁO ĐƠN RÚT: helper dùng chung =====
@@ -5345,7 +5434,8 @@ function initAccum(){
     _day7Raw:new Array(31).fill(0), day_counts_d7:new Array(31).fill(0), _d7Set:new Set(),
     _hbd7:m31x24(), cbd7:m31x24(), // điểm & số đơn theo [ngày][giờ GMT+7] — cho view Theo Ngày
     _unk:{}, // mã "fk..." trong ghi chú không khớp nhân viên nào -> cảnh báo cuối lần upload
-    kmstat:{ok:new Array(31).fill(0),rej:new Array(31).fill(0),reward:new Array(31).fill(0),promos:{}} // KM: thành công/từ chối/tiền thưởng theo ngày + theo từng mã KM
+    kmstat:{ok:new Array(31).fill(0),rej:new Array(31).fill(0),reward:new Array(31).fill(0),promos:{},cells:{}}, // KM: thành công/từ chối/tiền thưởng theo ngày + theo từng mã KM (suy từ cells)
+    _t0:null,_t1:null // KM: dòng sớm/muộn nhất (GMT-4) — khoảng giờ file phủ, dùng khi cộng dồn
   };
   FK_KEYS.forEach(fk=>{
     nd.fk_data[fk]={
@@ -5362,7 +5452,7 @@ function initAccum(){
   return nd;
 }
 
-function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
+function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target,next){
   const CHUNK=10000;
   const total=aoa.length;
   const end=Math.min(start+CHUNK,total);
@@ -5371,37 +5461,26 @@ function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
     if(!row||row.length<18)continue;
     let pd=null,fk=null,sc=0,h4=0,h7=0,day=0,hbdDay=0;
     if(target==="km"){
-      // KM: cột B (idx 1) = Thời gian gửi GMT+8, cột R (idx 17) = Nhân viên xử lý
-      if(row[1] instanceof Date){pd=row[1];}
-      else if(typeof row[1]==="number"&&row[1]>40000){pd=new Date((row[1]-25569)*86400000);}
-      else if(row[1]){try{pd=new Date(String(row[1]).replace(" ","T"));}catch(e){}}
-      if(!pd||isNaN(pd.getTime()))continue;
-      // GMT+8 → GMT-4: trừ 12 giờ — đồng nhất logic ngày với file Duyệt Đơn
-      const pd4=new Date(pd.getTime()-12*3600000);
+      // KM: cột B (idx 1) = Thời gian gửi GMT+8, cột R (idx 17) = Nhân viên xử lý. MỌI thứ chia ngày theo GMT-4
+      // (xem đầu file). Dòng đã được kmProcessAll chia sẵn theo tháng GMT-4 nên cả bộ chỉ có 1 tháng.
+      pd=kmTime(row[1]);if(!pd)continue;
+      const pd4=kmT4(pd);
       h4=pd4.getHours(); h7=(h4+GMT_OFFSET)%24; day=pd4.getDate();
       nd._daySet.add(day);
       nd._mSet.add((pd4.getMonth()+1)+"/"+pd4.getFullYear());
-      // GMT+7 display tracking (pd4 + 11h = GMT+7)
-      const pd7=new Date(pd.getTime()-3600000);
-      const day_gmt7=pd7.getDate();
-      // Thống kê KM (đếm MỌI dòng, kể cả không nhận diện được FK) — chia ngày theo GMT-4 (độc lập với KM Theo Ngày):
+      const t=pd4.getTime();
+      if(nd._t0==null||t<nd._t0)nd._t0=t;
+      if(nd._t1==null||t>nd._t1)nd._t1=t;
+      // Thống kê KM (đếm MỌI dòng, kể cả không nhận diện được FK), ghi theo Ô ngày-giờ:
       // cột Q (idx 16) Lý do từ chối: có chữ = từ chối, trống = thành công; cột L (idx 11) Điểm thưởng
       const rejTxt=String(row[16]||"").trim();
       const promoName=String(row[14]||"").trim()||"(không mã)"; // cột O: Mã khuyến mãi — tách riêng NV1/NV2...
-      if(!nd.kmstat.promos[promoName])nd.kmstat.promos[promoName]={ok:0,rej:0,reward:0};
-      const P=nd.kmstat.promos[promoName];
-      if(rejTxt){nd.kmstat.rej[day-1]++;P.rej++;}
-      else{
-        nd.kmstat.ok[day-1]++;P.ok++;
-        const reward=typeof row[11]==="number"?row[11]:(parseFloat(String(row[11]||"").replace(/[^0-9.\-]/g,""))||0);
-        nd.kmstat.reward[day-1]+=reward;P.reward+=reward;
-      }
+      const reward=rejTxt?0:(typeof row[11]==="number"?row[11]:(parseFloat(String(row[11]||"").replace(/[^0-9.\-]/g,""))||0));
+      kmstatAdd(nd.kmstat,(day-1)*24+h7,promoName,rejTxt?0:1,rejTxt?1:0,reward);
       fk=mfk(String(row[17]||""));
       if(!fk){noteUnknownFk(nd,row[17]);continue;}
       sc=1;
-      hbdDay=day_gmt7; // KM: view Theo Ngày dùng ngày GMT+7
-      nd._day7Raw[day_gmt7-1]+=sc; nd.day_counts_d7[day_gmt7-1]++; nd._d7Set.add(day_gmt7);
-      nd.fk_data[fk]._day7Raw[day_gmt7-1]+=sc;
+      hbdDay=day; // KM: ô ngày-giờ theo ngày GMT-4 — giống Duyệt Đơn
     }else{
       // DON: cột T (idx 19) = ngày giờ, cột U (idx 20) = ghi chú FK, cột F (idx 5) = Cấp độ thành viên
       const note=String(row[20]||""),status=String(row[17]||"").trim(),colB=row[1];
@@ -5438,10 +5517,11 @@ function processChunks(aoa,start,nd,files,fileIdx,prevAcc,target){
   const totalPct=Math.round(fileBase+pct*fileShare/100);
   setProg(Math.min(99,totalPct),"Đã xử lý "+end.toLocaleString()+" / "+total.toLocaleString()+" dòng","File "+(fileIdx+1)+" / "+files.length);
   if(end<total){
-    setTimeout(()=>processChunks(aoa,end,nd,files,fileIdx,prevAcc,target),0);
+    setTimeout(()=>processChunks(aoa,end,nd,files,fileIdx,prevAcc,target,next),0);
   }else{
     const merged=mergeAccum(prevAcc,nd);
-    processFiles(files,fileIdx+1,merged,target);
+    if(next)next(merged);
+    else processFiles(files,fileIdx+1,merged,target);
   }
 }
 
@@ -5512,6 +5592,8 @@ function dsSubtractDay(ds,day){
   ds.day_scores[di]=0;ds.day_counts[di]=0;
   if(ds.day_scores_d7)ds.day_scores_d7[di]=0;
   if(ds.kmstat){ds.kmstat.ok[di]=0;ds.kmstat.rej[di]=0;ds.kmstat.reward[di]=0;}
+  // KM kmV2: Thống kê KM nằm ở ô — xoá ô của ngày rồi suy lại (kể cả tổng theo mã KM, bản cũ không trừ phần này)
+  if(ds.kmstat&&ds.kmstat.cells){for(let h=0;h<24;h++)delete ds.kmstat.cells[di*24+h];kmstatRecalc(ds.kmstat);}
   // Duyệt theo KEY CÓ TRONG BẢN GHI (không dùng FK_KEYS): xóa ngày ở tháng khác / nhân viên đã ẩn
   // vẫn phải trừ đúng, nếu không tổng tháng về 0 mà ô của FK đó còn số.
   Object.keys(ds.fk_data||{}).forEach(fk=>{
@@ -5561,10 +5643,46 @@ async function saveMonthData(type,month,ds){
 // ⚠ KHÔNG đổi màn hình / tháng đang xem cho tới khi máy chủ lưu xong (nghiệm thu 10/09/2026 — canh bởi test nhóm 11–12).
 // Bản cũ gán KMD/D + CUR_MONTH rồi mới lưu ⇒ lưu hỏng thì màn hình hiện số chưa hề có trên máy chủ; và nếu file
 // là THÁNG KHÁC thì Bất Thường/Tổng Quan/Hạn Mức/Công Việc vẫn là của tháng đang xem ⇒ sửa 1 ô là ghi đè tháng vừa upload.
-async function applyAddMode(target,nd){
+// KM: các ô file này phủ. Có khoảng giờ (_cov từ finalizeResult) thì dùng; không có (bộ dữ liệu dựng tay) thì lấy
+// mọi ô có đơn / có thống kê.
+function kmCoverOf(nd){
+  if(Array.isArray(nd._cov)&&nd._cov.length)return nd._cov;
+  const s=new Set();
+  for(let d=0;d<31;d++)for(let h=0;h<24;h++)if((nd.cbd7[d][h]||0)>0)s.add(d*24+h);
+  Object.keys((nd.kmstat&&nd.kmstat.cells)||{}).forEach(k=>s.add(Number(k)));
+  return[...s];
+}
+// Thay lại ĐÚNG các ô giờ file mới phủ (xoá ô cũ trong khoảng đó rồi cộng bản mới) — giờ khác giữ nguyên.
+function kmReplaceCells(base,nd,cov){
+  kmClearCells(base,cov);
+  dsAddInto(base,nd);
+  base.kmstat=base.kmstat||{};base.kmstat.cells=base.kmstat.cells||{};
+  Object.entries((nd.kmstat&&nd.kmstat.cells)||{}).forEach(([k,c])=>{base.kmstat.cells[k]=JSON.parse(JSON.stringify(c));});
+  kmstatRecalc(base.kmstat);
+  dsRecalcScores(base);   // KM mỗi đơn 1 điểm (số nguyên) ⇒ làm tròn không đổi gì, chỉ suy lại mọi tổng từ ô
+}
+// Mô tả các ô đã có dữ liệu mà sẽ bị thay: "ngày 01: 12h–23h (GMT-4) — 345 đơn"
+function kmOverlapText(base,cov){
+  const byDay={};
+  cov.forEach(k=>{
+    const d=Math.floor(k/24),h=k%24,n=(base.cbd7[d][h]||0);
+    const st=base.kmstat&&base.kmstat.cells&&base.kmstat.cells[k];
+    if(!n&&!st)return;
+    const h4=(h-GMT_OFFSET+24)%24,x=byDay[d]||(byDay[d]={h0:h4,h1:h4,n:0});
+    x.h0=Math.min(x.h0,h4);x.h1=Math.max(x.h1,h4);x.n+=n||(st.ok+st.rej);
+  });
+  return Object.keys(byDay).map(Number).sort((a,b)=>a-b).map(d=>{const x=byDay[d],p=v=>String(v).padStart(2,'0');
+    return '• ngày '+p(d+1)+': '+p(x.h0)+'h–'+p(x.h1)+'h (GMT-4) — '+x.n.toLocaleString('vi')+' đơn';}).join('\n');
+}
+// opt.quiet: phần của THÁNG KHÁC tháng chính trong cùng file KM — không chuyển màn hình sang tháng đó,
+//            tháng đó còn định dạng cũ thì không hỏi mà ghi vào opt.notes để báo gộp một lần.
+// Trả true nếu đã lưu; false nếu huỷ / không cộng được / lưu hỏng.
+async function applyAddMode(target,nd,opt){
+  opt=opt||{};
   const type=target==="km"?"km":"don";
   const month=normMonth(nd.month);
   const lbl=type==="km"?"Khuyến Mãi":"Duyệt Đơn";
+  const cov=type==="km"?kmCoverOf(nd):null;delete nd._cov;
   let ghi=null,ghiChu='',xong='';
   try{
     let base=null;
@@ -5578,47 +5696,63 @@ async function applyAddMode(target,nd){
       // Kiểm "dữ liệu cũ" dựa trên bản ghi, KHÔNG dựa vào 1 FK cụ thể (FK_KEYS[0] có thể là người mới thêm
       // -> chưa có trong bản ghi cloud, sẽ báo nhầm là dữ liệu cũ).
       const anyFk=base.fk_data?Object.values(base.fk_data).some(f=>f&&f.cbd7):false;
-      const legacy=!base.cbd7||!base.fk_data||!anyFk||(type==="don"&&!base.roundV2);
+      const legacy=!base.cbd7||!base.fk_data||!anyFk||(type==="don"&&!base.roundV2)||(type==="km"&&!base.kmV2);
       if(legacy){
-        alert('Dữ liệu '+lbl+' tháng '+dispMonth(month)+' được tạo TRƯỚC bản cập nhật (cách làm tròn cũ) nên chưa cộng dồn được.\n\nHãy upload lại 1 lần ở chế độ "Thay thế cả tháng" cho tháng này, sau đó mới dùng "Thêm ngày".');
-        return;
+        const why=type==="km"
+          ?'Dữ liệu Khuyến Mãi tháng '+dispMonth(month)+' được tạo theo cách chia ngày CŨ (trước 11/09/2026) nên chưa cộng dồn được.'
+          :'Dữ liệu '+lbl+' tháng '+dispMonth(month)+' được tạo TRƯỚC bản cập nhật (cách làm tròn cũ) nên chưa cộng dồn được.';
+        if(opt.quiet&&opt.notes){opt.notes.push(why);return false;}
+        alert(why+'\n\nHãy upload lại 1 lần ở chế độ "Thay thế cả tháng" cho tháng này, sau đó mới dùng "Thêm ngày".');
+        return false;
       }
       // Bổ sung ô trống cho nhân viên có trong danh sách nhưng chưa có trong bản ghi cloud
       // (thêm sau lần upload đầu của tháng) — nếu không, dsAddInto sẽ BỎ QUA toàn bộ đơn của họ.
       reconcileDataset(base);
-      const baseDays=dsDaysPresent(base),newDays=dsDaysPresent(nd);
-      const overlap=newDays.filter(d=>baseDays.includes(d));
-      if(overlap.length){
-        if(!confirm('Các ngày ['+overlap.join(', ')+'] ĐÃ CÓ dữ liệu trên cloud.\n\nBạn muốn THAY LẠI các ngày này bằng dữ liệu mới không? (các ngày khác giữ nguyên, KHÔNG cộng đôi)\n\n— OK: thay lại các ngày trùng\n— Cancel: hủy, không lưu gì')){
+      const newDays=dsDaysPresent(nd);
+      if(type==="km"){
+        const trung=kmOverlapText(base,cov);
+        if(trung&&!confirm('Khoảng giờ của file này ĐÃ CÓ dữ liệu Khuyến Mãi tháng '+dispMonth(month)+' trên cloud:\n\n'+trung+'\n\nTHAY LẠI đúng các giờ này bằng dữ liệu mới? (giờ khác giữ nguyên, KHÔNG cộng đôi)\n\n— OK: thay lại các giờ trùng\n— Cancel: hủy, không lưu gì')){
           setCloudStatus('Đã hủy — dữ liệu cũ tháng '+dispMonth(month)+' giữ nguyên',true);
-          return;
+          return false;
         }
-        overlap.forEach(d=>dsSubtractDay(base,d));
+        kmReplaceCells(base,nd,cov);
+        ghiChu='thêm ngày ['+newDays.join(', ')+'] theo giờ GMT-4'+(trung?' · thay lại: '+trung.replace(/\n/g,' '):'');
+      }else{
+        const baseDays=dsDaysPresent(base);
+        const overlap=newDays.filter(d=>baseDays.includes(d));
+        if(overlap.length){
+          if(!confirm('Các ngày ['+overlap.join(', ')+'] ĐÃ CÓ dữ liệu trên cloud.\n\nBạn muốn THAY LẠI các ngày này bằng dữ liệu mới không? (các ngày khác giữ nguyên, KHÔNG cộng đôi)\n\n— OK: thay lại các ngày trùng\n— Cancel: hủy, không lưu gì')){
+            setCloudStatus('Đã hủy — dữ liệu cũ tháng '+dispMonth(month)+' giữ nguyên',true);
+            return false;
+          }
+          overlap.forEach(d=>dsSubtractDay(base,d));
+        }
+        dsAddInto(base,nd);
+        dsRecalcScores(base); // DON: tính lại toàn bộ từ ô thô — kết quả không phụ thuộc thứ tự/số lần upload
+        ghiChu='thêm ngày ['+newDays.join(', ')+']'+(overlap.length?' · thay lại ['+overlap.join(', ')+']':'');
       }
-      dsAddInto(base,nd);
-      if(type==="don")dsRecalcScores(base); // DON: tính lại toàn bộ từ ô thô — kết quả không phụ thuộc thứ tự/số lần upload
       dsRecalcDays(base);
       base.month=nd.month;base.fkvip=FKVIP;base.fkonl=FKONL;
       ghi=base;
-      ghiChu='thêm ngày ['+newDays.join(', ')+']'+(overlap.length?' · thay lại ['+overlap.join(', ')+']':'');
       xong='Đã cộng dồn ngày ['+newDays.join(', ')+'] vào tháng '+dispMonth(month)+' ✓';
     }
     await saveMonthData(type,month,ghi);
   }catch(e){
     // Ghi hỏng: màn hình và tháng đang xem CHƯA bị đụng tới -> vẫn đúng bản trên máy chủ, cứ upload lại là được.
     saveFailed('Cộng dồn ngày vào tháng '+dispMonth(month)+' — màn hình vẫn giữ bản đang có trên máy chủ',e);
-    return;
+    return false;
   }
-  const hien=await showSavedDataset(type,month,ghi);
   logAction('Thêm ngày (cộng dồn) '+lbl,'Tháng '+dispMonth(month)+' · '+ghiChu);
+  if(opt.quiet&&month!==CUR_MONTH){if(opt.notes)opt.notes.push(xong);return true;}
+  const hien=await showSavedDataset(type,month,ghi);
   setCloudStatus(hien?xong:xong+' — màn hình vẫn đang ở tháng '+dispMonth(CUR_MONTH)+' (còn thay đổi chưa lưu)',!hien);
+  return true;
 }
 
-function finalizeResult(nd,target){
-  setProg(100,"Hoàn tất!","Đang cập nhật giao diện...");
-  setTimeout(function(){
+// Biến bộ tích luỹ thành bộ dữ liệu để lưu (không hỏi gì, không lưu gì).
+function finalizeDataset(nd,target){
     if(target==="km"){
-      // KM: điểm luôn nguyên (mỗi đơn = 1) — giữ cách chốt cũ
+      // KM: điểm luôn nguyên (mỗi đơn = 1). Mọi thứ theo ngày GMT-4 (kmV2) — KHÔNG còn bản "_d7" theo GMT+7.
       for(let i=0;i<31;i++) nd.day_scores[i]=Math.ceil(nd._dayRaw[i]);
       for(let i=0;i<24;i++){nd.hour_scores_gmt7[i]=Math.ceil(nd._hr7Raw[i]);nd.hour_scores_gmt4[i]=Math.ceil(nd._hr4Raw[i]);}
       nd.hbd7=nd._hbd7.map(r=>r.map(Math.ceil));delete nd._hbd7;
@@ -5630,11 +5764,11 @@ function finalizeResult(nd,target){
         fd.total_score=Math.ceil(fd._dayRaw.reduce((a,b)=>a+b,0));
         fd.hbd7=fd._hbd7.map(r=>r.map(Math.ceil));delete fd._hbd7;
         fd.cbd7=fd._cbd7;delete fd._cbd7;
-        delete fd._dayRaw;delete fd._hr7Raw;delete fd._hr4Raw;
-        if(fd._day7Raw){fd.day_scores_d7=fd._day7Raw.map(Math.ceil);delete fd._day7Raw;}
+        delete fd._dayRaw;delete fd._hr7Raw;delete fd._hr4Raw;delete fd._day7Raw;
       });
-      nd.day_scores_d7=nd._day7Raw.map(Math.ceil);
-      nd.days_in_month_d7=[...nd._d7Set].sort((a,b)=>a-b);
+      kmstatRecalc(nd.kmstat);
+      nd._cov=kmCovCells(nd._t0,nd._t1);   // khoảng giờ file phủ — applyAddMode/cloudSaveKO gỡ ra trước khi lưu
+      nd.kmV2=true;
     }else{
       // DON (roundV2): giữ ô ngày-giờ THÔ (số lẻ 0.5), mọi số hiển thị suy từ ô thô —
       // làm tròn LÊN riêng từng ngày, tổng tháng = cộng các ngày đã làm tròn
@@ -5658,7 +5792,19 @@ function finalizeResult(nd,target){
     nd.hour_labels_gmt7=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
     nd.hour_labels_gmt4=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+"H");
     nd.fkvip=FKVIP; nd.fkonl=FKONL;
-    const totalMatched=FK_KEYS.reduce((s,fk)=>s+nd.fk_data[fk].total_count,0);
+    delete nd._t0;delete nd._t1;
+    return nd;
+}
+// extras (chỉ KM): bộ dữ liệu của các THÁNG KHÁC trong cùng file — cộng dồn theo giờ vào đúng tháng của chúng,
+// SAU KHI tháng chính đã lưu xong (tháng chính bị Huỷ / lưu hỏng thì không đụng tới tháng nào khác).
+function finalizeResult(nd,target,extras){
+  extras=extras||[];
+  setProg(100,"Hoàn tất!","Đang cập nhật giao diện...");
+  setTimeout(async function(){
+    finalizeDataset(nd,target);
+    extras.forEach(x=>finalizeDataset(x,target));
+    const matched=x=>FK_KEYS.reduce((s,fk)=>s+x.fk_data[fk].total_count,0);
+    const totalMatched=[nd,...extras].reduce((s,x)=>s+matched(x),0);
     if(totalMatched===0){
       hideProg();
       alert("❌ Không nhận diện được dữ liệu nào trong file.\n\nVui lòng kiểm tra lại:\n— File có đúng định dạng/cột như mẫu không?\n— Bạn có đang chọn đúng loại tải lên (Duyệt Đơn / Khuyến Mãi) không?\n\nDữ liệu hiện có KHÔNG bị thay đổi.");
@@ -5667,8 +5813,9 @@ function finalizeResult(nd,target){
     hideProg();
     // CẢNH BÁO: ghi chú có mã "FK..." nhưng KHÔNG khớp nhân viên nào trong danh sách của tháng
     // (nhân viên bị ẩn / mới thêm / sai "Mã Excel") -> những đơn này bị bỏ hoàn toàn, không tính cho ai.
-    const unk=Object.entries(nd._unk||{}).filter(([k,v])=>v>=10).sort((a,b)=>b[1]-a[1]);
-    delete nd._unk;
+    const unkAll={};
+    [nd,...extras].forEach(x=>{Object.entries(x._unk||{}).forEach(([k,v])=>{unkAll[k]=(unkAll[k]||0)+v;});delete x._unk;});
+    const unk=Object.entries(unkAll).filter(([k,v])=>v>=10).sort((a,b)=>b[1]-a[1]);
     if(unk.length){
       const lst=unk.slice(0,10).map(([k,v])=>"   • "+k.toUpperCase()+" — "+v.toLocaleString("vi")+" đơn").join("\n");
       const tot=unk.reduce((s,x)=>s+x[1],0);
@@ -5678,14 +5825,23 @@ function finalizeResult(nd,target){
       }
     }
     hideProg();
+    let ok;
     if(window._uploadMode==='add'){
       // Chế độ cộng dồn: gộp vào dữ liệu tháng đang có trên cloud
-      applyAddMode(target,nd);
+      ok=await applyAddMode(target,nd);
     }else{
       // Chế độ thay thế cả tháng (mặc định). ⚠ KHÔNG gán D/KMD ở đây: cloudSaveKO chỉ đưa bản mới lên màn hình
       // SAU KHI máy chủ lưu xong — bấm Huỷ / lưu hỏng thì màn hình giữ bản đang có trên máy chủ (nghiệm thu 10/09/2026).
-      cloudSaveKO(target,nd);
+      ok=await cloudSaveKO(target,nd);
     }
+    if(!ok||!extras.length)return;
+    const notes=[];
+    for(const x of extras){
+      const cnt=[...Object.values(x.kmstat&&x.kmstat.cells||{})].reduce((s,c)=>s+c.ok+c.rej,0);
+      notes.push('File có '+cnt.toLocaleString('vi')+' dòng thuộc THÁNG '+dispMonth(normMonth(x.month))+' (theo GMT-4):');
+      await applyAddMode(target,x,{quiet:true,notes});
+    }
+    alert('ℹ FILE KHUYẾN MÃI CÓ DỮ LIỆU CỦA 2 THÁNG\n\n'+notes.join('\n')+'\n\nFile KM tính theo giờ GMT+8 nên file ngày 01 luôn có nửa ngày cuối của tháng trước (GMT-4). Phần đó đã được cộng theo từng giờ vào đúng tháng của nó.');
   },50);
 }
 

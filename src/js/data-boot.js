@@ -252,12 +252,14 @@ async function stripSensitiveCols(file,colIdx){
   return new File([out],file.name.replace(/\.(xlsx|xls)$/i,"")+"_loc.xlsx",{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
 }
 
+// Trả true nếu đã lưu lên máy chủ; false nếu huỷ / lưu hỏng / chỉ xem trước tại máy.
 async function cloudSaveKO(target,nd){
   const type=target==="km"?"km":"don";
   const month=normMonth(nd.month);
   const lbl=type==="km"?"Khuyến Mãi":"Duyệt Đơn";
+  delete nd._cov;   // khoảng giờ file phủ (KM) — chỉ dùng khi cộng dồn, không lưu
   // Không có kết nối: chỉ xem trước tại máy (như trước), không đổi tháng đang xem.
-  if(!SB.ready()){if(type==="km")KMD=nd;else{D=nd;setMonthLabel(month,false);}rAll();return;}
+  if(!SB.ready()){if(type==="km")KMD=nd;else{D=nd;setMonthLabel(month,false);}rAll();return false;}
   // ⚠ Bản mới CHỈ lên màn hình SAU KHI máy chủ lưu xong (nghiệm thu 10/09/2026 — canh bởi test nhóm 11–12).
   // Trước đây finalizeResult gán D/KMD trước khi hỏi "trùng dữ liệu" ⇒ bấm Huỷ hoặc lưu hỏng thì màn hình
   // vẫn hiện bản mới CHƯA hề được lưu, trong khi thanh trạng thái ghi "dữ liệu cũ được giữ nguyên".
@@ -275,23 +277,23 @@ async function cloudSaveKO(target,nd){
         if(newDays<oldDays){
           if(!confirm("NGUY HIỂM — SẼ MẤT DỮ LIỆU!\n\nBản upload mới chỉ có "+newDays+" ngày dữ liệu.\nBản trên cloud của tháng "+dispMonth(month)+" đang có "+oldDays+" ngày.\n\nThay thế sẽ MẤT "+(oldDays-newDays)+" ngày dữ liệu!\n(Có thể bạn quên chọn đủ file từ đầu tháng?)\n\nBạn có CHẮC CHẮN muốn thay thế không?")){
             setCloudStatus("Không lưu — dữ liệu cũ tháng "+dispMonth(month)+" ("+oldDays+" ngày) được giữ nguyên",true);
-            return;
+            return false;
           }
           dayWarn=' (bản mới ÍT ngày hơn: '+newDays+' so với '+oldDays+')';
         }else if(!confirm("CẢNH BÁO TRÙNG DỮ LIỆU\n\nTháng "+dispMonth(month)+" ĐÃ CÓ dữ liệu "+lbl+" trên cloud ("+oldDays+" ngày). Bản mới có "+newDays+" ngày.\n\nBạn có muốn THAY THẾ dữ liệu cũ bằng dữ liệu vừa upload không?\n\n— OK: ghi đè dữ liệu cũ\n— Cancel: giữ nguyên dữ liệu cũ trên cloud")){
           setCloudStatus("Không lưu — dữ liệu cũ tháng "+dispMonth(month)+" trên cloud được giữ nguyên",true);
-          return;
+          return false;
         }
       }catch(e){
         if(!confirm("CẢNH BÁO TRÙNG DỮ LIỆU\n\nTháng "+dispMonth(month)+" ĐÃ CÓ dữ liệu "+lbl+" trên cloud.\n\nBạn có muốn THAY THẾ không?")){
           setCloudStatus("Không lưu — giữ nguyên dữ liệu cũ",true);
-          return;
+          return false;
         }
       }
     }else if(month!==curMonthKey()){
       if(!confirm("Dữ liệu vừa upload thuộc THÁNG CŨ ("+dispMonth(month)+"), không phải tháng hiện tại ("+dispMonth(curMonthKey())+").\n\nLưu vào tháng "+dispMonth(month)+" trên cloud?")){
         setCloudStatus("Đã hủy lưu cloud",true);
-        return;
+        return false;
       }
     }
     setCloudStatus("Đang lưu cloud...");
@@ -299,7 +301,7 @@ async function cloudSaveKO(target,nd){
   }catch(e){
     // Upload Excel hỏng mà chỉ báo mờ = người dùng tưởng đã lưu, đóng máy, hôm sau mất cả ngày dữ liệu.
     saveFailed('Dữ liệu '+lbl+' tháng '+dispMonth(month)+' (vừa upload) — màn hình vẫn giữ bản đang có trên máy chủ',e);
-    return;
+    return false;
   }
   const fCnt=(window._lastUploadFiles||[]).length;
   // Duyệt Đơn: cắt bỏ cột G/H/I (thông tin nhạy cảm) trước khi sao lưu file gốc lên Storage
@@ -314,6 +316,7 @@ async function cloudSaveKO(target,nd){
   const hien=await showSavedDataset(type,month,nd);
   setCloudStatus(hien?"Đã lưu cloud tháng "+dispMonth(month)+" ✓":"Đã lưu cloud tháng "+dispMonth(month)+" ✓ — màn hình vẫn đang ở tháng "+dispMonth(CUR_MONTH)+" (còn thay đổi chưa lưu)",!hien);
   logAction('Upload dữ liệu '+lbl,'Tháng '+dispMonth(month)+' · '+fCnt+' file · '+(((nd&&nd.days_in_month)||[]).length)+' ngày'+(exists?' · thay thế bản cũ':' · lưu mới'));
+  return true;
 }
 async function toggleHistMenu(ev){
   ev.stopPropagation();

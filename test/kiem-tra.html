@@ -649,7 +649,7 @@ caA('Đổi tháng khi còn thay đổi LƯU HỎNG → hỏi trước; bấm Hu
 nhom('11. Upload file của tháng khác — mọi bảng chuyển sang đúng tháng đó');
 
 caA('Cộng dồn file THÁNG 8 khi đang xem tháng 9 → mọi bảng trong máy là của tháng 8', ()=>voiTrangThai(async()=>{
-  const base=dsGia(['fka']); themDon(base,'fka',1,9,1); base.month='08/2026';
+  const base=dsGia(['fka']); themDon(base,'fka',1,9,1); base.month='08/2026'; base.kmV2=true;
   const nd=dsGia(['fka']);   themDon(nd,'fka',2,9,1);   nd.month='08/2026';
   const mc=mayChuGia({...duLieuThang('2026-08',8),'km|2026-08':base});
   dangXem('2026-09',9);
@@ -674,7 +674,7 @@ caA('Upload THAY THẾ file tháng 8 khi đang xem tháng 9 → mọi bảng tro
 nhom('12. Lưu hỏng hoặc bấm Huỷ — màn hình giữ nguyên bản đang có trên máy chủ');
 
 caA('Cộng dồn ghi HỎNG → màn hình giữ bản cũ, vẫn đứng ở tháng cũ, và có báo', ()=>voiTrangThai(async()=>{
-  const base=dsGia(['fka']); themDon(base,'fka',1,9,1); base.month='09/2026';
+  const base=dsGia(['fka']); themDon(base,'fka',1,9,1); base.month='09/2026'; base.kmV2=true;
   const nd=dsGia(['fka']);   themDon(nd,'fka',2,9,1);   nd.month='09/2026';
   const mc=mayChuGia({'km|2026-09':base},{hongGhi:t=>t==='km'});
   dangXem('2026-09',9); const kmdCu={dauVet:'ban-cu'}; KMD=kmdCu;
@@ -686,7 +686,7 @@ caA('Cộng dồn ghi HỎNG → màn hình giữ bản cũ, vẫn đứng ở t
 }));
 
 caA('Cộng dồn ghi HỎNG khi file là THÁNG KHÁC → không bị đẩy sang tháng đó', ()=>voiTrangThai(async()=>{
-  const base=dsGia(['fka']); themDon(base,'fka',1,9,1); base.month='08/2026';
+  const base=dsGia(['fka']); themDon(base,'fka',1,9,1); base.month='08/2026'; base.kmV2=true;
   const nd=dsGia(['fka']);   themDon(nd,'fka',2,9,1);   nd.month='08/2026';
   const mc=mayChuGia({...duLieuThang('2026-08',8),'km|2026-08':base},{hongGhi:t=>t==='km'});
   dangXem('2026-09',9); const kmdCu={dauVet:'ban-cu'}; KMD=kmdCu;
@@ -851,6 +851,98 @@ caA('Đổi tháng và chọn "bỏ thay đổi chưa lưu" → vòng đồng b�
   bang(_anDirty,false,'cờ "chưa lưu" (true = đồng bộ 60s tắt tới lúc F5)');
   bang(_anChanges,[],'danh sách ô chờ ghi Lịch Sử');
   bang(_anBase,KO_AN,'bản nền = bản máy chủ tháng 7 vừa nạp');
+}));
+
+/* =====================================================================
+   15. KHUYẾN MÃI — FILE GMT+8, HỆ THỐNG GMT-4 (chốt 11/09/2026)
+   File KM cắt theo NGÀY GMT+8 = 12:00 hôm trước → 12:00 hôm đó (GMT-4). Bản cũ cộng dồn 4 ngày × 72 đơn chỉ còn 81/288.
+   Chạy nguyên đường ống thật: kmProcessAll → finalizeResult → applyAddMode / cloudSaveKO, máy chủ giả.
+   ===================================================================== */
+nhom('15. Khuyến Mãi — file GMT+8, thống kê GMT-4: cộng dồn không mất đơn, không lẫn tháng');
+
+const p2=v=>String(v).padStart(2,'0');
+function dongKM(gio8,fk,tuChoi){ const r=new Array(18).fill(''); r[1]=gio8; r[11]=10; r[14]='NV1'; r[16]=tuChoi?'sai điều kiện':''; r[17]='xu ly '+FK_SEARCH[fk]; return r; }
+/* 72 dòng của ngày GMT+8 2026-09-d: mỗi giờ 3 đơn (phút 10/30/50) */
+function ngayKM(d){ const fk=FK_KEYS[0],out=[]; for(let h=0;h<24;h++)for(const m of [10,30,50])out.push(dongKM('2026-09-'+p2(d)+' '+p2(h)+':'+p2(m)+':00',fk)); return out; }
+async function napKM(mc,rows,mode,hop){
+  const cu=window._uploadMode; window._uploadMode=mode;
+  try{
+    await voiSB(mc.sb,()=>voiGia({setProg:()=>{},hideProg:()=>{},showProg:()=>{},
+      alert:m=>hop.push('A: '+m),confirm:m=>{hop.push('C: '+m);return true;}},async()=>{
+      kmProcessAll(rows.map(r=>r.slice()));
+      await cho(400);
+    }));
+  }finally{ window._uploadMode=cu; }
+}
+const tongDon=ds=>ds?Object.values(ds.fk_data).reduce((s,f)=>s+(f.total_count||0),0):0;
+const tongO=ds=>ds?ds.cbd7.reduce((s,r)=>s+r.reduce((a,b)=>a+b,0),0):0;
+
+caA('Cộng dồn 4 file ngày (GMT+8) lần lượt → đủ 288/288 đơn, không hỏi "trùng" lần nào, nửa ngày 31/08 về đúng tháng 8', ()=>voiTrangThai(async()=>{
+  if(!FK_KEYS.length)throw new Error('Chưa có danh sách nhân viên để thử');
+  const mc=mayChuGia({}); dangXem('2026-09',9); const hop=[];
+  for(const d of [1,2,3,4])await napKM(mc,ngayKM(d),'add',hop);
+  const t9=mc.kho['km|2026-09'],t8=mc.kho['km|2026-08'];
+  bang(tongDon(t9),252,'tháng 9: 01/09 00h → 04/09 12h (GMT-4)');
+  bang(tongDon(t8),36,'tháng 8: 31/08 12h → 24h (GMT-4)');
+  bang(tongO(t9)+tongO(t8),288,'tổng ô ngày-giờ');
+  const hoiTrung=hop.filter(m=>m.startsWith('C:')&&/ĐÃ CÓ dữ liệu/.test(m));
+  if(hoiTrung.length)throw new Error('Hỏi "trùng" dù các file không chồng giờ: '+hoiTrung[0].slice(0,120));
+  bang(t9.days_in_month,[1,2,3,4],'ngày có dữ liệu tháng 9');
+  bang(t8.days_in_month,[31],'ngày có dữ liệu tháng 8');
+  bang(t9.kmstat.ok.reduce((a,b)=>a+b,0),252,'Thống kê KM tháng 9 — số đơn thành công');
+  bang(t9.kmstat.promos.NV1.ok,252,'Thống kê KM tháng 9 — mã NV1');
+  if(t9.day_scores_d7||t9.days_in_month_d7)throw new Error('Còn sinh trường theo GMT+7 (_d7) — view Theo Ngày sẽ lệch với điểm');
+  bang(!!t9.kmV2,true,'cờ kmV2');
+}));
+
+caA('Nạp LẠI đúng 1 file ngày → hỏi 1 lần, thay đúng các giờ đó, không cộng đôi, ngày bên cạnh còn nguyên', ()=>voiTrangThai(async()=>{
+  const mc=mayChuGia({}); dangXem('2026-09',9); const hop=[];
+  for(const d of [2,3,4])await napKM(mc,ngayKM(d),'add',hop);
+  const truoc=JSON.stringify(mc.kho['km|2026-09'].cbd7);
+  hop.length=0;
+  await napKM(mc,ngayKM(3),'add',hop);
+  const hoi=hop.filter(m=>m.startsWith('C:'));
+  bang(hoi.length,1,'số lần hỏi');
+  if(!/12h–23h \(GMT-4\)/.test(hoi[0])||!/00h–11h \(GMT-4\)/.test(hoi[0]))throw new Error('Hộp thoại không nêu đúng khoảng giờ: '+hoi[0]);
+  bang(JSON.stringify(mc.kho['km|2026-09'].cbd7)===truoc,true,'ô ngày-giờ sau khi nạp lại (phải y như trước)');
+  bang(tongDon(mc.kho['km|2026-09']),216,'tổng đơn tháng 9');
+}));
+
+caA('Thay thế cả tháng bằng 1 file 01→04/09 (GMT+8) → tháng 9 không có "ngày 31" ma, phần 31/08 cộng vào tháng 8', ()=>voiTrangThai(async()=>{
+  const mc=mayChuGia({}); dangXem('2026-09',9); const hop=[];
+  await napKM(mc,[1,2,3,4].flatMap(ngayKM),'replace',hop);
+  bang(tongDon(mc.kho['km|2026-09']),252,'tháng 9');
+  bang(mc.kho['km|2026-09'].days_in_month,[1,2,3,4],'ngày có dữ liệu tháng 9');
+  bang(tongDon(mc.kho['km|2026-08']),36,'tháng 8');
+  if(!hop.some(m=>m.startsWith('A:')&&/2 THÁNG/.test(m)))throw new Error('Không báo cho người dùng biết có dữ liệu thuộc tháng 8');
+}));
+
+caA('Tháng chính bị Huỷ → KHÔNG cộng phần tháng khác', ()=>voiTrangThai(async()=>{
+  const mc=mayChuGia({'km|2026-09':{...dsGia([FK_KEYS[0]]),kmV2:true,days_in_month:[1,2,3]}}); dangXem('2026-09',9);
+  const cu=window._uploadMode; window._uploadMode='replace';
+  try{
+    await voiSB(mc.sb,()=>voiGia({setProg:()=>{},hideProg:()=>{},alert:()=>{},confirm:()=>false},async()=>{
+      kmProcessAll(ngayKM(1)); await cho(400);
+    }));
+  }finally{ window._uploadMode=cu; }
+  bang(mc.so.length,0,'số lần ghi lên máy chủ');
+}));
+
+caA('Tháng KM còn định dạng cũ → không cộng dồn, báo phải "Thay thế cả tháng" 1 lần', ()=>voiTrangThai(async()=>{
+  const cu=dsGia([FK_KEYS[0]]); themDon(cu,FK_KEYS[0],1,9,1); cu.month='09/2026';
+  const mc=mayChuGia({'km|2026-09':cu}); dangXem('2026-09',9); const hop=[];
+  await napKM(mc,ngayKM(2),'add',hop);
+  bang(mc.so.length,0,'số lần ghi lên máy chủ');
+  if(!hop.some(m=>/cách chia ngày CŨ/.test(m)))throw new Error('Không báo định dạng cũ. Hộp thoại: '+hop.join(' | ').slice(0,200));
+}));
+
+caA('Xoá dữ liệu 1 ngày KM (Quản Trị) → Thống kê KM và tổng theo mã KM trừ đúng ngày đó', ()=>voiTrangThai(async()=>{
+  const mc=mayChuGia({}); dangXem('2026-09',9); const hop=[];
+  await napKM(mc,[2,3].flatMap(ngayKM),'replace',hop);
+  const ds=JSON.parse(JSON.stringify(mc.kho['km|2026-09']));
+  dsSubtractDay(ds,2);
+  bang(ds.kmstat.ok[1],0,'Thống kê KM ngày 2');
+  bang(ds.kmstat.promos.NV1.ok,72,'mã NV1 (còn 36 đơn chiều 01/09 + 36 đơn sáng 03/09)');
 }));
 
 /* ⚠ PHẢI ĐỂ CUỐI CÙNG: phép kiểm này buộc SB tạo client (giả) bên trong closure của core.js và client đó
