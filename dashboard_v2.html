@@ -10299,7 +10299,7 @@ const WK={
   // (Supabase không ghi đè, upload trùng tên sẽ đẻ ra "canhbaone (1).zip"),
   // và sửa EXT_VER ở đây cho khớp manifest để nhân viên biết máy mình cũ hay mới.
   EXT_ZIP:'https://dntqyipgpuibkaarhqcc.supabase.co/storage/v1/object/public/CanhBaoNe/canhbaone.zip',
-  EXT_VER:'1.5',
+  EXT_VER:'1.6',
 
   canEdit(){return !!(CUR_PROFILE&&(CUR_PROFILE.is_admin||roleOf(CUR_PROFILE).key==='totruong'));},
   visible(){const el=document.getElementById('tkw');return !!(el&&el.style.display!=='none');},
