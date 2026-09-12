@@ -10300,7 +10300,7 @@ const WK={
   // (Supabase không ghi đè, upload trùng tên sẽ đẻ ra "canhbaone (1).zip"),
   // và sửa EXT_VER ở đây cho khớp manifest để nhân viên biết máy mình cũ hay mới.
   EXT_ZIP:'https://dntqyipgpuibkaarhqcc.supabase.co/storage/v1/object/public/CanhBaoNe/canhbaone.zip',
-  EXT_VER:'1.7',
+  EXT_VER:'1.9',
 
   canEdit(){return !!(CUR_PROFILE&&(CUR_PROFILE.is_admin||roleOf(CUR_PROFILE).key==='totruong'));},
   visible(){const el=document.getElementById('tkw');return !!(el&&el.style.display!=='none');},
@@ -10445,7 +10445,12 @@ const WK={
     const note=prompt('Lời nhắc cho chủ đề này — hiện TO và ĐỎ trong ô cảnh báo:',
       'Trùng '+name.trim()+' — cần kiểm tra kỹ trước khi xử lý');
     if(note===null)return;
-    WK.cfg.topics.push({id:'t'+Date.now().toString(36),name:name.trim(),note:String(note||'').trim()});
+    // Hỏi luôn bản EN ở đây cho tiện; bỏ trống cũng được, sửa sau ở ô bên dưới thẻ
+    // chủ đề. Bỏ trống thì bản EN rơi về tiếng Việt, không bao giờ mất dòng cảnh báo.
+    const en=prompt('Lời nhắc tiếng Anh (cho nhân viên nước ngoài) — bỏ trống cũng được:','');
+    const o={id:'t'+Date.now().toString(36),name:name.trim(),note:String(note||'').trim()};
+    if(en&&en.trim())o.en_note=en.trim();
+    WK.cfg.topics.push(o);
     WK.save('thêm chủ đề '+name.trim());
   },
   editTopic(i){
@@ -10461,6 +10466,8 @@ const WK={
     const t=WK._t(i);if(!t)return;
     const ta=document.getElementById('wkTn'+i);if(!ta)return;
     t.note=ta.value.trim();
+    const te=document.getElementById('wkTe'+i);
+    if(te){ const v=te.value.trim(); if(v)t.en_note=v; else delete t.en_note; }
     WK.save('cập nhật lời nhắc chủ đề '+t.name);
   },
   delTopic(i){
@@ -10791,6 +10798,16 @@ const WK={
           ' placeholder="VD: Trùng Lạm Dụng IP — cần kiểm tra IP kỹ"'+
           ' style="width:100%;min-height:44px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--re);font-weight:700;padding:7px 10px;font-size:.74rem;font-family:inherit;resize:vertical">'+
           hesc(t.note||'')+'</textarea>'+
+        // Bản tiếng Anh của lời nhắc — cho nhân viên nước ngoài. Đây là chữ NGHIỆP VỤ
+        // do Tổ Trưởng soạn nên KHÔNG dịch máy được; phải tự nhập, đúng cách T4/T5
+        // đang làm (cột en_*). Bỏ trống thì ô cảnh báo bản EN rơi về tiếng Việt —
+        // thà đọc tiếng Việt còn hơn mất hẳn dòng cảnh báo.
+        '<label style="display:block;font-size:.62rem;color:var(--mu);margin:8px 0 4px">'+
+          'Lời nhắc tiếng Anh — bỏ trống thì nhân viên bật EN vẫn thấy dòng tiếng Việt ở trên</label>'+
+        '<textarea id="wkTe'+ti+'" data-noi18n '+(ed?'':'readonly')+
+          ' placeholder="e.g. Duplicate abuse IP — check the IP carefully"'+
+          ' style="width:100%;min-height:44px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--re);font-weight:700;padding:7px 10px;font-size:.74rem;font-family:inherit;resize:vertical">'+
+          hesc(t.en_note||'')+'</textarea>'+
         (ed?'<div style="text-align:right;margin-top:6px"><button class="abtn abtn-sm abtn-ok" onclick="WK.saveTopicNote('+ti+')">Lưu lời nhắc</button></div>':'')+
         (mine.length?mine.map(x=>groupCard(x.g,x.i)).join('')
           :'<div style="font-size:.66rem;color:var(--mu);text-align:center;padding:14px 0 4px">Chủ đề này chưa có nhóm nào.</div>')+
