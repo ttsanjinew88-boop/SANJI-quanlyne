@@ -46,7 +46,7 @@ const WK={
   // (Supabase không ghi đè, upload trùng tên sẽ đẻ ra "canhbaone (1).zip"),
   // và sửa EXT_VER ở đây cho khớp manifest để nhân viên biết máy mình cũ hay mới.
   EXT_ZIP:'https://dntqyipgpuibkaarhqcc.supabase.co/storage/v1/object/public/CanhBaoNe/canhbaone.zip',
-  EXT_VER:'1.6',
+  EXT_VER:'1.7',
 
   canEdit(){return !!(CUR_PROFILE&&(CUR_PROFILE.is_admin||roleOf(CUR_PROFILE).key==='totruong'));},
   visible(){const el=document.getElementById('tkw');return !!(el&&el.style.display!=='none');},
@@ -233,6 +233,20 @@ const WK={
     if(!g.needed||g.needed<1)g.needed=1;
     if(g.needed>n)g.needed=n||1;
   },
+  // Link nhóm Telegram của nhóm điều kiện. CHỈ nhận t.me / telegram.me / tg://
+  // ⚠ Đây KHÔNG phải chuyện làm đẹp: link này được nhét thẳng vào href của ô cảnh
+  // báo đang chạy TRÊN TRANG HẬU ĐÀI. Một link "javascript:..." là chạy được mã
+  // tuỳ ý trong phiên làm việc của nhân viên. Trả '' nếu rỗng, null nếu sai.
+  // background.js lọc lại lần nữa — chỗ đó mới là chốt chặn thật, chỗ này chỉ để
+  // báo cho người nhập biết ngay lúc gõ.
+  _tgOk(v){
+    const s=String(v==null?'':v).trim();
+    if(!s)return '';
+    if(s.length>300)return null;
+    if(/^tg:\/\/[A-Za-z0-9_?=&.\/+-]+$/.test(s))return s;
+    if(/^https:\/\/(t\.me|telegram\.me)\/[A-Za-z0-9_?=&.\/+#-]*$/.test(s))return s;
+    return null;
+  },
   addGroup(topicId){
     if(!WK.canEdit())return;
     const name=prompt('Tên nhóm điều kiện (chữ này hiện trong ô cảnh báo: "Trùng ‹tên nhóm›"):');
@@ -278,8 +292,22 @@ const WK={
     const g=WK._g(i);if(!g)return;
     const ta=document.getElementById('wkCond'+i);
     const nd=document.getElementById('wkNeed'+i);
+    const tg=document.getElementById('wkTg'+i);
     // Bo o "Gioi han them" va o "Pham vi" (chot 06/09/2026): domain dung chung o tren
     // da quyet dinh extension chay o dau, va pham vi luon la CA TRANG.
+    if(tg){
+      const v=WK._tgOk(tg.value);
+      // Link sai thi DUNG HAN, khong luu gi ca. Bo qua am tham thi nguoi nhap tuong
+      // da xong, ca to bam nut khong ra gi ma khong ai biet tai sao.
+      if(v===null){
+        alert('Link Telegram không hợp lệ:\n\n'+tg.value.trim()+
+              '\n\nChỉ nhận link bắt đầu bằng https://t.me/ hoặc tg://\n'+
+              'Cách lấy: mở nhóm Telegram → tên nhóm → Invite Link / Link mời.\n\n'+
+              'Chưa lưu gì cả — sửa lại rồi bấm Lưu.');
+        tg.focus();return;
+      }
+      if(v)g.tg=v; else delete g.tg;
+    }
     if(ta)g.conditions=ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
     if(nd)g.needed=parseInt(nd.value,10)||1;
     WK._clamp(g);
@@ -327,6 +355,10 @@ const WK={
               domains:(Array.isArray(g.domains)?g.domains:[]).map(d=>String(d).trim().toLowerCase()).filter(d=>/^[a-z0-9.-]+$/.test(d)),
               enabled:g.enabled!==false
             };
+            // Link sai trong file thì BỎ link đó, vẫn nạp nhóm (khác lúc gõ tay:
+            // ở đây không có ai đang ngồi sửa từng dòng để mà bắt dừng lại).
+            const tg=WK._tgOk(g&&g.tg);
+            if(tg)o.tg=tg;
             WK._clamp(o);return o;
           }).filter(g=>g.conditions.length);
           if(!clean.length){alert('Không nhóm nào có điều kiện hợp lệ.');return;}
@@ -390,7 +422,10 @@ const WK={
          '<b style="color:var(--tx)">4.</b> Bấm <b>Tải tiện ích đã giải nén</b> và chọn thư mục vừa giải nén.<br>'+
          '<b style="color:var(--tx)">5.</b> Vào <code style="background:var(--card2);border:1px solid var(--border2);border-radius:4px;padding:0 5px" data-noi18n>chrome://extensions/shortcuts</code> '+
            'gán phím <b>Alt+Q</b> cho “Mở Cảnh Báo NE”.<br>'+
-         '<b style="color:var(--tx)">6.</b> Đang cài bản cũ thì <b>xoá bản cũ trước</b>, rồi làm lại từ bước 2.'+
+         '<b style="color:var(--tx)">6.</b> Đang cài bản cũ thì gỡ nó trong <code style="background:var(--card2);border:1px solid var(--border2);border-radius:4px;padding:0 5px" data-noi18n>chrome://extensions</code>, '+
+           '<b style="color:var(--go)">xoá luôn thư mục cũ</b>, rồi làm lại từ bước 2. '+
+           '<b style="color:var(--re)">Đừng giải nén đè lên thư mục cũ</b> — Windows sẽ bỏ qua cả thư mục con, '+
+           'extension chạy nửa cũ nửa mới mà không báo lỗi gì.'+
        '</div>'+
        '</div>';
 
@@ -456,6 +491,17 @@ const WK={
         '<textarea id="wkCond'+i+'" data-noi18n '+(ed?'oninput="WK.syncNeed('+i+')"':'readonly')+
           ' style="width:100%;min-height:86px;background:var(--card);border:1px solid var(--border2);border-radius:8px;color:var(--tx);padding:8px 10px;font-size:.72rem;font-family:ui-monospace,monospace;resize:vertical">'+
           hesc(conds.join('\n'))+'</textarea>'+
+        // Link nhóm Telegram: nhóm này trúng thì ô cảnh báo hiện thêm một dòng
+        // "Mở nhóm Telegram" để nhân viên bấm thẳng sang nhóm chứa thông tin lạm
+        // dụng, khỏi ngồi mò xem loại này thuộc nhóm nào. Bỏ trống = không hiện dòng đó.
+        '<label style="display:block;font-size:.62rem;color:var(--mu);margin:8px 0 4px">'+
+          'Link nhóm Telegram — bỏ trống thì ô cảnh báo không hiện nút</label>'+
+        '<div style="display:flex;align-items:center;gap:8px">'+
+          '<input id="wkTg'+i+'" type="text" '+(ed?'':'readonly')+' data-noi18n'+
+            ' placeholder="https://t.me/..." value="'+hesc(g.tg||'')+'"'+
+            ' style="flex:1;min-width:0;background:var(--card);border:1px solid var(--border2);border-radius:8px;color:var(--tx);padding:7px 10px;font-size:.68rem;font-family:ui-monospace,monospace">'+
+          (g.tg?'<a class="abtn abtn-sm abtn-ghost" href="'+hesc(g.tg)+'" target="_blank" rel="noopener noreferrer" data-noi18n>Thử mở</a>':'')+
+        '</div>'+
         '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px">'+
           '<label style="font-size:.62rem;color:var(--mu)">Cần đủ</label>'+
           '<select id="wkNeed'+i+'" '+(ed?'':'disabled')+' style="background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--tx);padding:5px 8px;font-size:.68rem">'+

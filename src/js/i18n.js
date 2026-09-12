@@ -1215,6 +1215,7 @@ const I18N={
   "Chưa có nhóm nào.":"No groups yet.",
   "Chưa có nhóm nào. Bấm “+ Thêm nhóm” để bắt đầu.":"No groups yet. Press “+ Add group” to start.",
   "Điều kiện — mỗi dòng một điều kiện":"Conditions — one per line",
+  "Link nhóm Telegram — bỏ trống thì ô cảnh báo không hiện nút":"Telegram group link — leave empty and no button shows in the warning box",
   "Cách viết điều kiện":"How to write a condition",
   "— mỗi dòng một điều kiện, hàng của bảng phải đủ số điều kiện đã đặt thì mới được tô.":"— one condition per line; a table row is only highlighted once it meets the required number of conditions.",
   "— trong hàng có SỐ nằm trong khoảng":"— the row contains a NUMBER within the range",
