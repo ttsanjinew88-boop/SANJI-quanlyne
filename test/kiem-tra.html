@@ -954,6 +954,85 @@ caA('Danh sách report: lấy ĐỦ khi quá 1.000 dòng (phân trang), không b
   finally{ window.supabase=cu; }
 });
 
+/* ===== NHÓM 16 — BẤT BIẾN MÃ NGUỒN =====
+   Đọc thẳng file nguồn dạng VĂN BẢN (không nạp thành JS) vì lỗi cần bắt nằm ở bản thân
+   mã: khai trùng khoá, gán biến sai chỗ, viết style thẳng vào thẻ. Nạp thành JS là dấu
+   vết biến mất — object literal khai trùng khoá thì bản sau lặng lẽ thắng, không báo gì.
+   Mỗi phép kiểm dưới đây THAY CHO một dòng ⚠ trong CLAUDE.md: luật nào máy canh được
+   thì người không phải nhớ nữa. Tên biến mang tiền tố _n16 để không đụng biến toàn cục
+   của các file mã nguồn thật mà trang này nạp vào. */
+nhom('16. Bất biến mã nguồn — luật máy canh, không cần nhớ bằng đầu');
+
+const _n16_src={};
+async function _n16_doc(p){
+  if(!(p in _n16_src)){
+    const r=await fetch('../'+p);
+    if(!r.ok)throw new Error('không đọc được '+p+' (HTTP '+r.status+')');
+    _n16_src[p]=await r.text();
+  }
+  return _n16_src[p];
+}
+/* Danh sách file JS SUY RA từ marker //#include của build — thêm module mới là phép
+   kiểm tự bao phủ, khỏi khai danh sách ở hai nơi (đúng cái bệnh đang đi chữa). */
+async function _n16_dsJs(){
+  const k=await _n16_doc('src/dashboard_v2.src.html');
+  return [...k.matchAll(/\/\/#include\s+(js\/[\w.-]+\.js)/g)].map(m=>'src/'+m[1]);
+}
+/* Cắt phần chú thích // cuối dòng để khỏi bắt nhầm ví dụ viết trong comment. */
+const _n16_boCmt=s=>s.split('\n').map(d=>{const i=d.indexOf('//');return i<0?d:d.slice(0,i);});
+
+caA('Build: mọi file khai trong //#include đều đọc được', async()=>{
+  const ds=await _n16_dsJs();
+  if(ds.length<10)throw new Error('chỉ thấy '+ds.length+' marker //#include — file khung hỏng?');
+  for(const f of ds)await _n16_doc(f);
+  bang(ds.length>0,true,'có file include');
+});
+
+caA('i18n: KHÔNG khai trùng khoá trong I18N.EN (khoá sau đè khoá trước, âm thầm)', async()=>{
+  const s=await _n16_doc('src/js/i18n.js');
+  const d=s.indexOf('EN:{'), c=s.indexOf('RX:',d);
+  if(d<0||c<0)throw new Error('không tìm thấy khối EN/RX trong i18n.js');
+  const kh=s.slice(d,c), dem=new Map();
+  for(const m of kh.matchAll(/"((?:[^"\\]|\\.)*)"\s*:\s*"((?:[^"\\]|\\.)*)"/g))
+    dem.set(m[1],(dem.get(m[1])||[]).concat(m[2]));
+  const trung=[...dem].filter(([,v])=>v.length>1)
+    .map(([k,v])=>'"'+k+'" khai '+v.length+' lần ('+v.map(x=>'"'+x+'"').join(' rồi ')+')');
+  bang(trung,[],'khoá khai trùng — bản SAU đang thắng, bản trước thành mã chết');
+});
+
+caA('Đổi tháng: CUR_MONTH chỉ được GÁN ở đúng MỘT chỗ (applyMonthState)', async()=>{
+  const ds=await _n16_dsJs(), cho=[];
+  for(const f of ds)_n16_boCmt(await _n16_doc(f)).forEach((d,i)=>{
+    if(/\blet\s+CUR_MONTH\b/.test(d))return;
+    if(/\bCUR_MONTH\s*=(?!=)/.test(d))cho.push(f.replace('src/js/','')+':'+(i+1));
+  });
+  bang(cho.length,1,'số chỗ gán CUR_MONTH — đang ở '+(cho.join(', ')||'không chỗ nào'));
+});
+
+caA("Ghi hỏng phải báo: setCloudStatus('Lỗi…') chỉ được còn ở nhánh TẢI dữ liệu", async()=>{
+  const ds=await _n16_dsJs(), xau=[];
+  for(const f of ds)_n16_boCmt(await _n16_doc(f)).forEach((d,i)=>{
+    const m=d.match(/setCloudStatus\(\s*'(Lỗi[^']*)'/);
+    if(m&&!/tải/i.test(m[1]))xau.push(f.replace('src/js/','')+':'+(i+1)+' — "'+m[1]+'"');
+  });
+  bang(xau,[],'nhánh GHI báo lỗi bằng dòng chữ nhỏ tự mờ thay vì saveFailed() chặn lại');
+});
+
+caA('Quy ước nút: không thẻ <button> nào tự đặt padding trong style=""', async()=>{
+  const ds=[...await _n16_dsJs(),'src/dashboard_v2.src.html'], xau=[];
+  for(const f of ds)for(const m of (await _n16_doc(f)).matchAll(/<button[^>]*style=(["'])(.*?)\1/g))
+    if(/padding/i.test(m[2]))xau.push(f.replace('src/','')+' — style="'+m[2].slice(0,60)+'"');
+  bang(xau,[],'nút tự đặt padding (phải dùng .abtn/.abtn-sm — .bc-tool *{padding:0} sẽ đè)');
+});
+
+caA('Quy ước nút: mọi biến thể .abtn-* dùng trong mã đều có khai trong styles.css', async()=>{
+  const ds=[...await _n16_dsJs(),'src/dashboard_v2.src.html'];
+  const css=await _n16_doc('src/styles.css'), dung=new Set();
+  for(const f of ds)for(const m of (await _n16_doc(f)).matchAll(/abtn-[a-z0-9]+/g))dung.add(m[0]);
+  const thieu=[...dung].filter(c=>!new RegExp('\\.'+c+'\\b').test(css));
+  bang(thieu,[],'biến thể nút chưa khai trong CSS — nút mất màu mà không báo lỗi gì');
+});
+
 /* ---------- chạy hàng đợi bất đồng bộ rồi tổng kết ---------- */
 (async()=>{
   for(const x of _hangDoi){
