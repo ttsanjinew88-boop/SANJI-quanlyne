@@ -1,0 +1,15 @@
+# ===== FILE SINH RA — ĐỪNG COMMIT =====
+# dashboard_v2.html do build.ps1 ghép từ src/. deploy.yml đã chạy ./build.ps1
+# trước upload-pages-artifact nên bản deploy vẫn đủ.
+# Xem bản HTML cuối: chạy .\build.ps1 (hoặc .\.claude\serve.ps1).
+dashboard_v2.html
+
+# ===== KHÔNG BAO GIỜ ĐƯA LÊN REPO PUBLIC =====
+*.pem
+*.crx
+
+# ===== BẢN MẪU CŨ — KHÔNG PHỤC VỤ CÔNG KHAI =====
+# upload-pages-artifact dùng path:'.' nên MỌI file trong repo đều lên GitHub Pages.
+# 2 thư mục dưới là bản mẫu trước khi có dashboard_v2, giữ ở máy nhưng không đẩy lên.
+baocao_daily_analysis/
+fk_dashboard_analysis/
