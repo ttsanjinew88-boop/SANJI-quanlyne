@@ -164,5 +164,5 @@ Bộ kiểm tra này canh những quy tắc đã từng gây sự cố thật: b
 ## 9. Muốn hiểu sâu hơn
 
 - `CLAUDE.md` — bản đồ kỹ thuật đầy đủ (dành cho người lập trình)
-- `NGHIEM-THU.md` — quy trình nghiệm thu trước khi đưa tính năng lên bản chính
-- `test/kiem-tra.html` — bộ kiểm tra tự động
+- `docs/T3.md` · `docs/T4.md` · `docs/T5.md` — chi tiết từng tab (tách khỏi `CLAUDE.md` ngày 13/09/2026)
+- `test/kiem-tra.html` — bộ kiểm tra tự động (69 phép kiểm) — **đây là chốt chặn duy nhất trước khi commit**
