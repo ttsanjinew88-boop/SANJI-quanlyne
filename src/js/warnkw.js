@@ -46,7 +46,7 @@ const WK={
   // (Supabase không ghi đè, upload trùng tên sẽ đẻ ra "canhbaone (1).zip"),
   // và sửa EXT_VER ở đây cho khớp manifest để nhân viên biết máy mình cũ hay mới.
   EXT_ZIP:'https://dntqyipgpuibkaarhqcc.supabase.co/storage/v1/object/public/CanhBaoNe/canhbaone.zip',
-  EXT_VER:'1.9',
+  EXT_VER:'2.0',
 
   canEdit(){return !!(CUR_PROFILE&&(CUR_PROFILE.is_admin||roleOf(CUR_PROFILE).key==='totruong'));},
   visible(){const el=document.getElementById('tkw');return !!(el&&el.style.display!=='none');},
@@ -153,7 +153,12 @@ const WK={
   // ⚠ PHẢI đi qua boot() khi chưa nạp xong: gọi thẳng push() lúc WK.cfg còn rỗng là
   // đẩy danh sách RỖNG sang extension, xoá sạch nhóm điều kiện trên máy đó.
   // Chưa đăng nhập thì boot() tự thoát sớm, lát nữa applyPerms sẽ đẩy.
-  syncNow(){ if(WK.booted)WK.push(); else WK.boot(); },
+  // ⚠ PHẢI ĐỌC LẠI MÁY CHỦ, ĐỪNG đẩy `WK.cfg` đang nhớ sẵn (sửa 13/09/2026).
+  // Bản cũ gọi thẳng push(): tab dashboard mở từ sáng, ngủ đông rồi lỡ mất tiếng
+  // chuông Realtime ⇒ WK.cfg là bản CŨ, đẩy sang extension vẫn là điều kiện cũ —
+  // mà `syncedAt` vẫn đổi nên nút ↺ trong popup báo "✓ Đã cập nhật". Nhãn nói dối
+  // đúng lúc nhân viên bấm nút để chắc ăn. onPulse() đọc lại report rồi mới push.
+  syncNow(){ if(WK.booted)WK.onPulse(); else WK.boot(); },
 
   // ===== Domain hậu đài (extension chạy ở đâu) =====
   // Nhận cả "https://abc.example.com/", "abc.example.com:8080/xyz", "*.example.com"
