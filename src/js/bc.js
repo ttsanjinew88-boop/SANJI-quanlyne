@@ -194,7 +194,7 @@ const BC={
 
       const infoMap={};
       df1.forEach(row=>{
-        const u=row['số tài khoản']||'';if(!u)return;
+        const u=String(row['số tài khoản']||'').trim().toLowerCase();if(!u)return;   // khoá thường: 'Hatuan12345' ở file này = 'hatuan12345' ở file kia
         const linkDn=String(row['URL nguồn-Đăng nhập']||'');
         const thiet_bi=linkDn.split('://').pop().startsWith('m.')?'Điện thoại':'Máy tính';
         const regDate=BC.parseDate(BC.pick(row,['Thời gian gửi tiền thực tế đầu tiên',
@@ -239,7 +239,7 @@ const BC={
         m.am_duong=m.tien_nap-m.tien_rut;
         m.hop_le=m.tien_nap>=1000&&m.cuoc_hop_le>=3000;
         m.chi_tieu=m.hop_le?'Đạt':'Không đạt';
-        const info=infoMap[m.id]||{};
+        const info=infoMap[String(m.id).trim().toLowerCase()]||{};m._coInfo=!!infoMap[String(m.id).trim().toLowerCase()];
         Object.assign(m,{ho_ten:info.ho_ten||'',ip:info.ip||'',link_dk:info.link_dk||'',
           link_dn:info.link_dn||'',ngan_hang:info.ngan_hang||'',chi_nhanh:info.chi_nhanh||'',
           stk:info.stk||'',thiet_bi:info.thiet_bi||'Máy tính'});
@@ -250,22 +250,34 @@ const BC={
         m.game=gameTop2[m.dai_ly+'|||'+m.id]||'';
       });
 
+      /* CHỈ GIỮ TÀI KHOẢN CÓ ĐỦ THÔNG TIN (chốt 17/09/2026): tài khoản không có trong file
+         "Xuất dữ liệu thành viên" thì trống họ tên / ngân hàng / STK / IP -> LOẠI HẲN: không hiện,
+         không tính vào đại lý, không tính vào thẻ tổng. Đại lý mà mọi tài khoản đều thiếu
+         thông tin thì cũng không xuất hiện.
+         Không tải file thông tin thành viên (file 1 không bắt buộc) -> KHÔNG lọc, nếu không
+         cả báo cáo thành trống; có ghi cảnh báo ở nhật ký. */
+      const coFileInfo=df1.length>0;
+      const shown=coFileInfo?members.filter(m=>m._coInfo):members;
+      members.forEach(m=>{delete m._coInfo;});     // cờ tạm, không lưu lên cloud
+      if(coFileInfo)BC.log(`  🚫 Bỏ ${members.length-shown.length} tài khoản không có trong file thông tin thành viên (thiếu họ tên / ngân hàng / IP)`);
+      else BC.log('  ⚠ Không có file "Xuất dữ liệu thành viên" → không lọc được tài khoản thiếu thông tin');
+
       const agentValid={};
-      members.forEach(m=>{if(!agentValid[m.dai_ly])agentValid[m.dai_ly]=0;if(m.hop_le)agentValid[m.dai_ly]++;});
-      BC.log(`  👥 Khách mới: ${members.filter(m=>m.khach==='Mới').length} · Khách cũ: ${members.filter(m=>m.khach==='Cũ').length}`);
+      shown.forEach(m=>{if(!agentValid[m.dai_ly])agentValid[m.dai_ly]=0;if(m.hop_le)agentValid[m.dai_ly]++;});
+      BC.log(`  👥 Khách mới: ${shown.filter(m=>m.khach==='Mới').length} · Khách cũ: ${shown.filter(m=>m.khach==='Cũ').length}`);
       const qualified=new Set(Object.keys(agentValid).filter(a=>agentValid[a]>=3));
       BC.log(`  ✅ Đại lý đủ điều kiện: ${qualified.size}`);
 
-      /* HIỆN MỌI THÀNH VIÊN CỦA MỌI ĐẠI LÝ (chốt 17/09/2026). Bản cũ lọc bỏ khách không hợp lệ
+      /* HIỆN MỌI THÀNH VIÊN (có đủ thông tin — xem khối trên) CỦA MỌI ĐẠI LÝ (chốt 17/09/2026). Bản cũ lọc bỏ khách không hợp lệ
          và cả đại lý có < 3 KH hợp lệ -> đại lý có đủ thông tin trong file mà biến mất khỏi báo
          cáo, bảng Phân Công báo "Không có trong bản hiện tại". Nay điều kiện chỉ còn là NHÃN:
          cột Chỉ tiêu Đạt / Không đạt. Thẻ tổng ở Tổng Hợp vẫn chỉ tính KH hợp lệ của đại lý đủ
          điều kiện (BC.qualifiedRows) để số báo cáo không đổi nghĩa. */
-      BC.ROWS=members.slice()
+      BC.ROWS=shown.slice()
         .sort((a,b)=>a.dai_ly.localeCompare(b.dai_ly)||b.tien_nap-a.tien_nap);
 
       const agSum={};
-      members.forEach(m=>{
+      shown.forEach(m=>{
         if(!agSum[m.dai_ly])agSum[m.dai_ly]={dai_ly:m.dai_ly,tong_thanh_vien:0,khach_hop_le:0,tong_nap:0,tong_rut:0,am_duong:0,cuoc_hop_le:0,khach_moi:0,khach_cu:0};
         const a=agSum[m.dai_ly];a.tong_thanh_vien++;
         if(m.hop_le)a.khach_hop_le++;

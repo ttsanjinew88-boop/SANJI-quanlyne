@@ -737,7 +737,7 @@ const I18N={
   "KIỂM TRA ĐẠI LÝ":"AFFILIATE CHECK",
   "NGHI NGỜ":"FLAGGED",
   "Tổng Hợp Toàn Bộ":"Full Summary",
-  "Hiện mọi thành viên · Chỉ tiêu Đạt = nạp ≥ 1,000 & cược ≥ 3,000 · Thẻ tổng chỉ tính KH hợp lệ của đại lý có ≥ 3 KH hợp lệ":"Showing all players · Target Met = deposits ≥ 1,000 & valid bets ≥ 3,000 · Summary cards count only qualified players of affiliates with ≥ 3 qualified players",
+  "Hiện mọi tài khoản có đủ thông tin · Chỉ tiêu Đạt = nạp ≥ 1,000 & cược ≥ 3,000 · Thẻ tổng chỉ tính KH hợp lệ của đại lý có ≥ 3 KH hợp lệ":"Showing all players with full info · Target Met = deposits ≥ 1,000 & valid bets ≥ 3,000 · Summary cards count only qualified players of affiliates with ≥ 3 qualified players",
   "Tìm ID, Họ tên, Đại lý, Ngân hàng...":"Search ID, full name, affiliate, bank...",
   "Tìm ID, Họ tên, Đại lý, Ngân hàng... (dán nhiều đại lý: a, b, c)":"Search ID, full name, affiliate, bank... (paste many affiliates: a, b, c)",
   "Hoặc dán tên đại lý...":"Or paste affiliate name...",
