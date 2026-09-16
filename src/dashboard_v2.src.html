@@ -823,7 +823,9 @@
   <div class="tabs-wrap tabs-inline rp-tabs" data-rp-tabs></div>
 </div>
 
-<div class="upload-section">
+<!-- Thêm file · Tính toán · Xóa Dữ Liệu: CHỈ ADMIN + Tổ Trưởng (applyPerms ẩn cả khối;
+     BC.canManage() chặn ở JS; RLS chặn lần cuối ở máy chủ) -->
+<div class="upload-section" id="bcUploadCard">
   <div class="upload-title">Tải file dữ liệu mới <span style="font-size:10px;color:var(--mu);font-weight:normal">(hỗ trợ gộp nhiều file · kéo thả hoặc bấm chọn)</span></div>
   <div class="upload-grid">
     <div class="drop-zone" id="bc-dz1" onclick="document.getElementById('bc-f1').click()" ondragover="BC.onDrag(event,'bc-dz1')" ondragleave="BC.offDrag('bc-dz1')" ondrop="BC.onDrop(event,'f1','bc-dz1','bc-ft1')">
@@ -849,7 +851,7 @@
     </div>
     <div class="upload-actions" style="position:relative">
       <button class="abtn abtn-pu" id="bc-btn-process" onclick="BC.processFiles()" disabled>Tính toán</button>
-      <button class="abtn abtn-danger" onclick="BC.resetToDefault()">Xóa Dữ Liệu</button>
+      <button class="abtn abtn-danger" id="bc-btn-clear" onclick="BC.resetToDefault()">Xóa Dữ Liệu</button>
       <div class="progress-bar" id="bc-prog-bar"><div class="progress-fill" id="bc-prog-fill"></div></div>
     </div>
     <div class="upload-log hidden" id="bc-upload-log"></div>

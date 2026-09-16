@@ -63,6 +63,17 @@ const I18N={
   "TRỐNG":"EMPTY",
   "trống":"empty",
 
+  /* Báo Cáo Đại Lý — bản dùng chung trên cloud (16/09/2026) */
+  "CHƯA LƯU":"NOT SAVED",
+  "Chỉ ADMIN và Tổ Trưởng mới được tính toán dữ liệu báo cáo đại lý.":"Only ADMIN and Team Leader can process agent report data.",
+  "Chỉ ADMIN và Tổ Trưởng mới được xóa dữ liệu báo cáo đại lý.":"Only ADMIN and Team Leader can clear agent report data.",
+  "Chỉ ADMIN và Tổ Trưởng mới tô được ô nghi ngờ.":"Only ADMIN and Team Leader can highlight suspicious cells.",
+  "XÓA BẢN DÙNG CHUNG CỦA CẢ ĐỘI":"CLEAR THE TEAM'S SHARED REPORT",
+  "Mọi người sẽ thấy bảng TRỐNG cho tới lần tính toán kế tiếp.":"Everyone will see an EMPTY table until the next calculation.",
+  "Tiếp tục xóa?":"Continue clearing?",
+  "THAY THẾ BẢN DÙNG CHUNG":"REPLACE THE SHARED REPORT",
+  "Kết quả vừa tính sẽ THAY THẾ bản đó cho toàn đội. Tiếp tục?":"The result just calculated will REPLACE it for the whole team. Continue?",
+
   /* Đăng nhập + bảo mật 2 lớp */
   "ĐĂNG NHẬP HỆ THỐNG":"SYSTEM LOGIN",
   "Kỷ luật - Minh bạch - Bứt phá":"Discipline - Transparency - Breakthrough",

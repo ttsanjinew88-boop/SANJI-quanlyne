@@ -37,6 +37,9 @@ function switchRp(v){
   // không có quyền xem Báo Cáo Đại Lý -> chỉ còn Lọc File NTK
   if(v==='bc'&&typeof canView==='function'&&CUR_PROFILE&&!canView('bc'))v='ntk';
   RP_VIEW=v;
+  // Bản dùng chung của Báo Cáo Đại Lý nạp LƯỜI lần đầu mở tab (~0,5 MB) — ai không
+  // vào tab này thì không phải tải. BC.boot() tự bỏ qua từ lần thứ hai.
+  if(v==='bc'&&window.BC)BC.boot();
   RP_TABS.forEach(([k,,pid])=>{
     const pane=document.getElementById(pid);
     if(pane){pane.style.display=(k===v)?'':'none';pane.classList.toggle('active',k===v);}
@@ -144,7 +147,8 @@ const BC={
   },
 
   async processFiles(){
-    if(CUR_PROFILE&&!canEdit('bc')){alert('Bạn chỉ có quyền XEM báo cáo đại lý, không được tính toán dữ liệu mới.');return;}
+    // Kết quả ghi đè BẢN DÙNG CHUNG của cả đội -> khoá theo vai trò, không theo ô tích quyền
+    if(!BC.canManage()){alert('Chỉ ADMIN và Tổ Trưởng mới được tính toán dữ liệu báo cáo đại lý.');return;}
     BC.showOverlay('Đang đọc file...');BC.setProgress(5);BC.log('\n🔄 Bắt đầu xử lý...');
     try{
       const seen=new Set();
@@ -268,90 +272,152 @@ const BC={
 
       BC.filtAll=[...BC.ROWS];BC.filtAgents=[...BC.AGENTS];BC.pgAll=1;BC.pgAgents=1;
       BC.log(`  📊 Tổng KH hợp lệ: ${BC.ROWS.length}`);BC.log('✅ Xong!');BC.setProgress(100);
-      const badge=document.getElementById('bc-ds-badge');
-      badge.textContent='MỚI';badge.style.background='#22c55e';badge.style.color='white';
+      /* Tính lại = bộ số MỚI, chỉ số dòng đổi hết ⇒ ô đã tô của bản cũ không còn nghĩa */
+      BC.MARKS={};
       BC.hideOverlay();BC.rebuildAll();
-      /* Báo cáo đại lý chỉ giữ trên máy (không lưu cloud) — F5 là dữ liệu về mặc định */
+      /* Lưu lên cloud để CẢ ĐỘI thấy cùng một bản (xem khối "BẢN DÙNG CHUNG" bên dưới) */
+      await BC.cloudSave();
     }catch(err){BC.hideOverlay();BC.log('❌ Lỗi: '+err.message);console.error(err);}
   },
 
+  /* ================= BẢN DÙNG CHUNG TRÊN CLOUD (chốt 16/09/2026) =================
+     Trước đây kết quả "Tính toán" chỉ nằm trong RAM của người vừa bấm: F5 là mất,
+     người khác mở dashboard thấy bảng TRỐNG nên không lấy số đi báo cáo được.
+     Nay ĐÚNG MỘT bản dùng chung: reports type='bc' month='current'.
+       · Tính xong  -> ghi đè bản dùng chung, cả đội thấy ngay ở lần mở tab kế tiếp.
+       · Xóa Dữ Liệu -> ghi BẢN RỖNG (không xoá dòng): cùng đường GHI nên Tổ Trưởng
+         dùng được, khỏi phải nới policy XOÁ vốn dùng chung cho mọi loại dữ liệu.
+     Ô đã tô (MARKS) để ở report RIÊNG 'bc_marks' — mỗi lần bấm tô là một lượt ghi,
+     nhét chung vào bản 'bc' (~0,5 MB) thì mỗi cú bấm đẩy nửa MB lên mạng.
+     ⚠ Chỉ ADMIN + Tổ Trưởng được tính / xoá (RLS chặn lại lần nữa ở máy chủ). */
+  CLOUD_MONTH:'current',
+  _booted:false,
+  /* Khoá theo VAI TRÒ chứ không theo canEdit('bc'): ô tích quyền có thể được bật cho
+     nhân viên, mà bản này là của CẢ ĐỘI. Giống nút "Báo Cáo ⇢ Google Sheet". */
+  canManage(){
+    if(!CUR_PROFILE)return true;                       // chưa đăng nhập (mở file rời) — không chặn
+    const rl=typeof roleOf==='function'?roleOf(CUR_PROFILE):null;
+    return !!(CUR_PROFILE.is_admin||(rl&&rl.key==='totruong'));
+  },
+  _chuaLuu:false,
+  setBadge(txt,mau){
+    // Nhớ luôn trạng thái "chưa lưu được" -> boot() không được kéo bản cloud về đè lên
+    // kết quả người ta vừa tính mà máy chủ chưa nhận (mất công tính lại từ đầu).
+    BC._chuaLuu=(txt==='CHƯA LƯU');
+    const b=document.getElementById('bc-ds-badge');
+    if(!b)return;
+    b.textContent=txt;b.style.background=mau;b.style.color='white';
+  },
+  /* Set không đi qua JSON được -> đổi sang mảng khi ghi, dựng lại Set khi đọc */
+  marksToJson(){
+    const o={};
+    Object.keys(BC.MARKS).forEach(ag=>{const a=[...BC.MARKS[ag]];if(a.length)o[ag]=a;});
+    return o;
+  },
+  marksFromJson(o){
+    BC.MARKS={};
+    Object.keys(o||{}).forEach(ag=>{BC.MARKS[ag]=new Set(o[ag]||[]);});
+  },
+
   async cloudSave(){
-    if(!SB.ready())return;
+    if(!SB.ready()){BC.log('☁ Chưa kết nối cloud — bản này chỉ nằm trên máy bạn.');BC.setBadge('CHƯA LƯU','#ef4444');return false;}
     try{
-      const month=BC.MAX_MONTH||new Date().toISOString().slice(0,7);
-      // Nhận diện báo cáo trùng tháng đã có trên cloud
-      let exists=false;
-      try{const rows=await SB.listReports();exists=rows.some(r=>r.type==='bc'&&r.month===month);}catch(e){}
-      if(exists&&!confirm("CẢNH BÁO TRÙNG DỮ LIỆU\n\nTháng "+dispMonth(month)+" ĐÃ CÓ báo cáo đại lý trên cloud.\n\nBạn có muốn THAY THẾ báo cáo cũ bằng kết quả vừa tính không?")){
-        BC.log('☁ Không lưu — giữ nguyên báo cáo cũ tháng '+dispMonth(month)+' trên cloud.');
-        return;
+      // Bản đang dùng chung là của cả đội -> nói rõ sẽ thay thế của ai, tính lúc nào
+      let cu=null;
+      try{cu=await SB.loadReport('bc',BC.CLOUD_MONTH);}catch(e){}
+      if(cu&&(cu.ROWS||[]).length){
+        const ai=cu.by?' (do '+cu.by+' tính'+(cu.at?' lúc '+new Date(cu.at).toLocaleString('vi-VN'):'')+')':'';
+        if(!confirm('THAY THẾ BẢN DÙNG CHUNG\n\nTrên cloud đang có bản '+(cu.ROWS||[]).length+' KH hợp lệ'+ai+'.\n\nKết quả vừa tính sẽ THAY THẾ bản đó cho toàn đội. Tiếp tục?')){
+          BC.log('☁ Không lưu — giữ nguyên bản dùng chung trên cloud.');
+          BC.setBadge('CHƯA LƯU','#ef4444');
+          return false;
+        }
       }
-      BC.log('☁ Đang lưu lên cloud...');
-      await SB.saveReport('bc',month,{ROWS:BC.ROWS,AGENTS:BC.AGENTS,MAX_MONTH:BC.MAX_MONTH});
-      const allFiles=[...BC.fileStore.f1,...BC.fileStore.f2,...BC.fileStore.f3];
-      await SB.uploadOriginals(allFiles,'bc',month);
-      BC.log('☁ Đã lưu cloud: báo cáo + '+allFiles.length+' file gốc ✓');
-      logAction('Lưu báo cáo đại lý','Tháng '+dispMonth(month)+' · '+allFiles.length+' file · '+BC.ROWS.length+' KH hợp lệ');
+      BC.log('☁ Đang lưu bản dùng chung lên cloud...');
+      await SB.saveReport('bc',BC.CLOUD_MONTH,{
+        ROWS:BC.ROWS,AGENTS:BC.AGENTS,MAX_MONTH:BC.MAX_MONTH,
+        at:new Date().toISOString(),by:CUR_PROFILE?CUR_PROFILE.username:''
+      });
+      await SB.saveReport('bc_marks',BC.CLOUD_MONTH,{marks:BC.marksToJson()});
+      BC.setBadge('CLOUD '+(BC.MAX_MONTH?dispMonth(BC.MAX_MONTH):''),'#7c3aed');
+      BC.log('☁ Đã lưu cloud — cả đội đều thấy bản này ✓');
+      logAction('Lưu báo cáo đại lý (bản dùng chung)',(BC.MAX_MONTH?'Tháng '+dispMonth(BC.MAX_MONTH)+' · ':'')+BC.ROWS.length+' KH hợp lệ · '+BC.AGENTS.length+' đại lý');
+      return true;
     }catch(e){
-      // chỉ ghi vào dòng log nhỏ là không đủ — người dùng tưởng đã lưu (luật saveFailed, CLAUDE.md)
+      // Số vẫn hiện trên màn hình NHƯNG chỉ ở máy này -> nhãn phải nói đúng điều đó,
+      // không thì người dùng tưởng cả đội đã thấy (luật saveFailed, CLAUDE.md).
+      BC.setBadge('CHƯA LƯU','#ef4444');
       BC.log('☁ Lỗi lưu cloud: '+(e.message||e));
-      saveFailed('Báo cáo đại lý tháng '+dispMonth(BC.MAX_MONTH||new Date().toISOString().slice(0,7)),e);
+      saveFailed('Báo cáo đại lý (bản dùng chung) — kết quả mới chỉ nằm trên máy bạn, bấm Tính toán lại để thử lưu lần nữa',e);
+      return false;
     }
   },
 
-  async toggleCloudMenu(ev){
-    ev.stopPropagation();
-    const menu=document.getElementById('bcHistMenu');
-    if(menu.classList.contains('show')){menu.classList.remove('show');return;}
-    menu.classList.add('show');
-    if(!SB.ready()){
-      menu.innerHTML="<div class='upload-dd-item' style='color:var(--mu);cursor:default'>Chưa cấu hình cloud — điền SB_URL và SB_KEY trong file</div>";
-      return;
-    }
-    menu.innerHTML="<div class='upload-dd-item' style='color:var(--mu);cursor:default'>Đang tải danh sách...</div>";
-    try{
-      const rows=(await SB.listReports()).filter(r=>r.type==='bc');
-      if(!rows.length){
-        menu.innerHTML="<div class='upload-dd-item' style='color:var(--mu);cursor:default'>Chưa có báo cáo nào trên cloud</div>";
-        return;
-      }
-      menu.innerHTML=rows.map(r=>`<div class="upload-dd-item" onclick="BC.loadCloud('${r.month}')">Tháng ${dispMonth(r.month)}</div>`).join('');
-    }catch(e){
-      console.error('BC.toggleCloudMenu',e);
-      menu.innerHTML="<div class='upload-dd-item' style='color:var(--re);cursor:default'>Lỗi tải danh sách cloud</div>";
-    }
+  /* Nạp bản dùng chung. Gọi LƯỜI (lần đầu mở tab) để người không dùng tab này
+     không phải tải ~0,5 MB lúc đăng nhập. */
+  _lastLoad:0,
+  async boot(){
+    if(!SB.ready()||BC._chuaLuu)return;
+    // Nạp lại khi mở tab nếu bản trong máy đã cũ hơn 60 giây: người khác vừa tính lại
+    // thì mình thấy bản mới mà không phải F5. Mở tab liên tục không tải lại liên tục.
+    if(BC._booted&&Date.now()-BC._lastLoad<60000)return;
+    BC._booted=true;BC._lastLoad=Date.now();
+    await BC.cloudLoad(true);
   },
-
-  async loadCloud(month){
-    document.getElementById('bcHistMenu').classList.remove('show');
+  async cloudLoad(quiet){
+    if(!SB.ready())return false;
     try{
-      BC.showOverlay('Đang tải tháng '+dispMonth(month)+' từ cloud...');
-      const data=await SB.loadReport('bc',month);
-      if(!data){BC.hideOverlay();BC.log('☁ Không có dữ liệu tháng '+dispMonth(month));return;}
-      BC.ROWS=data.ROWS||[];BC.AGENTS=data.AGENTS||[];BC.MAX_MONTH=data.MAX_MONTH||month;
+      if(!quiet)BC.showOverlay('Đang tải bản dùng chung từ cloud...');
+      const d=await SB.loadReport('bc',BC.CLOUD_MONTH);
+      let mk={};
+      try{const m=await SB.loadReport('bc_marks',BC.CLOUD_MONTH);mk=(m&&m.marks)||{};}catch(e){}
+      BC.ROWS=(d&&d.ROWS)||[];BC.AGENTS=(d&&d.AGENTS)||[];BC.MAX_MONTH=(d&&d.MAX_MONTH)||'';
+      BC.marksFromJson(mk);
       BC.filtAll=[...BC.ROWS];BC.filtAgents=[...BC.AGENTS];BC.pgAll=1;BC.pgAgents=1;
-      const badge=document.getElementById('bc-ds-badge');
-      badge.textContent='CLOUD '+dispMonth(month);badge.style.background='#7c3aed';badge.style.color='white';
-      BC.hideOverlay();BC.rebuildAll();
-      BC.log('☁ Đã tải tháng '+dispMonth(month)+' từ cloud ✓');
-    }catch(e){
-      console.error('BC.loadCloud',e);
       BC.hideOverlay();
-      BC.log('☁ Lỗi tải cloud: '+(e.message||e));
+      if(BC.ROWS.length){
+        BC.setBadge('CLOUD '+(BC.MAX_MONTH?dispMonth(BC.MAX_MONTH):''),'#7c3aed');
+        BC.log('☁ Đã tải bản dùng chung: '+BC.ROWS.length+' KH hợp lệ'+(d&&d.by?' (do '+d.by+' tính)':'')+' ✓');
+      }else{
+        BC.setBadge('TRỐNG','#9ca3af');
+      }
+      BC.rebuildAll();
+      return true;
+    }catch(e){
+      console.error('BC.cloudLoad',e);
+      BC.hideOverlay();
+      // Đường ĐỌC hỏng không mất dữ liệu gì -> báo bằng dòng log, không chặn màn hình
+      BC.log('☁ Lỗi tải bản dùng chung: '+(e.message||e));
+      return false;
     }
   },
 
-  resetToDefault(){
-    if(CUR_PROFILE&&!canEdit('bc')){alert('Bạn chỉ có quyền XEM báo cáo đại lý.');return;}
-    BC.ROWS=[];BC.AGENTS=[];BC.MAX_MONTH='';
+  async resetToDefault(){
+    if(!BC.canManage()){alert('Chỉ ADMIN và Tổ Trưởng mới được xóa dữ liệu báo cáo đại lý.');return;}
+    const con=BC.ROWS.length;
+    if(con&&!confirm('XÓA BẢN DÙNG CHUNG CỦA CẢ ĐỘI\n\nBản đang có trên cloud ('+con+' KH hợp lệ · '+BC.AGENTS.length+' đại lý) sẽ bị xóa, kể cả các ô đã tô.\nMọi người sẽ thấy bảng TRỐNG cho tới lần tính toán kế tiếp.\n\nTiếp tục xóa?'))return;
+    // Xóa trên CLOUD trước: hỏng mà đã dọn màn hình thì người xóa tưởng xong,
+    // trong khi cả đội vẫn thấy bản cũ.
+    if(SB.ready()){
+      try{
+        await SB.saveReport('bc',BC.CLOUD_MONTH,{ROWS:[],AGENTS:[],MAX_MONTH:'',at:new Date().toISOString(),by:CUR_PROFILE?CUR_PROFILE.username:''});
+        await SB.saveReport('bc_marks',BC.CLOUD_MONTH,{marks:{}});
+        logAction('Xóa báo cáo đại lý (bản dùng chung)',con+' KH hợp lệ · '+BC.AGENTS.length+' đại lý');
+      }catch(e){
+        BC.log('☁ Lỗi xóa trên cloud: '+(e.message||e));
+        saveFailed('Xóa báo cáo đại lý (bản dùng chung) — cả đội VẪN đang thấy bản cũ',e);
+        return;                      // giữ nguyên màn hình cho khớp với cloud
+      }
+    }
+    BC.ROWS=[];BC.AGENTS=[];BC.MAX_MONTH='';BC.MARKS={};
     BC.filtAll=[];BC.filtAgents=[];BC.pgAll=1;BC.pgAgents=1;
     ['f1','f2','f3'].forEach(k=>BC.fileStore[k]=[]);
-    ['bc-ft1','bc-ft2','bc-ft3'].forEach(id=>document.getElementById(id).innerHTML='');
-    ['bc-dz1','bc-dz2','bc-dz3'].forEach(id=>document.getElementById(id).classList.remove('loaded'));
+    ['bc-ft1','bc-ft2','bc-ft3'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='';});
+    ['bc-dz1','bc-dz2','bc-dz3'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('loaded');});
     const ul=document.getElementById('bc-upload-log');ul.textContent='';ul.classList.add('hidden');
     document.getElementById('bc-btn-process').disabled=true;
-    const badge=document.getElementById('bc-ds-badge');badge.textContent='TRỐNG';badge.style.background='#9ca3af';badge.style.color='white';
-    BC.rebuildAll();BC.log('↺ Đã xóa. Upload file mới để tính toán.');
+    BC.setBadge('TRỐNG','#9ca3af');
+    BC.rebuildAll();BC.log('↺ Đã xóa bản dùng chung. Upload file mới để tính toán.');
   },
 
   fmt(n){return(n===null||n===undefined||n==='')?'':Number(n).toLocaleString('vi-VN');},
@@ -461,10 +527,13 @@ const BC={
     BC.pgAgents=1;BC.renderAgents();
   },
 
-  /* ---- Tô ô nghi ngờ trong Kiểm Tra Đại Lý (SESSION-ONLY — F5 là mất) ----
+  /* ---- Tô ô nghi ngờ trong Kiểm Tra Đại Lý — LƯU CLOUD (chốt 16/09/2026) ----
      MARKS[agent] = Set("rowIdx|field") · bấm ô để tô/bỏ tô · khi gửi báo cáo Telegram,
-     genExcel tô đúng các ô này (cam, riêng Âm/Dương đỏ nhạt) */
+     genExcel tô đúng các ô này (cam, riêng Âm/Dương đỏ nhạt).
+     Lưu ở report RIÊNG 'bc_marks' (nhỏ) chứ không nhét vào bản 'bc' ~0,5 MB.
+     Ghi GỘP sau 600ms: tô liền tay 20 ô thì chỉ tốn 1 lượt ghi, không phải 20. */
   MARKS:{},
+  _mkTimer:null,
   mkSet(ag){return BC.MARKS[ag]||(BC.MARKS[ag]=new Set());},
   mkAttr(ag,i,f,cls){
     const on=BC.mkSet(ag).has(i+'|'+f);
@@ -473,9 +542,20 @@ const BC={
   markCell(td,i,f){
     const ag=document.getElementById('bc-agent-select').value;
     if(!ag)return;
+    if(!BC.canManage()){alert('Chỉ ADMIN và Tổ Trưởng mới tô được ô nghi ngờ.');return;}
     const s=BC.mkSet(ag),k=i+'|'+f;
     if(s.has(k)){s.delete(k);td.classList.remove('bc-mk','bc-mk-ad');}
     else{s.add(k);td.classList.add(f==='am_duong'?'bc-mk-ad':'bc-mk');}
+    BC.saveMarksSoon();
+  },
+  saveMarksSoon(){
+    if(!SB.ready())return;
+    clearTimeout(BC._mkTimer);
+    BC._mkTimer=setTimeout(()=>{
+      const chup=BC.marksToJson();
+      SB.saveReport('bc_marks',BC.CLOUD_MONTH,{marks:chup})
+        .catch(e=>saveFailed('Tô ô nghi ngờ (Kiểm Tra Đại Lý) — các ô vừa tô mới chỉ có trên máy bạn',e));
+    },600);
   },
   // Thứ tự field khớp 21 cột của genExcel = ĐỒNG BỘ với Google Sheet (bỏ Cổng/Khu vực; Thiết bị lên trước IP đăng ký)
   XLS_FIELDS:['','dai_ly','id','cap_bac','ho_ten','khach','chi_tieu','tien_nap','lan_nap','tien_rut','lan_rut','am_duong','cuoc_hop_le','ngan_hang','chi_nhanh','stk','ip','thiet_bi','link_dk','link_dn','game'],
@@ -1120,6 +1200,11 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
     }
   }
 };
+
+/* ⚠ `const BC` nằm ở scope LEXICAL toàn cục, KHÔNG có trên window (đúng cái bẫy đã vấp
+   với AUTH ở ô nhập OTP). switchRp chạy được trước khi BC khởi tạo xong nên phải dò
+   qua window.BC — không phơi ra đây thì BC.boot() im lặng không bao giờ chạy. */
+window.BC=BC;
 
 renderRpTabs();   // phải chạy TRƯỚC applyPerms (nó ẩn .rp-tab[data-v="bc"] theo selector)
 BC.rebuildAll();

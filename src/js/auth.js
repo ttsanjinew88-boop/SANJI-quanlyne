@@ -331,6 +331,11 @@ function applyPerms(){
   const tsus=document.getElementById('bcTabSuspect');
   const isTTup=p.is_admin||roleOf(p).key==='totruong';
   if(tsus)tsus.style.display=isTTup?'':'none';
+  // Khối "Tải file dữ liệu mới" + Tính toán + Xóa Dữ Liệu của T2: ADMIN + Tổ Trưởng.
+  // Kết quả là BẢN DÙNG CHUNG của cả đội nên khoá theo VAI TRÒ (không theo ô tích
+  // quyền 'bc'); BC.canManage() và RLS chặn lại ở 2 tầng sau nữa.
+  const bcUp=document.getElementById('bcUploadCard');
+  if(bcUp)bcUp.style.display=(p.is_admin||roleOf(p).key==='totruong')?'':'none';
   const sbt=document.getElementById('bcSusSheetBtn');
   if(sbt)sbt.style.display=isTTup?'':'none';
   const spb=document.getElementById('bcSusSepBtn');

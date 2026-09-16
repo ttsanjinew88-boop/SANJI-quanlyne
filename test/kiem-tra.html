@@ -1033,6 +1033,35 @@ caA('Quy ước nút: mọi biến thể .abtn-* dùng trong mã đều có khai
   bang(thieu,[],'biến thể nút chưa khai trong CSS — nút mất màu mà không báo lỗi gì');
 });
 
+/* Báo Cáo Đại Lý dùng chung: 3 luật dưới đây là thứ hỏng LẶNG LẼ nếu ai đó sửa sau này
+   — ghi lạc chỗ thì mỗi người thấy một bản khác nhau, mở nút cho nhân viên thì một
+   người bấm Xóa là cả đội mất dữ liệu. Không chạy được bằng hàm (trang test không nạp
+   bc.js — nó khai switchTool/TOOLS trùng với mã đang nạp) nên soi dạng văn bản. */
+caA("Báo cáo đại lý: mọi lượt ghi 'bc'/'bc_marks' đều vào ĐÚNG bản dùng chung", async()=>{
+  const s=await _n16_doc('src/js/bc.js'), xau=[];
+  for(const m of s.matchAll(/saveReport\(\s*'(bc|bc_marks)'\s*,\s*([^,]+),/g))
+    if(!/BC\.CLOUD_MONTH/.test(m[2]))xau.push("'"+m[1]+"' ghi vào "+m[2].trim());
+  bang(xau,[],'ghi lạc sang tháng khác — mỗi người sẽ thấy một bản khác nhau');
+});
+
+caA('Báo cáo đại lý: 3 đường ghi đều khoá theo vai trò (BC.canManage)', async()=>{
+  const s=await _n16_doc('src/js/bc.js'), thieu=[];
+  for(const ten of ['processFiles','resetToDefault','markCell']){
+    const m=s.match(new RegExp('\\n  (?:async )?'+ten+'\\('));   // hàm có thể là async
+    const d=m?m.index:-1;
+    const than=d<0?'':s.slice(d,s.indexOf('\n  },',d));
+    if(!than)thieu.push(ten+' — không tìm thấy hàm');
+    else if(!/BC\.canManage\(\)/.test(than))thieu.push(ten+' — thiếu chốt quyền');
+  }
+  bang(thieu,[],'đường ghi bản DÙNG CHUNG mà không khoá ADMIN/Tổ Trưởng');
+});
+
+caA('Báo cáo đại lý: khối upload bị ẩn với người không phải ADMIN/Tổ Trưởng', async()=>{
+  const k=await _n16_doc('src/dashboard_v2.src.html'), a=await _n16_doc('src/js/auth.js');
+  bang(/id="bcUploadCard"/.test(k),true,'khối "Tải file dữ liệu mới" phải có id bcUploadCard');
+  bang(/bcUploadCard[\s\S]{0,200}totruong/.test(a),true,'applyPerms phải ẩn khối đó theo vai trò');
+});
+
 /* ---------- chạy hàng đợi bất đồng bộ rồi tổng kết ---------- */
 (async()=>{
   for(const x of _hangDoi){

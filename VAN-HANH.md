@@ -79,8 +79,8 @@ Việc này **phải do người biết kỹ thuật làm**. Người phụ trá
 
 ### 4.3. Bản sao lưu CÓ gì và KHÔNG có gì (cập nhật 10/09/2026)
 **Có** — mỗi lần bấm ra một file gồm:
-- **Mọi dữ liệu của tháng đã chọn**: điểm Duyệt Đơn, Khuyến Mãi, Bất Thường, Tổng Quan, Hạn Mức, Phân Ca, Công Việc, lịch sử hoàn tác phân ca, danh sách nhân viên của tháng, báo cáo đại lý
-- **Mọi dữ liệu dùng chung** (không theo tháng): toàn bộ chữ trong Quy Trình Làm Việc, nhóm cảnh báo của extension, danh sách đại lý nghi ngờ, danh sách IP được phép, ID Telegram được bấm xác nhận, cấu hình nhắc nhở Telegram, danh sách nhân viên dùng chung cũ
+- **Mọi dữ liệu của tháng đã chọn**: điểm Duyệt Đơn, Khuyến Mãi, Bất Thường, Tổng Quan, Hạn Mức, Phân Ca, Công Việc, lịch sử hoàn tác phân ca, danh sách nhân viên của tháng
+- **Mọi dữ liệu dùng chung** (không theo tháng): toàn bộ chữ trong Quy Trình Làm Việc, nhóm cảnh báo của extension, danh sách đại lý nghi ngờ, **bản báo cáo đại lý đang dùng chung + các ô đã tô** (từ 16/09/2026 chỉ giữ MỘT bản mới nhất, không lưu theo tháng), danh sách IP được phép, ID Telegram được bấm xác nhận, cấu hình nhắc nhở Telegram, danh sách nhân viên dùng chung cũ
 - **Toàn bộ bài kiểm tra nghiệp vụ**: chủ đề, câu hỏi, bài đã nộp, điểm chấm
 
 ⇒ Phần dùng chung có trong **mọi** file; phần theo tháng thì mỗi tháng một file — vì vậy vẫn phải tải **mỗi tháng một lần**.
