@@ -1046,7 +1046,7 @@ caA("Báo cáo đại lý: mọi lượt ghi 'bc'/'bc_marks' đều vào ĐÚNG 
 
 caA('Báo cáo đại lý: 3 đường ghi đều khoá theo vai trò (BC.canManage)', async()=>{
   const s=await _n16_doc('src/js/bc.js'), thieu=[];
-  for(const ten of ['processFiles','resetToDefault','markCell','assignCommit']){
+  for(const ten of ['processFiles','resetToDefault','assignCommit']){   // markCell: mọi vai trò, máy chủ chặn (phép kiểm dưới)
     const m=s.match(new RegExp('\\n  (?:async )?'+ten+'\\('));   // hàm có thể là async
     const d=m?m.index:-1;
     const than=d<0?'':s.slice(d,s.indexOf('\n  },',d));
@@ -1067,6 +1067,14 @@ caA('Báo cáo đại lý: NHÂN VIÊN nạp qua máy chủ lọc (bc_my_view), 
   const d=s.search(/\n  async cloudLoad\(/), than=d<0?'':s.slice(d,s.indexOf('\n  },',d));
   bang(/rpc\('bc_my_view'\)/.test(than),true,'cloudLoad phải có nhánh gọi rpc bc_my_view');
   bang(/if\(BC\.canManage\(\)\)\{[\s\S]*?loadReport\('bc'/.test(than),true,"loadReport('bc') chỉ được nằm trong nhánh canManage");
+});
+
+caA('Báo cáo đại lý: tô ô ghi THEO TỪNG ĐẠI LÝ qua bc_mark_set (không gửi cả bộ ô từ máy khách)', async()=>{
+  const s=await _n16_doc('src/js/bc.js');
+  const d=s.search(/\n  saveMarksSoon\(/), than=d<0?'':s.slice(d,s.indexOf('\n  },',d));
+  bang(/rpc\('bc_mark_set'/.test(than),true,'saveMarksSoon phải gọi rpc bc_mark_set');
+  // đường ghi cả bộ chỉ được phép là nhánh dự phòng cho ADMIN/TT khi chưa chạy SQL
+  bang(/canManage\(\)[\s\S]*saveReport\('bc_marks'/.test(than)||!/saveReport\('bc_marks'/.test(than),true,"saveReport('bc_marks') trong saveMarksSoon chỉ được nằm sau chốt canManage");
 });
 
 caA('Báo cáo đại lý: tab chọn theo data-p, 2 tab quản lý có trong MANAGE_PANELS', async()=>{

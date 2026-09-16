@@ -463,6 +463,8 @@ td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px 
 .bc-tool .b-dat{background:#22c55e;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
 .bc-tool .bc-done{background:#16a34a;color:#fff;padding:2px 8px;border-radius:9px;font-size:9px;font-weight:700;white-space:nowrap}
 .bc-tool .b-chua{background:#ef4444;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
+/* Chỉ tiêu "Không đạt": CHỮ đỏ (user chốt 17/09/2026) — viền mờ giữ cùng khuôn với chip "Đạt" */
+.bc-tool .b-khong{color:#f87171;font-weight:700;border:1px solid rgba(248,113,113,.45);padding:0 6px;border-radius:9px;font-size:10px;white-space:nowrap}
 .bc-tool .b-moi{background:#3b82f6;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
 .bc-tool .b-cu{background:#475569;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}
 .bc-tool .b-dt{background:#8b5cf6;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}

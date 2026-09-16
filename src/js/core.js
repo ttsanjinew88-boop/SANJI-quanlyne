@@ -155,7 +155,7 @@ const SUSPECT_COLS=[
   {k:'cap_bac',label:'Cấp bậc',cls:'ell',cell:r=>hesc(r.cap_bac)},
   {k:'ho_ten',label:'Họ tên đăng kí',cell:r=>hesc(r.ho_ten)},
   {k:'khach',label:'Khách',cell:r=>r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>'},
-  {k:'chi_tieu',label:'Chỉ tiêu',cell:r=>r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-chua">Chưa</span>'},
+  {k:'chi_tieu',label:'Chỉ tiêu',cell:r=>r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-khong">Không đạt</span>'},
   {k:'tien_nap',label:'Tiền nạp',cell:r=>BC.fmt(r.tien_nap)},
   {k:'lan_nap',label:'Lần nạp',cell:r=>r.lan_nap},
   {k:'tien_rut',label:'Tiền rút',cell:r=>BC.fmt(r.tien_rut)},

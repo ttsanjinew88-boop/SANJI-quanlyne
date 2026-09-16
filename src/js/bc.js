@@ -238,7 +238,7 @@ const BC={
       members.forEach(m=>{
         m.am_duong=m.tien_nap-m.tien_rut;
         m.hop_le=m.tien_nap>=1000&&m.cuoc_hop_le>=3000;
-        m.chi_tieu=m.hop_le?'Đạt':'Chưa đạt';
+        m.chi_tieu=m.hop_le?'Đạt':'Không đạt';
         const info=infoMap[m.id]||{};
         Object.assign(m,{ho_ten:info.ho_ten||'',ip:info.ip||'',link_dk:info.link_dk||'',
           link_dn:info.link_dn||'',ngan_hang:info.ngan_hang||'',chi_nhanh:info.chi_nhanh||'',
@@ -256,11 +256,16 @@ const BC={
       const qualified=new Set(Object.keys(agentValid).filter(a=>agentValid[a]>=3));
       BC.log(`  ✅ Đại lý đủ điều kiện: ${qualified.size}`);
 
-      BC.ROWS=members.filter(m=>m.hop_le&&qualified.has(m.dai_ly))
+      /* HIỆN MỌI THÀNH VIÊN CỦA MỌI ĐẠI LÝ (chốt 17/09/2026). Bản cũ lọc bỏ khách không hợp lệ
+         và cả đại lý có < 3 KH hợp lệ -> đại lý có đủ thông tin trong file mà biến mất khỏi báo
+         cáo, bảng Phân Công báo "Không có trong bản hiện tại". Nay điều kiện chỉ còn là NHÃN:
+         cột Chỉ tiêu Đạt / Không đạt. Thẻ tổng ở Tổng Hợp vẫn chỉ tính KH hợp lệ của đại lý đủ
+         điều kiện (BC.qualifiedRows) để số báo cáo không đổi nghĩa. */
+      BC.ROWS=members.slice()
         .sort((a,b)=>a.dai_ly.localeCompare(b.dai_ly)||b.tien_nap-a.tien_nap);
 
       const agSum={};
-      members.filter(m=>qualified.has(m.dai_ly)).forEach(m=>{
+      members.forEach(m=>{
         if(!agSum[m.dai_ly])agSum[m.dai_ly]={dai_ly:m.dai_ly,tong_thanh_vien:0,khach_hop_le:0,tong_nap:0,tong_rut:0,am_duong:0,cuoc_hop_le:0,khach_moi:0,khach_cu:0};
         const a=agSum[m.dai_ly];a.tong_thanh_vien++;
         if(m.hop_le)a.khach_hop_le++;
@@ -271,7 +276,7 @@ const BC={
       BC.MAX_MONTH=maxM;BC.setProgress(90);
 
       BC.filtAll=[...BC.ROWS];BC.filtAgents=[...BC.AGENTS];BC.pgAll=1;BC.pgAgents=1;
-      BC.log(`  📊 Tổng KH hợp lệ: ${BC.ROWS.length}`);BC.log('✅ Xong!');BC.setProgress(100);
+      BC.log(`  📊 Tổng thành viên: ${BC.ROWS.length} · KH hợp lệ (đại lý đủ điều kiện): ${BC.qualifiedRows().length}`);BC.log('✅ Xong!');BC.setProgress(100);
       /* Tính lại = bộ số MỚI, chỉ số dòng đổi hết ⇒ ô đã tô của bản cũ không còn nghĩa */
       BC.MARKS={};
       BC.hideOverlay();BC.rebuildAll();
@@ -340,7 +345,7 @@ const BC={
       try{cu=await SB.loadReport('bc',BC.CLOUD_MONTH);}catch(e){}
       if(cu&&(cu.ROWS||[]).length){
         const ai=cu.by?' (do '+cu.by+' tính'+(cu.at?' lúc '+new Date(cu.at).toLocaleString('vi-VN'):'')+')':'';
-        if(!confirm('THAY THẾ BẢN DÙNG CHUNG\n\nTrên cloud đang có bản '+(cu.ROWS||[]).length+' KH hợp lệ'+ai+'.\n\nKết quả vừa tính sẽ THAY THẾ bản đó cho toàn đội. Tiếp tục?')){
+        if(!confirm('THAY THẾ BẢN DÙNG CHUNG\n\nTrên cloud đang có bản '+(cu.ROWS||[]).length+' thành viên'+ai+'.\n\nKết quả vừa tính sẽ THAY THẾ bản đó cho toàn đội. Tiếp tục?')){
           BC.log('☁ Không lưu — giữ nguyên bản dùng chung trên cloud.');
           BC.setBadge('CHƯA LƯU','#ef4444');
           return false;
@@ -354,7 +359,7 @@ const BC={
       await SB.saveReport('bc_marks',BC.CLOUD_MONTH,{marks:BC.marksToJson()});
       BC.setBadge('CLOUD '+(BC.MAX_MONTH?dispMonth(BC.MAX_MONTH):''),'#7c3aed');
       BC.log('☁ Đã lưu cloud — cả đội đều thấy bản này ✓');
-      logAction('Lưu báo cáo đại lý (bản dùng chung)',(BC.MAX_MONTH?'Tháng '+dispMonth(BC.MAX_MONTH)+' · ':'')+BC.ROWS.length+' KH hợp lệ · '+BC.AGENTS.length+' đại lý');
+      logAction('Lưu báo cáo đại lý (bản dùng chung)',(BC.MAX_MONTH?'Tháng '+dispMonth(BC.MAX_MONTH)+' · ':'')+BC.ROWS.length+' thành viên · '+BC.AGENTS.length+' đại lý');
       return true;
     }catch(e){
       // Số vẫn hiện trên màn hình NHƯNG chỉ ở máy này -> nhãn phải nói đúng điều đó,
@@ -403,7 +408,7 @@ const BC={
       BC.hideOverlay();
       if(BC.ROWS.length){
         BC.setBadge('CLOUD '+(BC.MAX_MONTH?dispMonth(BC.MAX_MONTH):''),'#7c3aed');
-        BC.log('☁ Đã tải bản dùng chung: '+BC.ROWS.length+' KH hợp lệ'+(d&&d.by?' (do '+d.by+' tính)':'')+' ✓');
+        BC.log('☁ Đã tải bản dùng chung: '+BC.ROWS.length+' thành viên'+(d&&d.by?' (do '+d.by+' tính)':'')+' ✓');
       }else{
         BC.setBadge('TRỐNG','#9ca3af');
       }
@@ -421,14 +426,14 @@ const BC={
   async resetToDefault(){
     if(!BC.canManage()){alert('Chỉ ADMIN và Tổ Trưởng mới được xóa dữ liệu báo cáo đại lý.');return;}
     const con=BC.ROWS.length;
-    if(con&&!confirm('XÓA BẢN DÙNG CHUNG CỦA CẢ ĐỘI\n\nBản đang có trên cloud ('+con+' KH hợp lệ · '+BC.AGENTS.length+' đại lý) sẽ bị xóa, kể cả các ô đã tô.\nMọi người sẽ thấy bảng TRỐNG cho tới lần tính toán kế tiếp.\n\nTiếp tục xóa?'))return;
+    if(con&&!confirm('XÓA BẢN DÙNG CHUNG CỦA CẢ ĐỘI\n\nBản đang có trên cloud ('+con+' thành viên · '+BC.AGENTS.length+' đại lý) sẽ bị xóa, kể cả các ô đã tô.\nMọi người sẽ thấy bảng TRỐNG cho tới lần tính toán kế tiếp.\n\nTiếp tục xóa?'))return;
     // Xóa trên CLOUD trước: hỏng mà đã dọn màn hình thì người xóa tưởng xong,
     // trong khi cả đội vẫn thấy bản cũ.
     if(SB.ready()){
       try{
         await SB.saveReport('bc',BC.CLOUD_MONTH,{ROWS:[],AGENTS:[],MAX_MONTH:'',at:new Date().toISOString(),by:CUR_PROFILE?CUR_PROFILE.username:''});
         await SB.saveReport('bc_marks',BC.CLOUD_MONTH,{marks:{}});
-        logAction('Xóa báo cáo đại lý (bản dùng chung)',con+' KH hợp lệ · '+BC.AGENTS.length+' đại lý');
+        logAction('Xóa báo cáo đại lý (bản dùng chung)',con+' thành viên · '+BC.AGENTS.length+' đại lý');
       }catch(e){
         BC.log('☁ Lỗi xóa trên cloud: '+(e.message||e));
         saveFailed('Xóa báo cáo đại lý (bản dùng chung) — cả đội VẪN đang thấy bản cũ',e);
@@ -460,7 +465,7 @@ const BC={
   rowHtml(r,i,isFirst,isLast,agSpan){
     const tb=r.thiet_bi==='Điện thoại'?'Điện Thoại':'Máy Tính';
     const kh=r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>';
-    const ct=r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-chua">Chưa</span>';
+    const ct=r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-khong">Không đạt</span>';
     /* Ô đại lý gộp (rowspan): tên click được -> Kiểm Tra Đại Lý; ADMIN có ô tích Nghi Ngờ */
     let agCell='';
     if(isFirst){
@@ -568,19 +573,38 @@ const BC={
   markCell(td,i,f){
     const ag=document.getElementById('bc-agent-select').value;
     if(!ag)return;
-    if(!BC.canManage()){alert('Chỉ ADMIN và Tổ Trưởng mới tô được ô nghi ngờ.');return;}
+    // MỌI vai trò tô được (17/09/2026). Nhân viên chỉ có dữ liệu của đại lý được giao, và máy chủ
+    // (bc_mark_set) chặn lại lần nữa nếu đại lý không nằm trong phân công.
     const s=BC.mkSet(ag),k=i+'|'+f;
     if(s.has(k)){s.delete(k);td.classList.remove('bc-mk','bc-mk-ad');}
     else{s.add(k);td.classList.add(f==='am_duong'?'bc-mk-ad':'bc-mk');}
-    BC.saveMarksSoon();
+    BC.saveMarksSoon(ag);
   },
-  saveMarksSoon(){
+  /* Ghi gộp sau 600ms, THEO TỪNG ĐẠI LÝ qua RPC bc_mark_set (supabase_bc_marks_nv.sql): máy chủ chỉ
+     thay đúng đại lý đó -> nhiều người tô nhiều đại lý cùng lúc không ghi đè ô của nhau.
+     ⚠ Đừng quay lại gửi CẢ bộ MARKS bằng saveReport: nhân viên không có quyền ghi loại đó,
+     và bản trong máy người này có thể thiếu ô người khác vừa tô. */
+  _mkDirty:new Set(),
+  saveMarksSoon(ag){
     if(!SB.ready())return;
+    if(ag)BC._mkDirty.add(ag);
     clearTimeout(BC._mkTimer);
-    BC._mkTimer=setTimeout(()=>{
-      const chup=BC.marksToJson();
-      SB.saveReport('bc_marks',BC.CLOUD_MONTH,{marks:chup})
-        .catch(e=>saveFailed('Tô ô nghi ngờ (Kiểm Tra Đại Lý) — các ô vừa tô mới chỉ có trên máy bạn',e));
+    BC._mkTimer=setTimeout(async()=>{
+      const ds=[...BC._mkDirty];BC._mkDirty.clear();
+      for(const a of ds){
+        const cells=[...BC.mkSet(a)];
+        try{
+          const r=await SB.client().rpc('bc_mark_set',{p_agent:a,p_cells:cells});
+          if(r.error){
+            // Chưa chạy SQL (hàm chưa có) mà là ADMIN/TT -> ghi theo cách cũ để không gãy chức năng đang dùng
+            if(BC.canManage()&&/bc_mark_set|PGRST202|function/i.test((r.error.code||'')+' '+(r.error.message||''))){
+              await SB.saveReport('bc_marks',BC.CLOUD_MONTH,{marks:BC.marksToJson()});
+            }else throw r.error;
+          }
+        }catch(e){
+          saveFailed('Tô ô nghi ngờ đại lý '+a+' — các ô vừa tô mới chỉ có trên máy bạn',e);
+        }
+      }
     },600);
   },
   // Thứ tự field khớp 21 cột của genExcel = ĐỒNG BỘ với Google Sheet (bỏ Cổng/Khu vực; Thiết bị lên trước IP đăng ký)
@@ -604,7 +628,7 @@ const BC={
     document.getElementById('bc-body-detail').innerHTML=rows.map((r,i)=>{
       const tb=r.thiet_bi==='Điện thoại'?'<span class="b-dt">Điện Thoại</span>':'<span class="b-mt">Máy Tính</span>';
       const kh=r.khach==='Mới'?'<span class="b-moi">Mới</span>':'<span class="b-cu">Cũ</span>';
-      const ct=r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-chua">Chưa</span>';
+      const ct=r.chi_tieu==='Đạt'?'<span class="b-dat">Đạt</span>':'<span class="b-khong">Không đạt</span>';
       return`<tr><td class="tc stt">${i+1}</td><td ${A(i,'id')}>${hesc(r.id)}</td>
         <td ${A(i,'cap_bac','ell')} title="${hesc(r.cap_bac)}">${hesc(r.cap_bac)}</td><td ${A(i,'ho_ten')}>${hesc(r.ho_ten)}</td>
         <td ${A(i,'khach','tc')}>${kh}</td><td ${A(i,'chi_tieu','tc')}>${ct}</td>
@@ -643,16 +667,21 @@ const BC={
     sel.value=hit;BC.loadAgent();
   },
 
+  /* KH hợp lệ (nạp ≥ 1.000 & cược ≥ 3.000) thuộc đại lý có ≥ 3 KH hợp lệ = đúng tập mà bản cũ
+     giữ lại trong ROWS. Thẻ tổng tính trên tập này để con số báo cáo giữ nguyên nghĩa. */
+  qualifiedAgents(){return new Set(BC.AGENTS.filter(a=>a.khach_hop_le>=3).map(a=>a.dai_ly));},
+  qualifiedRows(){const q=BC.qualifiedAgents();return BC.ROWS.filter(r=>r.hop_le&&q.has(r.dai_ly));},
   initCards(){
-    const tn=BC.ROWS.reduce((s,r)=>s+r.tien_nap,0);
-    const tr=BC.ROWS.reduce((s,r)=>s+r.tien_rut,0);
-    const tc=BC.ROWS.reduce((s,r)=>s+r.cuoc_hop_le,0);
-    const moi=BC.ROWS.filter(r=>r.khach==='Mới').length;
+    const Q=BC.qualifiedRows();
+    const tn=Q.reduce((s,r)=>s+r.tien_nap,0);
+    const tr=Q.reduce((s,r)=>s+r.tien_rut,0);
+    const tc=Q.reduce((s,r)=>s+r.cuoc_hop_le,0);
+    const moi=Q.filter(r=>r.khach==='Mới').length;
     document.getElementById('bc-summary-cards').innerHTML=`
-      <div class="card"><div class="card-label">Đại lý đủ điều kiện</div><div class="card-value">${BC.AGENTS.length}</div></div>
-      <div class="card"><div class="card-label">Tổng KH hợp lệ</div><div class="card-value">${BC.ROWS.length}</div></div>
+      <div class="card"><div class="card-label">Đại lý đủ điều kiện</div><div class="card-value">${BC.qualifiedAgents().size}</div></div>
+      <div class="card"><div class="card-label">Tổng KH hợp lệ</div><div class="card-value">${Q.length}</div></div>
       <div class="card"><div class="card-label">KH mới (${BC.MAX_MONTH})</div><div class="card-value" style="color:#3b82f6">${moi}</div></div>
-      <div class="card"><div class="card-label">KH cũ</div><div class="card-value" style="color:#6b7280">${BC.ROWS.length-moi}</div></div>
+      <div class="card"><div class="card-label">KH cũ</div><div class="card-value" style="color:#6b7280">${Q.length-moi}</div></div>
       <div class="card"><div class="card-label">Tổng tiền nạp</div><div class="card-value">${BC.fmt(tn)}</div></div>
       <div class="card"><div class="card-label">Tổng tiền rút</div><div class="card-value">${BC.fmt(tr)}</div></div>
       <div class="card"><div class="card-label">Âm/Dương</div><div class="card-value" style="color:${tn-tr>=0?'#16a34a':'#dc2626'}">${BC.fmt(tn-tr)}</div></div>
@@ -914,7 +943,7 @@ const BC={
         const summary=BC.AGENTS.find(a=>a.dai_ly===ag)||null;
         const members=BC.ROWS.filter(r=>r.dai_ly===ag);
         BC.SUSPECTS.push({dai_ly:ag,at:new Date().toISOString(),by:CUR_PROFILE.username,summary,members});
-        act='Đánh dấu nghi ngờ đại lý';det=ag+' · '+members.length+' KH hợp lệ';
+        act='Đánh dấu nghi ngờ đại lý';det=ag+' · '+members.length+' thành viên';
       }
       await SB.saveReport('suspects','all',{list:BC.SUSPECTS});
       logAction(act,det);
