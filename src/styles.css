@@ -390,6 +390,15 @@ select.wk-code{cursor:pointer;outline:none}
 .bc-tool .tbl-toolbar input{padding:6px 11px;border:1px solid var(--border2);border-radius:4px;width:240px;font-size:11px;background:var(--card2);color:var(--tx);outline:none}
 .bc-tool .tbl-toolbar input:focus{border-color:var(--pu)}
 .bc-tool .bc-badge{background:var(--pu);color:white;padding:3px 9px;border-radius:10px;font-size:10px}
+/* Phân Công Check Đại Lý (17/09/2026). ⚠ padding khai tường minh: reset .bc-tool *{padding:0} nuốt mất */
+.bc-tool .bca-paste{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap}
+.bc-tool .bca-paste textarea{flex:1;min-width:260px;padding:9px 12px;border:1px solid var(--border2);border-radius:8px;background:var(--card2);color:var(--tx);font:12px/1.5 Consolas,monospace;resize:vertical;outline:none}
+.bc-tool .bca-paste textarea:focus{border-color:var(--pu)}
+.bc-tool .bca-act{display:flex;flex-direction:column;gap:8px;min-width:220px;max-width:360px}
+.bc-tool .bca-msg{font-size:11px;line-height:1.5;color:var(--mu2);white-space:pre-line}
+.bc-tool .bca-msg.ok{color:#4ade80}.bc-tool .bca-msg.err{color:#f87171}
+.bc-tool .bca-miss{color:var(--mu);font-style:italic}
+.bc-tool .bc-my-note{margin-bottom:12px;padding:9px 14px;border-radius:8px;border-left:4px solid var(--pu2);background:rgba(124,58,237,.12);font-size:12px;color:var(--tx)}
 
 
 .bc-tool .tbl-wrap{overflow-x:auto}

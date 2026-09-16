@@ -292,6 +292,19 @@ const BC={
      ⚠ Chỉ ADMIN + Tổ Trưởng được tính / xoá (RLS chặn lại lần nữa ở máy chủ). */
   CLOUD_MONTH:'current',
   _booted:false,
+  /* Nhân viên: {assigned:[tên đại lý được giao], done:Set(đại lý đã vào Nghi Ngờ)} do bc_my_view()
+     trả về. null = đang là ADMIN/Tổ Trưởng (xem toàn bộ). */
+  MY:null,
+  renderMyNote(){
+    const el=document.getElementById('bc-my-note');
+    if(!el)return;
+    if(!BC.MY){el.style.display='none';return;}
+    const n=BC.MY.assigned.length;
+    el.style.display='';
+    el.textContent=n
+      ?'Bạn đang xem '+n+' đại lý được phân công: '+BC.MY.assigned.join(', ')
+      :'Bạn chưa được phân công đại lý nào. Liên hệ Tổ Trưởng để được phân công.';
+  },
   /* Khoá theo VAI TRÒ chứ không theo canEdit('bc'): ô tích quyền có thể được bật cho
      nhân viên, mà bản này là của CẢ ĐỘI. Giống nút "Báo Cáo ⇢ Google Sheet". */
   canManage(){
@@ -368,9 +381,22 @@ const BC={
     if(!SB.ready())return false;
     try{
       if(!quiet)BC.showOverlay('Đang tải bản dùng chung từ cloud...');
-      const d=await SB.loadReport('bc',BC.CLOUD_MONTH);
-      let mk={};
-      try{const m=await SB.loadReport('bc_marks',BC.CLOUD_MONTH);mk=(m&&m.marks)||{};}catch(e){}
+      let d,mk={};
+      if(BC.canManage()){
+        // ADMIN + Tổ Trưởng: đọc thẳng toàn bộ bản dùng chung
+        d=await SB.loadReport('bc',BC.CLOUD_MONTH);
+        try{const m=await SB.loadReport('bc_marks',BC.CLOUD_MONTH);mk=(m&&m.marks)||{};}catch(e){}
+        BC.MY=null;
+      }else{
+        // NHÂN VIÊN: máy chủ lọc sẵn theo Phân Công Check Đại Lý (supabase_bc_assign.sql).
+        // ⛔ Đừng "tối ưu" bằng cách đọc thẳng rồi lọc ở đây: RLS đã khoá đọc thẳng, và lọc
+        //    trên máy khách thì dữ liệu đại lý khác vẫn nằm trong trình duyệt (F12 là thấy).
+        const r=await SB.client().rpc('bc_my_view');
+        if(r.error)throw r.error;
+        d=r.data||{};mk=d.MARKS||{};
+        BC.MY={assigned:d.ASSIGNED||[],done:new Set(d.DONE||[])};
+      }
+      BC.renderMyNote();
       BC.ROWS=(d&&d.ROWS)||[];BC.AGENTS=(d&&d.AGENTS)||[];BC.MAX_MONTH=(d&&d.MAX_MONTH)||'';
       BC.marksFromJson(mk);
       BC.filtAll=[...BC.ROWS];BC.filtAgents=[...BC.AGENTS];BC.pgAll=1;BC.pgAgents=1;
@@ -604,7 +630,14 @@ const BC={
     const names=BC.AGENTS.map(a=>a.dai_ly);
     let hit=names.find(n=>n.toLowerCase()===q);
     if(!hit&&!strict)hit=names.find(n=>n.toLowerCase().includes(q));
-    if(!hit){if(!strict)el.style.borderColor='#ef4444';return;}
+    if(!hit){
+      if(!strict){
+        el.style.borderColor='#ef4444';
+        // Nhân viên: dữ liệu chỉ có đại lý được giao -> nói rõ lý do, đừng để tưởng là lỗi
+        if(BC.MY)document.getElementById('bc-body-detail').innerHTML='<tr><td colspan="20" class="empty">Đại lý này không nằm trong danh sách phân công của bạn.</td></tr>';
+      }
+      return;
+    }
     const sel=document.getElementById('bc-agent-select');
     if(sel.value===hit)return;
     sel.value=hit;BC.loadAgent();
@@ -628,8 +661,9 @@ const BC={
 
   rebuildAll(){
     /* Nạp lại danh sách nghi ngờ từ cloud để nhãn "Đã Xử Lý" luôn mới, không cần F5 */
-    BC.loadSuspects().then(()=>BC.renderAll()).catch(()=>{});
-    BC.initCards();BC.renderAll();BC.renderAgents();
+    // (nhân viên: RLS chặn đọc Nghi Ngờ — nhãn đã có sẵn trong BC.MY.done, khỏi gọi thừa)
+    if(BC.canManage())BC.loadSuspects().then(()=>BC.renderAll()).catch(()=>{});
+    BC.initCards();BC.renderAll();BC.renderAgents();BC.renderAssign();
     const sel=document.getElementById('bc-agent-select');
     sel.innerHTML='<option value="">-- Chọn đại lý --</option>';
     BC.AGENTS.forEach(a=>{const o=document.createElement('option');o.value=a.dai_ly;o.textContent=`${a.dai_ly} (${a.khach_hop_le} KH hợp lệ)`;sel.appendChild(o);});
@@ -656,17 +690,185 @@ const BC={
     document.getElementById(id).innerHTML=h;
   },
 
+  /* Tab tìm theo data-p (không theo thứ tự) -> chèn thêm tab không làm lệch.
+     3 tab quản lý tự rơi về Tổng Hợp nếu không phải ADMIN/Tổ Trưởng. */
+  MANAGE_PANELS:['agents','assign','suspect'],
   showPanel(n){
+    if(BC.MANAGE_PANELS.includes(n)&&!BC.canManage())n='summary';
     document.querySelectorAll('#t2 .bc-panel').forEach(p=>p.classList.remove('active'));
-    document.querySelectorAll('#t2 .bc-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('#t2 .bc-tab').forEach(t=>t.classList.toggle('active',t.dataset.p===n));
     document.getElementById('bc-panel-'+n).classList.add('active');
-    document.querySelectorAll('#t2 .bc-tab')[{summary:0,agents:1,detail:2,suspect:3}[n]].classList.add('active');
     if(n==='suspect')BC.renderSuspects();
+    if(n==='assign')BC.assignBoot();
+  },
+  /* applyPerms gọi: đang đứng ở tab quản lý mà không có quyền thì đẩy về Tổng Hợp */
+  fixPanel(){
+    const cur=document.querySelector('#t2 .bc-tab.active');
+    if(cur&&BC.MANAGE_PANELS.includes(cur.dataset.p)&&!BC.canManage())BC.showPanel('summary');
+  },
+
+  /* ================= PHÂN CÔNG CHECK ĐẠI LÝ (17/09/2026) =================
+     reports type='bc_assign' month='all' = {list:[{dai_ly,user}], at, by}
+     user = TÊN TÀI KHOẢN ĐĂNG NHẬP (profiles.username). Máy chủ (bc_my_view) so khớp
+     không phân biệt hoa/thường nên ở đây cũng so như vậy.
+     ⚠ Mọi lượt ghi đi qua assignCommit: ĐỌC LẠI bản trên máy chủ rồi mới áp thao tác
+       (thêm/xoá) lên bản đó -> 2 Tổ Trưởng sửa cùng lúc không ghi đè mất phần của nhau.
+       Không bao giờ ghi thẳng BC.ASSIGN trong máy (có thể đã cũ). */
+  ASSIGN:[],
+  _accounts:null,          // Map(tên thường -> tên đúng) · null = chưa tải được danh sách tài khoản
+  asgKey(a,u){return String(a||'').trim().toLowerCase()+'|'+String(u||'').trim().toLowerCase();},
+  async assignBoot(){
+    if(!BC.canManage()||!SB.ready()){BC.renderAssign();return;}
+    try{
+      const d=await SB.loadReport('bc_assign','all');
+      BC.ASSIGN=(d&&d.list)||[];
+    }catch(e){
+      console.error('BC.assignBoot',e);
+      BC.assignMsg('Lỗi tải bảng phân công: '+(e.message||e),'err');
+    }
+    try{
+      const{data,error}=await SB.client().from('profiles').select('username');
+      if(error)throw error;
+      BC._accounts=new Map((data||[]).filter(p=>p.username).map(p=>[p.username.trim().toLowerCase(),p.username.trim()]));
+    }catch(e){BC._accounts=null;}
+    BC.renderAssign();
+  },
+  assignMsg(txt,cls){
+    const el=document.getElementById('bcaMsg');
+    if(!el)return;
+    el.className='bca-msg'+(cls?' '+cls:'');el.textContent=txt||'';
+  },
+  renderAssign(){
+    const tb=document.getElementById('bcaBody');
+    if(!tb)return;
+    const q=((document.getElementById('bcaSearch')||{}).value||'').trim().toLowerCase();
+    const agLc=new Set(BC.AGENTS.map(a=>String(a.dai_ly).toLowerCase()));
+    const rows=BC.ASSIGN
+      .filter(x=>!q||String(x.dai_ly).toLowerCase().includes(q)||String(x.user).toLowerCase().includes(q))
+      .slice().sort((a,b)=>String(a.user).localeCompare(String(b.user))||String(a.dai_ly).localeCompare(String(b.dai_ly)));
+    const ck=document.getElementById('bcaCkAll');if(ck)ck.checked=false;
+    const nv=new Set(BC.ASSIGN.map(x=>String(x.user).toLowerCase())).size;
+    document.getElementById('bcaCnt').textContent=BC.ASSIGN.length+' dòng · '+nv+' nhân viên';
+    if(!rows.length){
+      tb.innerHTML='<tr><td colspan="6" class="empty">'+(BC.ASSIGN.length?'Không có dòng nào khớp.':'Chưa có phân công nào. Dán 2 cột từ Excel vào ô phía trên.')+'</td></tr>';
+      return;
+    }
+    tb.innerHTML=rows.map((x,i)=>{
+      const k=hesc(BC.asgKey(x.dai_ly,x.user));
+      const coDl=agLc.has(String(x.dai_ly).toLowerCase());
+      const coTk=!BC._accounts||BC._accounts.has(String(x.user).trim().toLowerCase());
+      const tt=(coDl?'<span class="b-dat">Có dữ liệu</span>':'<span class="b-cu">Không có trong bản hiện tại</span>')
+        +(coTk?'':' <span class="b-chua">Không có tài khoản</span>');
+      return `<tr><td class="tc"><input type="checkbox" class="bca-ck" data-k="${k}"></td>
+        <td class="tc stt">${i+1}</td><td class="tc"><b>${hesc(x.dai_ly)}</b></td>
+        <td class="tc">${hesc(x.user)}</td><td class="tc">${tt}</td>
+        <td class="tc"><button class="abtn abtn-sm abtn-danger" data-k="${k}" onclick="BC.assignDel(this)">Xóa</button></td></tr>`;
+    }).join('');
+  },
+  assignCheckAll(el){document.querySelectorAll('#bcaBody .bca-ck').forEach(c=>{c.checked=el.checked;});},
+
+  /* Tách văn bản dán từ Excel: mỗi dòng 1 cặp, cột ngăn bằng Tab (Excel) — không có Tab thì
+     chấp nhận dấu phẩy / chấm phẩy / | / khoảng trắng. Cột 1 = đại lý, cột 2 = nhân viên;
+     nếu danh sách tài khoản cho thấy 2 cột bị đảo (cột 1 mới là tên tài khoản) thì tự đảo lại. */
+  assignParse(text){
+    const pairs=[],bad=[];
+    String(text||'').split(/\r?\n/).forEach((line,i)=>{
+      if(!line.trim())return;
+      let c=line.split('\t').map(s=>s.trim()).filter(Boolean);
+      if(c.length<2)c=line.trim().split(/\s*[,;|]\s*|\s+/).map(s=>s.trim()).filter(Boolean);
+      if(c.length<2){bad.push(i+1);return;}
+      const a=c[0],u=c[1];
+      // bỏ dòng tiêu đề
+      if(/đại\s*lý|dai\s*ly|agent/i.test(a+u)&&/nhân\s*viên|nhan\s*vien|tài\s*khoản|tai\s*khoan|user/i.test(a+u))return;
+      pairs.push([a,u]);
+    });
+    let swapped=false;
+    if(BC._accounts&&pairs.length){
+      const c0=pairs.filter(p=>BC._accounts.has(p[0].toLowerCase())).length;
+      const c1=pairs.filter(p=>BC._accounts.has(p[1].toLowerCase())).length;
+      if(c0>c1){pairs.forEach(p=>p.reverse());swapped=true;}
+    }
+    const agName=new Map(BC.AGENTS.map(a=>[String(a.dai_ly).toLowerCase(),a.dai_ly]));
+    const out=pairs.map(([a,u])=>({
+      dai_ly:agName.get(a.toLowerCase())||a,                                      // chuẩn hoá hoa/thường theo dữ liệu
+      user:(BC._accounts&&BC._accounts.get(u.toLowerCase()))||u
+    }));
+    return{list:out,bad,swapped};
+  },
+
+  async assignCommit(op,what,detail){
+    if(!BC.canManage()){alert('Chỉ ADMIN và Tổ Trưởng mới sửa được phân công check đại lý.');return false;}
+    if(!SB.ready()){alert('Chưa kết nối cloud — không lưu được phân công.');return false;}
+    try{
+      const d=await SB.loadReport('bc_assign','all');                  // đọc lại bản mới nhất
+      const next=op(((d&&d.list)||[]).slice());
+      await SB.saveReport('bc_assign','all',{list:next,at:new Date().toISOString(),by:CUR_PROFILE?CUR_PROFILE.username:''});
+      BC.ASSIGN=next;
+      logAction(what,detail);
+      BC.renderAssign();
+      return true;
+    }catch(e){
+      saveFailed('Phân công check đại lý — thay đổi CHƯA được lưu',e);
+      return false;
+    }
+  },
+
+  async assignPaste(){
+    const ta=document.getElementById('bcaPaste');
+    const{list,bad,swapped}=BC.assignParse(ta.value);
+    if(!list.length){BC.assignMsg('Không nhận diện được dòng nào. Mỗi dòng cần 2 cột: Tên đại lý và Tên nhân viên.','err');return;}
+    if(BC._accounts){
+      const la=[...new Set(list.filter(x=>!BC._accounts.has(x.user.toLowerCase())).map(x=>x.user))];
+      if(la.length&&!confirm('CÓ TÊN NHÂN VIÊN KHÔNG KHỚP TÀI KHOẢN NÀO\n\n'+la.slice(0,15).join(', ')+(la.length>15?' …':'')+'\n\nNhân viên không có tài khoản thì không xem được gì. Vẫn thêm?'))return;
+    }
+    let them=0,trung=0;
+    const ok=await BC.assignCommit(cur=>{
+      const have=new Set(cur.map(x=>BC.asgKey(x.dai_ly,x.user)));
+      list.forEach(x=>{
+        const k=BC.asgKey(x.dai_ly,x.user);
+        if(have.has(k)){trung++;return;}
+        have.add(k);cur.push(x);them++;
+      });
+      return cur;
+    },'Phân công check đại lý (thêm)',list.length+' dòng dán');
+    if(!ok)return;
+    ta.value='';
+    BC.assignMsg('Đã thêm '+them+' dòng · bỏ qua '+trung+' dòng trùng'
+      +(bad.length?' · '+bad.length+' dòng lỗi (dòng '+bad.slice(0,10).join(', ')+')':'')
+      +(swapped?'\nĐã tự đảo cột (cột 1 là tên nhân viên).':''),'ok');
+  },
+
+  async assignDelKeys(keys,label){
+    const ks=new Set(keys);
+    let xoa=0;
+    const ok=await BC.assignCommit(cur=>cur.filter(x=>{
+      if(ks.has(BC.asgKey(x.dai_ly,x.user))){xoa++;return false;}
+      return true;
+    }),'Phân công check đại lý (xóa)',label);
+    if(ok)BC.assignMsg('Đã xóa '+xoa+' dòng.','ok');
+  },
+  assignDel(btn){
+    const k=btn.dataset.k,[a,u]=k.split('|');
+    if(!confirm('Xóa phân công: đại lý '+a+' — nhân viên '+u+'?'))return;
+    BC.assignDelKeys([k],a+' — '+u);
+  },
+  assignDelSelected(){
+    const ks=[...document.querySelectorAll('#bcaBody .bca-ck:checked')].map(c=>c.dataset.k);
+    if(!ks.length){alert('Chưa chọn dòng nào.');return;}
+    if(!confirm('Xóa '+ks.length+' dòng phân công đã chọn?'))return;
+    BC.assignDelKeys(ks,ks.length+' dòng đã chọn');
+  },
+  assignDelAll(){
+    if(!BC.ASSIGN.length){alert('Chưa có phân công nào.');return;}
+    if(!confirm('XÓA TOÀN BỘ PHÂN CÔNG\n\n'+BC.ASSIGN.length+' dòng sẽ bị xóa. Mọi nhân viên sẽ không xem được đại lý nào cho tới khi phân công lại.\n\nTiếp tục?'))return;
+    BC.assignCommit(()=>[],'Phân công check đại lý (xóa tất cả)',BC.ASSIGN.length+' dòng')
+      .then(ok=>{if(ok)BC.assignMsg('Đã xóa toàn bộ phân công.','ok');});
   },
 
   /* ===== NGHI NGỜ (chỉ ADMIN) — lưu cloud, không mất khi F5 ===== */
   SUSPECTS:[],
-  isSuspect(ag){return BC.SUSPECTS.some(x=>x.dai_ly===ag);},
+  /* Nhân viên không đọc được bản Nghi Ngờ (RLS) -> nhãn "Đã Xử Lý" lấy từ BC.MY.done do máy chủ trả */
+  isSuspect(ag){return BC.SUSPECTS.some(x=>x.dai_ly===ag)||!!(BC.MY&&BC.MY.done.has(ag));},
   suspectCount(){return BC.SUSPECTS.filter(x=>!x.sep).length;},
   updateSuspectBadge(){
     const b=document.getElementById('bc-suspect-badge');
@@ -766,7 +968,8 @@ const BC={
     const _rl=CUR_PROFILE?roleOf(CUR_PROFILE):null;
     if(!CUR_PROFILE||!(CUR_PROFILE.is_admin||(_rl&&_rl.key==='totruong'))){el.innerHTML='<div class="empty">Chỉ ADMIN / Tổ Trưởng xem được mục này.</div>';return;}
     if(!BC.suspectCount()){el.innerHTML='<div class="empty">Chưa có đại lý nào bị đánh dấu nghi ngờ.</div>';return;}
-    const isAdm=!!(CUR_PROFILE&&CUR_PROFILE.is_admin);
+    // Phân cách giai đoạn: ADMIN + Tổ Trưởng (17/09/2026 — TT dùng đủ chức năng tab Nghi Ngờ)
+    const isAdm=BC.canManage();
     const segs=BC.suspectSegments();
     const multi=BC.hasSuspectSep();
     el.innerHTML=segs.map((g,si)=>{
@@ -787,7 +990,7 @@ const BC={
     }).join('');
   },
   async addSuspectSep(){
-    if(!CUR_PROFILE||!CUR_PROFILE.is_admin){alert('Chỉ tài khoản ADMIN mới chèn được phân cách giai đoạn.');return;}
+    if(!CUR_PROFILE||!BC.canManage()){alert('Chỉ ADMIN và Tổ Trưởng mới chèn được phân cách giai đoạn.');return;}
     if(!BC.suspectCount()){alert('Chưa có đại lý nghi ngờ nào — hãy đánh dấu đại lý trước khi phân cách giai đoạn.');return;}
     if(BC.SUSPECTS.length&&BC.SUSPECTS[BC.SUSPECTS.length-1].sep){alert('Phần cuối danh sách đã là một phân cách — hãy thêm đại lý cho giai đoạn mới trước khi phân cách tiếp.');return;}
     try{
@@ -798,7 +1001,7 @@ const BC={
     }catch(e){saveFailed('Phân cách giai đoạn nghi ngờ',e);BC.SUSPECTS=BC.SUSPECTS.filter((x,i)=>i!==BC.SUSPECTS.length-1);}
   },
   async removeSuspectSep(idx){
-    if(!CUR_PROFILE||!CUR_PROFILE.is_admin){alert('Chỉ tài khoản ADMIN mới xóa được phân cách giai đoạn.');return;}
+    if(!CUR_PROFILE||!BC.canManage()){alert('Chỉ ADMIN và Tổ Trưởng mới xóa được phân cách giai đoạn.');return;}
     const s=BC.SUSPECTS[idx];
     if(!s||!s.sep)return;
     try{

@@ -1046,7 +1046,7 @@ caA("Báo cáo đại lý: mọi lượt ghi 'bc'/'bc_marks' đều vào ĐÚNG 
 
 caA('Báo cáo đại lý: 3 đường ghi đều khoá theo vai trò (BC.canManage)', async()=>{
   const s=await _n16_doc('src/js/bc.js'), thieu=[];
-  for(const ten of ['processFiles','resetToDefault','markCell']){
+  for(const ten of ['processFiles','resetToDefault','markCell','assignCommit']){
     const m=s.match(new RegExp('\\n  (?:async )?'+ten+'\\('));   // hàm có thể là async
     const d=m?m.index:-1;
     const than=d<0?'':s.slice(d,s.indexOf('\n  },',d));
@@ -1060,6 +1060,48 @@ caA('Báo cáo đại lý: khối upload bị ẩn với người không phải 
   const k=await _n16_doc('src/dashboard_v2.src.html'), a=await _n16_doc('src/js/auth.js');
   bang(/id="bcUploadCard"/.test(k),true,'khối "Tải file dữ liệu mới" phải có id bcUploadCard');
   bang(/bcUploadCard[\s\S]{0,200}totruong/.test(a),true,'applyPerms phải ẩn khối đó theo vai trò');
+});
+
+caA('Báo cáo đại lý: NHÂN VIÊN nạp qua máy chủ lọc (bc_my_view), không đọc thẳng bản dùng chung', async()=>{
+  const s=await _n16_doc('src/js/bc.js');
+  const d=s.search(/\n  async cloudLoad\(/), than=d<0?'':s.slice(d,s.indexOf('\n  },',d));
+  bang(/rpc\('bc_my_view'\)/.test(than),true,'cloudLoad phải có nhánh gọi rpc bc_my_view');
+  bang(/if\(BC\.canManage\(\)\)\{[\s\S]*?loadReport\('bc'/.test(than),true,"loadReport('bc') chỉ được nằm trong nhánh canManage");
+});
+
+caA('Báo cáo đại lý: tab chọn theo data-p, 2 tab quản lý có trong MANAGE_PANELS', async()=>{
+  const s=await _n16_doc('src/js/bc.js'), k=await _n16_doc('src/dashboard_v2.src.html');
+  bang(/\{summary:0/.test(s),false,'showPanel không được chọn tab theo thứ tự (thêm tab là lệch)');
+  const tabs=[...k.matchAll(/<div class="bc-tab(?: [^"]*)?"([^>]*)>/g)].map(m=>m[1]);   // bỏ khung .bc-tabs
+  bang(tabs.filter(t=>!/data-p="/.test(t)).length,0,'số .bc-tab thiếu data-p');
+  const m=s.match(/MANAGE_PANELS:\[([^\]]*)\]/);
+  bang(!!m&&/'agents'/.test(m[1])&&/'assign'/.test(m[1]),true,'MANAGE_PANELS phải có agents + assign');
+});
+
+/* Bẫy đắt nhất của backend: mỗi file SQL KHAI LẠI can_write_report() = GHI ĐÈ TOÀN BỘ.
+   Chuỗi dưới đây là thứ tự các file đã chạy; bản SAU phải chứa ĐỦ mọi type của bản TRƯỚC.
+   Thêm file SQL mới khai lại hàm này -> nối tên file vào cuối chuỗi. */
+caA('SQL: mỗi lần khai lại can_write_report() giữ ĐỦ mọi type của lần trước', async()=>{
+  const chuoi=['supabase_update4.sql','supabase_sop_totruong.sql','supabase_remind_setup.sql','supabase_warnkw_setup.sql','supabase_bc_cloud.sql','supabase_bc_assign.sql'];
+  const types=async f=>{
+    const s=await _n16_doc(f), d=s.search(/create or replace function public\.can_write_report/);
+    if(d<0)throw new Error(f+' không khai can_write_report');
+    const than=s.slice(d,s.indexOf('$$;',d)).split('\n').map(x=>x.replace(/--.*$/,'')).join('\n');
+    return new Set([...than.matchAll(/'([a-z_]+)'/g)].map(m=>m[1]));
+  };
+  const mat=[];
+  for(let i=1;i<chuoi.length;i++){
+    const truoc=await types(chuoi[i-1]), sau=await types(chuoi[i]);
+    [...truoc].filter(t=>!sau.has(t)).forEach(t=>mat.push(chuoi[i]+" làm rơi '"+t+"'"));
+  }
+  bang(mat,[],'type bị làm rơi — chức năng đó sẽ bị từ chối ghi âm thầm');
+});
+
+caA('SQL: 4 loại dữ liệu báo cáo đại lý bị khoá đọc thẳng với nhân viên', async()=>{
+  const s=await _n16_doc('supabase_bc_assign.sql');
+  const d=s.indexOf('create policy "reports_select"'), than=d<0?'':s.slice(d,s.indexOf(');',d));
+  const thieu=['bc','bc_marks','bc_assign','suspects'].filter(t=>!than.includes("'"+t+"'"));
+  bang(thieu,[],'loại chưa bị khoá — nhân viên F12 đọc được toàn bộ');
 });
 
 /* ---------- chạy hàng đợi bất đồng bộ rồi tổng kết ---------- */

@@ -859,14 +859,18 @@
 </div>
 
 <div class="bc-tabs">
-  <div class="bc-tab active" onclick="BC.showPanel('summary')">TỔNG HỢP <span class="data-source-badge" id="bc-ds-badge" style="background:#475569">TRỐNG</span></div>
-  <div class="bc-tab" onclick="BC.showPanel('agents')">DANH SÁCH ĐẠI LÝ</div>
-  <div class="bc-tab" onclick="BC.showPanel('detail')">KIỂM TRA ĐẠI LÝ</div>
-  <div class="bc-tab" id="bcTabSuspect" style="display:none" onclick="BC.showPanel('suspect')">NGHI NGỜ <span class="data-source-badge" id="bc-suspect-badge" style="background:#ef4444">0</span></div>
+  <!-- data-p = tên panel (showPanel tìm tab theo data-p, KHÔNG theo thứ tự — thêm tab không lệch).
+       Danh Sách Đại Lý / Phân Công / Nghi Ngờ: chỉ ADMIN + Tổ Trưởng (applyPerms mở ra; mặc định ẩn) -->
+  <div class="bc-tab active" data-p="summary" onclick="BC.showPanel('summary')">TỔNG HỢP <span class="data-source-badge" id="bc-ds-badge" style="background:#475569">TRỐNG</span></div>
+  <div class="bc-tab" data-p="agents" id="bcTabAgents" style="display:none" onclick="BC.showPanel('agents')">DANH SÁCH ĐẠI LÝ</div>
+  <div class="bc-tab" data-p="assign" id="bcTabAssign" style="display:none" onclick="BC.showPanel('assign')">PHÂN CÔNG CHECK ĐẠI LÝ</div>
+  <div class="bc-tab" data-p="detail" onclick="BC.showPanel('detail')">KIỂM TRA ĐẠI LÝ</div>
+  <div class="bc-tab" data-p="suspect" id="bcTabSuspect" style="display:none" onclick="BC.showPanel('suspect')">NGHI NGỜ <span class="data-source-badge" id="bc-suspect-badge" style="background:#ef4444">0</span></div>
 </div>
 
 <div class="bc-panel active" id="bc-panel-summary">
   <div class="ph"><div><div class="ph-title">Tổng Hợp Toàn Bộ</div><div class="ph-sub">Chỉ tính thành viên đủ điều kiện (nạp ≥ 1,000 & cược ≥ 3,000) · Đại lý cần ≥ 3 KH hợp lệ</div></div></div>
+  <div class="bc-my-note" id="bc-my-note" style="display:none"></div>
   <div class="cards" id="bc-summary-cards"></div>
   <div class="tbl-toolbar">
     <input type="text" id="bc-s-all" placeholder="Tìm ID, Họ tên, Đại lý, Ngân hàng... (dán nhiều đại lý: a, b, c)" oninput="BC.filterAll()" style="width:340px">
@@ -906,8 +910,34 @@
   <div class="bc-pg" id="bc-pg-agents"></div>
 </div>
 
+<!-- Panel: PHÂN CÔNG CHECK ĐẠI LÝ (ADMIN + Tổ Trưởng) — mỗi dòng: 1 tài khoản nhân viên được xem 1 đại lý.
+     Lưu reports type='bc_assign' month='all'. Máy chủ lọc theo bảng này trong bc_my_view(). -->
+<div class="bc-panel" id="bc-panel-assign">
+  <div class="ph"><div><div class="ph-title">Phân Công Check Đại Lý</div><div class="ph-sub">Mỗi dòng: một nhân viên (tài khoản đăng nhập) được xem một đại lý · Nhân viên chỉ thấy đại lý được giao ở Tổng Hợp và Kiểm Tra Đại Lý</div></div></div>
+  <div class="bca-paste">
+    <textarea id="bcaPaste" rows="5" placeholder="Dán 2 cột từ Excel: cột 1 = Tên đại lý · cột 2 = Tên nhân viên (mỗi dòng một cặp)"></textarea>
+    <div class="bca-act">
+      <button class="abtn abtn-pu" onclick="BC.assignPaste()">Nhận diện và thêm</button>
+      <div class="bca-msg" id="bcaMsg"></div>
+    </div>
+  </div>
+  <div class="tbl-toolbar">
+    <input type="text" id="bcaSearch" placeholder="Tìm đại lý hoặc nhân viên..." oninput="BC.renderAssign()">
+    <span class="bc-badge" id="bcaCnt"></span>
+    <button class="abtn abtn-danger" style="margin-left:auto" onclick="BC.assignDelSelected()">Xóa mục đã chọn</button>
+    <button class="abtn abtn-ghost" onclick="BC.assignDelAll()">Xóa tất cả</button>
+  </div>
+  <div class="tbl-wrap">
+    <table><thead><tr>
+      <th><input type="checkbox" id="bcaCkAll" onchange="BC.assignCheckAll(this)"></th>
+      <th>STT</th><th>Tên đại lý</th><th>Tên nhân viên</th><th>Trạng thái</th><th></th>
+    </tr></thead>
+    <tbody id="bcaBody"></tbody></table>
+  </div>
+</div>
+
 <div class="bc-panel" id="bc-panel-detail">
-  <div class="ph"><div><div class="ph-title">Kiểm Tra Theo Đại Lý</div><div class="ph-sub">Bấm vào Ô trong bảng để tô/bỏ tô điểm nghi ngờ (cam · riêng Âm/Dương đỏ) — file Excel gửi Telegram sẽ tô đúng các ô này · F5 là mất đánh dấu</div></div></div>
+  <div class="ph"><div><div class="ph-title">Kiểm Tra Theo Đại Lý</div><div class="ph-sub">Bấm vào Ô trong bảng để tô/bỏ tô điểm nghi ngờ (cam · riêng Âm/Dương đỏ) — file Excel gửi Telegram sẽ tô đúng các ô này · ô đã tô được lưu cho cả đội</div></div></div>
   <div class="agent-sel-bar">
     <select id="bc-agent-select" onchange="BC.loadAgent()"><option value="">-- Chọn đại lý --</option></select>
     <input type="text" id="bc-agent-text" list="bc-agent-list" placeholder="Hoặc dán tên đại lý..." oninput="BC.pickAgentText(this,1)" onchange="BC.pickAgentText(this,0)">

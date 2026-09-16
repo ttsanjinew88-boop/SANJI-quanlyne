@@ -338,8 +338,13 @@ function applyPerms(){
   if(bcUp)bcUp.style.display=(p.is_admin||roleOf(p).key==='totruong')?'':'none';
   const sbt=document.getElementById('bcSusSheetBtn');
   if(sbt)sbt.style.display=isTTup?'':'none';
+  // Phân cách giai đoạn Nghi Ngờ: ADMIN + Tổ Trưởng (17/09/2026)
   const spb=document.getElementById('bcSusSepBtn');
-  if(spb)spb.style.display=p.is_admin?'':'none';
+  if(spb)spb.style.display=isTTup?'':'none';
+  // Danh Sách Đại Lý + Phân Công Check Đại Lý: chỉ ADMIN + Tổ Trưởng. Nhân viên chỉ thấy đại lý
+  // được giao (máy chủ lọc trong bc_my_view — ẩn tab ở đây chỉ cho gọn mắt, không phải chốt chặn).
+  ['bcTabAgents','bcTabAssign'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=isTTup?'':'none';});
+  if(window.BC)BC.fixPanel();
   // View Đề Xuất Hạn Mức Duyệt: chỉ quyền SỬA tab Hiệu Suất KO mới thấy
   const klb=document.getElementById('koLimitBtn');
   if(klb)klb.style.display=canEdit('ko')?'':'none';
