@@ -1112,6 +1112,32 @@ caA('SQL: 4 loại dữ liệu báo cáo đại lý bị khoá đọc thẳng v�
   bang(thieu,[],'loại chưa bị khoá — nhân viên F12 đọc được toàn bộ');
 });
 
+/* Tự tích Nghi Ngờ khi bấm ✅ Xác Nhận trên Telegram (Edge Function). Không chạy được Deno ở
+   đây nên soi dạng văn bản 3 luật user đã chốt — sai luật là điểm/nghi ngờ rơi nhầm chỗ. */
+caA('Telegram: tự tích Nghi Ngờ CHỈ ở báo cáo đại lý được Xác Nhận', async()=>{
+  const s=await _n16_doc('supabase/functions/tg-webhook/index.ts');
+  bang(/if\s*\(cat === "mkt"\)\s*sus = await autoMarkSuspect/.test(s),true,"chỉ nhánh cat 'mkt' (báo cáo đại lý) mới tích");
+  const d=s.indexOf('} else if (act === "wt")'), than=d<0?'':s.slice(d,s.indexOf('} else {',d));
+  bang(/autoMarkSuspect/.test(than),false,'nút Theo Dõi Thêm KHÔNG được tích nghi ngờ');
+  bang(/dropPendingSuspect\(rid\)/.test(than),true,'Theo Dõi Thêm phải dọn bản tạm');
+});
+
+caA('Telegram: chụp đại lý lúc GỬI (không phải lúc xác nhận) và gộp ô tô vào thẻ có sẵn', async()=>{
+  const s=await _n16_doc('supabase/functions/tg-webhook/index.ts');
+  bang(/mode === "dai_ly" && agent\)\s*\{\s*await savePendingSuspect/.test(s),true,'sendReport phải chụp khi gửi báo cáo đại lý');
+  const d=s.indexOf('async function autoMarkSuspect'), than=d<0?'':s.slice(d,s.indexOf('\n}\n',d));
+  bang(/new Set<string>\(\[\.\.\.\(cu\.cellMarks/.test(than),true,'đại lý đã có sẵn thì GỘP THÊM ô tô, không ghi đè');
+  bang(/type: "suspects"/.test(than),true,'phải ghi vào danh sách Nghi Ngờ');
+});
+
+caA('Telegram: bản tạm chờ Xác Nhận phải nằm trong loại BỊ KHOÁ ĐỌC (không lộ cho nhân viên)', async()=>{
+  const s=await _n16_doc('supabase/functions/tg-webhook/index.ts');
+  const khoa=['bc','bc_marks','bc_assign','suspects'];        // 4 loại khoá ở supabase_bc_assign.sql
+  const loai=[...s.matchAll(/type: "([a-z_]+)", month: "pending"/g)].map(m=>m[1]);
+  bang(loai.length>0,true,'phải có chỗ ghi bản tạm');
+  bang(loai.filter(t=>!khoa.includes(t)),[],'bản tạm chứa dữ liệu khách -> loại này nhân viên đọc thẳng được');
+});
+
 /* ---------- chạy hàng đợi bất đồng bộ rồi tổng kết ---------- */
 (async()=>{
   for(const x of _hangDoi){

@@ -869,7 +869,7 @@ const I18N={
   "Chưa có đại lý nào bị đánh dấu nghi ngờ.":"No affiliate has been flagged yet.",
   "Giai đoạn này chưa có đại lý.":"This phase has no affiliates yet.",
   "Chỉ ADMIN / Tổ Trưởng xem được mục này.":"Only ADMIN / Team Leader can see this section.",
-  "Chỉ tài khoản ADMIN mới dùng được chức năng Nghi Ngờ.":"Only ADMIN accounts can use the flagging feature.",
+  "Chỉ ADMIN và Tổ Trưởng mới dùng được chức năng Nghi Ngờ.":"Only ADMIN and Team Leader can use the Suspect feature.",
   "Chỉ ADMIN và Tổ Trưởng mới chèn được phân cách giai đoạn.":"Only ADMIN and Team Leader can insert a phase divider.",
   "Chỉ ADMIN và Tổ Trưởng mới xóa được phân cách giai đoạn.":"Only ADMIN and Team Leader can remove a phase divider.",
   "Chưa có đại lý nghi ngờ nào — hãy đánh dấu đại lý trước khi phân cách giai đoạn.":"No flagged affiliates yet — flag one before adding a phase divider.",

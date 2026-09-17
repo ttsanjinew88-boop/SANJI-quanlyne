@@ -483,7 +483,7 @@ const BC={
     if(isFirst){
       const ag=String(r.dai_ly).replace(/'/g,"\\'");
       const flagged=BC.isSuspect(r.dai_ly);
-      const chk=(CUR_PROFILE&&CUR_PROFILE.is_admin)
+      const chk=BC.canManage()
         ?`<label style="display:flex;align-items:center;justify-content:center;gap:4px;font-size:9px;color:${flagged?'#f87171':'var(--mu2)'};cursor:pointer;font-weight:700"><input type="checkbox" ${flagged?'checked':''} onchange="BC.toggleSuspect('${ag}',this)" style="accent-color:#ef4444;cursor:pointer">Nghi ngờ</label>`
         :'';
       /* Đại lý đã đưa vào tab Nghi Ngờ -> nhãn xanh "Đã Xử Lý" (mọi vai trò đều thấy, kể cả khi không có ô tích) */
@@ -739,7 +739,12 @@ const BC={
     document.querySelectorAll('#t2 .bc-panel').forEach(p=>p.classList.remove('active'));
     document.querySelectorAll('#t2 .bc-tab').forEach(t=>t.classList.toggle('active',t.dataset.p===n));
     document.getElementById('bc-panel-'+n).classList.add('active');
-    if(n==='suspect')BC.renderSuspects();
+    // Nghi Ngờ: bot Telegram có thể vừa tự tích thêm đại lý (nút ✅ Xác Nhận) -> nạp lại
+    // danh sách mỗi lần mở tab, khỏi phải F5 mới thấy.
+    if(n==='suspect'){
+      BC.renderSuspects();
+      if(BC.canManage())BC.loadSuspects().then(()=>BC.renderSuspects()).catch(()=>{});
+    }
     if(n==='assign')BC.assignBoot();
   },
   /* applyPerms gọi: đang đứng ở tab quản lý mà không có quyền thì đẩy về Tổng Hợp */
@@ -909,7 +914,14 @@ const BC={
   /* ===== NGHI NGỜ (chỉ ADMIN) — lưu cloud, không mất khi F5 ===== */
   SUSPECTS:[],
   /* Nhân viên không đọc được bản Nghi Ngờ (RLS) -> nhãn "Đã Xử Lý" lấy từ BC.MY.done do máy chủ trả */
-  isSuspect(ag){return BC.SUSPECTS.some(x=>x.dai_ly===ag)||!!(BC.MY&&BC.MY.done.has(ag));},
+  /* So tên KHÔNG phân biệt hoa/thường: thẻ do bot Telegram tự tích có thể mang tên người gửi gõ
+     vào, lệch hoa/thường là nhãn "Đã Xử Lý" và ô tích trượt hết. */
+  _agEq(a,b){return String(a||'').trim().toLowerCase()===String(b||'').trim().toLowerCase();},
+  isSuspect(ag){
+    if(BC.SUSPECTS.some(x=>!x.sep&&BC._agEq(x.dai_ly,ag)))return true;
+    if(BC.MY)for(const d of BC.MY.done)if(BC._agEq(d,ag))return true;
+    return false;
+  },
   suspectCount(){return BC.SUSPECTS.filter(x=>!x.sep).length;},
   updateSuspectBadge(){
     const b=document.getElementById('bc-suspect-badge');
@@ -938,8 +950,9 @@ const BC={
     }catch(e){console.error('loadSuspects',e);}
   },
   async toggleSuspect(ag,cb){
-    if(!CUR_PROFILE||!CUR_PROFILE.is_admin){
-      alert('Chỉ tài khoản ADMIN mới dùng được chức năng Nghi Ngờ.');
+    // ADMIN + Tổ Trưởng (17/09/2026): TT thấy đại lý đáng ngờ mà nhân viên chưa xử lý thì tích thêm
+    if(!CUR_PROFILE||!BC.canManage()){
+      alert('Chỉ ADMIN và Tổ Trưởng mới dùng được chức năng Nghi Ngờ.');
       if(cb)cb.checked=!cb.checked;
       return;
     }
@@ -949,7 +962,7 @@ const BC={
     let act,det;
     try{
       if(BC.isSuspect(ag)){
-        BC.SUSPECTS=BC.SUSPECTS.filter(x=>x.dai_ly!==ag);
+        BC.SUSPECTS=BC.SUSPECTS.filter(x=>x.sep||!BC._agEq(x.dai_ly,ag));
         act='Bỏ nghi ngờ đại lý';det=ag;
       }else{
         const summary=BC.AGENTS.find(a=>a.dai_ly===ag)||null;

@@ -110,6 +110,126 @@ async function loadConfirmers(): Promise<Set<string>> {
 }
 const anon = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
 
+/* ===== TỰ TÍCH NGHI NGỜ KHI BẤM ✅ XÁC NHẬN (chốt 17/09/2026) ==============================
+   Luồng: nhân viên gửi "Báo cáo đại lý bất thường" -> lúc GỬI, máy chủ chụp lại đại lý đó
+   (dòng tổng + danh sách khách + các ô nhân viên đã tô) và cất tạm theo mã rid ở
+   reports type='bc' month='pending' — CỐ Ý dùng lại type 'bc' (đã bị policy reports_select khoá
+   đọc với nhân viên) thay vì type mới, khỏi phải chạy thêm SQL và không lộ dữ liệu. Khi có người bấm ✅ Xác Nhận, nhánh cf lấy ảnh chụp
+   ra và GỘP vào danh sách Nghi Ngờ (reports type='suspects' month='all').
+
+   ⚠ Vì sao chụp lúc GỬI, không phải lúc XÁC NHẬN: giữa hai thời điểm có thể có người bấm
+     "Tính toán" lại (bản dùng chung đổi hẳn) -> chụp lúc gửi thì thứ vào tab Nghi Ngờ đúng
+     bằng thứ nhân viên đã báo, kể cả các ô họ tô.
+   ⚠ Vì sao phải cất theo rid chứ không nhét tên đại lý vào nút: callback_data của Telegram
+     tối đa 64 byte, nút hiện đã dùng gần hết cho fk + ngày + điểm + rid.
+   ⚠ CHỈ báo cáo ĐẠI LÝ (mode 'dai_ly' -> cat 'm') mới tích. "Cược bất thường" và nút
+     "👁 Theo Dõi Thêm" KHÔNG tích (user chốt 17/09/2026). */
+const PENDING_KEEP_MS = 7 * 24 * 3600 * 1000;   // bản tạm quá 7 ngày coi như bỏ
+const PENDING_MAX = 300;
+
+async function savePendingSuspect(rid: string, agent: string, by: string, fkName: string) {
+  try {
+    const lc = agent.trim().toLowerCase();
+    const { data: bcRow } = await sb.from("reports").select("data")
+      .eq("type", "bc").eq("month", "current").maybeSingle();
+    const bc = bcRow?.data ?? {};
+    const members = (bc.ROWS ?? []).filter((r: any) => String(r?.dai_ly ?? "").trim().toLowerCase() === lc);
+    const summary = (bc.AGENTS ?? []).find((a: any) => String(a?.dai_ly ?? "").trim().toLowerCase() === lc) ?? null;
+    const { data: mkRow } = await sb.from("reports").select("data")
+      .eq("type", "bc_marks").eq("month", "current").maybeSingle();
+    let cellMarks: string[] = [];
+    for (const [k, v] of Object.entries(mkRow?.data?.marks ?? {})) {
+      if (String(k).trim().toLowerCase() === lc) cellMarks = (v as string[]) ?? [];
+    }
+    const { data: pdRow } = await sb.from("reports").select("data")
+      .eq("type", "bc").eq("month", "pending").maybeSingle();
+    const map: Record<string, any> = pdRow?.data?.map ?? {};
+    const now = Date.now();
+    // dọn bản tạm quá hạn / thừa -> bảng không phình vô hạn
+    for (const [k, v] of Object.entries(map)) {
+      if (now - Number((v as any)?.ts ?? 0) > PENDING_KEEP_MS) delete map[k];
+    }
+    const keys = Object.keys(map);
+    if (keys.length >= PENDING_MAX) {
+      keys.sort((a, b) => Number(map[a]?.ts ?? 0) - Number(map[b]?.ts ?? 0));
+      for (const k of keys.slice(0, keys.length - PENDING_MAX + 1)) delete map[k];
+    }
+    // Lấy tên ĐÚNG NHƯ TRONG DỮ LIỆU (không lấy nguyên chuỗi người gửi): dashboard so tên để
+    // gắn nhãn "Đã Xử Lý" và ô tích, lệch hoa/thường là trượt hết.
+    const ten = String(summary?.dai_ly ?? members[0]?.dai_ly ?? agent).trim();
+    map[rid] = { agent: ten, by, fkName, ts: now, summary, members, cellMarks };
+    await sb.from("reports").upsert(
+      { type: "bc", month: "pending", data: { map }, updated_at: new Date().toISOString() },
+      { onConflict: "type,month" },
+    );
+  } catch (e) {
+    // Chụp hỏng KHÔNG được làm hỏng việc gửi báo cáo: mất tự tích thôi, Tổ Trưởng tích tay như cũ.
+    console.error("savePendingSuspect", e);
+  }
+}
+
+/* Bỏ bản tạm mà KHÔNG tích (nút 👁 Theo Dõi Thêm / ❌ Hủy Bỏ) — khỏi nằm lại chờ hết hạn */
+async function dropPendingSuspect(rid: string) {
+  try {
+    const { data: pdRow } = await sb.from("reports").select("data")
+      .eq("type", "bc").eq("month", "pending").maybeSingle();
+    const map: Record<string, any> = pdRow?.data?.map ?? {};
+    if (!map[rid]) return;
+    delete map[rid];
+    await sb.from("reports").upsert(
+      { type: "bc", month: "pending", data: { map }, updated_at: new Date().toISOString() },
+      { onConflict: "type,month" },
+    );
+  } catch (e) { console.error("dropPendingSuspect", e); }
+}
+
+/* Gộp đại lý vào danh sách Nghi Ngờ. Đại lý đã có sẵn -> GỘP THÊM ô đã tô (user chốt), giữ
+   nguyên thẻ cũ. Trả về dòng mô tả để ghi Lịch Sử, '' nếu không làm gì. */
+async function autoMarkSuspect(rid: string, who: string): Promise<string> {
+  try {
+    const { data: pdRow } = await sb.from("reports").select("data")
+      .eq("type", "bc").eq("month", "pending").maybeSingle();
+    const map: Record<string, any> = pdRow?.data?.map ?? {};
+    const p = map[rid];
+    if (!p) return "";
+    delete map[rid];
+    await sb.from("reports").upsert(
+      { type: "bc", month: "pending", data: { map }, updated_at: new Date().toISOString() },
+      { onConflict: "type,month" },
+    );
+
+    // đọc SÁT lúc ghi để cửa sổ đè lên thay đổi của Tổ Trưởng nhỏ nhất có thể
+    const { data: suRow } = await sb.from("reports").select("data")
+      .eq("type", "suspects").eq("month", "all").maybeSingle();
+    const list: any[] = suRow?.data?.list ?? [];
+    const lc = String(p.agent).trim().toLowerCase();
+    const cu = list.find((x) => !x?.sep && String(x?.dai_ly ?? "").trim().toLowerCase() === lc);
+    let mota: string;
+    if (cu) {
+      const gop = new Set<string>([...(cu.cellMarks ?? []), ...(p.cellMarks ?? [])]);
+      const them = gop.size - (cu.cellMarks ?? []).length;
+      cu.cellMarks = [...gop];
+      mota = `${p.agent} · đã có sẵn, gộp thêm ${them} ô tô`;
+    } else {
+      list.push({
+        dai_ly: p.agent, at: new Date().toISOString(),
+        by: p.by || ("telegram:" + who),
+        summary: p.summary ?? null, members: p.members ?? [],
+        cellMarks: p.cellMarks ?? [], src: "telegram",
+      });
+      mota = `${p.agent} · ${(p.members ?? []).length} KH · ${(p.cellMarks ?? []).length} ô tô`;
+    }
+    await sb.from("reports").upsert(
+      { type: "suspects", month: "all", data: { list }, updated_at: new Date().toISOString() },
+      { onConflict: "type,month" },
+    );
+    return mota;
+  } catch (e) {
+    console.error("autoMarkSuspect", e);
+    return "";
+  }
+}
+
 async function sendReport(req: Request): Promise<Response> {
   // Xác thực người gửi: phải là user đã đăng nhập (Authorization: Bearer <access_token>)
   const auth = req.headers.get("authorization") || "";
@@ -182,6 +302,10 @@ async function sendReport(req: Request): Promise<Response> {
     }
     if (lastMsgId) {
       await tg("editMessageReplyMarkup", { chat_id: fileChat, message_id: lastMsgId, reply_markup: rm });
+    }
+    // CHỤP ẢNH ĐẠI LÝ ĐỂ TỰ TÍCH NGHI NGỜ KHI ĐƯỢC XÁC NHẬN (17/09/2026 -> xem savePendingSuspect)
+    if (mode === "dai_ly" && agent) {
+      await savePendingSuspect(rid, agent, prof.username || "", fkName);
     }
     // ghi log gửi báo cáo
     await sb.from("audit_log").insert({
@@ -341,11 +465,22 @@ Deno.serve(async (req) => {
         action: "Xác nhận bất thường (Telegram)",
         detail: `${nm} · +${cnt} · ngày ${date} · ${cat === "mkt" ? "Đại lý ngoài" : "Cược lạm dụng"}`,
       });
-      await answer(`✅ Đã cộng +${cnt} điểm cho ${nm} ngày ${date}`);
-      doneLabel = `✅ Đã duyệt +${cnt} · ${nm} · bởi ${who}`;
+      // Báo cáo ĐẠI LÝ (cat 'mkt') -> tự tích Nghi Ngờ, giữ nguyên ô nhân viên đã tô
+      let sus = "";
+      if (cat === "mkt") sus = await autoMarkSuspect(rid, who);
+      if (sus) {
+        await sb.from("audit_log").insert({
+          username: "telegram:" + who,
+          action: "Tự tích nghi ngờ đại lý (Telegram)",
+          detail: sus,
+        });
+      }
+      await answer(`✅ Đã cộng +${cnt} điểm cho ${nm} ngày ${date}` + (sus ? "\n🚩 Đã đưa vào tab Nghi Ngờ" : ""));
+      doneLabel = `✅ Đã duyệt +${cnt} · ${nm} · bởi ${who}` + (sus ? " · 🚩 Nghi Ngờ" : "");
     } else if (act === "wt") {
       const fk = parts[1], date = parts[2];
       const nm = await fkNameOf(fk);
+      await dropPendingSuspect(rid);      // Theo Dõi Thêm: KHÔNG tích nghi ngờ (user chốt)
       await sb.from("audit_log").insert({
         username: "telegram:" + who,
         action: "Theo dõi thêm (Telegram)",
@@ -356,6 +491,7 @@ Deno.serve(async (req) => {
     } else {
       const fk = parts[1], date = parts[2];
       const nm = await fkNameOf(fk);
+      await dropPendingSuspect(rid);
       await sb.from("audit_log").insert({
         username: "telegram:" + who,
         action: "Hủy báo cáo (Telegram)",
