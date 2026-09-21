@@ -860,16 +860,21 @@
 
 <div class="bc-tabs">
   <!-- data-p = tên panel (showPanel tìm tab theo data-p, KHÔNG theo thứ tự — thêm tab không lệch).
-       Danh Sách Đại Lý / Phân Công / Nghi Ngờ: chỉ ADMIN + Tổ Trưởng (applyPerms mở ra; mặc định ẩn) -->
+       Danh Sách Đại Lý / Nghi Ngờ: chỉ ADMIN + Tổ Trưởng (applyPerms mở ra; mặc định ẩn).
+       Nhân viên kiểm tra được MỌI đại lý ở Tổng Hợp / Kiểm Tra, nhưng phải gõ từ khoá mới hiện
+       (máy chủ lọc — xem supabase_bc_lookup.sql). -->
   <div class="bc-tab active" data-p="summary" onclick="BC.showPanel('summary')">TỔNG HỢP <span class="data-source-badge" id="bc-ds-badge" style="background:#475569">TRỐNG</span></div>
   <div class="bc-tab" data-p="agents" id="bcTabAgents" style="display:none" onclick="BC.showPanel('agents')">DANH SÁCH ĐẠI LÝ</div>
-  <div class="bc-tab" data-p="assign" id="bcTabAssign" style="display:none" onclick="BC.showPanel('assign')">PHÂN CÔNG CHECK ĐẠI LÝ</div>
   <div class="bc-tab" data-p="detail" onclick="BC.showPanel('detail')">KIỂM TRA ĐẠI LÝ</div>
   <div class="bc-tab" data-p="suspect" id="bcTabSuspect" style="display:none" onclick="BC.showPanel('suspect')">NGHI NGỜ <span class="data-source-badge" id="bc-suspect-badge" style="background:#ef4444">0</span></div>
 </div>
 
 <div class="bc-panel active" id="bc-panel-summary">
   <div class="ph"><div><div class="ph-title">Tổng Hợp Toàn Bộ</div><div class="ph-sub">Hiện mọi tài khoản có đủ thông tin · Chỉ tiêu Đạt = nạp ≥ 1,000 & cược ≥ 3,000 · Thẻ tổng chỉ tính KH hợp lệ của đại lý có ≥ 3 KH hợp lệ</div></div></div>
+  <!-- Thời điểm bản dùng chung được tải lên + người tải (MỌI vai trò thấy) — BC.renderCloudInfo -->
+  <div class="bc-cloud-info" id="bc-cloud-info"></div>
+  <!-- Dòng ghi chú của chế độ tra cứu qua máy chủ (nhân viên): hướng dẫn gõ từ khoá / báo
+       không tìm thấy / báo từ khoá quá rộng. Ẩn với ADMIN + Tổ Trưởng (BC.srvNote). -->
   <div class="bc-my-note" id="bc-my-note" style="display:none"></div>
   <div class="cards" id="bc-summary-cards"></div>
   <div class="tbl-toolbar">
@@ -908,32 +913,6 @@
     <tbody id="bc-body-agents"></tbody></table>
   </div>
   <div class="bc-pg" id="bc-pg-agents"></div>
-</div>
-
-<!-- Panel: PHÂN CÔNG CHECK ĐẠI LÝ (ADMIN + Tổ Trưởng) — mỗi dòng: 1 tài khoản nhân viên được xem 1 đại lý.
-     Lưu reports type='bc_assign' month='all'. Máy chủ lọc theo bảng này trong bc_my_view(). -->
-<div class="bc-panel" id="bc-panel-assign">
-  <div class="ph"><div><div class="ph-title">Phân Công Check Đại Lý</div><div class="ph-sub">Mỗi dòng: một nhân viên (tài khoản đăng nhập) được xem một đại lý · Nhân viên chỉ thấy đại lý được giao ở Tổng Hợp và Kiểm Tra Đại Lý</div></div></div>
-  <div class="bca-paste">
-    <textarea id="bcaPaste" rows="5" placeholder="Dán 2 cột từ Excel: cột 1 = Tên đại lý · cột 2 = Tên nhân viên (mỗi dòng một cặp)"></textarea>
-    <div class="bca-act">
-      <button class="abtn abtn-pu" onclick="BC.assignPaste()">Nhận diện và thêm</button>
-      <div class="bca-msg" id="bcaMsg"></div>
-    </div>
-  </div>
-  <div class="tbl-toolbar">
-    <input type="text" id="bcaSearch" placeholder="Tìm đại lý hoặc nhân viên..." oninput="BC.renderAssign()">
-    <span class="bc-badge" id="bcaCnt"></span>
-    <button class="abtn abtn-danger" style="margin-left:auto" onclick="BC.assignDelSelected()">Xóa mục đã chọn</button>
-    <button class="abtn abtn-ghost" onclick="BC.assignDelAll()">Xóa tất cả</button>
-  </div>
-  <div class="tbl-wrap">
-    <table><thead><tr>
-      <th><input type="checkbox" id="bcaCkAll" onchange="BC.assignCheckAll(this)"></th>
-      <th>STT</th><th>Tên đại lý</th><th>Tên nhân viên</th><th>Trạng thái</th><th></th>
-    </tr></thead>
-    <tbody id="bcaBody"></tbody></table>
-  </div>
 </div>
 
 <div class="bc-panel" id="bc-panel-detail">

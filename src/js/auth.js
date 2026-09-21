@@ -341,9 +341,10 @@ function applyPerms(){
   // Phân cách giai đoạn Nghi Ngờ: ADMIN + Tổ Trưởng (17/09/2026)
   const spb=document.getElementById('bcSusSepBtn');
   if(spb)spb.style.display=isTTup?'':'none';
-  // Danh Sách Đại Lý + Phân Công Check Đại Lý: chỉ ADMIN + Tổ Trưởng. Nhân viên chỉ thấy đại lý
-  // được giao (máy chủ lọc trong bc_my_view — ẩn tab ở đây chỉ cho gọn mắt, không phải chốt chặn).
-  ['bcTabAgents','bcTabAssign'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=isTTup?'':'none';});
+  // Danh Sách Đại Lý (bảng liệt kê TOÀN BỘ đại lý): chỉ ADMIN + Tổ Trưởng. Nhân viên kiểm tra
+  // được mọi đại lý nhưng phải GÕ TÊN — máy chủ (bc_lookup) chỉ trả phần khớp từ khoá, nên ẩn
+  // tab này là giữ cho đúng cách làm đó, không phải chốt chặn (chốt chặn ở Postgres).
+  ['bcTabAgents'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=isTTup?'':'none';});
   if(window.BC)BC.fixPanel();
   // View Đề Xuất Hạn Mức Duyệt: chỉ quyền SỬA tab Hiệu Suất KO mới thấy
   const klb=document.getElementById('koLimitBtn');

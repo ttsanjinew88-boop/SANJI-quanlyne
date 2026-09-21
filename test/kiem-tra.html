@@ -1044,9 +1044,9 @@ caA("Báo cáo đại lý: mọi lượt ghi 'bc'/'bc_marks' đều vào ĐÚNG 
   bang(xau,[],'ghi lạc sang tháng khác — mỗi người sẽ thấy một bản khác nhau');
 });
 
-caA('Báo cáo đại lý: 3 đường ghi đều khoá theo vai trò (BC.canManage)', async()=>{
+caA('Báo cáo đại lý: 2 đường ghi bản dùng chung đều khoá theo vai trò (BC.canManage)', async()=>{
   const s=await _n16_doc('src/js/bc.js'), thieu=[];
-  for(const ten of ['processFiles','resetToDefault','assignCommit']){   // markCell: mọi vai trò, máy chủ chặn (phép kiểm dưới)
+  for(const ten of ['processFiles','resetToDefault']){   // markCell: mọi vai trò, máy chủ chặn (phép kiểm dưới)
     const m=s.match(new RegExp('\\n  (?:async )?'+ten+'\\('));   // hàm có thể là async
     const d=m?m.index:-1;
     const than=d<0?'':s.slice(d,s.indexOf('\n  },',d));
@@ -1062,28 +1062,69 @@ caA('Báo cáo đại lý: khối upload bị ẩn với người không phải 
   bang(/bcUploadCard[\s\S]{0,200}totruong/.test(a),true,'applyPerms phải ẩn khối đó theo vai trò');
 });
 
-caA('Báo cáo đại lý: NHÂN VIÊN nạp qua máy chủ lọc (bc_my_view), không đọc thẳng bản dùng chung', async()=>{
+/* 21/09/2026 — đã gỡ Phân Công Check Đại Lý. Nhân viên kiểm tra được MỌI đại lý nhưng
+   KHÔNG được tải sẵn cả kho: mở tab chỉ lấy CON SỐ TỔNG (bc_totals), dòng khách chỉ về máy
+   khi gõ từ khoá (bc_lookup). Đọc thẳng bản 'bc' = mọi khách của mọi đại lý nằm trong
+   trình duyệt, F12 là thấy (repo public + anon key public). */
+caA('Báo cáo đại lý: NHÂN VIÊN mở tab chỉ lấy số tổng (bc_totals), không tải dòng khách nào', async()=>{
   const s=await _n16_doc('src/js/bc.js');
   const d=s.search(/\n  async cloudLoad\(/), than=d<0?'':s.slice(d,s.indexOf('\n  },',d));
-  bang(/rpc\('bc_my_view'\)/.test(than),true,'cloudLoad phải có nhánh gọi rpc bc_my_view');
-  bang(/if\(BC\.canManage\(\)\)\{[\s\S]*?loadReport\('bc'/.test(than),true,"loadReport('bc') chỉ được nằm trong nhánh canManage");
+  bang(/if\(BC\.srv\(\)\)\{/.test(than),true,'cloudLoad phải có nhánh riêng cho chế độ tra cứu máy chủ');
+  bang(/rpc\('bc_totals'\)/.test(than),true,'nhánh nhân viên phải gọi rpc bc_totals');
+  const dNv=than.indexOf('if(BC.srv()){'), dQl=than.indexOf("loadReport('bc'");
+  bang(dNv>=0&&dQl>dNv,true,"loadReport('bc') phải nằm SAU nhánh nhân viên (chỉ ADMIN/TT đọc thẳng)");
+  bang(/BC\.srv\(\)[\s\S]{0,400}?BC\.ROWS=\[\]/.test(than),true,'nhánh nhân viên không được gán ROWS từ máy chủ');
+});
+
+caA('Báo cáo đại lý: ô tìm kiếm của NHÂN VIÊN đi qua bc_lookup và đẩy nốt ô đã tô trước khi thay MARKS', async()=>{
+  const s=await _n16_doc('src/js/bc.js');
+  const dF=s.search(/\n  filterAll\(\)\{/), thanF=dF<0?'':s.slice(dF,s.indexOf('\n  },',dF));
+  bang(/if\(BC\.srv\(\)\)\{BC\.srvFilter\(\);return;\}/.test(thanF),true,'filterAll phải rẽ sang srvFilter khi ở chế độ nhân viên');
+  const d=s.search(/\n  async srvLookup\(/), than=d<0?'':s.slice(d,s.indexOf('\n  },',d));
+  bang(/rpc\('bc_lookup'/.test(than),true,'srvLookup phải gọi rpc bc_lookup');
+  // Bẫy: bộ ghi gộp 600ms đọc BC.MARKS lúc nó BẮN -> thay MARKS trước khi đẩy = gửi bộ ô RỖNG lên máy chủ
+  const iFlush=than.indexOf('await BC.mkFlush()'), iMarks=than.indexOf('BC.marksFromJson(');
+  bang(iFlush>=0&&iMarks>iFlush,true,'srvLookup phải await BC.mkFlush() TRƯỚC khi thay BC.MARKS');
+  bang(/\bASSIGN\b|bc_my_view|assignCommit/.test(s),false,'còn sót mã của Phân Công Check Đại Lý đã gỡ');
+});
+
+caA('Báo cáo đại lý: thời điểm tải bản dùng chung hiện đủ ngày/tháng/năm và khoá múi giờ VN', async()=>{
+  const s=await _n16_doc('src/js/bc.js'), k=await _n16_doc('src/dashboard_v2.src.html');
+  bang(/id="bc-cloud-info"/.test(k),true,'phải có dòng hiện thời điểm tải lên ở tab Tổng Hợp');
+  const d=s.search(/\n  tsVN\(/), than=d<0?'':s.slice(d,s.indexOf('\n  },',d));
+  bang(/timeZone:'Asia\/Bangkok'/.test(than),true,'phải khoá múi giờ VN — máy để lệch múi giờ sẽ đọc ra giờ khác');
+  bang(/hour12:false/.test(than),true,"không dùng 12 giờ ('2:35 CH' khó đọc)");
+  bang(/'en-GB'/.test(than),true,"phải là en-GB (vi-VN đẩy giờ lên trước và viết ngày bằng dấu gạch)");
+  // cả 2 nhánh nạp (ADMIN/TT đọc thẳng · nhân viên qua bc_totals) đều phải ghi lại thời điểm
+  const dL=s.search(/\n  async cloudLoad\(/), thanL=dL<0?'':s.slice(dL,s.indexOf('\n  },',dL));
+  bang((thanL.match(/BC\.setCloudMeta\(/g)||[]).length>=2,true,'cả 2 nhánh cloudLoad đều phải gọi setCloudMeta');
+});
+
+caA('Báo cáo đại lý: thẻ tổng của NHÂN VIÊN lấy từ bc_totals, không tính trên phần vừa tra cứu', async()=>{
+  const s=await _n16_doc('src/js/bc.js');
+  const d=s.search(/\n  initCards\(\)\{/), than=d<0?'':s.slice(d,s.indexOf('\n  },',d));
+  bang(/BC\.srv\(\)\?BC\.TOTALS:null/.test(than),true,'initCards phải dùng BC.TOTALS khi ở chế độ tra cứu máy chủ');
+  // tính trên BC.ROWS ở chế độ đó = thẻ chỉ còn số của mấy đại lý vừa gõ -> số báo cáo sai nghĩa
+  bang(/T\?\(T\.rows\|\|0\):Q\.length/.test(than),true,'số KH hợp lệ phải lấy từ TOTALS.rows khi có TOTALS');
 });
 
 caA('Báo cáo đại lý: tô ô ghi THEO TỪNG ĐẠI LÝ qua bc_mark_set (không gửi cả bộ ô từ máy khách)', async()=>{
   const s=await _n16_doc('src/js/bc.js');
-  const d=s.search(/\n  saveMarksSoon\(/), than=d<0?'':s.slice(d,s.indexOf('\n  },',d));
-  bang(/rpc\('bc_mark_set'/.test(than),true,'saveMarksSoon phải gọi rpc bc_mark_set');
+  const d=s.search(/\n  async mkFlush\(/), than=d<0?'':s.slice(d,s.indexOf('\n  },',d));
+  bang(/rpc\('bc_mark_set'/.test(than),true,'mkFlush phải gọi rpc bc_mark_set');
   // đường ghi cả bộ chỉ được phép là nhánh dự phòng cho ADMIN/TT khi chưa chạy SQL
-  bang(/canManage\(\)[\s\S]*saveReport\('bc_marks'/.test(than)||!/saveReport\('bc_marks'/.test(than),true,"saveReport('bc_marks') trong saveMarksSoon chỉ được nằm sau chốt canManage");
+  bang(/canManage\(\)[\s\S]*saveReport\('bc_marks'/.test(than)||!/saveReport\('bc_marks'/.test(than),true,"saveReport('bc_marks') trong mkFlush chỉ được nằm sau chốt canManage");
 });
 
-caA('Báo cáo đại lý: tab chọn theo data-p, 2 tab quản lý có trong MANAGE_PANELS', async()=>{
+caA('Báo cáo đại lý: tab chọn theo data-p, tab quản lý có trong MANAGE_PANELS', async()=>{
   const s=await _n16_doc('src/js/bc.js'), k=await _n16_doc('src/dashboard_v2.src.html');
   bang(/\{summary:0/.test(s),false,'showPanel không được chọn tab theo thứ tự (thêm tab là lệch)');
   const tabs=[...k.matchAll(/<div class="bc-tab(?: [^"]*)?"([^>]*)>/g)].map(m=>m[1]);   // bỏ khung .bc-tabs
   bang(tabs.filter(t=>!/data-p="/.test(t)).length,0,'số .bc-tab thiếu data-p');
   const m=s.match(/MANAGE_PANELS:\[([^\]]*)\]/);
-  bang(!!m&&/'agents'/.test(m[1])&&/'assign'/.test(m[1]),true,'MANAGE_PANELS phải có agents + assign');
+  bang(!!m&&/'agents'/.test(m[1])&&/'suspect'/.test(m[1]),true,'MANAGE_PANELS phải có agents + suspect');
+  bang(/'assign'/.test(String(m&&m[1])),false,"tab 'assign' đã gỡ — còn trong MANAGE_PANELS là trỏ vào panel không tồn tại");
+  bang(/id="bcTabAssign"|id="bc-panel-assign"/.test(k),false,'tab/panel Phân Công đã gỡ khỏi HTML');
 });
 
 /* Bẫy đắt nhất của backend: mỗi file SQL KHAI LẠI can_write_report() = GHI ĐÈ TOÀN BỘ.
@@ -1110,6 +1151,33 @@ caA('SQL: 4 loại dữ liệu báo cáo đại lý bị khoá đọc thẳng v�
   const d=s.indexOf('create policy "reports_select"'), than=d<0?'':s.slice(d,s.indexOf(');',d));
   const thieu=['bc','bc_marks','bc_assign','suspects'].filter(t=>!than.includes("'"+t+"'"));
   bang(thieu,[],'loại chưa bị khoá — nhân viên F12 đọc được toàn bộ');
+});
+
+/* Cửa tra cứu của nhân viên (21/09/2026). Không chạy được Postgres ở đây nên soi dạng văn bản
+   3 thứ mà nếu mất thì nhân viên lấy được cả kho bằng một lượt gọi. */
+caA('SQL: bc_lookup có trần số đại lý/số dòng, chặn từ khoá quá ngắn và không dùng ký tự đại diện', async()=>{
+  const s=await _n16_doc('supabase_bc_lookup.sql');
+  const d=s.indexOf('create or replace function public.bc_lookup'), than=d<0?'':s.slice(d,s.indexOf('grant execute on function public.bc_lookup',d));
+  bang(/c_min_len[\s\S]{0,40}:=\s*3/.test(than),true,'phải có ngưỡng tối thiểu 3 ký tự');
+  bang(/char_length\(v_parts\[1\]\) < c_min_len/.test(than),true,'phải chặn từ khoá 1 ký tự (gõ 1 ký tự = quét cả kho)');
+  bang(/limit c_max_ags/.test(than)&&/limit c_max_rows/.test(than),true,'phải có trần số đại lý + số dòng mỗi lượt');
+  // LIKE với chuỗi người dùng gõ: một dấu % là lấy sạch dữ liệu. Bỏ ghi chú trước khi soi.
+  const ma=than.replace(/\/\*[\s\S]*?\*\//g,'').replace(/--.*$/gm,'');
+  bang(/\blike\b/i.test(ma),false,'không được dùng LIKE trên từ khoá người dùng — dùng position()');
+  bang(/drop function if exists public\.bc_my_view/.test(s),true,'cửa cũ bc_my_view phải được xoá, không để lại hàm definer không ai canh');
+  bang(/create or replace function public\.can_write_report/.test(s),false,'file này KHÔNG được khai lại can_write_report (khai lại là ghi đè toàn bộ)');
+});
+
+caA('SQL: bc_totals chỉ trả CON SỐ, không trả dòng khách nào', async()=>{
+  const s=await _n16_doc('supabase_bc_lookup.sql');
+  const d=s.indexOf('create or replace function public.bc_totals'), than=d<0?'':s.slice(d,s.indexOf('grant execute on function public.bc_totals',d));
+  bang(d>=0,true,'phải có hàm bc_totals');
+  // Đọc ROWS/AGENTS để CỘNG là đúng; điều bị cấm là TRẢ mảng dòng/ô về máy khách.
+  // Bỏ các biểu thức v_bc->'ROWS' (đọc dữ liệu) trước khi soi tên khoá của kết quả.
+  const tra=than.slice(than.indexOf('return jsonb_build_object')).replace(/->>?\s*'[A-Za-z_]+'/g,'');
+  bang(/jsonb_agg|jsonb_object_agg/.test(tra),false,'bc_totals không được trả mảng dòng/ô nào — chỉ con số');
+  bang(/'(ROWS|AGENTS|MARKS|DONE)'/.test(tra),false,'bc_totals không được có khoá ROWS/AGENTS/MARKS/DONE trong kết quả');
+  bang(/my_role\(\) not in \('admin','totruong'\) and v_perm not in \('view','edit'\)/.test(than),true,'phải kiểm quyền xem báo cáo đại lý');
 });
 
 /* Tự tích Nghi Ngờ khi bấm ✅ Xác Nhận trên Telegram (Edge Function). Không chạy được Deno ở
