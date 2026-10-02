@@ -358,7 +358,7 @@ Tab lớn thứ 4 (`#t4`, nút `#tsb4`), module `SOP` (`src/js/sop.js`). **LƯU 
 ⚠ Bẫy đắt nhất ghi trong đó: `setPath` từng ghi **tiếng Anh ĐÈ THẲNG lên bản tiếng Việt** khi nhập bản dịch, mất hẳn bản gốc (24/08/2026).
 
 ### T5 — KIỂM TRA NGHIỆP VỤ (bài test nhân viên)
-Tab lớn thứ 5 (`#t5`, nút `#tsb5`), module `EX` (`src/js/exam.js`). Lưu THẲNG trên Supabase: 7 bảng `exam_*` + các RPC `exam_*` (SECURITY DEFINER). 2 chế độ: **Định Kỳ Tháng** / **Năng Lực Thực Tập** (đúng 50 câu). Ảnh câu hỏi ở bucket **`baitest`** (private). Mọi tài khoản LÀM BÀI; ADMIN + Tổ Trưởng thêm 3 tab quản lý.
+Tab lớn thứ 5 (`#t5`, nút `#tsb5`), module `EX` (`src/js/exam.js`). Lưu THẲNG trên Supabase: 7 bảng `exam_*` + các RPC `exam_*` (SECURITY DEFINER). 2 chế độ: **Định Kỳ Tháng** / **Năng Lực Thực Tập** (đúng N câu, Tổ Trưởng đặt — mặc định 50). Ảnh câu hỏi ở bucket **`baitest`** (private). Mọi tài khoản LÀM BÀI; ADMIN + Tổ Trưởng thêm 3 tab quản lý.
 ⚠ **TÀI LIỆU ĐẦY ĐỦ: `docs/T5.md`** (tách 13/09/2026). **Đọc trước khi sửa `src/js/exam.js` hoặc bất cứ file `supabase_exam_*.sql` nào.**
 ⛔ **BẢO MẬT NẰM Ở TẦNG POSTGRES, KHÔNG Ở JS** (repo public + anon key): nhân viên KHÔNG có quyền SELECT trên 3 bảng chứa đáp án. Ẩn nút trong JS chỉ để cho gọn mắt — **đừng bao giờ coi đó là chốt chặn**.
 ⚠ **KHÔNG xoá ảnh của câu hỏi đã lưu** — `exam_answers.image_url` là bản chụp lúc bốc đề, xoá file là mọi bài đã nộp mất ảnh.

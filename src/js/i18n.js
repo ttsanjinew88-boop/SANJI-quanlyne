@@ -1185,7 +1185,9 @@ const I18N={
   /* 2 chế độ làm bài: Định Kỳ Tháng / Năng Lực Thực Tập */
   "Kiểm Tra Định Kỳ Tháng":"Monthly Periodic Test","Kiểm Tra Năng Lực Thực Tập":"Intern Competency Test",
   "Đề bốc ngẫu nhiên theo từng chủ đề":"Questions drawn at random per topic",
-  "Đề 50 câu do Tổ Trưởng thiết lập — cố định hoặc ngẫu nhiên theo từng chủ đề":"50-question exam set by the Team Leader — fixed or random per topic",
+  "Đề do Tổ Trưởng thiết lập — cố định hoặc ngẫu nhiên theo từng chủ đề":"Exam set by the Team Leader — fixed or random per topic",
+  "Tổng số câu của đề":"Total questions in the exam",
+  "Máy chủ chưa hỗ trợ đổi số câu. Cần chạy lại file supabase_exam_modes.sql trong SQL Editor của Supabase trước.":"The server does not support changing the question count yet. Re-run supabase_exam_modes.sql in the Supabase SQL Editor first.",
   "Cố định":"Fixed","Ngẫu nhiên":"Random","Số câu bốc ngẫu nhiên":"Number of random questions",
   "Chọn tay từng câu — mọi người nhận đúng các câu đó, không đảo":"Pick each question by hand — everyone gets exactly these questions, not shuffled",
   "Chỉ đặt số câu — mỗi lượt hệ thống bốc câu bất kỳ và đảo thứ tự":"Only set a count — each attempt draws random questions in random order",

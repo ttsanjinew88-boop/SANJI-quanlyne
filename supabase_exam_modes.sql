@@ -2,11 +2,12 @@
 --  T5 — KIỂM TRA NGHIỆP VỤ · 2 CHẾ ĐỘ LÀM BÀI (chốt 12/09/2026)
 --    1. Kiểm Tra Định Kỳ Tháng      (mode = 'monthly') — như cũ: bốc NGẪU NHIÊN
 --       theo cấu trúc đề (số câu mỗi chủ đề), có đề riêng từng người.
---    2. Kiểm Tra Năng Lực Thực Tập  (mode = 'intern')  — đề ĐÚNG 50 câu do Tổ
+--    2. Kiểm Tra Năng Lực Thực Tập  (mode = 'intern')  — đề ĐÚNG N câu (mặc định 50,
+--       Tổ Trưởng đổi được — exam_settings.intern_n) do Tổ
 --       Trưởng / ADMIN thiết lập từ ngân hàng câu hỏi. MỖI CHỦ ĐỀ chọn 1 trong 2:
 --         • Cố định  — chọn tay từng câu; mọi người nhận đúng các câu đó, KHÔNG đảo.
 --         • Ngẫu nhiên — chỉ đặt số câu; mỗi lượt hệ thống bốc câu bất kỳ và đảo.
---       Chưa đủ đúng 50 câu thì nhân viên KHÔNG bắt đầu được bài (server chặn).
+--       Chưa đủ đúng N câu thì nhân viên KHÔNG bắt đầu được bài (server chặn).
 --
 --  Luật chung cho CẢ 2 chế độ: HẾT GIỜ = XEM NHƯ ĐÃ NỘP. Bài bỏ dở quá giờ không
 --  còn bị "huỷ" nữa mà được nộp (kèm bản nháp trên máy nếu có) để Tổ Trưởng chấm.
@@ -60,6 +61,9 @@ create policy exam_intern_topic_tt on public.exam_intern_topic
 
 insert into public.exam_settings(key, value) values ('intern_duration', '90')
   on conflict (key) do nothing;
+-- Tổng số câu đề thực tập (Tổ Trưởng đổi ở Quản Lý Đề → Cài đặt bài thực tập). Bổ sung 02/10/2026.
+insert into public.exam_settings(key, value) values ('intern_n', '50')
+  on conflict (key) do nothing;
 
 -- ---------------- 2. Hàm phụ ----------------
 -- Thời gian làm bài (phút) theo chế độ
@@ -71,6 +75,15 @@ as $$
     (select nullif(value, '')::int from public.exam_settings
       where key = case when p_mode = 'intern' then 'intern_duration' else 'duration' end),
     case when p_mode = 'intern' then 90 else 45 end)
+$$;
+
+-- Tổng số câu đề thực tập — exam_start chặn đúng số này, exam_boot trả cho màn hình
+create or replace function public.exam_intern_n()
+returns int language sql stable
+set search_path = public
+as $$
+  select greatest(1, coalesce(
+    (select nullif(value, '')::int from public.exam_settings where key = 'intern_n'), 50))
 $$;
 
 -- Số câu đề thực tập của từng chủ đề (cố định: số câu đã chọn còn tồn tại;
@@ -150,10 +163,11 @@ begin
     'intern_cfg', coalesce((select jsonb_object_agg(c.topic_id::text, c.n)
                               from public.exam_intern_counts() c where c.n > 0), '{}'::jsonb),
     'intern_total', (select coalesce(sum(c.n), 0) from public.exam_intern_counts() c),
-    'intern_n', 50,
+    'intern_n', public.exam_intern_n(),
     'settings', jsonb_build_object(
         'duration', public.exam_dur('monthly'),
         'intern_duration', public.exam_dur('intern'),
+        'intern_n', public.exam_intern_n(),
         'show_answer', coalesce((select value from public.exam_settings where key = 'show_answer'), 'no') = 'yes'),
     'me', jsonb_build_object(
         'remaining', m.remaining, 'used', m.used, 'exam_cfg', m.exam_cfg, 'can_edit', v_tt,
@@ -259,11 +273,11 @@ begin
           ) r
          where it.mode = 'random' and it.count > 0
       ) z;
-    -- ĐỦ ĐÚNG 50 CÂU mới cho làm (đếm trên đề THẬT vừa dựng: câu bị xoá, chủ đề
-    -- ngẫu nhiên không đủ câu… đều làm thiếu và bị chặn ở đây). Số 50 khớp EX.INTERN_N.
-    if jsonb_array_length(v_qs) <> 50 then
-      raise exception 'Đề Kiểm Tra Năng Lực Thực Tập chưa đủ 50 câu (hiện có % câu). Nhờ Tổ Trưởng hoàn tất đề.',
-        jsonb_array_length(v_qs);
+    -- ĐỦ ĐÚNG SỐ CÂU Tổ Trưởng đặt (exam_intern_n) mới cho làm — đếm trên đề THẬT vừa
+    -- dựng: câu bị xoá, chủ đề ngẫu nhiên không đủ câu… đều làm lệch và bị chặn ở đây.
+    if jsonb_array_length(v_qs) <> public.exam_intern_n() then
+      raise exception 'Đề Kiểm Tra Năng Lực Thực Tập chưa đúng % câu (hiện có % câu). Nhờ Tổ Trưởng hoàn tất đề.',
+        public.exam_intern_n(), jsonb_array_length(v_qs);
     end if;
   else
     -- Đề riêng nếu có, không thì đề chung — bốc NGẪU NHIÊN ở SERVER (như cũ)
@@ -440,5 +454,6 @@ grant execute on function public.exam_start(text) to authenticated;
 revoke all on function public._exam_finalize(uuid, jsonb, int, timestamptz) from public, anon, authenticated;
 revoke all on function public.exam_intern_counts() from public, anon, authenticated;
 revoke all on function public.exam_dur(text) from public, anon, authenticated;
+revoke all on function public.exam_intern_n() from public, anon, authenticated;
 
 -- Xong. Không cần deploy Edge Function nào.

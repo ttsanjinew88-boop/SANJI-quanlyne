@@ -39,9 +39,11 @@ const EX = {
      tab chạy y như trước (chỉ có chế độ Định Kỳ). */
   MODES: {
     monthly: { n: 1, t: 'Kiểm Tra Định Kỳ Tháng', s: 'Đề bốc ngẫu nhiên theo từng chủ đề' },
-    intern:  { n: 2, t: 'Kiểm Tra Năng Lực Thực Tập', s: 'Đề 50 câu do Tổ Trưởng thiết lập — cố định hoặc ngẫu nhiên theo từng chủ đề' }
+    intern:  { n: 2, t: 'Kiểm Tra Năng Lực Thực Tập', s: 'Đề do Tổ Trưởng thiết lập — cố định hoặc ngẫu nhiên theo từng chủ đề' }
   },
-  INTERN_N: 50,         // ⚠ khớp số 50 trong exam_start / exam_boot (supabase_exam_modes.sql)
+  INTERN_N: 50,         // số câu MẶC ĐỊNH — số thật do Tổ Trưởng đặt (exam_settings.intern_n, đọc qua internN())
+  // Số câu đề Thực Tập: lấy từ exam_boot (server đọc exam_settings.intern_n — exam_start chặn đúng số này)
+  internN() { return Math.max(1, Number(this.D && this.D.intern_n) || this.INTERN_N); },
   lamMode: 'monthly',   // chế độ nhân viên đang chọn ở tab Làm Bài
   deMode: 'monthly',    // giao diện đang mở ở tab Quản Lý Đề
   internSet: null,      // [{question_id,ord}] câu CỐ ĐỊNH — chỉ Tổ Trưởng trở lên tải
@@ -315,8 +317,8 @@ const EX = {
         ' onclick="EX.pickLamMode(\'' + k + '\')"><span class="ex-mode-n">' + M.n + '</span>' +
         '<span class="ex-mode-b"><b>' + M.t + '</b><i>' + M.s + '</i></span></button>';
     }).join('') + '</div>' : '';
-    // Đề Thực Tập phải ĐỦ ĐÚNG 50 câu mới cho làm (server cũng chặn)
-    const iN = this.D.intern_n || this.INTERN_N;
+    // Đề Thực Tập phải ĐỦ ĐÚNG số câu Tổ Trưởng đặt mới cho làm (server cũng chặn)
+    const iN = this.internN();
     const notReady = intern && !pend && total !== iN;
     const blocked = (rem <= 0 && !pend) || notReady;
     b.innerHTML =
@@ -632,7 +634,7 @@ const EX = {
   // câu này có THẬT SỰ nằm trong đề không (câu đã chọn của chủ đề đang để Ngẫu nhiên thì không)
   inFixed(q) { return this.tMode(q.topic_id) === 'fixed' && this.isPicked(q.id); },
   renderDeIntern(b) {
-    const topics = this.D.topics || [], bank = this.bank || [], st = this.D.settings, N = this.INTERN_N;
+    const topics = this.D.topics || [], bank = this.bank || [], st = this.D.settings, N = this.internN();
     if (!this.internSet || !this.internTopics) {
       b.innerHTML = this.deModeHtml() + '<div class="chart-card" style="color:var(--re);font-size:.72rem">Không tải được đề thực tập — hãy tải lại trang. Nếu vẫn lỗi: kiểm tra đã chạy file supabase_exam_modes.sql trong SQL Editor của Supabase chưa.</div>';
       return;
@@ -675,6 +677,8 @@ const EX = {
           '</div>' +
           rail +
           '<div class="ex-railh" style="margin-top:18px">Cài đặt bài thực tập</div>' +
+          '<label class="ex-lab">Tổng số câu của đề</label>' +
+          '<input class="ex-inp" type="number" id="exSetIN" min="1" max="500" value="' + N + '">' +
           '<label class="ex-lab">Thời gian làm bài (phút)</label>' +
           '<input class="ex-inp" type="number" id="exSetIDur" min="1" max="240" value="' + (st.intern_duration || 90) + '">' +
           '<button class="abtn abtn-ok abtn-sm" style="margin-top:10px;width:100%;justify-content:center" onclick="EX.saveInternSettings()">Lưu cài đặt</button>' +
@@ -731,7 +735,7 @@ const EX = {
     const q = (this.bank || []).find(x => x.id === id);
     if (!q || this.tMode(q.topic_id) === 'random') return;   // chủ đề ngẫu nhiên không chọn tay
     const on = this.isPicked(id);
-    if (!on && this.internTotal() >= this.INTERN_N) { alert('Đề thực tập đã đủ ' + this.INTERN_N + ' câu. Bỏ bớt một câu trước khi chọn thêm.'); return; }
+    if (!on && this.internTotal() >= this.internN()) { alert('Đề thực tập đã đủ ' + this.internN() + ' câu. Bỏ bớt một câu trước khi chọn thêm.'); return; }
     this._iBusy = true;
     try {
       if (on) {
@@ -764,7 +768,7 @@ const EX = {
   },
   async setTopicCount(tid, v) {
     if (!this.canEdit() || !this.internTopics || this.tMode(tid) !== 'random') return;
-    const room = Math.max(0, this.INTERN_N - (this.internTotal() - this.tCount(tid)));
+    const room = Math.max(0, this.internN() - (this.internTotal() - this.tCount(tid)));
     const want = Math.max(0, parseInt(v) || 0);
     const n = Math.min(want, this.tAvail(tid), room);
     try {
@@ -774,7 +778,7 @@ const EX = {
       this.syncInternCfg(); this.render();
       if (n < want) this.toast(n === this.tAvail(tid) && n < room
         ? 'Chủ đề chỉ có ' + n + ' câu trong ngân hàng.'
-        : 'Chỉ còn chỗ cho ' + n + ' câu — đề Thực Tập tối đa ' + this.INTERN_N + ' câu.');
+        : 'Chỉ còn chỗ cho ' + n + ' câu — đề Thực Tập tối đa ' + this.internN() + ' câu.');
     } catch (e) { alert('Lỗi lưu đề thực tập: ' + (e.message || e)); this.render(); }
   },
   async clearIntern() {
@@ -790,10 +794,18 @@ const EX = {
   },
   async saveInternSettings() {
     const d = Math.max(1, Math.min(240, parseInt(document.getElementById('exSetIDur').value) || 90));
+    const n = Math.max(1, Math.min(500, parseInt(document.getElementById('exSetIN').value) || this.internN()));
+    // Máy chủ chưa chạy bản SQL mới thì exam_boot không trả settings.intern_n -> exam_start vẫn chặn cứng 50
+    if (n !== this.internN() && this.D.settings.intern_n === undefined) {
+      alert('Máy chủ chưa hỗ trợ đổi số câu. Cần chạy lại file supabase_exam_modes.sql trong SQL Editor của Supabase trước.');
+      return;
+    }
     try {
-      const { error } = await this.tbl('exam_settings').upsert({ key: 'intern_duration', value: String(d) }, { onConflict: 'key' });
+      const { error } = await this.tbl('exam_settings').upsert([
+        { key: 'intern_duration', value: String(d) }, { key: 'intern_n', value: String(n) }], { onConflict: 'key' });
       if (error) throw new Error(error.message);
       this.D.settings.intern_duration = d;
+      if (this.D.settings.intern_n !== undefined) { this.D.settings.intern_n = n; this.D.intern_n = n; }
       this.render(); this.toast('Đã lưu cài đặt');
     } catch (e) { alert('Lỗi lưu cài đặt: ' + (e.message || e)); }
   },
