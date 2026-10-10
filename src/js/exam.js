@@ -1413,10 +1413,158 @@ const EX = {
       '<div class="ex-meta" style="margin-bottom:10px">' + this.fmtTime(s.time) + ' · ' + this.fmtDur(s.duration_sec) + ' · ' + s.count + ' câu</div>' +
       body +
       '<div class="ex-actions"><button class="abtn abtn-ok" onclick="EX.saveGrades()">Lưu chấm điểm</button>' +
+      '<button class="abtn abtn-pu" id="exDocxBtn" onclick="EX.exportDocx()">Xuất file WPS</button>' +
       '<button class="abtn abtn-ghost" onclick="EX.selSub=null;EX.render()">Đóng</button>' +
       '<button class="abtn abtn-danger" style="margin-left:auto" onclick="EX.delSub(' + this.subs.indexOf(s) + ')">Xóa bài này</button></div>' +
     '</div>';
     this.hydrateImgs();
+  },
+  /* ---------- XUẤT FILE WPS (.docx) CỦA 1 BÀI ĐÃ NỘP ----------
+     Mỗi câu: chủ đề + câu hỏi + ẢNH + câu trả lời của nhân viên + đáp án mẫu.
+     KHÔNG có điểm (user chốt 10/10/2026). LUÔN tiếng Việt — đọc thẳng cột gốc,
+     không qua tx()/imgOf() (2 hàm đó đổi sang bản EN khi giao diện bật EN).
+     Ảnh NHÚNG vào file (đổi sang JPEG — WPS/Word không đọc WebP), không để link:
+     link ký của bucket `baitest` hết hạn sau 1 giờ.
+     Tự dựng .docx bằng zip "store" (không nén) — khỏi phải nạp thêm thư viện. */
+  async exportDocx() {
+    const s = this.subs && this.subs.find(x => x.id === this.selSub);
+    if (!s || !s.items) return;
+    const btn = document.getElementById('exDocxBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Đang tạo file…'; }
+    try {
+      const imgs = [], miss = [];
+      for (let i = 0; i < s.items.length; i++) {
+        const src = s.items[i].image_url;
+        if (!src) { imgs.push(null); continue; }
+        const im = await this.docxImg(src);
+        if (!im) miss.push(i + 1);
+        imgs.push(im || 'err');
+      }
+      const blob = this.buildDocx(s, imgs);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = ('BaiTest_' + (s.username || '') + '_' + (s.code || '')).replace(/[\\/:*?"<>|\s]+/g, '_') + '.docx';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      if (miss.length) alert('Đã xuất file, nhưng KHÔNG tải được ảnh của câu: ' + miss.join(', ') + '\nTrong file các câu này ghi "(Không tải được ảnh)".');
+    } catch (e) {
+      console.error('[EX] xuất docx', e);
+      alert('Xuất file lỗi: ' + (e.message || e));
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Xuất file WPS'; }
+    }
+  },
+  // Ảnh câu hỏi -> {data:Uint8Array JPEG, w, h}; hỏng thì null
+  async docxImg(src) {
+    try {
+      let blob;
+      if (/^https?:\/\//i.test(src)) blob = await (await fetch(src)).blob();
+      else {
+        const { data, error } = await SB.client().storage.from(this.BUCKET).download(src);
+        if (error || !data) throw new Error(error ? (error.message || error) : 'trống');
+        blob = data;
+      }
+      const url = URL.createObjectURL(blob);
+      const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => rej(new Error('Không đọc được ảnh')); im.src = url; });
+      URL.revokeObjectURL(url);
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      const g = c.getContext('2d');
+      g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);   // ảnh trong suốt -> nền trắng
+      g.drawImage(img, 0, 0);
+      const jb = await new Promise(r => c.toBlob(r, 'image/jpeg', .9));
+      if (!jb) throw new Error('Đổi ảnh lỗi');
+      return { data: new Uint8Array(await jb.arrayBuffer()), w: c.width, h: c.height };
+    } catch (e) { console.warn('[EX] ảnh docx', src, e); return null; }
+  },
+  buildDocx(s, imgs) {
+    const x = t => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const run = (t, o) => {
+      o = o || {};
+      const pr = '<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial" w:eastAsia="Arial"/>' +
+        (o.b ? '<w:b/>' : '') + (o.i ? '<w:i/>' : '') + (o.c ? '<w:color w:val="' + o.c + '"/>' : '') +
+        '<w:sz w:val="' + (o.sz || 22) + '"/><w:szCs w:val="' + (o.sz || 22) + '"/></w:rPr>';
+      return String(t == null ? '' : t).split(/\r?\n/).map((ln, k) =>
+        '<w:r>' + pr + (k ? '<w:br/>' : '') + '<w:t xml:space="preserve">' + x(ln) + '</w:t></w:r>').join('');
+    };
+    const para = (runs, o) => {
+      o = o || {};
+      return '<w:p><w:pPr><w:spacing w:before="' + (o.bf || 0) + '" w:after="' + (o.af == null ? 80 : o.af) + '"/>' +
+        (o.jc ? '<w:jc w:val="' + o.jc + '"/>' : '') +
+        (o.shd ? '<w:shd w:val="clear" w:color="auto" w:fill="' + o.shd + '"/>' : '') +
+        (o.line ? '<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="4" w:color="999999"/></w:pBdr>' : '') +
+        '</w:pPr>' + runs + '</w:p>';
+    };
+    const media = [];
+    const pic = im => {
+      const n = media.length + 1, rid = 'rIdImg' + n;
+      media.push({ name: 'image' + n + '.jpeg', rid, data: im.data });
+      const MAXW = 6000000, MAXH = 7200000;                      // EMU ~ 16,6 x 20 cm (vừa trang A4)
+      let cx = im.w * 9525, cy = im.h * 9525;
+      const k = Math.min(1, MAXW / cx, MAXH / cy); cx = Math.round(cx * k); cy = Math.round(cy * k);
+      return '<w:p><w:pPr><w:spacing w:after="80"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">' +
+        '<wp:extent cx="' + cx + '" cy="' + cy + '"/><wp:docPr id="' + n + '" name="Anh ' + n + '"/>' +
+        '<wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>' +
+        '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic>' +
+        '<pic:nvPicPr><pic:cNvPr id="' + n + '" name="image' + n + '.jpeg"/><pic:cNvPicPr/></pic:nvPicPr>' +
+        '<pic:blipFill><a:blip r:embed="' + rid + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>' +
+        '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>' +
+        '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>';
+    };
+    const mode = this.hasModes() ? this.MODES[this.modeOf(s.mode)].t : '';
+    let body = para(run('BÀI KIỂM TRA NGHIỆP VỤ', { b: true, sz: 32, c: '4C1D95' }), { jc: 'center', af: 120 }) +
+      para(run('Nhân viên: ', { b: true }) + run(s.username || '')) +
+      para(run('Mã bài: ', { b: true }) + run(s.code || '') + (mode ? run('   ·   ' + mode) : '')) +
+      para(run('Nộp lúc: ', { b: true }) + run(this.fmtTime(s.time)) + run('   ·   Thời gian làm: ', { b: true }) + run(this.fmtDur(s.duration_sec)) +
+        run('   ·   Số câu: ', { b: true }) + run(s.items.length), { line: true, af: 200 });
+    s.items.forEach((it, i) => {
+      body += para(run('Câu ' + (i + 1) + (it.topic_name ? ' — ' + it.topic_name : ''), { b: true, c: '1D4ED8' }), { bf: 240, shd: 'EEF2FF' }) +
+        para(run(it.question || '', { b: true }));
+      const im = imgs[i];
+      if (im === 'err') body += para(run('(Không tải được ảnh)', { i: true, c: 'B91C1C' }));
+      else if (im) body += pic(im);
+      body += para(run('Nhân viên trả lời: ', { b: true, c: '7C3AED' }) + (it.reply ? run(it.reply) : run('(Bỏ trống)', { i: true, c: '6B7280' })));
+      if (it.sample_answer) body += para(run('Đáp án mẫu: ', { b: true, c: '15803D' }) + run(it.sample_answer));
+    });
+    const doc = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"' +
+      ' xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"' +
+      ' xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>' + body +
+      '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr>' +
+      '</w:body></w:document>';
+    const R = 'http://schemas.openxmlformats.org/';
+    const files = [
+      ['[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="' + R + 'package/2006/content-types">' +
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' +
+        '<Default Extension="jpeg" ContentType="image/jpeg"/>' +
+        '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'],
+      ['_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="' + R + 'package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="' + R + 'officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>'],
+      ['word/document.xml', doc],
+      ['word/_rels/document.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="' + R + 'package/2006/relationships">' +
+        media.map(m => '<Relationship Id="' + m.rid + '" Type="' + R + 'officeDocument/2006/relationships/image" Target="media/' + m.name + '"/>').join('') + '</Relationships>']
+    ].map(([n, t]) => [n, new TextEncoder().encode(t)]);
+    media.forEach(m => files.push(['word/media/' + m.name, m.data]));
+    return new Blob([this.zipStore(files)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  },
+  // Zip tối giản, kiểu "store" (không nén) — đủ cho .docx
+  zipStore(files) {
+    if (!this._crcT) { this._crcT = []; for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; this._crcT[n] = c >>> 0; } }
+    const crc = d => { let c = 0xFFFFFFFF; for (let i = 0; i < d.length; i++) c = this._crcT[(c ^ d[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+    const parts = [], cen = []; let off = 0;
+    const hdr = (n, f) => { const b = new DataView(new ArrayBuffer(n)); f(b); return new Uint8Array(b.buffer); };
+    files.forEach(([name, data]) => {
+      const nm = new TextEncoder().encode(name), c = crc(data), sz = data.length;
+      parts.push(hdr(30, v => { v.setUint32(0, 0x04034b50, true); v.setUint16(4, 20, true); v.setUint16(12, 0x21, true);
+        v.setUint32(14, c, true); v.setUint32(18, sz, true); v.setUint32(22, sz, true); v.setUint16(26, nm.length, true); }), nm, data);
+      cen.push(hdr(46, v => { v.setUint32(0, 0x02014b50, true); v.setUint16(4, 20, true); v.setUint16(6, 20, true); v.setUint16(14, 0x21, true);
+        v.setUint32(16, c, true); v.setUint32(20, sz, true); v.setUint32(24, sz, true); v.setUint16(28, nm.length, true); v.setUint32(42, off, true); }), nm);
+      off += 30 + nm.length + sz;
+    });
+    const cenSize = cen.reduce((t, a) => t + a.length, 0);
+    const end = hdr(22, v => { v.setUint32(0, 0x06054b50, true); v.setUint16(8, files.length, true); v.setUint16(10, files.length, true);
+      v.setUint32(12, cenSize, true); v.setUint32(16, off, true); });
+    return new Blob([...parts, ...cen, end]);
   },
   /* Xóa hẳn 1 bài đã nộp (Tổ Trưởng trở lên) — dùng khi dọn bài test thử, bài nộp
      nhầm, hoặc bài của tài khoản đã nghỉ. Câu trả lời xóa theo (cascade) và bài

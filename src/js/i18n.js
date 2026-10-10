@@ -1131,7 +1131,7 @@ const I18N={
   "Chưa có bài test nào được chấm điểm trong kỳ này.":"No graded test in this period yet.",
   "Đáp án mẫu đang được ẩn. Tổ Trưởng có thể bật trong Quản Lý Đề → Cài đặt bài thi.":"Model answers are hidden. A Team Leader can turn them on in Question Bank → Test settings.",
   "Mỗi câu tối đa 1 điểm — nhập được số lẻ. Tổng = cộng các câu / số câu.":"Each question is worth up to 1 point (decimals allowed). Total = sum of questions / question count.",
-  "Chấm điểm":"Grade","Ghi chú (tùy chọn)…":"Note (optional)…","Lưu chấm điểm":"Save grading",
+  "Chấm điểm":"Grade","Ghi chú (tùy chọn)…":"Note (optional)…","Lưu chấm điểm":"Save grading","Xuất file WPS":"Export WPS file","Đang tạo file…":"Creating file…",
   /* "1 điểm" đã có ở khối trên (dòng ~329) — thêm lại sẽ ĐÈ bản cũ, âm thầm */
   "0 điểm":"0 pt","0.25 điểm":"0.25 pt","0.5 điểm":"0.5 pt","0.75 điểm":"0.75 pt",
   "Bài của":"Test by","↻ Tải lại danh sách":"↻ Reload list","↻ Tải lại":"↻ Reload",
