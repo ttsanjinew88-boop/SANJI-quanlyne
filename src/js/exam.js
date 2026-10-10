@@ -1421,8 +1421,9 @@ const EX = {
   },
   /* ---------- XUẤT FILE WPS (.docx) CỦA 1 BÀI ĐÃ NỘP ----------
      Mỗi câu: chủ đề + câu hỏi + ẢNH + câu trả lời của nhân viên + đáp án mẫu.
-     KHÔNG có điểm (user chốt 10/10/2026). LUÔN tiếng Việt — đọc thẳng cột gốc,
-     không qua tx()/imgOf() (2 hàm đó đổi sang bản EN khi giao diện bật EN).
+     KHÔNG có điểm (user chốt 10/10/2026). Ngôn ngữ THEO GIAO DIỆN (đổi 10/10/2026):
+     đang bật EN thì nhãn + chủ đề/câu hỏi/đáp án mẫu/ảnh lấy bản EN qua tx()/imgOf()
+     (câu nào chưa dịch thì tự rơi về tiếng Việt); câu trả lời nhân viên giữ nguyên văn.
      Ảnh NHÚNG vào file (đổi sang JPEG — WPS/Word không đọc WebP), không để link:
      link ký của bucket `baitest` hết hạn sau 1 giờ.
      Tự dựng .docx bằng zip "store" (không nén) — khỏi phải nạp thêm thư viện. */
@@ -1434,7 +1435,7 @@ const EX = {
     try {
       const imgs = [], miss = [];
       for (let i = 0; i < s.items.length; i++) {
-        const src = s.items[i].image_url;
+        const src = this.imgOf(s.items[i]);
         if (!src) { imgs.push(null); continue; }
         const im = await this.docxImg(src);
         if (!im) miss.push(i + 1);
@@ -1443,10 +1444,12 @@ const EX = {
       const blob = this.buildDocx(s, imgs);
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = ('BaiTest_' + (s.username || '') + '_' + (s.code || '')).replace(/[\\/:*?"<>|\s]+/g, '_') + '.docx';
+      a.download = ((this.en() ? 'Test_' : 'BaiTest_') + (s.username || '') + '_' + (s.code || '')).replace(/[\\/:*?"<>|\s]+/g, '_') + '.docx';
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-      if (miss.length) alert('Đã xuất file, nhưng KHÔNG tải được ảnh của câu: ' + miss.join(', ') + '\nTrong file các câu này ghi "(Không tải được ảnh)".');
+      if (miss.length) alert(this.en()
+        ? 'File exported, but could NOT load the image of question(s): ' + miss.join(', ') + '\nThese questions show "(Image could not be loaded)" in the file.'
+        : 'Đã xuất file, nhưng KHÔNG tải được ảnh của câu: ' + miss.join(', ') + '\nTrong file các câu này ghi "(Không tải được ảnh)".');
     } catch (e) {
       console.error('[EX] xuất docx', e);
       alert('Xuất file lỗi: ' + (e.message || e));
@@ -1511,20 +1514,30 @@ const EX = {
         '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>' +
         '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>';
     };
-    const mode = this.hasModes() ? this.MODES[this.modeOf(s.mode)].t : '';
-    let body = para(run('BÀI KIỂM TRA NGHIỆP VỤ', { b: true, sz: 32, c: '4C1D95' }), { jc: 'center', af: 120 }) +
-      para(run('Nhân viên: ', { b: true }) + run(s.username || '')) +
-      para(run('Mã bài: ', { b: true }) + run(s.code || '') + (mode ? run('   ·   ' + mode) : '')) +
-      para(run('Nộp lúc: ', { b: true }) + run(this.fmtTime(s.time)) + run('   ·   Thời gian làm: ', { b: true }) + run(this.fmtDur(s.duration_sec)) +
-        run('   ·   Số câu: ', { b: true }) + run(s.items.length), { line: true, af: 200 });
+    const en = this.en();
+    const L = en
+      ? { title: 'BUSINESS KNOWLEDGE TEST', who: 'Employee: ', code: 'Test code: ', at: 'Submitted: ', dur: 'Time taken: ', n: 'Questions: ',
+          q: 'Question ', reply: 'Employee answer: ', blank: '(Left blank)', sample: 'Sample answer: ', noimg: '(Image could not be loaded)' }
+      : { title: 'BÀI KIỂM TRA NGHIỆP VỤ', who: 'Nhân viên: ', code: 'Mã bài: ', at: 'Nộp lúc: ', dur: 'Thời gian làm: ', n: 'Số câu: ',
+          q: 'Câu ', reply: 'Nhân viên trả lời: ', blank: '(Bỏ trống)', sample: 'Đáp án mẫu: ', noimg: '(Không tải được ảnh)' };
+    let mode = this.hasModes() ? this.MODES[this.modeOf(s.mode)].t : '';
+    if (en && mode && typeof trs === 'function') mode = trs(mode);
+    const sec = Number(s.duration_sec) || 0;
+    const dur = en ? Math.floor(sec / 60) + ' min ' + (sec % 60) + ' sec' : this.fmtDur(sec);
+    let body = para(run(L.title, { b: true, sz: 32, c: '4C1D95' }), { jc: 'center', af: 120 }) +
+      para(run(L.who, { b: true }) + run(s.username || '')) +
+      para(run(L.code, { b: true }) + run(s.code || '') + (mode ? run('   ·   ' + mode) : '')) +
+      para(run(L.at, { b: true }) + run(this.fmtTime(s.time)) + run('   ·   ' + L.dur, { b: true }) + run(dur) +
+        run('   ·   ' + L.n, { b: true }) + run(s.items.length), { line: true, af: 200 });
     s.items.forEach((it, i) => {
-      body += para(run('Câu ' + (i + 1) + (it.topic_name ? ' — ' + it.topic_name : ''), { b: true, c: '1D4ED8' }), { bf: 240, shd: 'EEF2FF' }) +
-        para(run(it.question || '', { b: true }));
+      const topic = this.tx(it, 'topic_name'), sample = this.tx(it, 'sample_answer');
+      body += para(run(L.q + (i + 1) + (topic ? ' — ' + topic : ''), { b: true, c: '1D4ED8' }), { bf: 240, shd: 'EEF2FF' }) +
+        para(run(this.tx(it, 'question'), { b: true }));
       const im = imgs[i];
-      if (im === 'err') body += para(run('(Không tải được ảnh)', { i: true, c: 'B91C1C' }));
+      if (im === 'err') body += para(run(L.noimg, { i: true, c: 'B91C1C' }));
       else if (im) body += pic(im);
-      body += para(run('Nhân viên trả lời: ', { b: true, c: '7C3AED' }) + (it.reply ? run(it.reply) : run('(Bỏ trống)', { i: true, c: '6B7280' })));
-      if (it.sample_answer) body += para(run('Đáp án mẫu: ', { b: true, c: '15803D' }) + run(it.sample_answer));
+      body += para(run(L.reply, { b: true, c: '7C3AED' }) + (it.reply ? run(it.reply) : run(L.blank, { i: true, c: '6B7280' })));
+      if (sample) body += para(run(L.sample, { b: true, c: '15803D' }) + run(sample));
     });
     const doc = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
       '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"' +
