@@ -119,8 +119,11 @@ function rMonth(ds){
 function fkGroupCardHtml(fk,rank,isS,dataObj){
   dataObj=dataObj||D;
   const fd=dataObj.fk_data[fk];
-  const tot=isS?fd.total_score:fd.total_count;
-  const max=isS?Math.max(...[...dataObj.fkvip,...dataObj.fkonl].map(k=>dataObj.fk_data[k].total_score),1):Math.max(...[...dataObj.fkvip,...dataObj.fkonl].map(k=>dataObj.fk_data[k].total_count),1);
+  const isDon=dataObj!==KMD;
+  const sc=k=>isDon?donScore(k):dataObj.fk_data[k].total_score; // Duyệt Đơn: đã gồm +100 đại lý ngoài
+  const tot=isS?sc(fk):fd.total_count;
+  const max=isS?Math.max(...[...dataObj.fkvip,...dataObj.fkonl].map(sc),1):Math.max(...[...dataObj.fkvip,...dataObj.fkonl].map(k=>dataObj.fk_data[k].total_count),1);
+  const dl=isDon?dlTotal(fk):0;
   const pct=Math.round((tot/max)*100);
   const col=fkGrpCol(fk);
   const badgeCls=fd.group==="vip"?"vip-badge":"onl-badge";
@@ -129,7 +132,8 @@ function fkGroupCardHtml(fk,rank,isS,dataObj){
     <div class="fk-card-rank" style="${rankCol}">${tot>0?rank:"-"}</div>
     <div class="fkm-name" style="color:${col}">${fd.name}</div>
     <div class="fkm-score" style="color:${col}">${tot>0?nn(tot):"-"}</div>
-    <div class="fkm-sub">${isS?nn(fd.total_count)+" đơn":nn(fd.total_score)+" điểm"}</div>
+    <div class="fkm-sub">${isS?nn(fd.total_count)+" đơn":nn(sc(fk))+" điểm"}</div>
+    ${dl>0?`<div class="dl-chip" title="${dlCount(fk)} lượt × ${DL_PTS}">+${nn(dl)} đại lý</div>`:""}
     <div class="fk-mini-bar"><div class="fk-mini-bar-fill" style="width:${pct}%;background:${col}"></div></div>
   </div>`;
 }
@@ -141,36 +145,46 @@ function rPerfDetail(fk,which){
   const badge=document.getElementById('koCmBadge');
   badge.textContent=(fd.group==="vip"?"FKVIP":"FKONL")+(which==="km"?" · KHUYẾN MÃI":" · DUYỆT ĐƠN");
   badge.className='fk-card-type '+(fd.group==="vip"?"vip-badge":"onl-badge");
-  document.getElementById('koCmSc').textContent=nn(fd.total_score);
+  const isDon=which!=='km', dl=isDon?dlTotal(fk):0;
+  document.getElementById('koCmSc').textContent=nn(isDon?donScore(fk):fd.total_score)+(dl>0?' (gồm +'+nn(dl)+' đại lý)':'');
   document.getElementById('koCmCt').textContent=nn(fd.total_count);
   const scores=which==='km'?(fd.day_scores_d7||fd.day_scores):fd.day_scores;
   dch('koCmCh');
   document.getElementById('koChartModal').classList.add('show'); // hiện modal trước để canvas có kích thước
-  CH.koCmCh=new Chart(document.getElementById('koCmCh'),{type:'bar',data:{labels:dataObj.days,datasets:[{label:'Điểm theo ngày',data:scores,backgroundColor:ha(fkGrpCol(fk),.75),borderColor:fkGrpCol(fk),borderWidth:1,borderRadius:3}]},options:co(false)});
+  const sets=[{label:'Điểm theo ngày',data:scores,backgroundColor:ha(fkGrpCol(fk),.75),borderColor:fkGrpCol(fk),borderWidth:1,borderRadius:3}];
+  // Phần +100 đại lý ngoài: chồng lên cột ngày đó, màu riêng — nhìn là biết ngày nào được cộng
+  if(dl>0)sets.push({label:'Đại lý ngoài (+100)',data:(dataObj.days||[]).map((_,i)=>dlDay(fk,i+1)),backgroundColor:'rgba(245,158,11,.85)',borderColor:'#f59e0b',borderWidth:1,borderRadius:3});
+  CH.koCmCh=new Chart(document.getElementById('koCmCh'),{type:'bar',data:{labels:dataObj.days,datasets:sets},options:dl>0?coL(true):co(false)});
 }
 function koCloseChart(){dch('koCmCh');document.getElementById('koChartModal').classList.remove('show');}
 function buildCombinedPerfTable(dataObj,isS,src){
   src=src||'don';
   const canFix=isS&&typeof canEdit==='function'&&canEdit('ko'); // chế độ Điểm + quyền Sửa -> cho chỉnh tay
   const allD=Array.from({length:31},(_,i)=>i+1),actD=dataObj.days_in_month||[];
-  const vipRanked=[...dataObj.fkvip].sort((a,b)=>dataObj.fk_data[b].total_score-dataObj.fk_data[a].total_score);
-  const onlRanked=[...dataObj.fkonl].sort((a,b)=>dataObj.fk_data[b].total_score-dataObj.fk_data[a].total_score);
-  const vipRank={};vipRanked.forEach((fk,i)=>{vipRank[fk]=dataObj.fk_data[fk].total_score>0?i+1:"-";});
-  const onlRank={};onlRanked.forEach((fk,i)=>{onlRank[fk]=dataObj.fk_data[fk].total_score>0?i+1:"-";});
+  // Duyệt Đơn + chế độ Điểm: cộng thêm +100/lượt đại lý ngoài (ô ngày gắn data-dl, hiện bằng CSS ::after
+  // để KHÔNG lọt vào textContent — perfEdit đọc textContent của ô khi chỉnh tay).
+  const withDl=isS&&src==='don';
+  const sc=fk=>withDl?donScore(fk):dataObj.fk_data[fk].total_score;
+  const vipRanked=[...dataObj.fkvip].sort((a,b)=>sc(b)-sc(a));
+  const onlRanked=[...dataObj.fkonl].sort((a,b)=>sc(b)-sc(a));
+  const vipRank={};vipRanked.forEach((fk,i)=>{vipRank[fk]=sc(fk)>0?i+1:"-";});
+  const onlRank={};onlRanked.forEach((fk,i)=>{onlRank[fk]=sc(fk)>0?i+1:"-";});
   let h="<table class='mtbl'><thead><tr><th class='sticky-col'>TÊN NHÂN VIÊN</th><th>BXH</th><th>Tổng</th>";
   allD.forEach(d=>{h+="<th style='"+(actD.includes(d)?"":"color:#64748b")+"'>"+d+"</th>";});
   h+="</tr></thead><tbody>";
   function rowsFor(list,rankMap,rowCls){
     list.forEach(fk=>{
-      const fd=dataObj.fk_data[fk],tot=isS?fd.total_score:fd.total_count,rnk=rankMap[fk],bc=rnk===1?"cell-1":rnk===2?"cell-2":rnk===3?"cell-3":"";
+      const fd=dataObj.fk_data[fk],tot=isS?sc(fk):fd.total_count,rnk=rankMap[fk],bc=rnk===1?"cell-1":rnk===2?"cell-2":rnk===3?"cell-3":"";
       h+="<tr class='"+rowCls+"'><td class='sticky-col'>"+fd.name+"</td><td class='"+bc+"'>"+rnk+"</td><td class='cell-tot'>"+(tot>0?nn(tot):"-")+"</td>";
       allD.forEach(d=>{
         const v=isS?fd.day_scores[d-1]:fd.day_counts[d-1];
-        const cls=(v===0?"cell-zero":v>=(isS?2000:800)?"cell-hi":"");
+        const dl=withDl?dlDay(fk,d):0;
+        const cls=(v===0&&!dl?"cell-zero":v>=(isS?2000:800)?"cell-hi":"")+(dl?" dl-cell":"");
+        const dlA=dl?` data-dl="+${dl}"`:"";
         if(canFix){
-          h+=`<td class="${cls} cell-edit" contenteditable="true" data-fk="${fk}" data-day="${d}" data-src="${src}" title="Bấm để chỉnh tay điểm" onblur="perfEdit(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${v===0?"":nn(v)}</td>`;
+          h+=`<td class="${cls} cell-edit" contenteditable="true" data-fk="${fk}" data-day="${d}" data-src="${src}"${dlA} title="Bấm để chỉnh tay điểm" onblur="perfEdit(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${v===0?"":nn(v)}</td>`;
         }else{
-          h+="<td class='"+cls+"'>"+(v===0?"-":nn(v))+"</td>";
+          h+="<td class='"+cls+"'"+dlA+">"+(v===0?(dl?"":"-"):nn(v))+"</td>";
         }
       });
       h+="</tr>";
@@ -179,9 +193,9 @@ function buildCombinedPerfTable(dataObj,isS,src){
   rowsFor(dataObj.fkvip,vipRank,"vip-row");
   rowsFor(dataObj.fkonl,onlRank,"onl-row");
   const allFK=[...dataObj.fkvip,...dataObj.fkonl];
-  const tg=isS?allFK.reduce((s,fk)=>s+dataObj.fk_data[fk].total_score,0):allFK.reduce((s,fk)=>s+dataObj.fk_data[fk].total_count,0);
+  const tg=isS?allFK.reduce((s,fk)=>s+sc(fk),0):allFK.reduce((s,fk)=>s+dataObj.fk_data[fk].total_count,0);
   h+="<tr class='total-row'><td class='sticky-col'>TỔNG</td><td>-</td><td>"+nn(tg)+"</td>";
-  allD.forEach(d=>{const v=isS?allFK.reduce((s,fk)=>s+dataObj.fk_data[fk].day_scores[d-1],0):allFK.reduce((s,fk)=>s+dataObj.fk_data[fk].day_counts[d-1],0);h+="<td>"+(v>0?nn(v):"-")+"</td>";});
+  allD.forEach(d=>{const v=isS?allFK.reduce((s,fk)=>s+dataObj.fk_data[fk].day_scores[d-1]+(withDl?dlDay(fk,d):0),0):allFK.reduce((s,fk)=>s+dataObj.fk_data[fk].day_counts[d-1],0);h+="<td>"+(v>0?nn(v):"-")+"</td>";});
   h+="</tr></tbody></table>";
   return h;
 }
@@ -230,8 +244,8 @@ function rKoDaily(){
   const isS=mView==="diem";
   document.getElementById("vipCount").textContent=D.fkvip.length+" người";
   document.getElementById("onlCount").textContent=D.fkonl.length+" người";
-  const vRanked=[...D.fkvip].sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score);
-  const oRanked=[...D.fkonl].sort((a,b)=>D.fk_data[b].total_score-D.fk_data[a].total_score);
+  const vRanked=[...D.fkvip].sort((a,b)=>donScore(b)-donScore(a));
+  const oRanked=[...D.fkonl].sort((a,b)=>donScore(b)-donScore(a));
   document.getElementById("perfVipGrid").innerHTML=vRanked.map((fk,i)=>fkGroupCardHtml(fk,i+1,isS,D)).join("");
   document.getElementById("perfOnlGrid").innerHTML=oRanked.map((fk,i)=>fkGroupCardHtml(fk,i+1,isS,D)).join("");
   document.getElementById("perfCombinedTable").innerHTML=buildCombinedPerfTable(D,isS,'don');
@@ -255,7 +269,16 @@ function rKoDaily(){
   }
 }
 // ===== TAB: TỔNG QUAN helpers =====
-function combinedTotal(fk){return (D.fk_data[fk]?.total_score||0)+(KMD?(KMD.fk_data[fk]?.total_score||0):0);}
+// ===== ĐẠI LÝ NGOÀI: mỗi lượt ✅ Xác Nhận trên Telegram = +100 điểm Duyệt Đơn (từ tháng 10/2026) =====
+// Bot vẫn ghi +1 lượt vào KO_AN.mkt[fk][ngày]; dashboard QUY ĐỔI lúc hiển thị, KHÔNG ghi vào dataset `don`
+// (dataset đó sinh ra từ file Excel — upload lại / cộng dồn ngày là xoá mất phần cộng).
+const DL_PTS=100, DL_FROM='2026-10';
+function dlOn(){return !!CUR_MONTH&&CUR_MONTH>=DL_FROM;}
+function dlDay(fk,d){return dlOn()?anGet('mkt',fk,d)*DL_PTS:0;}
+function dlCount(fk){return dlOn()?anTotal('mkt',fk):0;}
+function dlTotal(fk){return dlCount(fk)*DL_PTS;}
+function donScore(fk){return (D.fk_data[fk]?.total_score||0)+dlTotal(fk);}
+function combinedTotal(fk){return donScore(fk)+(KMD?(KMD.fk_data[fk]?.total_score||0):0);}
 function anCombined(fk){return anTotal('abuse',fk)+anTotal('mkt',fk);}
 function ovWorkDays(fk){
   const fd=D.fk_data[fk];
@@ -265,19 +288,17 @@ function calcBonusPenalty(fkList){
   const EXCL=['C.Bộ Phận','Về Phép','Học Việc','Nghỉ Việc'];
   const active=fkList.filter(fk=>!EXCL.includes(ovGet(fk).khac));
   const perfSorted=[...active].sort((a,b)=>combinedTotal(b)-combinedTotal(a));
-  const anSorted=[...active].sort((a,b)=>anCombined(b)-anCombined(a));
-  const anRank={};anSorted.forEach((fk,i)=>{anRank[fk]=i+1;});
   const sumActive=active.reduce((s,fk)=>s+combinedTotal(fk),0);
   const avg=active.length?sumActive/active.length:0;
   const CONG_VALS=[15,10,5];
   const cong={},tru={};
   fkList.forEach(fk=>{cong[fk]=0;tru[fk]=0;});
+  // Đã bỏ (19/10/2026): điều kiện "top 4 bất thường" để nhận thưởng và "top 3 bất thường được miễn phạt".
   for(let i=0;i<Math.min(3,perfSorted.length);i++){
     const fk=perfSorted[i];
-    if((anRank[fk]||999)<=4) cong[fk]=CONG_VALS[i];
+    if(combinedTotal(fk)>0) cong[fk]=CONG_VALS[i];
   }
   active.forEach(fk=>{
-    if((anRank[fk]||999)<=3) return;
     const diffPct=avg>0?((avg-combinedTotal(fk))/avg*100):0;
     if(diffPct>=15) tru[fk]=10;
     else if(diffPct>=8) tru[fk]=5;
@@ -293,7 +314,7 @@ function buildOvTable(fkList){
   const grpTotal=active.reduce((s,fk)=>s+combinedTotal(fk),0)||1;
   const maxTotal=Math.max(...fkList.map(fk=>combinedTotal(fk)),1);
   const KHAC_OPTS=['','C.Bộ Phận','Về Phép','Học Việc','Nghỉ Việc'];
-  let h="<thead><tr><th style='text-align:left'>TÊN NHÂN VIÊN</th><th>BXH</th><th style='text-align:left'>Tổng (đơn+KM)</th><th>Ngày làm việc</th><th>TB ngày</th><th>Tỷ trọng</th><th>Cộng</th><th>Trừ</th><th>Khác</th><th style='text-align:left'>Ghi chú</th></tr></thead><tbody>";
+  let h="<thead><tr><th style='text-align:left'>TÊN NHÂN VIÊN</th><th>BXH</th><th style='text-align:left'>Tổng (đơn+KM)</th><th title='Mỗi báo cáo đại lý ngoài được ✅ Xác Nhận trên Telegram = +100 điểm Duyệt Đơn (đã gồm trong cột Tổng)'>Đại lý +100</th><th>Ngày làm việc</th><th>TB ngày</th><th>Tỷ trọng</th><th>Cộng</th><th>Trừ</th><th>Khác</th><th style='text-align:left'>Ghi chú</th></tr></thead><tbody>";
   fkList.forEach(fk=>{
     const fd=D.fk_data[fk];
     const ov=ovGet(fk);
@@ -328,6 +349,7 @@ function buildOvTable(fkList){
       <td class="sticky-col"><b>${fd.name}</b>${isExcl?`<span style="font-size:.55rem;background:rgba(239,68,68,.15);color:#ef4444;border-radius:4px;padding:1px 5px;margin-left:5px">${ov.khac}</span>`:""}</td>
       <td class="${bc}">${rnk}</td>
       <td class="bar-cell"><div class="bar-fill" style="width:${barPct}%;background:${col}"></div><span class="bar-text">${nn(ctot)}</span></td>
+      <td style="text-align:center">${dlTotal(fk)>0?`<span class="dl-chip" title="${dlCount(fk)} lượt × ${DL_PTS}">+${nn(dlTotal(fk))}</span>`:`<span style="color:var(--mu)">-</span>`}</td>
       ${wdCell}
       <td>${nn(avg)}</td>
       <td>${pct}</td>
@@ -514,93 +536,10 @@ function rosterToggleActive(i){
   rosterRenderList();
 }
 
-// ===== TAB: BẤT THƯỜNG THEO NGÀY (2 bảng song song: Abuse + MKT) =====
-function buildAnGridAbuse(fkList){
-  const allD=Array.from({length:31},(_,i)=>i+1),actD=D.days_in_month||[];
-  const ranked=[...fkList].sort((a,b)=>anCombined(b)-anCombined(a));
-  const rm={};ranked.forEach((fk,i)=>{rm[fk]=i+1;});
-  let h="<table class='mtbl'><thead><tr><th class='sticky-col'>TÊN NHÂN VIÊN</th><th>BXH</th><th>Tổng</th>";
-  allD.forEach(d=>{h+="<th style='"+(actD.includes(d)?"":"color:#64748b")+"'>"+d+"</th>";});
-  h+="</tr></thead><tbody>";
-  fkList.forEach(fk=>{
-    const fd=D.fk_data[fk],tot=anCombined(fk),rnk=rm[fk],bc=rnk===1?"cell-1":rnk===2?"cell-2":rnk===3?"cell-3":"";
-    h+="<tr><td class='sticky-col'>"+fd.name+"</td><td class='"+bc+"'>"+rnk+"</td><td class='cell-tot'>"+(tot>0?nn(tot):"-")+"</td>";
-    allD.forEach(d=>{
-      const v=anGet('abuse',fk,d);
-      h+=`<td class="cell-edit" contenteditable="true" data-fk="${fk}" data-day="${d}" data-cat="abuse" onblur="onAnBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${v||""}</td>`;
-    });
-    h+="</tr>";
-  });
-  const tg=fkList.reduce((s,fk)=>s+anCombined(fk),0);
-  h+="<tr class='total-row'><td class='sticky-col'>TỔNG</td><td>-</td><td>"+nn(tg)+"</td>";
-  allD.forEach(d=>{
-    const v=fkList.reduce((s,fk)=>s+anGet('abuse',fk,d)+anGet('mkt',fk,d),0);
-    h+="<td>"+(v>0?nn(v):"-")+"</td>";
-  });
-  h+="</tr></tbody></table>";
-  return h;
-}
-function buildAnGridMkt(fkList){
-  const allD=Array.from({length:31},(_,i)=>i+1),actD=D.days_in_month||[];
-  let h="<table class='mtbl'><thead><tr><th class='sticky-col'>TÊN NHÂN VIÊN</th><th>Tổng</th>";
-  allD.forEach(d=>{h+="<th style='"+(actD.includes(d)?"":"color:#64748b")+"'>"+d+"</th>";});
-  h+="</tr></thead><tbody>";
-  fkList.forEach(fk=>{
-    const fd=D.fk_data[fk],tot=anTotal('mkt',fk);
-    h+="<tr><td class='sticky-col'>"+fd.name+"</td><td class='cell-tot'>"+(tot>0?nn(tot):"-")+"</td>";
-    allD.forEach(d=>{
-      const v=anGet('mkt',fk,d);
-      h+=`<td class="cell-edit" contenteditable="true" data-fk="${fk}" data-day="${d}" data-cat="mkt" onblur="onAnBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${v||""}</td>`;
-    });
-    h+="</tr>";
-  });
-  const tg=fkList.reduce((s,fk)=>s+anTotal('mkt',fk),0);
-  h+="<tr class='total-row'><td class='sticky-col'>TỔNG</td><td>"+nn(tg)+"</td>";
-  allD.forEach(d=>{
-    const v=fkList.reduce((s,fk)=>s+anGet('mkt',fk,d),0);
-    h+="<td>"+(v>0?nn(v):"-")+"</td>";
-  });
-  h+="</tr></tbody></table>";
-  return h;
-}
-function onAnBlur(el){
-  const fk=el.dataset.fk,day=Number(el.dataset.day),cat=el.dataset.cat||'abuse';
-  const val=el.textContent.replace(/[^\d]/g,"");
-  anSet(cat,fk,day,Number(val||0));
-  rKoAnomaly();
-}
-function rKoAnomaly(){
-  document.getElementById("anVipCount").textContent=D.fkvip.length+" người";
-  document.getElementById("anOnlCount").textContent=D.fkonl.length+" người";
-  document.getElementById("mktVipCount").textContent=D.fkvip.length+" người";
-  document.getElementById("mktOnlCount").textContent=D.fkonl.length+" người";
-  document.getElementById("anVipTable").innerHTML=buildAnGridAbuse(D.fkvip);
-  document.getElementById("anOnlTable").innerHTML=buildAnGridAbuse(D.fkonl);
-  document.getElementById("mktVipTable").innerHTML=buildAnGridMkt(D.fkvip);
-  document.getElementById("mktOnlTable").innerHTML=buildAnGridMkt(D.fkonl);
-
-  const totalAll=FK_KEYS.reduce((s,fk)=>s+anCombined(fk),0);
-  document.getElementById("an_total").textContent=nn(totalAll);
-
-  const vRanked=[...D.fkvip].sort((a,b)=>anCombined(b)-anCombined(a));
-  const oRanked=[...D.fkonl].sort((a,b)=>anCombined(b)-anCombined(a));
-  const topVip=vRanked[0],topVipT=topVip?anCombined(topVip):0;
-  const topOnl=oRanked[0],topOnlT=topOnl?anCombined(topOnl):0;
-  document.getElementById("an_topvip").textContent=topVipT>0?D.fk_data[topVip].name:"-";
-  document.getElementById("an_topvips").textContent=topVipT>0?nn(topVipT)+" lượt":"-";
-  document.getElementById("an_toponl").textContent=topOnlT>0?D.fk_data[topOnl].name:"-";
-  document.getElementById("an_toponls").textContent=topOnlT>0?nn(topOnlT)+" lượt":"-";
-  const allRanked=[...FK_KEYS].sort((a,b)=>anCombined(b)-anCombined(a));
-  const topAll=allRanked[0],topAllT=topAll?anCombined(topAll):0;
-  document.getElementById("an_topall").textContent=topAllT>0?D.fk_data[topAll].name:"-";
-  document.getElementById("an_topalls").textContent=topAllT>0?nn(topAllT)+" lượt":"-";
-}
-
 function rKO(){
   if(koView==="overview")rKoOverview();
   else if(koView==="daily")rKoDaily();
   else if(koView==="limit")rKoLimit();
-  else rKoAnomaly();
 }
 // (Cảnh báo "Vượt Hạn Mức" đã chuyển sang tab Dữ Liệu → Báo Cáo Đơn Rút — xem DR.renderOverLimit)
 

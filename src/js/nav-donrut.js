@@ -3,7 +3,6 @@ function sw(pg,el){document.querySelectorAll(".tab").forEach(t=>t.classList.remo
 function smv(v,el){mView=v;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");rKoDaily();}
 function srk(g,el){rkGrp=g;selFK=null;document.getElementById("dp").classList.remove("show");document.getElementById("rkVipBtn").classList.remove("active");document.getElementById("rkOnlBtn").classList.remove("active");el.classList.add("active");rRank();}
 function skv(v,el){koView=v;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");document.querySelectorAll(".ko-view").forEach(p=>p.style.display="none");document.getElementById("ko-"+v).style.display="block";rKO();}
-function sac(c,el){anCat=c;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");rKoAnomaly();}
 let dataSrc="don";
 let donSub='time'; // 'time' = Thời Gian Cao Điểm | 'donrut' = Báo Cáo Đơn Rút
 function sds(src,el){dataSrc=src;el.parentElement.querySelectorAll(".vt-btn").forEach(t=>t.classList.remove("active"));el.classList.add("active");selDay=null;

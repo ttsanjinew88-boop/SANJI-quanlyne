@@ -161,6 +161,10 @@ input#fh{display:none}
 .fkm-name{font-size:.8rem;font-weight:800;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:18px}
 .fkm-score{font-size:1.1rem;font-weight:900;line-height:1.05}
 .fkm-sub{font-size:.54rem;color:var(--mu);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Điểm cộng ĐẠI LÝ NGOÀI (+100/lượt ✅ Telegram) — màu vàng --go cho mọi nơi hiển thị */
+.dl-chip{display:inline-block;margin-top:3px;padding:1px 6px;border-radius:4px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.45);color:var(--go);font-size:.6rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;line-height:1.3;white-space:nowrap}
+td.dl-cell{background:rgba(245,158,11,.10);box-shadow:inset 0 0 0 1px rgba(245,158,11,.45)}
+td.dl-cell::after{content:attr(data-dl);display:block;font-size:.55rem;font-weight:800;color:var(--go);line-height:1.1}
 
 /* TABLE */
 .mtbl-wrap{overflow-x:auto}
@@ -430,30 +434,10 @@ select.wk-code{cursor:pointer;outline:none}
 .bc-bt-status{text-align:center;font-size:12px;margin-top:10px;min-height:18px;font-weight:bold}
 .bc-bt-trigger{padding:7px 14px;background:rgba(124,58,237,.1);color:var(--pu2);border:1px solid rgba(124,58,237,.35);border-radius:5px;cursor:pointer;font-size:11px;font-weight:700;margin-left:8px;letter-spacing:.04em}
 .bc-bt-trigger:hover{background:rgba(124,58,237,.2)}
-.bc-cu-trigger{padding:7px 14px;background:rgba(124,58,237,.1);color:var(--pu2);border:1px solid rgba(124,58,237,.35);border-radius:5px;cursor:pointer;font-size:11px;font-weight:700;margin-left:8px;letter-spacing:.04em}
-.bc-cu-trigger:hover{background:rgba(124,58,237,.2)}
 /* Tô ô nghi ngờ (bấm vào ô trong bảng chi tiết): cam = thường, đỏ nhạt = Âm/Dương */
 .bc-mkc{cursor:cell}
 td.bc-mk{background:rgba(244,176,132,.45)!important;box-shadow:inset 0 0 0 1px #f4b084;color:#ffd9b8;font-weight:700}
 td.bc-mk-ad{background:rgba(239,68,68,.35)!important;box-shadow:inset 0 0 0 1px #ef4444;color:#fecaca;font-weight:700}
-/* bc cuoc bat thuong modal */
-.bc-cu-title{font-size:15px;font-weight:bold;color:var(--pu2);margin-bottom:14px;text-align:center;border-bottom:1px solid var(--border2);padding-bottom:10px;letter-spacing:.04em}
-.bc-cu-chip{padding:6px 12px;border:1px solid var(--border2);border-radius:6px;cursor:pointer;font-size:11px;font-weight:bold;color:var(--mu2);transition:all .15s;user-select:none}
-.bc-cu-chip.sel{background:var(--pu);border-color:var(--pu);color:#fff}
-.bc-cu-chip:hover:not(.sel){border-color:var(--pu);color:var(--pu2)}
-.bc-cu-file-wrap{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.bc-cu-file-label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:18px 14px;border:2px dashed rgba(124,58,237,.5);border-radius:10px;cursor:pointer;width:100%;background:rgba(124,58,237,.04);box-sizing:border-box;transition:all .18s;min-height:120px;user-select:none}
-.bc-cu-file-label:hover,.bc-cu-file-label.drag{background:rgba(124,58,237,.1);border-color:var(--pu);border-style:solid}
-.bc-cu-file-label input[type=file]{display:none;pointer-events:none}
-.bc-cu-dz-icon{font-size:26px;line-height:1;margin-bottom:4px;color:var(--pu2);font-weight:900}
-.bc-cu-dz-main{font-size:13px;font-weight:bold;color:var(--pu2)}
-.bc-cu-dz-sub{font-size:11px;color:var(--mu2);font-weight:normal}
-.bc-cu-fname{font-size:12px;font-weight:bold;color:#22c55e;margin-top:3px;text-align:center;max-width:100%;word-break:break-all}
-.bc-cu-has-file{border-style:solid;background:rgba(34,197,94,.07);border-color:#22c55e}
-.bc-cu-has-file .bc-cu-dz-icon{color:#22c55e}
-.bc-cu-send{flex:1;padding:10px;background:linear-gradient(135deg,var(--pu),var(--bl));color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;box-shadow:0 4px 15px rgba(124,58,237,.3)}
-.bc-cu-send:hover{opacity:.9;transform:translateY(-1px)}
-.bc-cu-send:disabled{background:var(--border2);color:var(--mu);cursor:not-allowed;transform:none;box-shadow:none}
 .bc-tool .tc{text-align:center}.bc-tool .tl{text-align:left}
 .bc-tool .stt{color:var(--mu);font-size:10px}
 .bc-tool .b-dat{background:#22c55e;color:white;padding:1px 7px;border-radius:9px;font-size:10px;white-space:nowrap}

@@ -570,7 +570,7 @@ function rRank(){
     const ov=slots.map(x=>{
       const fd=D.fk_data[x.fk];
       const stroke="-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff,0 0 10px "+x.nc;
-      // Ẩn tên khi: (1) ngày 1-25 tháng hiện tại, (2) không có điểm CỘNG (hạng xử lý bất thường thấp)
+      // Ẩn tên khi: (1) ngày 1-25 tháng hiện tại, (2) không có điểm CỘNG (chưa có điểm hiệu suất)
       const label=(!hideNames&&combinedTotal(x.fk)>0&&(cong[x.fk]||0)>0)?fd.name:"";
       return "<div style=\"position:absolute;left:"+x.l+";top:"+x.t+";transform:translate(-50%,-50%);text-align:center\"><div style=\"color:"+x.nc+";font-weight:900;font-size:"+x.fs+";text-shadow:"+stroke+";letter-spacing:1px;white-space:nowrap\">"+label+"</div></div>";
     }).join('');

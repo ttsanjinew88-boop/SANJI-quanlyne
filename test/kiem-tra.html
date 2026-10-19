@@ -1206,6 +1206,55 @@ caA('Telegram: bản tạm chờ Xác Nhận phải nằm trong loại BỊ KHO�
   bang(loai.filter(t=>!khoa.includes(t)),[],'bản tạm chứa dữ liệu khách -> loại này nhân viên đọc thẳng được');
 });
 
+/* =====================================================================
+   17. THƯỞNG TOP & ĐẠI LÝ NGOÀI +100 (chốt 19/10/2026)
+   - Bỏ điều kiện "top 4 bất thường" để nhận thưởng và "top 3 bất thường được miễn phạt".
+   - Mỗi lượt đại lý ngoài (KO_AN.mkt) = +100 điểm Duyệt Đơn, CHỈ từ tháng 2026-10, tính vào xếp hạng thưởng.
+   ===================================================================== */
+nhom('17. Thưởng top hiệu suất & Đại lý ngoài +100');
+
+function dungThang17(mk,diem,mkt,abuse){
+  CUR_MONTH=mk; KMD=null; KO_OV={};
+  D=dsGia(Object.keys(diem));
+  for(const k in diem)D.fk_data[k].total_score=diem[k];
+  KO_AN={abuse:abuse||{},mkt:mkt||{}};
+}
+caA('Top 1-2-3 điểm nhận +15/+10/+5 dù KHÔNG có lượt bất thường nào', ()=>voiTrangThai(async()=>{
+  dungThang17('2026-10',{fka:900,fkb:800,fkc:700,fkd:600,fke:500},{},{fke:{1:50}});
+  const {cong}=calcBonusPenalty(['fka','fkb','fkc','fkd','fke']);
+  bang([cong.fka,cong.fkb,cong.fkc,cong.fkd,cong.fke],[15,10,5,0,0]);
+}));
+caA('Đứng đầu bất thường KHÔNG còn được miễn trừ điểm khi hiệu suất thấp', ()=>voiTrangThai(async()=>{
+  dungThang17('2026-10',{fka:1000,fkb:1000,fkc:1000,fkd:100},{},{fkd:{1:99}});
+  const {tru}=calcBonusPenalty(['fka','fkb','fkc','fkd']);
+  bang(tru.fkd,10,'người thấp nhất (dù bất thường cao nhất)');
+}));
+caA('Tháng 10/2026: mỗi lượt đại lý ngoài = +100 điểm Duyệt Đơn và đổi được hạng thưởng', ()=>voiTrangThai(async()=>{
+  dungThang17('2026-10',{fka:900,fkb:850,fkc:700},{fkb:{3:1,12:1}});
+  bang(dlTotal('fkb'),200,'điểm đại lý');
+  bang(dlDay('fkb',3),100,'ngày 3');
+  bang(donScore('fkb'),1050,'Duyệt Đơn gồm +200');
+  bang(combinedTotal('fkb'),1050,'Tổng (đơn+KM)');
+  bang(D.fk_data.fkb.total_score,850,'KHÔNG ghi vào dataset don (upload lại sẽ mất)');
+  const {cong}=calcBonusPenalty(['fka','fkb','fkc']);
+  bang([cong.fkb,cong.fka],[15,10],'fkb vươn lên top 1');
+}));
+caA('Tháng cũ (trước 10/2026): đại lý ngoài KHÔNG cộng điểm', ()=>voiTrangThai(async()=>{
+  dungThang17('2026-09',{fka:900,fkb:850},{fkb:{3:5}});
+  bang(dlTotal('fkb'),0);
+  bang(combinedTotal('fkb'),850);
+}));
+caA('Ô ngày có cộng +100 ghi bằng data-dl (CSS ::after) — chỉnh tay không đọc nhầm số +100', ()=>voiTrangThai(async()=>{
+  dungThang17('2026-10',{fka:10},{fka:{2:1}});
+  D.fk_data.fka.day_scores[1]=10;
+  const h=voiGia({canEdit:()=>true},()=>buildCombinedPerfTable(D,true,'don'));
+  const html=await h, box=document.createElement('table'); box.innerHTML=html.replace(/^<table[^>]*>|<\/table>$/g,'');
+  const td=box.querySelector('td[data-day="2"]');
+  bang(!!td,true,'phải có ô chỉnh tay ngày 2');
+  bang(td.getAttribute('data-dl'),'+100','nhãn +100');
+  bang(td.textContent.trim(),'10','textContent chỉ là điểm gốc');
+}));
+
 /* ---------- chạy hàng đợi bất đồng bộ rồi tổng kết ---------- */
 (async()=>{
   for(const x of _hangDoi){

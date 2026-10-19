@@ -437,7 +437,6 @@
   <div class="view-toggle" id="koViewToggle">
     <div class="vt-btn active" onclick="skv('overview',this)">Tổng Quan</div>
     <div class="vt-btn" onclick="skv('daily',this)">Duyệt Đơn</div>
-    <div class="vt-btn" onclick="skv('anomaly',this)">Bất Thường</div>
     <div class="vt-btn" id="koLimitBtn" onclick="skv('limit',this)">Đề Xuất Hạn Mức Duyệt</div>
   </div>
 
@@ -468,11 +467,11 @@
           <tbody>
             <tr><td style="text-align:left">Hạng 1 hiệu suất</td><td style="color:var(--gr);font-weight:800">+15</td><td style="text-align:left">TB ngày thấp nhất nhóm (≥15% dưới TB)</td><td style="color:var(--re);font-weight:800">−10</td></tr>
             <tr><td style="text-align:left">Hạng 2 hiệu suất</td><td style="color:var(--gr);font-weight:800">+10</td><td style="text-align:left">TB ngày thấp thứ 2 (≥8% dưới TB)</td><td style="color:var(--re);font-weight:800">−5</td></tr>
-            <tr><td style="text-align:left">Hạng 3 hiệu suất</td><td style="color:var(--gr);font-weight:800">+5</td><td style="text-align:left" colspan="2"><span style="color:var(--go);font-weight:700">Miễn phạt nếu hạng xử lý bất thường Top 3</span></td></tr>
+            <tr><td style="text-align:left">Hạng 3 hiệu suất</td><td style="color:var(--gr);font-weight:800">+5</td><td colspan="2"></td></tr>
           </tbody>
         </table>
         <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:10px 12px;font-size:.62rem;color:var(--go);margin-bottom:14px;text-align:center;line-height:1.6">
-          <div>Thưởng hiệu suất yêu cầu hạng xử lý bất thường (kiểm tra khách) <b>Top 4 trở lên</b></div>
+          <div>Báo cáo đại lý ngoài được ✅ Xác Nhận trên Telegram: <b>+100 điểm Duyệt Đơn</b> mỗi lượt (tính vào xếp hạng thưởng)</div>
           <div style="color:var(--re);margin-top:6px">Điều kiện trong tháng không sai đến lỗi thứ 4, và không mắc lỗi nghiêm trọng sai đơn đối đầu, xử lý sai khách ảnh hưởng uy tín..vv</div>
         </div>
         <div class="chart-title" style="color:var(--pu2)">Qui tắc tính hiệu suất duyệt đơn</div>
@@ -522,29 +521,6 @@
       <div class="dp-header"><div class="dp-name" id="koDpName">-</div><span class="fk-card-type" id="koDpBadge">-</span><div class="dp-stats"><span>Điểm: <b id="koDpSc">-</b></span><span>Đơn: <b id="koDpCt">-</b></span></div></div>
       <div style="height:180px"><canvas id="koDpCh"></canvas></div>
     </div>
-  </div>
-
-  <!-- VIEW: BẤT THƯỜNG THEO NGÀY -->
-  <div class="ko-view" id="ko-anomaly" style="display:none">
-    <div class="stats-row">
-      <div class="stat-card pu"><div class="stat-lbl">Tổng lượt bất thường tháng</div><div class="stat-val pu" id="an_total">0</div><div class="stat-sub" id="an_cat_lbl">Cược + Đại lý ngoài (tổng hợp)</div></div>
-      <div class="stat-card go"><div class="stat-lbl">FK ghi nhận nhiều nhất</div><div class="stat-val go" id="an_topall">-</div><div class="stat-sub" id="an_topalls">-</div></div>
-      <div class="stat-card gr"><div class="stat-lbl">FKVIP dẫn đầu BT</div><div class="stat-val gr" id="an_topvip">-</div><div class="stat-sub" id="an_topvips">-</div></div>
-      <div class="stat-card pk"><div class="stat-lbl">FKONL dẫn đầu BT</div><div class="stat-val pk" id="an_toponl">-</div><div class="stat-sub" id="an_toponls">-</div></div>
-    </div>
-    <div style="font-size:.6rem;color:var(--mu);margin-bottom:10px">Click vào ô số theo ngày để sửa trực tiếp — tự lưu &amp; tính lại tổng/xếp hạng ngay (giống thao tác trên bảng tính)</div>
-
-    <div class="sec-hdr" style="color:var(--go)">CƯỢC BẤT THƯỜNG — LẠM DỤNG <span style="font-size:.58rem;color:var(--mu);text-transform:none;font-weight:400">(Tổng = Cược + Đại lý ngoài)</span></div>
-    <div class="sec-hdr" style="color:var(--vip-c);font-size:.58rem">FKVIP <span class="cnt-badge" id="anVipCount">0 người</span></div>
-    <div class="mtbl-wrap" id="anVipTable" style="margin-bottom:12px"></div>
-    <div class="sec-hdr" style="color:var(--onl-c);font-size:.58rem">FKONL <span class="cnt-badge" id="anOnlCount">0 người</span></div>
-    <div class="mtbl-wrap" id="anOnlTable" style="margin-bottom:24px"></div>
-
-    <div class="sec-hdr" style="color:var(--bl2)">ĐẠI LÝ NGOÀI — MKT BẤT THƯỜNG</div>
-    <div class="sec-hdr" style="color:var(--vip-c);font-size:.58rem">FKVIP <span class="cnt-badge" id="mktVipCount">0 người</span></div>
-    <div class="mtbl-wrap" id="mktVipTable" style="margin-bottom:12px"></div>
-    <div class="sec-hdr" style="color:var(--onl-c);font-size:.58rem">FKONL <span class="cnt-badge" id="mktOnlCount">0 người</span></div>
-    <div class="mtbl-wrap" id="mktOnlTable"></div>
   </div>
 
   <!-- VIEW: ĐỀ XUẤT HẠN MỨC DUYỆT -->
@@ -922,7 +898,6 @@
     <input type="text" id="bc-agent-text" list="bc-agent-list" placeholder="Hoặc dán tên đại lý..." oninput="BC.pickAgentText(this,1)" onchange="BC.pickAgentText(this,0)">
     <datalist id="bc-agent-list"></datalist>
     <button class="bc-bt-trigger" onclick="BC.openBtModal()">Báo cáo đại lý bất thường</button>
-    <button class="bc-cu-trigger" onclick="BC.openCuModal()">Báo cáo cược bất thường</button>
   </div>
   <div class="info-bar" id="bc-info-bar" style="display:none"></div>
   <div class="tbl-wrap">
@@ -975,37 +950,6 @@
       <button class="bc-bt-cancel" onclick="BC.closeBtModal()">✕ Hủy bỏ</button>
     </div>
     <div id="bc-bt-status" class="bc-bt-status"></div>
-  </div>
-</div>
-
-<!-- Báo Cáo Cược Bất Thường Modal -->
-<div class="bc-bt-modal" id="bc-cu-modal" style="display:none">
-  <div class="bc-bt-box">
-    <div class="bc-cu-title">BÁO CÁO CƯỢC BẤT THƯỜNG</div>
-    <div style="margin-bottom:14px">
-      <span class="bc-bt-lbl">Nhân viên phụ trách (FK):</span>
-      <div class="bc-bt-chips" style="gap:6px" id="bcCuChips"></div>
-    </div>
-    <div style="margin-bottom:14px">
-      <span class="bc-bt-lbl">Đính kèm file / hình ảnh (tuỳ chọn):</span>
-      <label class="bc-cu-file-label" id="bc-cu-drop"
-        ondragover="BC.onCuDrag(event,true)" ondragleave="BC.onCuDrag(event,false)" ondrop="BC.onCuDrop(event)">
-        <input type="file" id="bc-cu-file" multiple accept="image/*,.xlsx,.xls,.pdf,.zip,.rar,.doc,.docx" onchange="BC.onCuFile(this)">
-        <div class="bc-cu-dz-icon">↑</div>
-        <div class="bc-cu-dz-main">Kéo thả file / hình ảnh vào đây</div>
-        <div class="bc-cu-dz-sub">hoặc dán ảnh bằng <kbd style="background:#e5e7eb;border-radius:3px;padding:1px 5px;font-size:10px;font-family:inherit">Ctrl+V</kbd>&nbsp;·&nbsp;hoặc bấm để chọn file</div>
-        <div class="bc-cu-fname" id="bc-cu-fname"></div>
-      </label>
-    </div>
-    <div style="margin-bottom:14px">
-      <span class="bc-bt-lbl">Nội dung báo cáo:</span>
-      <textarea id="bc-cu-content" class="bc-bt-textarea" style="height:100px" placeholder="Nhập nội dung cược bất thường, mô tả chi tiết..."></textarea>
-    </div>
-    <div class="bc-bt-actions">
-      <button class="bc-cu-send" id="bc-cu-send-btn" onclick="BC.sendCuocBatThuong()">Gửi Báo Cáo</button>
-      <button class="bc-bt-cancel" style="color:#0369a1;border-color:#0369a1" onclick="BC.closeCuModal()">✕ Hủy bỏ</button>
-    </div>
-    <div id="bc-cu-status" class="bc-bt-status"></div>
   </div>
 </div>
 

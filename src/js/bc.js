@@ -1176,12 +1176,10 @@ const BC={
   // ---- Báo cáo đại lý bất thường ----
   _selFk: null,
 
-  // Render chip nhân viên phụ trách TỪ ROSTER (động): bất thường = nhóm VIP; cược = tất cả nhân viên active.
+  // Render chip nhân viên phụ trách TỪ ROSTER (động) = nhóm VIP. (Báo cược bất thường đã gỡ 19/10/2026.)
   renderFkChips(){
     const bt=document.getElementById('bcBtChips');
     if(bt)bt.innerHTML=FKVIP.map(fk=>`<div class="bc-bt-chip" onclick="BC.selectFk('${FK_NAMES[fk]}')">${FK_NAMES[fk]}</div>`).join('');
-    const cu=document.getElementById('bcCuChips');
-    if(cu)cu.innerHTML=FK_KEYS.map(fk=>`<div class="bc-cu-chip" onclick="BC.selectCuFk('${FK_NAMES[fk]}')">${FK_NAMES[fk]}</div>`).join('');
   },
 
   openBtModal(){
@@ -1328,125 +1326,6 @@ ${CW.map(w=>`<Column ss:Width="${w}"/>`).join('')}
 <Row ss:AutoFitHeight="1">${HDRS.map(h=>c(h,hSty,true)).join('')}</Row>${body}`;
     x+=`</Table></Worksheet></Workbook>`;
     return new Blob(['﻿'+x],{type:'application/vnd.ms-excel;charset=utf-8'});
-  },
-
-  // ---- Báo cáo cược bất thường ----
-  _selCuFk:null, _cuFiles:[], _cuPaste:null,
-
-  /* Hỗ trợ NHIỀU file/ảnh cùng lúc: chọn, kéo thả, dán nhiều lần đều gom vào danh sách */
-  _cuAddFile(f){
-    if(!f)return;
-    BC._cuFiles.push(f);
-    BC._cuRenderFiles();
-  },
-  _cuRemoveFile(i){
-    BC._cuFiles.splice(i,1);
-    BC._cuRenderFiles();
-  },
-  _cuRenderFiles(){
-    const dz=document.getElementById('bc-cu-drop');
-    const nm=document.getElementById('bc-cu-fname');
-    const icon=dz.querySelector('.bc-cu-dz-icon');
-    const main=dz.querySelector('.bc-cu-dz-main');
-    const sub=dz.querySelector('.bc-cu-dz-sub');
-    if(!BC._cuFiles.length){
-      nm.innerHTML='';
-      dz.classList.remove('bc-cu-has-file');
-      if(icon){icon.style.display='';icon.textContent='↑';}
-      if(main){main.style.display='';main.textContent='Kéo thả file / hình ảnh vào đây';}
-      if(sub)sub.style.display='';
-      return;
-    }
-    dz.classList.add('bc-cu-has-file');
-    if(icon)icon.style.display='none';
-    if(main)main.textContent='Đã chọn '+BC._cuFiles.length+' file (thêm tiếp được)';
-    if(sub)sub.style.display='none';
-    nm.innerHTML=BC._cuFiles.map((f,i)=>{
-      const size=f.size>1024*1024?(f.size/1024/1024).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB';
-      return `<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:3px"><span>${(f.name||'paste.png')} (${size})</span><b style="color:#ef4444;cursor:pointer" onclick="event.preventDefault();event.stopPropagation();BC._cuRemoveFile(${i})">✕</b></div>`;
-    }).join('');
-  },
-
-  openCuModal(){
-    if(CUR_PROFILE&&!canEdit('bc')){alert('Bạn chỉ có quyền XEM, không được gửi báo cáo.');return;}
-    BC._selCuFk=null;BC._cuFiles=[];
-    BC.renderFkChips();
-    document.querySelectorAll('.bc-cu-chip').forEach(c=>c.classList.remove('sel'));
-    document.getElementById('bc-cu-content').value='';
-    document.getElementById('bc-cu-file').value='';
-    document.getElementById('bc-cu-fname').innerHTML='';
-    const _dz=document.getElementById('bc-cu-drop');
-    _dz.classList.remove('bc-cu-has-file');
-    const _dzIcon=_dz.querySelector('.bc-cu-dz-icon');
-    const _dzMain=_dz.querySelector('.bc-cu-dz-main');
-    const _dzSub=_dz.querySelector('.bc-cu-dz-sub');
-    if(_dzIcon){_dzIcon.style.display='';_dzIcon.textContent='↑';}
-    if(_dzMain){_dzMain.style.display='';_dzMain.textContent='Kéo thả file / hình ảnh vào đây';}
-    if(_dzSub)_dzSub.style.display='';
-    document.getElementById('bc-cu-status').textContent='';
-    document.getElementById('bc-cu-send-btn').disabled=false;
-    document.getElementById('bc-cu-modal').style.display='flex';
-    /* paste listener — capture phase so we intercept before textarea */
-    if(BC._cuPaste){document.removeEventListener('paste',BC._cuPaste,true);BC._cuPaste=null;}
-    BC._cuPaste=function(e){
-      const items=(e.clipboardData||window.clipboardData)?.items;
-      if(!items)return;
-      for(const it of [...items]){
-        if(it.type.startsWith('image/')){
-          const f=it.getAsFile();
-          if(f){
-            BC._cuAddFile(new File([f],`paste_${Date.now()}.png`,{type:f.type}));
-            e.preventDefault();
-            e.stopPropagation();
-          }
-          return;
-        }
-      }
-    };
-    document.addEventListener('paste',BC._cuPaste,true);
-  },
-
-  closeCuModal(){
-    document.getElementById('bc-cu-modal').style.display='none';
-    if(BC._cuPaste){document.removeEventListener('paste',BC._cuPaste,true);BC._cuPaste=null;}
-  },
-
-  selectCuFk(fk){
-    BC._selCuFk=fk;
-    document.querySelectorAll('.bc-cu-chip').forEach(c=>c.classList.toggle('sel',c.textContent===fk));
-  },
-
-  onCuFile(inp){Array.from(inp.files||[]).forEach(f=>BC._cuAddFile(f));inp.value='';},
-
-  onCuDrag(e,on){e.preventDefault();document.getElementById('bc-cu-drop').classList.toggle('drag',on);},
-
-  onCuDrop(e){
-    e.preventDefault();
-    document.getElementById('bc-cu-drop').classList.remove('drag');
-    Array.from(e.dataTransfer?.files||[]).forEach(f=>BC._cuAddFile(f));
-  },
-
-  async sendCuocBatThuong(){
-    if(!BC._selCuFk){alert('Vui lòng chọn nhân viên phụ trách (FK)!');return;}
-    const content=document.getElementById('bc-cu-content').value.trim();
-    const files=BC._cuFiles.slice();
-    const status=document.getElementById('bc-cu-status');
-    const btn=document.getElementById('bc-cu-send-btn');
-    btn.disabled=true;
-    status.style.color='#888';status.textContent='Đang gửi...';
-    try{
-      const res=await BC.callSendReport('cuoc',BC._fkKey(BC._selCuFk),content,'',files);
-      if(res.ok){
-        status.style.color='#22c55e';status.textContent='Đã gửi thành công!';
-        setTimeout(()=>BC.closeCuModal(),1800);
-      }else{
-        status.style.color='#ef4444';status.textContent='Lỗi: '+(res.description||'Unknown');
-        btn.disabled=false;
-      }
-    }catch(err){
-      status.style.color='#ef4444';status.textContent='Lỗi: '+err.message;
-      btn.disabled=false;
-    }
   }
 };
 

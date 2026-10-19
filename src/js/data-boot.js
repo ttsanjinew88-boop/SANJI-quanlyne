@@ -508,7 +508,7 @@ async function _saveKoAnOnce(){
 function anGet(cat,fk,day){return (KO_AN[cat]&&KO_AN[cat][fk]&&KO_AN[cat][fk][day])||0;}
 let _anChanges=[]; // gom các thay đổi để ghi Lịch Sử chi tiết (ô nào, cũ -> mới)
 function anSet(cat,fk,day,val){
-  if(typeof CUR_PROFILE!=='undefined'&&CUR_PROFILE&&typeof canEdit==='function'&&!canEdit('ko')){alert('Bạn chỉ có quyền XEM tab Hiệu Suất KO.');if(typeof rKoAnomaly==='function')rKoAnomaly();return;}
+  if(typeof CUR_PROFILE!=='undefined'&&CUR_PROFILE&&typeof canEdit==='function'&&!canEdit('ko')){alert('Bạn chỉ có quyền XEM tab Hiệu Suất KO.');if(typeof rKO==='function')rKO();return;}
   const from=anGet(cat,fk,day);
   const to=Math.max(0,Number(val)||0);
   if(from===to)return;
